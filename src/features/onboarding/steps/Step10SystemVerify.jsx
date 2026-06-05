@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useOnboardingStore } from "@/features/onboarding/store/onboardingStore";
+import { useOnboardingStore, BANK_SUB } from "@/features/onboarding/store/onboardingStore";
 import { STEPS } from "@/features/onboarding/constants/steps";
 
 // ── Shared: PrimaryButton ────────────────────────────────────────────────────
@@ -150,7 +150,9 @@ export default function Step10SystemVerify({ simulateFail = false, onSuccess }) 
 
   const handleContinue = () => {
     if (onSuccess) onSuccess();
-    else goToStep(STEPS.BANK_ENTER);
+
+    // goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.GST_READONLY); // ✅
+    else goToStep(STEPS.BANK_VERIFICATION, BANK_SUB.ENTER); // or navigate('/onboarding/step11')
   };
 
   return (

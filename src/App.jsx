@@ -12,7 +12,6 @@ import Step8GSTEnter from './features/onboarding/steps/Step8GSTEnter'
 import Step1WhatsApp from './features/onboarding/steps/Step1WhatsApp'
 import Step10SystemVerify from './features/onboarding/steps/Step10SystemVerify'
 import Step11BankEnter from './features/onboarding/steps/Step11BankEnter'
-import Step13Complete from './features/onboarding/steps/Step13Complete'
  import Step14PartnerContract from './features/onboarding/steps/Step14PartnerContract'
 
 
@@ -47,8 +46,7 @@ function App() {
               {/* Step11BankEnter */}
               <Route path="/onboarding/step11" element={<Step11BankEnter />} />
 
-              {/* Step13Complete */}
-              <Route path="/onboarding/step13" element={<Step13Complete />} />
+       
 
                {/*  partenrContact*/}
             <Route path="/onboarding/step14" element={<Step14PartnerContract />} />

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { validateBankDetails } from '../validation';
-import { useOnboardingStore } from "@/features/onboarding/store/onboardingStore";
+import { useOnboardingStore, BANK_SUB } from "@/features/onboarding/store/onboardingStore";
 import { STEPS } from "@/features/onboarding/constants/steps";
 
 // ── Shared: PrimaryButton ────────────────────────────────────────────────────
@@ -211,7 +211,7 @@ export default function Step11BankEnter({ onFetchSuccess }) {
     setFetching(false);
     setFetchDone(true);
     if (onFetchSuccess) onFetchSuccess(normalised);
-    else goToStep(STEPS.COMPLETE);
+    else goToStep(STEPS.BANK_VERIFICATION,  BANK_SUB.READONLY );
   };
 
   const bannerType = !anyTouched ? null : isFormValid ? 'valid' : 'invalid';

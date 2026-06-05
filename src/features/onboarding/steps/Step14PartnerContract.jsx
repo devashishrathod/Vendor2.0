@@ -1,7 +1,6 @@
 import { useState } from "react";
-// import { useNavigate } from "react-router-dom";
-import { useOnboardingStore } from "@/features/onboarding/store/onboardingStore";
-import { STEPS } from "@/features/onboarding/constants/steps";
+import { useNavigate } from "react-router-dom";
+
 
 // ── Progress Bar ─────────────────────────────────────────────────────────────
 function ProgressBar({ current, total }) {
@@ -42,8 +41,8 @@ const TERMS = [
 
 export default function Step5PartnerContract() {
   const [agreed, setAgreed] = useState(false);
-  // const navigate = useNavigate();
-  const { goToStep } = useOnboardingStore();
+  const navigate = useNavigate();
+ 
 
   return (
     <div className=" flex flex-col items-center justify-center ">
@@ -152,7 +151,7 @@ export default function Step5PartnerContract() {
             {/* CTA — pinned to bottom */}
             <div className="mt-auto">
               <button
-                onClick={() => goToStep(STEPS.COMPLETE)}
+                onClick={() => navigate("/subscription")} // or goToStep(STEPS.COMPLETE)
                 disabled={!agreed}
                 className={`w-full py-3 rounded-xl font-bold text-sm tracking-wide transition-all duration-200 flex items-center justify-center gap-2
                   ${agreed

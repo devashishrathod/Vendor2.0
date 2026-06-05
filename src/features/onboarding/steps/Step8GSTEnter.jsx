@@ -86,18 +86,7 @@ function StatusBanner({ type }) {
   return null;
 }
 
-// ── Progress Bar ─────────────────────────────────────────────────────────────
-function ProgressBar({ current, total }) {
-  const pct = Math.round((current / total) * 100);
-  return (
-    <div className="w-full h-1 bg-gray-100 rounded-full overflow-hidden">
-      <div
-        className="h-full bg-emerald-500 rounded-full transition-all duration-500"
-        style={{ width: `${pct}%` }}
-      />
-    </div>
-  );
-}
+
 
 // ── Main component ───────────────────────────────────────────────────────────
 export default function Step8GSTEnter({ pan = '', onFetchSuccess }) {

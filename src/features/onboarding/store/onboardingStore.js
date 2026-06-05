@@ -1,14 +1,13 @@
 import { create } from "zustand";
 import { STEPS } from "../constants/steps";
 
-// Sub-steps for BASIC_DETAILS
 export const BASIC_SUB = { NAME: 1, REGISTRATION: 2, BUSINESS_TYPE: 3 };
-
-// Sub-steps for BUSINESS_VERIFICATION
-export const BIZ_SUB = { PAN_ENTER: 1, PAN_READONLY: 2, GST_ENTER: 3, GST_READONLY: 4 };
+export const BIZ_SUB   = { PAN_ENTER: 1, PAN_READONLY: 2, GST_ENTER: 3, GST_READONLY: 4 };
+export const BANK_SUB  = { ENTER: 1, READONLY: 2 };  // NEW
 
 const initialFormData = {
   businessName:            "",
+  shortName:               "",
   isRegistered:            null,
   businessType:            "",
   pan:                     "",
@@ -25,7 +24,7 @@ const initialFormData = {
 
 export const useOnboardingStore = create((set) => ({
   currentStep:    STEPS.BASIC_DETAILS,
-  currentSubStep: BASIC_SUB.NAME,   // tracks sub-step within grouped steps
+  currentSubStep: BASIC_SUB.NAME,
   formData:       { ...initialFormData },
   loading:        false,
   error:          null,
@@ -45,7 +44,7 @@ export const useOnboardingStore = create((set) => ({
       error:          null,
     })),
 
-  setField:   (key, value) =>
+  setField: (key, value) =>
     set((s) => ({ formData: { ...s.formData, [key]: value } })),
 
   setLoading: (loading) => set({ loading }),
@@ -56,7 +55,7 @@ export const useOnboardingStore = create((set) => ({
   setBankDetails: (data) => set((s) => ({ formData: { ...s.formData, bankDetails: data } })),
 
   reset: () => set({
-    currentStep:    STEPS.BASIC_DETAILS,   
+    currentStep:    STEPS.BASIC_DETAILS,
     currentSubStep: BASIC_SUB.NAME,
     formData:       { ...initialFormData },
     error:          null,
