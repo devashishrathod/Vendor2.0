@@ -16,35 +16,35 @@ import Step11BankEnter       from "@/features/onboarding/steps/Step11BankEnter";
 import Step12BankReadOnly    from "@/features/onboarding/steps/Step12BankReadOnly";
 import Step14PartnerContract from "@/features/onboarding/steps/Step14PartnerContract";
 
-// ── Bubbles (unchanged) ───────────────────────────────────────────────────────
-const BUBBLES = [
-  [110,'8%','6%','rgba(16,185,129,0.10)',6,0],
-  [70,'18%','28%','rgba(99,102,241,0.09)',8,1],
-  [90,'42%','3%','rgba(244,63,94,0.08)',7,2],
-  [60,'18%','82%','rgba(20,184,166,0.10)',9,0.5],
-  [80,'12%','62%','rgba(245,158,11,0.08)',7.5,3],
-  [45,'75%','12%','rgba(16,185,129,0.11)',5.5,1.5],
-  [50,'55%','22%','rgba(139,92,246,0.09)',10,2.5],
-  [65,'70%','72%','rgba(99,102,241,0.08)',8.5,1],
-];
+// ── Bubbles ───────────────────────────────────────────────────────────────────
+// const BUBBLES = [
+//   [110,'8%','6%','rgba(16,185,129,0.10)',6,0],
+//   [70,'18%','28%','rgba(99,102,241,0.09)',8,1],
+//   [90,'42%','3%','rgba(244,63,94,0.08)',7,2],
+//   [60,'18%','82%','rgba(20,184,166,0.10)',9,0.5],
+//   [80,'12%','62%','rgba(245,158,11,0.08)',7.5,3],
+//   [45,'75%','12%','rgba(16,185,129,0.11)',5.5,1.5],
+//   [50,'55%','22%','rgba(139,92,246,0.09)',10,2.5],
+//   [65,'70%','72%','rgba(99,102,241,0.08)',8.5,1],
+// ];
 
-// ── Sidebar steps — 5 total ───────────────────────────────────────────────────
+// ── Sidebar steps ─────────────────────────────────────────────────────────────
 const SIDEBAR_STEPS = [
-  { id: STEPS.BASIC_DETAILS,         label: "Basic Details",        sub: "STEP 1" },
-  { id: STEPS.BUSINESS_VERIFICATION, label: "Business Verification",sub: "STEP 2" },
-  { id: STEPS.SYSTEM_VERIFY,         label: "System Verify",        sub: "STEP 3" },
-  { id: STEPS.BANK_VERIFICATION,     label: "Bank Verification",    sub: "STEP 4" },
-  { id: STEPS.PARTNER_CONTRACT,      label: "Partner Contract",     sub: "STEP 5" },
+  { id: STEPS.BASIC_DETAILS,         label: "Basic Details",         sub: "STEP 1" },
+  { id: STEPS.BUSINESS_VERIFICATION, label: "Business Verification", sub: "STEP 2" },
+  { id: STEPS.SYSTEM_VERIFY,         label: "System Verify",         sub: "STEP 3" },
+  { id: STEPS.BANK_VERIFICATION,     label: "Bank Verification",     sub: "STEP 4" },
+  { id: STEPS.PARTNER_CONTRACT,      label: "Partner Contract",      sub: "STEP 5" },
 ];
 
-// ── Sub-step dot counts per main step ────────────────────────────────────────
+// ── Sub-step dot counts ───────────────────────────────────────────────────────
 const SUB_TOTALS = {
   [STEPS.BASIC_DETAILS]:         3,
   [STEPS.BUSINESS_VERIFICATION]: 4,
   [STEPS.BANK_VERIFICATION]:     2,
 };
 
-// ── Sub-step label for header ─────────────────────────────────────────────────
+// ── Sub-step label ────────────────────────────────────────────────────────────
 function getSubLabel(currentStep, currentSubStep) {
   if (currentStep === STEPS.BASIC_DETAILS) {
     return { 1: "Business Name", 2: "Registration", 3: "Business Type" }[currentSubStep] ?? "";
@@ -66,17 +66,17 @@ function resolveComponent(currentStep, currentSubStep) {
     if (currentSubStep === BASIC_SUB.BUSINESS_TYPE) return <Step5BusinessType />;
   }
   if (currentStep === STEPS.BUSINESS_VERIFICATION) {
-    if (currentSubStep === BIZ_SUB.PAN_ENTER)   return <Step6PANEnter />;
-    if (currentSubStep === BIZ_SUB.PAN_READONLY) return <Step7PANReadOnly />;
-    if (currentSubStep === BIZ_SUB.GST_ENTER)   return <Step8GSTEnter />;
-    if (currentSubStep === BIZ_SUB.GST_READONLY) return <Step9GSTReadOnly />;
+    if (currentSubStep === BIZ_SUB.PAN_ENTER)    return <Step6PANEnter />;
+    if (currentSubStep === BIZ_SUB.PAN_READONLY)  return <Step7PANReadOnly />;
+    if (currentSubStep === BIZ_SUB.GST_ENTER)    return <Step8GSTEnter />;
+    if (currentSubStep === BIZ_SUB.GST_READONLY)  return <Step9GSTReadOnly />;
   }
-  if (currentStep === STEPS.SYSTEM_VERIFY)    return <Step10SystemVerify />;
+  if (currentStep === STEPS.SYSTEM_VERIFY)     return <Step10SystemVerify />;
   if (currentStep === STEPS.BANK_VERIFICATION) {
     if (currentSubStep === BANK_SUB.ENTER)    return <Step11BankEnter />;
     if (currentSubStep === BANK_SUB.READONLY) return <Step12BankReadOnly />;
   }
-  if (currentStep === STEPS.PARTNER_CONTRACT) return <Step14PartnerContract />;
+  if (currentStep === STEPS.PARTNER_CONTRACT)  return <Step14PartnerContract />;
   return null;
 }
 
@@ -86,8 +86,8 @@ function SubStepDots({ total, current }) {
     <div className="flex items-center gap-1.5 mb-3">
       {Array.from({ length: total }).map((_, i) => (
         <div key={i} className={`rounded-full transition-all duration-300 ${
-          i + 1 < current  ? 'w-2 h-2 bg-emerald-400'  :
-          i + 1 === current ? 'w-3 h-2 bg-emerald-500' :
+          i + 1 < current   ? 'w-2 h-2 bg-emerald-400'  :
+          i + 1 === current ? 'w-3 h-2 bg-emerald-500'  :
                               'w-2 h-2 bg-gray-200'
         }`} />
       ))}
@@ -109,14 +109,21 @@ const CheckIcon = () => (
 );
 
 // ── Sidebar ───────────────────────────────────────────────────────────────────
-function Sidebar({ currentStep, goToStep }) {
-  const navigate = useNavigate();
+function Sidebar({ currentStep, goToStep, goBack, isFirst }) {
   return (
     <div className="w-52 flex-shrink-0 flex flex-col px-4 py-5"
       style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif" }}>
 
-      <button onClick={() => navigate(-1)}
-        className="flex items-center gap-1.5 text-[11px] text-gray-400 hover:text-emerald-500 transition mb-4 w-fit">
+      {/* Back button — disabled on very first sub-step */}
+      <button
+        onClick={goBack}
+        disabled={isFirst}
+        className={`flex items-center gap-1.5 text-[11px] transition mb-4 w-fit
+          ${isFirst
+            ? 'text-gray-200 cursor-not-allowed'
+            : 'text-gray-400 hover:text-emerald-500 cursor-pointer'
+          }`}
+      >
         <svg viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
           <path fillRule="evenodd"
             d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z"
@@ -140,10 +147,10 @@ function Sidebar({ currentStep, goToStep }) {
               <div className="flex flex-col items-center flex-shrink-0" style={{ width: 2 }}>
                 <div className="w-[2px] transition-colors duration-500"
                   style={{
-                    flex:       1,
-                    background: isDone ? '#10b981' : '#e5e7eb',
-                    marginTop:  idx === 0 ? 14 : 0,
-                    marginBottom: isLast ? 14 : 0,
+                    flex:         1,
+                    background:   isDone ? '#10b981' : '#e5e7eb',
+                    marginTop:    idx === 0 ? 14 : 0,
+                    marginBottom: isLast  ? 14 : 0,
                   }} />
               </div>
 
@@ -175,7 +182,10 @@ function Sidebar({ currentStep, goToStep }) {
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function OnboardingPage() {
-  const { currentStep, currentSubStep, goToStep } = useOnboardingStore();
+  const { currentStep, currentSubStep, goToStep, goBack } = useOnboardingStore();
+
+  // Is this the very first screen? (disable Back)
+  const isFirst = currentStep === STEPS.BASIC_DETAILS && currentSubStep === 1;
 
   const currentIndex = SIDEBAR_STEPS.findIndex(s => s.id === currentStep);
   const totalSteps   = SIDEBAR_STEPS.length;
@@ -183,7 +193,6 @@ export default function OnboardingPage() {
   const pct = currentIndex < 0 ? 0
     : Math.round((currentIndex / (totalSteps - 1)) * 100);
 
-  // Partner Contract is the final step — no "Complete" screen
   const isLast     = currentStep === STEPS.PARTNER_CONTRACT;
   const stepLabel  = STEP_LABELS[currentStep] ?? "";
   const subLabel   = getSubLabel(currentStep, currentSubStep);
@@ -196,27 +205,39 @@ export default function OnboardingPage() {
       style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif" }}>
 
       <style>{`
-        .ob-bubble { position:absolute; border-radius:50%; backdrop-filter:blur(5px);
-          -webkit-backdrop-filter:blur(5px); border:1.5px solid rgba(255,255,255,0.55);
-          pointer-events:none; z-index:0; animation:obFloat ease-in-out infinite; }
-        @keyframes obFloat { 0%,100%{transform:translateY(0) scale(1)} 50%{transform:translateY(-14px) scale(1.03)} }
-        @keyframes stepFadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+        .ob-bubble {
+          position: absolute; border-radius: 50%;
+          backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+          border: 1.5px solid rgba(255,255,255,0.55);
+          pointer-events: none; z-index: 0;
+          animation: obFloat ease-in-out infinite;
+        }
+        @keyframes obFloat {
+          0%,100% { transform: translateY(0) scale(1) }
+          50%      { transform: translateY(-14px) scale(1.03) }
+        }
+        @keyframes stepFadeIn {
+          from { opacity: 0; transform: translateY(8px) }
+          to   { opacity: 1; transform: translateY(0) }
+        }
       `}</style>
 
       {/* Glows */}
       <div className="absolute bottom-0 left-0 w-[500px] h-[500px] pointer-events-none"
-        style={{ background:'radial-gradient(ellipse at bottom left,rgba(16,185,129,0.13) 0%,transparent 70%)',zIndex:0 }} />
+        style={{ background: 'radial-gradient(ellipse at bottom left,rgba(16,185,129,0.13) 0%,transparent 70%)', zIndex: 0 }} />
       <div className="absolute top-0 right-0 w-[400px] h-[400px] pointer-events-none"
-        style={{ background:'radial-gradient(ellipse at top right,rgba(99,102,241,0.06) 0%,transparent 70%)',zIndex:0 }} />
+        style={{ background: 'radial-gradient(ellipse at top right,rgba(99,102,241,0.06) 0%,transparent 70%)', zIndex: 0 }} />
 
       {/* Bubbles */}
-      {BUBBLES.map(([size,top,left,bg,dur,delay],i) => (
-        <div key={i} className="ob-bubble" style={{ width:size,height:size,top,left,background:bg,
-          boxShadow:`inset 0 0 ${size*0.15}px ${bg}, 0 4px ${size*0.2}px ${bg}`,
-          animationDuration:`${dur}s`,animationDelay:`${delay}s` }} />
-      ))}
+      {/* {BUBBLES.map(([size, top, left, bg, dur, delay], i) => (
+        <div key={i} className="ob-bubble" style={{
+          width: size, height: size, top, left, background: bg,
+          boxShadow: `inset 0 0 ${size * 0.15}px ${bg}, 0 4px ${size * 0.2}px ${bg}`,
+          animationDuration: `${dur}s`, animationDelay: `${delay}s`,
+        }} />
+      ))} */}
 
-      <div className="relative flex flex-col flex-1" style={{ zIndex:1 }}>
+      <div className="relative flex flex-col flex-1" style={{ zIndex: 1 }}>
 
         {/* Header */}
         <header className="px-8 pt-5 pb-4 flex items-center justify-between border-b border-gray-100/80 backdrop-blur-sm bg-white/70">
@@ -229,7 +250,6 @@ export default function OnboardingPage() {
             </div>
           </div>
 
-          {/* Progress — hide on last step */}
           {!isLast && (
             <div className="flex items-center gap-2.5">
               <div className="text-right">
@@ -240,7 +260,7 @@ export default function OnboardingPage() {
                 <svg viewBox="0 0 36 36" className="w-9 h-9 -rotate-90">
                   <circle cx="18" cy="18" r="14" fill="none" stroke="#e5e7eb" strokeWidth="3"/>
                   <circle cx="18" cy="18" r="14" fill="none" stroke="#10b981" strokeWidth="3"
-                    strokeDasharray={`${pct*0.879} ${87.9-pct*0.879}`} strokeLinecap="round"/>
+                    strokeDasharray={`${pct * 0.879} ${87.9 - pct * 0.879}`} strokeLinecap="round"/>
                 </svg>
                 <span className="absolute inset-0 flex items-center justify-center text-[9px] font-black text-emerald-600">
                   {pct}%
@@ -252,7 +272,12 @@ export default function OnboardingPage() {
 
         {/* Body */}
         <div className="flex flex-1 px-8 py-6 gap-6 min-h-0">
-          <Sidebar currentStep={currentStep} goToStep={goToStep} />
+          <Sidebar
+            currentStep={currentStep}
+            goToStep={goToStep}
+            goBack={goBack}
+            isFirst={isFirst}
+          />
           <div className="w-px bg-gray-100 flex-shrink-0" />
 
           <div className="flex-1 flex flex-col min-w-0">
@@ -273,9 +298,11 @@ export default function OnboardingPage() {
             )}
 
             {/* Animated content */}
-            <div key={`${currentStep}-${currentSubStep}`}
+            <div
+              key={`${currentStep}-${currentSubStep}`}
               className="flex-1 flex items-start justify-center"
-              style={{ animation: 'stepFadeIn 0.35s ease both' }}>
+              style={{ animation: 'stepFadeIn 0.35s ease both' }}
+            >
               <div className="w-full">{stepComponent}</div>
             </div>
 

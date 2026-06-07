@@ -2,8 +2,8 @@ export const STEPS = {
   BASIC_DETAILS:           1,
   BUSINESS_VERIFICATION:   2,
   SYSTEM_VERIFY:           3,
-  BANK_VERIFICATION:       4,  // Bank Enter + Bank ReadOnly (grouped)
-  PARTNER_CONTRACT:        5,  // Last step = Complete bhi yahi
+  BANK_VERIFICATION:       4,
+  PARTNER_CONTRACT:        5,
 };
 
 export const TOTAL_STEPS = 5;
