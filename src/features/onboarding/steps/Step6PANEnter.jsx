@@ -1,11 +1,66 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { validatePAN, PAN_RULES } from '../validation';
 import { useOnboardingStore, BIZ_SUB } from "@/features/onboarding/store/onboardingStore";
 import { STEPS } from "@/features/onboarding/constants/steps";
+import { verifyPAN } from '@/features/onboarding/services/api/verify.api';
+import ErrorToast from '@/components/common/ErrorToast';
+import ErrorModal from '@/components/common/ErrorModal';
+import { parseApiError } from '@/hooks/useApiError';
 
+// ── Success Toast (200) ─────────────────────────────────────────────
+function SuccessToast({ show, pan, onDismiss }) {
+  useEffect(() => {
+    if (!show) return;
+    const t = setTimeout(onDismiss, 3500);
+    return () => clearTimeout(t);
+  }, [show, onDismiss]);
+
+  if (!show) return null;
+  return (
+    <div
+      role="status"
+      className="fixed bottom-6 right-6 z-[9999] flex items-start gap-3 px-4 py-3 rounded-xl
+        max-w-sm w-[calc(100vw-3rem)]"
+      style={{
+        background: '#f0fdf4',
+        border: '0.5px solid #86efac',
+        borderLeft: '3px solid #22c55e',
+        animation: 'slideInToast 0.22s cubic-bezier(0.34,1.4,0.64,1) both',
+      }}
+    >
+      <style>{`
+        @keyframes slideInToast {
+          from { opacity:0; transform:translateY(14px) scale(0.97); }
+          to   { opacity:1; transform:translateY(0) scale(1); }
+        }
+      `}</style>
+
+      <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0">
+        <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+        </svg>
+      </div>
+
+      <div className="flex-1 min-w-0">
+        <p className="text-xs font-semibold text-emerald-800">PAN verified successfully</p>
+        <p className="text-[11px] text-emerald-600 mt-0.5 font-mono tracking-widest">{pan}</p>
+        <p className="text-[10px] text-emerald-500 mt-1">Redirecting to review screen…</p>
+      </div>
+
+      <button onClick={onDismiss} aria-label="Dismiss"
+        className="text-emerald-400 hover:text-emerald-600 transition-colors flex-shrink-0">
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+  );
+}
+
+// ── RuleRow ─────────────────────────────────────────────────────────
 function RuleRow({ label, passed, touched }) {
   const color = !touched ? 'text-gray-400' : passed ? 'text-emerald-600' : 'text-red-500';
-  const bg    = !touched ? 'bg-gray-100'   : passed ? 'bg-emerald-100'   : 'bg-red-100';
+  const bg = !touched ? 'bg-gray-100' : passed ? 'bg-emerald-100' : 'bg-red-100';
   return (
     <div className="flex items-center gap-2 transition-all duration-200">
       <div className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 ${bg}`}>
@@ -26,34 +81,74 @@ function RuleRow({ label, passed, touched }) {
   );
 }
 
+// ── Main Component ───────────────────────────────────────────────────
 export default function Step6PANEnter({ onFetchSuccess }) {
   const { goToStep } = useOnboardingStore();
-  const [pan, setPan]             = useState('');
-  const [touched, setTouched]     = useState(false);
-  const [fetching, setFetching]   = useState(false);
-  const [fetchDone, setFetchDone] = useState(false);
-  const [focused, setFocused]     = useState(false);
 
-  const upper   = pan.toUpperCase();
-  const error   = validatePAN(upper);
+  const [pan, setPan] = useState('');
+  const [touched, setTouched] = useState(false);
+  const [fetching, setFetching] = useState(false);
+  const [fetchDone, setFetchDone] = useState(false);
+  const [apiError, setApiError] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [successMsg, setSuccessMsg] = useState(false);
+
+  const upper = pan.toUpperCase();
+  const error = validatePAN(upper);
   const isValid = !error && upper.length === 10;
-  const rules   = PAN_RULES.map(r => ({ label: r.label, passed: r.test(upper) }));
+  const rules = PAN_RULES.map(r => ({ label: r.label, passed: r.test(upper) }));
 
   const handleChange = (e) => {
     const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10);
     setPan(val);
     if (!touched && val.length > 0) setTouched(true);
     setFetchDone(false);
+    setApiError(null);
+    setShowModal(false);
   };
 
   const handleFetch = async () => {
     if (!isValid) return;
     setFetching(true);
-    await new Promise(r => setTimeout(r, 1500));
-    setFetching(false);
-    setFetchDone(true);
-    if (onFetchSuccess) onFetchSuccess({ pan: upper });
-    goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_READONLY);
+    setApiError(null);
+    setShowModal(false);
+    setSuccessMsg(false);
+
+    try {
+      const data = await verifyPAN(upper);
+
+      // ✅ 200 success
+      const pan_data = data?.data || data;
+
+      console.log('Step6 — raw API response:', data);
+      console.log('Step6 — normalised pan_data:', pan_data);
+
+      useOnboardingStore.getState().setPanDetails(pan_data);
+      if (onFetchSuccess) onFetchSuccess(pan_data);
+
+      setFetchDone(true);
+      setSuccessMsg(true); // show success toast
+
+      setTimeout(() => {
+        goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_READONLY);
+      }, 1500);
+
+    } catch (err) {
+      // ✅ 400 — parse nested error
+      let parsed;
+      try {
+        const errData = typeof err.message === 'string'
+          ? JSON.parse(err.message)
+          : err;
+        parsed = parseApiError(errData);
+      } catch {
+        parsed = { humanMessage: err.message || 'PAN verification failed.', txnId: null };
+      }
+      setApiError(parsed);
+      setShowModal(true);
+    } finally {
+      setFetching(false);
+    }
   };
 
   return (
@@ -77,7 +172,7 @@ export default function Step6PANEnter({ onFetchSuccess }) {
         </div>
         <div>
           <h2 className="text-lg font-extrabold text-gray-900 leading-tight tracking-tight">
-            Enter your PAN Number
+            Enter Your Business PAN Number
           </h2>
           <p className="text-xs text-gray-400 mt-0.5">
             Please enter your 10-digit PAN to continue
@@ -92,7 +187,7 @@ export default function Step6PANEnter({ onFetchSuccess }) {
         <div className="flex flex-col gap-4">
           <div className="flex flex-col">
             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
-              PAN Number
+              Business PAN
               <span className="text-red-400">*</span>
             </label>
             <div className="relative">
@@ -101,8 +196,7 @@ export default function Step6PANEnter({ onFetchSuccess }) {
                 placeholder="ABCDE1234F"
                 value={upper}
                 onChange={handleChange}
-                onFocus={() => setFocused(true)}
-                onBlur={() => { setFocused(false); if (pan) setTouched(true); }}
+                onBlur={() => { if (pan) setTouched(true); }}
                 maxLength={10}
                 className={`w-full px-4 py-3 pr-10 bg-white border rounded-xl text-sm font-mono font-semibold
                   text-gray-800 tracking-widest placeholder:text-gray-300 placeholder:font-sans
@@ -158,7 +252,7 @@ export default function Step6PANEnter({ onFetchSuccess }) {
                 <p className={`text-[11px] mt-0.5 ${isValid ? 'text-emerald-500' : 'text-red-400'}`}>
                   {isValid
                     ? 'All validations passed. Ready to fetch details.'
-                    : 'Fix the errors on the right to continue.'}
+                    : error ?? 'Fix the errors on the right to continue.'}
                 </p>
               </div>
             </div>
@@ -178,27 +272,31 @@ export default function Step6PANEnter({ onFetchSuccess }) {
         </div>
       </div>
 
-      {/* ── Tips ── */}
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 bg-amber-50/80 border border-amber-100
-        rounded-xl px-4 py-3 mb-7 step-in" style={{ animationDelay: '0.1s' }}>
-        <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest flex items-center gap-1.5 flex-shrink-0">
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+
+
+      {/* Tips — compact card */}
+      <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 mb-4 step-in"
+        style={{ animationDelay: '0.1s' }}>
+        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest
+    flex items-center gap-1.5 mb-2">
+          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           Tips
         </p>
-        <div className="w-px h-3 bg-amber-200 flex-shrink-0 hidden sm:block" />
-        {[
-          'PAN is case-insensitive',
-          'No spaces or special characters',
-          'Must match your business registration',
-        ].map((tip, i) => (
-          <span key={i} className="flex items-center gap-1.5 text-[11px] text-amber-600">
-            <span className="w-1 h-1 rounded-full bg-amber-400 flex-shrink-0"/>
-            {tip}
-          </span>
-        ))}
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+          {[
+            'PAN is case-insensitive',
+            'No spaces or special characters',
+            'Must match your business registration',
+          ].map((tip, i) => (
+            <div key={i} className="flex items-start gap-1.5">
+              <span className="w-1 h-1 rounded-full bg-slate-400 flex-shrink-0 mt-1.5" />
+              <span className="text-[11px] text-slate-500 leading-snug">{tip}</span>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* ── CTA row ── */}
@@ -209,14 +307,12 @@ export default function Step6PANEnter({ onFetchSuccess }) {
           {upper.trim() ? (
             <div className="flex items-center gap-2 bg-gray-50 border border-gray-100
               rounded-xl px-4 py-2.5 overflow-hidden">
-              <span className="text-[9px] font-bold text-gray-300 uppercase tracking-widest flex-shrink-0">
-                PAN
-              </span>
-              <span className="w-px h-3 bg-gray-200 flex-shrink-0"/>
+              <span className="text-[9px] font-bold text-gray-300 uppercase tracking-widest flex-shrink-0">PAN</span>
+              <span className="w-px h-3 bg-gray-200 flex-shrink-0" />
               <span className="text-sm font-mono font-bold text-gray-800 tracking-widest">{upper}</span>
               {isValid && (
                 <>
-                  <span className="w-px h-3 bg-gray-200 flex-shrink-0"/>
+                  <span className="w-px h-3 bg-gray-200 flex-shrink-0" />
                   <span className="text-[10px] font-bold text-emerald-500 flex-shrink-0">✓ Valid</span>
                 </>
               )}
@@ -243,25 +339,45 @@ export default function Step6PANEnter({ onFetchSuccess }) {
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
               </svg>
-              Fetching…
+              Verifying…
             </>
           ) : fetchDone ? (
             <>
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"/>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
               </svg>
-              Fetched
+              Verified
             </>
           ) : (
             <>
               Fetch Details
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
             </>
           )}
         </button>
       </div>
+
+      {/* ── Success Toast — 200 ── */}
+      <SuccessToast
+        show={successMsg}
+        pan={upper}
+        onDismiss={() => setSuccessMsg(false)}
+      />
+
+      {/* ── Error Modal — 400 ── */}
+      <ErrorModal
+        error={showModal ? apiError : null}
+        onDismiss={() => { setShowModal(false); setApiError(null); }}
+        onRetry={() => { setShowModal(false); setApiError(null); handleFetch(); }}
+      />
+
+      {/* ── Error Toast — fallback ── */}
+      <ErrorToast
+        error={!showModal && apiError ? apiError : null}
+        onDismiss={() => setApiError(null)}
+      />
     </div>
   );
 }

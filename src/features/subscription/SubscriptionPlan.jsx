@@ -3,6 +3,8 @@ import HeroBanner          from "./HeroBanner";
 import PlanTabs            from "./PlanTabs";
 import PlanPriceCard       from "./PlanPriceCard";
 import PlanComparisonTable from "./Plancomparisontable";
+import { useNavigate } from "react-router-dom";
+
 
 const BUBBLES = [
   [110, '8%',  '6%',  'rgba(16,185,129,0.12)', 6,   0  ],
@@ -19,11 +21,15 @@ const BUBBLES = [
   [75,  '88%', '30%', 'rgba(139,92,246,0.10)',  8,   1.2],
 ];
 
+ 
+
 export default function SubscriptionPlan({ businessName = "Yoga Education and Research Pvt Ltd" }) {
+  const navigate = useNavigate();  // ✅ yeh add karo
   const [selectedPlan, setSelectedPlan] = useState("advanced");
 
   const handlePurchase = (plan) => {
     console.log("Purchase:", plan);
+    navigate('/subscription/checkout');  // ✅ ab kaam karega
   };
 
   return (

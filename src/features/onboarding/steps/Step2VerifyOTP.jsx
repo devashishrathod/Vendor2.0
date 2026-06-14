@@ -1,10 +1,21 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { validateOTP } from '../validation';
-// import { useOnboardingStore } from "@/features/onboarding/store/onboardingStore";
-// import { STEPS } from "@/features/onboarding/constants/steps";
+import { useAuthStore } from '@/features/onboarding/store/authStore';
+import { useOnboardingStore, BASIC_SUB, BIZ_SUB, BANK_SUB } from '@/features/onboarding/store/onboardingStore';
+import { STEPS } from '@/features/onboarding/constants/steps';
 
-// ── ErrorMessage component ────────────────────────────────────────────────────
+const SCREEN_TO_STEP = {
+  'BUSINESS_NAME':            { step: STEPS.BASIC_DETAILS,         subStep: BASIC_SUB.BUSINESS_NAME            },
+  'REGISTRATION_STATUS':      { step: STEPS.BASIC_DETAILS,         subStep: BASIC_SUB.REGISTRATION_STATUS      },
+  'REGISTRATION_ENTITY_TYPE': { step: STEPS.BASIC_DETAILS,         subStep: BASIC_SUB.REGISTRATION_ENTITY_TYPE },
+  'PAN_VERIFICATION':         { step: STEPS.BUSINESS_VERIFICATION, subStep: BIZ_SUB.PAN_VERIFICATION           },
+  'GST_VERIFICATION':         { step: STEPS.BUSINESS_VERIFICATION, subStep: BIZ_SUB.GST_VERIFICATION           },
+  'BANK_VERIFICATION':        { step: STEPS.BANK_VERIFICATION,     subStep: BANK_SUB.BANK_VERIFICATION         },
+  'SYSTEM_VERIFICATION':      { step: STEPS.SYSTEM_VERIFY,         subStep: 1                                  },
+  'PARTNERSHIP_DEED':         { step: STEPS.PARTNER_CONTRACT,      subStep: 1                                  },
+};
+
 function ErrorMessage({ message }) {
   if (!message) return null;
   return (
@@ -17,7 +28,6 @@ function ErrorMessage({ message }) {
   );
 }
 
-// ── PrimaryButton component ───────────────────────────────────────────────────
 function PrimaryButton({ children, onClick, disabled, loading, className = "" }) {
   return (
     <button
@@ -41,18 +51,16 @@ function PrimaryButton({ children, onClick, disabled, loading, className = "" })
   );
 }
 
-// ── OTP Modal ─────────────────────────────────────────────────────────────────
 export default function Step2VerifyOTP({ isOpen, onClose, phoneNumber, onVerified }) {
-  // const { goToStep } = useOnboardingStore();
-  const [otp, setOtp]           = useState(['', '', '', '', '', '']);
-  const [error, setError]       = useState(null);
-  const [loading, setLoading]   = useState(false);
+  const { verifyOTP, sendOTP, loading } = useAuthStore();
+  const { goToStep, setBrandId }        = useOnboardingStore(); // ✅ setBrandId add kiya
+  const [otp,         setOtp]         = useState(['', '', '', '', '', '']);
+  const [error,       setError]       = useState(null);
   const [resendTimer, setResendTimer] = useState(30);
-  const [canResend, setCanResend]     = useState(false);
+  const [canResend,   setCanResend]   = useState(false);
   const inputRefs = useRef([]);
   const navigate  = useNavigate();
 
-  // ── Countdown timer ──
   useEffect(() => {
     if (!isOpen) return;
     setResendTimer(30);
@@ -66,7 +74,6 @@ export default function Step2VerifyOTP({ isOpen, onClose, phoneNumber, onVerifie
     return () => clearInterval(interval);
   }, [isOpen]);
 
-  // ── Auto-focus first input when modal opens ──
   useEffect(() => {
     if (isOpen) {
       setTimeout(() => inputRefs.current[0]?.focus(), 100);
@@ -85,10 +92,8 @@ export default function Step2VerifyOTP({ isOpen, onClose, phoneNumber, onVerifie
   };
 
   const handleKeyDown = (index, e) => {
-    if (e.key === 'Backspace' && !otp[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
-    }
-    if (e.key === 'ArrowLeft' && index > 0) inputRefs.current[index - 1]?.focus();
+    if (e.key === 'Backspace' && !otp[index] && index > 0) inputRefs.current[index - 1]?.focus();
+    if (e.key === 'ArrowLeft'  && index > 0) inputRefs.current[index - 1]?.focus();
     if (e.key === 'ArrowRight' && index < 5) inputRefs.current[index + 1]?.focus();
   };
 
@@ -106,18 +111,30 @@ export default function Step2VerifyOTP({ isOpen, onClose, phoneNumber, onVerifie
   const handleVerify = async () => {
     const err = validateOTP(otpString);
     if (err) return setError(err);
-    setLoading(true);
     try {
-      // await api.verifyOTP(phoneNumber, otpString);
-      console.log('[API] verifyOTP →', otpString);
-      await new Promise(r => setTimeout(r, 800)); // simulated delay
+      const res = await verifyOTP(phoneNumber, otpString, 'VENDOR');
+
+      // ✅ brandId store mein save karo
+      const brandId = res?.data?.user?.brandId;
+      if (brandId) {
+        setBrandId(brandId);
+        console.log('✅ brandId saved to store:', brandId);
+      } else {
+        console.warn('⚠️ brandId not found in OTP response:', res);
+      }
+
+      // user ka currentScreen lo aur onboardingStore set karo
+      const currentScreen = res?.data?.user?.currentScreen ?? 'BUSINESS_NAME';
+      const mapped = SCREEN_TO_STEP[currentScreen] ?? {
+        step: STEPS.BASIC_DETAILS,
+        subStep: BASIC_SUB.BUSINESS_NAME,
+      };
+      goToStep(mapped.step, mapped.subStep);
+
       onVerified?.();
-      navigate('/onboarding'); // adjust route as needed
-      // goToStep(STEPS.KNOW_YOUR_BRAND);
+      navigate('/onboarding');
     } catch (e) {
       setError(e.message || 'Invalid OTP. Please try again.');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -127,8 +144,11 @@ export default function Step2VerifyOTP({ isOpen, onClose, phoneNumber, onVerifie
     setError(null);
     setCanResend(false);
     setResendTimer(30);
-    console.log('[API] resendOTP →', phoneNumber);
-    // restart countdown
+    try {
+      await sendOTP(phoneNumber, 'VENDOR');
+    } catch (e) {
+      setError(e.message || 'Failed to resend OTP.');
+    }
     const interval = setInterval(() => {
       setResendTimer((t) => {
         if (t <= 1) { clearInterval(interval); setCanResend(true); return 0; }
@@ -146,18 +166,13 @@ export default function Step2VerifyOTP({ isOpen, onClose, phoneNumber, onVerifie
 
   return (
     <>
-      {/* ── Backdrop ── */}
       <div
         className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
         onClick={onClose}
         style={{ animation: 'fadeIn 0.2s ease both' }}
       />
 
-      {/* ── Modal ── */}
-      <div
-        className="fixed inset-0 z-50 flex items-center justify-center p-4"
-        style={{ pointerEvents: 'none' }}
-      >
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ pointerEvents: 'none' }}>
         <div
           className="bg-white rounded-2xl shadow-2xl border border-gray-100 p-8 w-full max-w-sm relative"
           style={{ animation: 'slideUp 0.3s cubic-bezier(0.34,1.56,0.64,1) both', pointerEvents: 'auto' }}
@@ -167,19 +182,14 @@ export default function Step2VerifyOTP({ isOpen, onClose, phoneNumber, onVerifie
             @keyframes slideUp { from { opacity: 0; transform: translateY(24px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
           `}</style>
 
-          {/* Close button */}
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 transition"
-          >
+          <button onClick={onClose}
+            className="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 transition">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
 
-          {/* Header */}
           <div className="text-center mb-6">
-            {/* OTP icon */}
             <div className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto mb-4">
               <svg className="w-7 h-7 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
@@ -193,7 +203,6 @@ export default function Step2VerifyOTP({ isOpen, onClose, phoneNumber, onVerifie
             </p>
           </div>
 
-          {/* OTP inputs */}
           <div className="flex gap-2 justify-center mb-2" onPaste={handlePaste}>
             {otp.map((digit, i) => (
               <input
@@ -214,14 +223,11 @@ export default function Step2VerifyOTP({ isOpen, onClose, phoneNumber, onVerifie
 
           <ErrorMessage message={error} />
 
-          {/* Resend */}
           <div className="text-center mt-3 mb-5">
             {canResend ? (
-              <button
-                onClick={handleResend}
-                className="text-xs text-emerald-500 font-semibold hover:text-emerald-600 hover:underline transition"
-              >
-                Resend OTP
+              <button onClick={handleResend} disabled={loading}
+                className="text-xs text-emerald-500 font-semibold hover:text-emerald-600 hover:underline transition disabled:opacity-50">
+                {loading ? 'Sending…' : 'Resend OTP'}
               </button>
             ) : (
               <p className="text-xs text-gray-400">
@@ -233,16 +239,10 @@ export default function Step2VerifyOTP({ isOpen, onClose, phoneNumber, onVerifie
             )}
           </div>
 
-          {/* Verify button */}
-          <PrimaryButton
-            onClick={handleVerify}
-            disabled={otpString.length < 6}
-            loading={loading}
-          >
+          <PrimaryButton onClick={handleVerify} disabled={otpString.length < 6} loading={loading}>
             {loading ? 'Verifying…' : 'Continue →'}
           </PrimaryButton>
 
-          {/* Trust line */}
           <p className="text-center text-xs text-gray-400 mt-4">
             🔒 We will never share your number with anyone.
           </p>

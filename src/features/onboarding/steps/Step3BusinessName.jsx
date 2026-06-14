@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { validateBusinessName, validateShortName } from '../validation';
 import { useOnboardingStore, BASIC_SUB } from "@/features/onboarding/store/onboardingStore";
+import { updateBusinessName } from '@/features/onboarding/services/api/brand.api';
 
 function ErrorMessage({ message }) {
   if (!message) return null;
@@ -28,10 +29,10 @@ function SuccessNote({ text }) {
 }
 
 function CharRing({ value, max }) {
-  const pct   = Math.min(value / max, 1);
-  const r     = 10;
-  const circ  = 2 * Math.PI * r;
-  const dash  = circ * pct;
+  const pct  = Math.min(value / max, 1);
+  const r    = 10;
+  const circ = 2 * Math.PI * r;
+  const dash = circ * pct;
   const color = value > max ? '#ef4444' : value > max * 0.8 ? '#f59e0b' : '#10b981';
   return (
     <svg width="26" height="26" viewBox="0 0 28 28">
@@ -66,7 +67,6 @@ function InputField({
   maxLength, error, valid, charMax, uppercase, validMessage, validNode,
 }) {
   const [focused, setFocused] = useState(false);
-
   return (
     <div className="flex flex-col">
       <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
@@ -79,9 +79,7 @@ function InputField({
           </span>
         )}
       </label>
-      <div className={`relative rounded-xl transition-all duration-200
-        ${focused ? 'shadow-sm' : ''}
-      `}>
+      <div className={`relative rounded-xl transition-all duration-200 ${focused ? 'shadow-sm' : ''}`}>
         <input
           type="text"
           placeholder={placeholder}
@@ -133,6 +131,9 @@ export default function Step3BusinessName() {
   const [shortError,   setShortError]   = useState(null);
   const [shortTouched, setShortTouched] = useState(false);
 
+  const [loading,  setLoading]  = useState(false);
+  const [apiError, setApiError] = useState(null);
+
   const handleNameChange = (e) => {
     setName(e.target.value);
     if (nameTouched) setNameError(validateBusinessName(e.target.value));
@@ -143,7 +144,7 @@ export default function Step3BusinessName() {
     if (shortTouched) setShortError(validateShortName(val));
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     setNameTouched(true);
     setShortTouched(true);
     const nErr = validateBusinessName(name);
@@ -151,19 +152,32 @@ export default function Step3BusinessName() {
     setNameError(nErr);
     setShortError(sErr);
     if (nErr || sErr) return;
-    setField('businessName', name.trim());
-    setField('shortName',    shortName.trim());
-    setSubStep(BASIC_SUB.REGISTRATION);
+
+    setLoading(true);
+    setApiError(null);
+    try {
+      await updateBusinessName({
+        legalBusinessName: name.trim(),
+        brandName:         shortName.trim() || undefined,
+      });
+      setField('businessName', name.trim());
+      setField('shortName',    shortName.trim());
+      setSubStep(BASIC_SUB.REGISTRATION_STATUS);
+    } catch (err) {
+      setApiError(err.message || 'Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleKeyDown = (e) => { if (e.key === 'Enter') handleContinue(); };
 
-  const nameValid   = !validateBusinessName(name)  && name.trim().length > 0;
-  const shortValid  = !validateShortName(shortName) && shortName.trim().length > 0;
-  const canContinue = name.trim().length > 0;
+  const nameValid  = !validateBusinessName(name)   && name.trim().length > 0;
+  const shortValid = !validateShortName(shortName)  && shortName.trim().length > 0;
+  const canContinue = name.trim().length > 0 && !loading;
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="w-full max-w-2xl mx-auto">
       <style>{`
         @keyframes stepIn {
           from { opacity:0; transform:translateY(12px) scale(0.99); }
@@ -172,9 +186,9 @@ export default function Step3BusinessName() {
         .step-in { animation: stepIn 0.3s cubic-bezier(0.34,1.2,0.64,1) both; }
       `}</style>
 
-      {/* ── Header ── */}
-      <div className="flex items-center gap-4 mb-8 step-in">
-        <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-100
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-6 step-in">
+        <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100
           flex items-center justify-center flex-shrink-0">
           <svg className="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
@@ -182,19 +196,15 @@ export default function Step3BusinessName() {
           </svg>
         </div>
         <div>
-          <h2 className="text-lg font-extrabold text-gray-900 leading-tight tracking-tight">
-            Know Your Brand
-          </h2>
-          <p className="text-xs text-gray-400 mt-0.5">
-            Enter your business name as it appears on official documents.
-          </p>
+          <h2 className="text-base font-bold text-gray-900 leading-tight">Know Your Brand</h2>
+          <p className="text-xs text-gray-400 mt-0.5">Enter your business name as it appears on official documents.</p>
         </div>
       </div>
 
-      {/* ── Inputs ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5 step-in" style={{ animationDelay: '0.05s' }}>
+      {/* Inputs */}
+      <div className="grid grid-cols-2 gap-4 mb-4 step-in" style={{ animationDelay: '0.05s' }}>
         <InputField
-          label="Business Name"
+          label="Legal Business Name"
           placeholder="e.g. Kentucky Fried Chicken"
           value={name}
           onChange={handleNameChange}
@@ -223,43 +233,54 @@ export default function Step3BusinessName() {
         />
       </div>
 
-      {/* ── Tips ── */}
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 bg-amber-50/80 border border-amber-100
-        rounded-xl px-4 py-3 mb-7 step-in" style={{ animationDelay: '0.1s' }}>
-        <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest flex items-center gap-1.5 flex-shrink-0">
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-          </svg>
-          Tips
-        </p>
-        <div className="w-px h-3 bg-amber-200 flex-shrink-0 hidden sm:block" />
-        {[
-          'Use your registered brand name',
-          'At least 3 characters',
-          'No special symbols like @, #, &',
-          'Short name: 2–10 chars (e.g. KFC)',
-        ].map((tip, i) => (
-          <span key={i} className="flex items-center gap-1.5 text-[11px] text-amber-600">
-            <span className="w-1 h-1 rounded-full bg-amber-400 flex-shrink-0"/>
-            {tip}
-          </span>
-        ))}
+      {/* Tips — compact card */}
+    {/* Tips — compact card */}
+<div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 mb-4 step-in"
+  style={{ animationDelay: '0.1s' }}>
+  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest
+    flex items-center gap-1.5 mb-2">
+    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg>
+    Tips
+  </p>
+  <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+    {[
+      'Use your registered brand name',
+      'At least 3 characters',
+      'No special symbols like @, #, &',
+      'Short name: 2–10 chars (e.g. KFC)',
+    ].map((tip, i) => (
+      <div key={i} className="flex items-start gap-1.5">
+        <span className="w-1 h-1 rounded-full bg-slate-400 flex-shrink-0 mt-1.5" />
+        <span className="text-[11px] text-slate-500 leading-snug">{tip}</span>
       </div>
+    ))}
+  </div>
+</div>
 
-      {/* ── CTA row ── */}
+      {/* API Error */}
+      {apiError && (
+        <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4 step-in">
+          <svg className="w-4 h-4 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+          </svg>
+          <p className="text-xs text-red-600 font-medium">{apiError}</p>
+        </div>
+      )}
+
+      {/* CTA row */}
       <div className="flex items-center gap-3 step-in" style={{ animationDelay: '0.15s' }}>
-
         {/* Preview */}
         <div className="flex-1 min-w-0">
           {name.trim() ? (
             <div className="flex items-center gap-2 bg-gray-50 border border-gray-100
-              rounded-xl px-4 py-2.5 overflow-hidden">
-              <span className="text-[9px] font-bold text-gray-300 uppercase tracking-widest flex-shrink-0">
-                Preview
-              </span>
+              rounded-xl px-3 py-2.5 overflow-hidden">
+              <span className="text-[9px] font-bold text-gray-300 uppercase tracking-widest flex-shrink-0">Preview</span>
               <span className="w-px h-3 bg-gray-200 flex-shrink-0"/>
-              <span className="text-sm font-semibold text-gray-800 truncate">{name.trim()}</span>
+              <span className="text-xs font-semibold text-gray-800 truncate">{name.trim()}</span>
               {shortName.trim() && (
                 <>
                   <span className="w-px h-3 bg-gray-200 flex-shrink-0"/>
@@ -278,17 +299,29 @@ export default function Step3BusinessName() {
         <button
           onClick={handleContinue}
           disabled={!canContinue}
-          className={`flex items-center gap-2 px-7 py-3 rounded-xl font-bold text-sm
+          className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm
             tracking-wide transition-all duration-200 flex-shrink-0
             ${canContinue
               ? 'bg-emerald-500 hover:bg-emerald-600 active:scale-[0.97] text-white shadow-sm shadow-emerald-100'
               : 'bg-gray-100 text-gray-300 cursor-not-allowed'
             }`}
         >
-          Continue
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6"/>
-          </svg>
+          {loading ? (
+            <>
+              <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
+              </svg>
+              Saving…
+            </>
+          ) : (
+            <>
+              Continue
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+              </svg>
+            </>
+          )}
         </button>
       </div>
     </div>

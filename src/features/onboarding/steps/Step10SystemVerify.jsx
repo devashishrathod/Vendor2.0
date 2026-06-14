@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useOnboardingStore, BANK_SUB } from "@/features/onboarding/store/onboardingStore";
+import { useOnboardingStore } from "@/features/onboarding/store/onboardingStore";
 import { STEPS } from "@/features/onboarding/constants/steps";
 
 // ── Shared: PrimaryButton ────────────────────────────────────────────────────
@@ -25,10 +25,6 @@ function PrimaryButton({ children, onClick, disabled, loading, className = '', v
   );
 }
 
-
-
-
-
 // ── Verification checks config ───────────────────────────────────────────────
 const CHECKS = [
   { key: 'pan',        label: 'PAN Verified' },
@@ -39,7 +35,6 @@ const CHECKS = [
 
 // ── Check Row ────────────────────────────────────────────────────────────────
 function CheckRow({ label, status }) {
-  // status: 'pending' | 'checking' | 'done' | 'failed'
   return (
     <div className="flex items-center gap-3 py-2">
       <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-300
@@ -78,7 +73,7 @@ function CheckRow({ label, status }) {
   );
 }
 
-// ── Spinning gear icon (loading state) ───────────────────────────────────────
+// ── Spinning gear icon ───────────────────────────────────────────────────────
 function GearIcon({ spinning }) {
   return (
     <svg className={`w-10 h-10 text-emerald-500 ${spinning ? 'animate-spin' : ''}`}
@@ -92,19 +87,16 @@ function GearIcon({ spinning }) {
 }
 
 // ── Main component ───────────────────────────────────────────────────────────
-// simulateFail=true lets you test the failure branch in dev
 export default function Step10SystemVerify({ simulateFail = false, onSuccess }) {
   const { goToStep } = useOnboardingStore();
   const navigate = useNavigate();
 
-  // 'loading' | 'success' | 'failed'
   const [phase, setPhase] = useState('loading');
   const [checkStatus, setCheckStatus] = useState({
     pan: 'pending', gst: 'pending', business: 'pending', compliance: 'pending',
   });
   const [retrying, setRetrying] = useState(false);
 
-  // ── Run verification sequence ──────────────────────────────────────────────
   const runVerification = async () => {
     setPhase('loading');
     setCheckStatus({ pan: 'pending', gst: 'pending', business: 'pending', compliance: 'pending' });
@@ -112,15 +104,9 @@ export default function Step10SystemVerify({ simulateFail = false, onSuccess }) 
     const keys = CHECKS.map(c => c.key);
     for (let i = 0; i < keys.length; i++) {
       const key = keys[i];
-      // Mark current as checking
       setCheckStatus(prev => ({ ...prev, [key]: 'checking' }));
-      // TODO: replace each delay with real API call e.g.:
-      // const res = await fetch('/api/system/verify', { method:'POST', body: JSON.stringify({ check: key }) });
-      // const data = await res.json();
-      // if (!data.ok) { /* handle failure */ }
       await new Promise(r => setTimeout(r, 900 + i * 200));
 
-      // Simulate failure on compliance check if simulateFail is true
       if (simulateFail && key === 'compliance') {
         setCheckStatus(prev => ({ ...prev, [key]: 'failed' }));
         setPhase('failed');
@@ -130,12 +116,10 @@ export default function Step10SystemVerify({ simulateFail = false, onSuccess }) 
       setCheckStatus(prev => ({ ...prev, [key]: 'done' }));
     }
 
-    // Small pause before showing success state
     await new Promise(r => setTimeout(r, 400));
     setPhase('success');
   };
 
-  // Auto-run on mount
   useEffect(() => {
     runVerification();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -149,27 +133,23 @@ export default function Step10SystemVerify({ simulateFail = false, onSuccess }) 
   };
 
   const handleContinue = () => {
-    if (onSuccess) onSuccess();
-
-    // goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.GST_READONLY); // ✅
-    else goToStep(STEPS.BANK_VERIFICATION, BANK_SUB.ENTER); // or navigate('/onboarding/step11')
+    if (onSuccess) {
+      onSuccess();
+    } else {
+      goToStep(STEPS.PARTNER_CONTRACT);  // ← changed
+    }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gradient-to-br from-white via-emerald-50/30 to-white">
-     
-     
-
-      <div className="relative z-10  w-full max-w-sm mx-4"
-        style={{ animation:'stepIn 0.35s cubic-bezier(0.34,1.4,0.64,1) both' }}>
+      <div className="relative z-10 w-full max-w-sm mx-4"
+        style={{ animation: 'stepIn 0.35s cubic-bezier(0.34,1.4,0.64,1) both' }}>
         <style>{`
           @keyframes stepIn { from{opacity:0;transform:translateY(20px) scale(0.97)} to{opacity:1;transform:translateY(0) scale(1)} }
           @keyframes popIn  { from{opacity:0;transform:scale(0.7)}              to{opacity:1;transform:scale(1)} }
         `}</style>
 
-       
-
-        {/* ── LOADING / RUNNING ── */}
+        {/* ── LOADING ── */}
         {phase === 'loading' && (
           <>
             <div className="w-16 h-16 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto mb-5 shadow-sm">
@@ -186,7 +166,7 @@ export default function Step10SystemVerify({ simulateFail = false, onSuccess }) 
                 <CheckRow key={c.key} label={c.label} status={checkStatus[c.key]} />
               ))}
             </div>
-            <div className="h-10" /> {/* spacer so card doesn't jump */}
+            <div className="h-10" />
           </>
         )}
 
@@ -194,7 +174,7 @@ export default function Step10SystemVerify({ simulateFail = false, onSuccess }) 
         {phase === 'success' && (
           <>
             <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-5"
-              style={{ animation:'popIn 0.4s cubic-bezier(0.34,1.4,0.64,1) both' }}>
+              style={{ animation: 'popIn 0.4s cubic-bezier(0.34,1.4,0.64,1) both' }}>
               <svg className="w-8 h-8 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
               </svg>
@@ -202,7 +182,7 @@ export default function Step10SystemVerify({ simulateFail = false, onSuccess }) 
             <div className="text-center mb-5">
               <h2 className="text-xl font-bold text-gray-900 mb-1">Success</h2>
               <p className="text-xs text-gray-400 leading-relaxed">
-                All verifications successful.<br />Proceeding to Bank Verification…
+                All verifications successful.<br />Proceeding to Partner Contract…
               </p>
             </div>
             <div className="bg-emerald-50 border border-emerald-100 rounded-2xl px-5 py-4 mb-6">
@@ -211,7 +191,7 @@ export default function Step10SystemVerify({ simulateFail = false, onSuccess }) 
               ))}
             </div>
             <PrimaryButton onClick={handleContinue}>
-              Continue to Bank Verification →
+              Continue to Partner Contract →
             </PrimaryButton>
           </>
         )}
@@ -220,7 +200,7 @@ export default function Step10SystemVerify({ simulateFail = false, onSuccess }) 
         {phase === 'failed' && (
           <>
             <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-5"
-              style={{ animation:'popIn 0.4s cubic-bezier(0.34,1.4,0.64,1) both' }}>
+              style={{ animation: 'popIn 0.4s cubic-bezier(0.34,1.4,0.64,1) both' }}>
               <svg className="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -241,7 +221,7 @@ export default function Step10SystemVerify({ simulateFail = false, onSuccess }) 
               ))}
             </div>
             <div className="flex gap-3">
-              <PrimaryButton variant="outline" onClick={() => navigate('/onboarding/step6')} className="flex-1">
+              <PrimaryButton variant="outline" onClick={() => goToStep(STEPS.BUSINESS_VERIFICATION)} className="flex-1">
                 Edit Details
               </PrimaryButton>
               <PrimaryButton onClick={handleRetry} loading={retrying} className="flex-1">

@@ -1,8 +1,60 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { validateGST, GST_RULES } from '../validation';
 import { useOnboardingStore, BIZ_SUB } from "@/features/onboarding/store/onboardingStore";
 import { STEPS } from "@/features/onboarding/constants/steps";
+import { verifyGST } from '@/features/onboarding/services/api/verify.api';
+import ErrorToast from '@/components/common/ErrorToast';
+import ErrorModal from '@/components/common/ErrorModal';
+import { parseApiError } from '@/hooks/useApiError';
 
+// ── Success Toast ────────────────────────────────────────────────────
+function SuccessToast({ show, gstin, onDismiss }) {
+  useEffect(() => {
+    if (!show) return;
+    const t = setTimeout(onDismiss, 3500);
+    return () => clearTimeout(t);
+  }, [show, onDismiss]);
+
+  if (!show) return null;
+  return (
+    <div
+      role="status"
+      className="fixed bottom-6 right-6 z-[9999] flex items-start gap-3 px-4 py-3 rounded-xl
+        max-w-sm w-[calc(100vw-3rem)]"
+      style={{
+        background: '#f0fdf4',
+        border: '0.5px solid #86efac',
+        borderLeft: '3px solid #22c55e',
+        animation: 'slideInToast 0.22s cubic-bezier(0.34,1.4,0.64,1) both',
+      }}
+    >
+      <style>{`
+        @keyframes slideInToast {
+          from { opacity:0; transform:translateY(14px) scale(0.97); }
+          to   { opacity:1; transform:translateY(0) scale(1); }
+        }
+      `}</style>
+      <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0">
+        <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+        </svg>
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-xs font-semibold text-emerald-800">GST verified successfully</p>
+        <p className="text-[11px] text-emerald-600 mt-0.5 font-mono tracking-widest truncate">{gstin}</p>
+        <p className="text-[10px] text-emerald-500 mt-1">Redirecting to review screen…</p>
+      </div>
+      <button onClick={onDismiss} aria-label="Dismiss"
+        className="text-emerald-400 hover:text-emerald-600 transition-colors flex-shrink-0">
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+  );
+}
+
+// ── RuleRow ──────────────────────────────────────────────────────────
 function RuleRow({ label, passed, touched }) {
   const color = !touched ? 'text-gray-400' : passed ? 'text-emerald-600' : 'text-red-500';
   const bg    = !touched ? 'bg-gray-100'   : passed ? 'bg-emerald-100'   : 'bg-red-100';
@@ -26,39 +78,101 @@ function RuleRow({ label, passed, touched }) {
   );
 }
 
-export default function Step8GSTEnter({ pan = '', onFetchSuccess }) {
+// ── PAN-GST Mismatch Banner ──────────────────────────────────────────
+function PANMismatchBanner({ gstin, pan }) {
+  if (!gstin || gstin.length < 12 || !pan || pan.length !== 10) return null;
+  const panFromGST = gstin.substring(2, 12).toUpperCase();
+  const panUpper   = pan.toUpperCase();
+  if (panFromGST === panUpper) return null;
+
+  return (
+    <div className="flex items-start gap-2.5 bg-red-50 border border-red-200 rounded-xl px-3 py-2.5 mt-2">
+      <svg className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+          d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <div>
+        <p className="text-xs font-semibold text-red-600">PAN mismatch detected</p>
+        <p className="text-[11px] text-red-400 mt-0.5 leading-snug">
+          GSTIN contains <span className="font-mono font-bold">{panFromGST}</span> but your PAN is{' '}
+          <span className="font-mono font-bold">{panUpper}</span>.
+          Characters 3–12 of GSTIN must match your PAN exactly.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ── Main Component ───────────────────────────────────────────────────
+export default function Step8GSTEnter({ pan = '' }) {
   const { goToStep } = useOnboardingStore();
 
-  const [gstin, setGstin]         = useState('');
-  const [touched, setTouched]     = useState(false);
-  const [fetching, setFetching]   = useState(false);
-  const [fetchDone, setFetchDone] = useState(false);
+  const [gstin,      setGstin]      = useState('');
+  const [touched,    setTouched]    = useState(false);
+  const [fetching,   setFetching]   = useState(false);
+  const [fetchDone,  setFetchDone]  = useState(false);
+  const [apiError,   setApiError]   = useState(null);
+  const [showModal,  setShowModal]  = useState(false);
+  const [successMsg, setSuccessMsg] = useState(false);
 
   const upper   = gstin.toUpperCase();
-  const error   = validateGST(upper);
+  // ✅ Pass pan to validateGST so cross-check runs
+  const error   = validateGST(upper, pan);
   const isValid = !error && upper.length === 15;
-
-  const rules = GST_RULES.map(r => ({
-    label: r.label,
-    passed: r.test(upper, pan),
-  }));
+  // ✅ Pass pan to each GST_RULE test
+  const rules   = GST_RULES.map(r => ({ label: r.label, passed: r.test(upper, pan) }));
 
   const handleChange = (e) => {
     const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 15);
     setGstin(val);
     if (!touched && val.length > 0) setTouched(true);
     setFetchDone(false);
+    setApiError(null);
+    setShowModal(false);
   };
 
   const handleFetch = async () => {
     if (!isValid) return;
+
+    // ✅ Extra guard: block API call if PAN mismatch (shouldn't reach here, but safety net)
+    if (pan && pan.trim().length === 10) {
+      const panFromGST = upper.substring(2, 12);
+      if (panFromGST !== pan.toUpperCase()) return;
+    }
+
     setFetching(true);
-    await new Promise(r => setTimeout(r, 1500));
-    setFetching(false);
-    setFetchDone(true);
-    if (onFetchSuccess) onFetchSuccess({ gstin: upper });
-    goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.GST_READONLY);
+    setApiError(null);
+    setShowModal(false);
+    setSuccessMsg(false);
+
+    try {
+      const data     = await verifyGST(upper);
+      const gst_data = data?.data || data;
+
+      useOnboardingStore.getState().setGstDetails(gst_data);
+
+      setFetchDone(true);
+      setSuccessMsg(true);
+
+      setTimeout(() => {
+        goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.GST_READONLY);
+      }, 1500);
+
+    } catch (err) {
+      const parsed = parseApiError(
+        err.responseData || { message: err.message }
+      );
+      setApiError(parsed);
+      setShowModal(true);
+    } finally {
+      setFetching(false);
+    }
   };
+
+  // PAN mismatch exists in current input (for banner logic)
+  const hasPANMismatch = pan && pan.trim().length === 10
+    && upper.length >= 12
+    && upper.substring(2, 12) !== pan.toUpperCase();
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -87,6 +201,21 @@ export default function Step8GSTEnter({ pan = '', onFetchSuccess }) {
             Please enter your 15-digit GSTIN to continue
           </p>
         </div>
+
+        {/* PAN chip — shows which PAN it will be matched against */}
+        {pan && (
+          <div className="ml-auto flex items-center gap-1.5 bg-blue-50 border border-blue-100
+            rounded-full px-3 py-1.5 flex-shrink-0">
+            <svg className="w-3 h-3 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+            <span className="text-[10px] text-blue-400 font-semibold">PAN:</span>
+            <span className="text-[10px] text-blue-700 font-mono font-bold tracking-widest">
+              {pan.toUpperCase()}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* ── Two column grid ── */}
@@ -114,7 +243,9 @@ export default function Step8GSTEnter({ pan = '', onFetchSuccess }) {
                     ? 'border-gray-200 focus:border-emerald-300 focus:ring-2 focus:ring-emerald-50'
                     : isValid
                       ? 'border-emerald-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50'
-                      : 'border-red-200 bg-red-50/30 focus:border-red-300 focus:ring-2 focus:ring-red-50'
+                      : hasPANMismatch
+                        ? 'border-orange-300 bg-orange-50/30 focus:border-orange-300 focus:ring-2 focus:ring-orange-50'
+                        : 'border-red-200 bg-red-50/30 focus:border-red-300 focus:ring-2 focus:ring-red-50'
                   }`}
               />
               {touched && (
@@ -126,7 +257,8 @@ export default function Step8GSTEnter({ pan = '', onFetchSuccess }) {
                       </svg>
                     </div>
                   ) : (
-                    <div className="w-5 h-5 rounded-full bg-red-400 flex items-center justify-center">
+                    <div className={`w-5 h-5 rounded-full flex items-center justify-center
+                      ${hasPANMismatch ? 'bg-orange-400' : 'bg-red-400'}`}>
                       <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
                       </svg>
@@ -136,10 +268,13 @@ export default function Step8GSTEnter({ pan = '', onFetchSuccess }) {
               )}
             </div>
             <p className="text-[11px] text-gray-300 mt-1.5">Format: 2 digits · 10 PAN · 1 digit · 1 letter · 1 digit</p>
+
+            {/* ✅ PAN mismatch inline banner */}
+            <PANMismatchBanner gstin={upper} pan={pan} />
           </div>
 
           {/* Status banner */}
-          {touched && (
+          {touched && !hasPANMismatch && (
             <div className={`flex items-start gap-3 p-3 rounded-xl border transition-all duration-200
               ${isValid ? 'bg-emerald-50 border-emerald-100' : 'bg-red-50/60 border-red-100'}`}>
               <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5
@@ -187,26 +322,28 @@ export default function Step8GSTEnter({ pan = '', onFetchSuccess }) {
       </div>
 
       {/* ── Tips ── */}
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 bg-amber-50/80 border border-amber-100
-        rounded-xl px-4 py-3 mb-7 step-in" style={{ animationDelay: '0.1s' }}>
-        <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest flex items-center gap-1.5 flex-shrink-0">
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 mb-4 step-in"
+        style={{ animationDelay: '0.1s' }}>
+        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest
+          flex items-center gap-1.5 mb-2">
+          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
               d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
           </svg>
           Tips
         </p>
-        <div className="w-px h-3 bg-amber-200 flex-shrink-0 hidden sm:block" />
-        {[
-          'GSTIN is case-insensitive',
-          'First 2 digits are your state code',
-          'Characters 3–12 must match your PAN',
-        ].map((tip, i) => (
-          <span key={i} className="flex items-center gap-1.5 text-[11px] text-amber-600">
-            <span className="w-1 h-1 rounded-full bg-amber-400 flex-shrink-0"/>
-            {tip}
-          </span>
-        ))}
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+          {[
+            'GSTIN is case-insensitive',
+            'First 2 digits are your state code',
+            'Characters 3–12 must match your PAN',
+          ].map((tip, i) => (
+            <div key={i} className="flex items-start gap-1.5">
+              <span className="w-1 h-1 rounded-full bg-slate-400 flex-shrink-0 mt-1.5" />
+              <span className="text-[11px] text-slate-500 leading-snug">{tip}</span>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* ── CTA row ── */}
@@ -217,15 +354,19 @@ export default function Step8GSTEnter({ pan = '', onFetchSuccess }) {
           {upper.trim() ? (
             <div className="flex items-center gap-2 bg-gray-50 border border-gray-100
               rounded-xl px-4 py-2.5 overflow-hidden">
-              <span className="text-[9px] font-bold text-gray-300 uppercase tracking-widest flex-shrink-0">
-                GST
-              </span>
+              <span className="text-[9px] font-bold text-gray-300 uppercase tracking-widest flex-shrink-0">GST</span>
               <span className="w-px h-3 bg-gray-200 flex-shrink-0"/>
               <span className="text-sm font-mono font-bold text-gray-800 tracking-widest">{upper}</span>
               {isValid && (
                 <>
                   <span className="w-px h-3 bg-gray-200 flex-shrink-0"/>
                   <span className="text-[10px] font-bold text-emerald-500 flex-shrink-0">✓ Valid</span>
+                </>
+              )}
+              {hasPANMismatch && (
+                <>
+                  <span className="w-px h-3 bg-gray-200 flex-shrink-0"/>
+                  <span className="text-[10px] font-bold text-orange-500 flex-shrink-0">⚠ PAN mismatch</span>
                 </>
               )}
             </div>
@@ -248,17 +389,17 @@ export default function Step8GSTEnter({ pan = '', onFetchSuccess }) {
           {fetching ? (
             <>
               <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
               </svg>
-              Fetching…
+              Verifying…
             </>
           ) : fetchDone ? (
             <>
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"/>
               </svg>
-              Fetched
+              Verified
             </>
           ) : (
             <>
@@ -270,6 +411,18 @@ export default function Step8GSTEnter({ pan = '', onFetchSuccess }) {
           )}
         </button>
       </div>
+
+      {/* Toasts & Modal */}
+      <SuccessToast show={successMsg} gstin={upper} onDismiss={() => setSuccessMsg(false)} />
+      <ErrorModal
+        error={showModal ? apiError : null}
+        onDismiss={() => { setShowModal(false); setApiError(null); }}
+        onRetry={() => { setShowModal(false); setApiError(null); handleFetch(); }}
+      />
+      <ErrorToast
+        error={!showModal && apiError ? apiError : null}
+        onDismiss={() => setApiError(null)}
+      />
     </div>
   );
 }
