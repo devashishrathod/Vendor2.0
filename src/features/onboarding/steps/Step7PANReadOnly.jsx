@@ -1,294 +1,364 @@
-
-import { useState } from 'react';
-import { validatePAN, PAN_RULES } from '../validation';
 import { useOnboardingStore, BIZ_SUB } from "@/features/onboarding/store/onboardingStore";
-import { STEPS } from "@/features/onboarding/constants/steps";
+import { useState, useEffect } from "react";
 
-// ── Primary Button ────────────────────────────────────────────────────────────
-function PrimaryButton({ children, onClick, disabled, loading, className = '', variant = 'emerald' }) {
-  const base = 'py-3 rounded-xl font-medium text-sm tracking-wide transition-all duration-200 flex items-center justify-center gap-2';
-  const styles = {
-    emerald: disabled || loading
-      ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
-      : 'bg-emerald-500 hover:bg-emerald-600 text-white active:scale-[0.98]',
-    outline: 'border border-gray-200 text-gray-600 bg-white hover:border-gray-300 hover:bg-gray-50 active:scale-[0.98]',
-  };
+function DetailRow({ label, value }) {
+  if (!value || value === '—') return null;
   return (
-    <button onClick={onClick} disabled={disabled || loading} className={`${base} ${styles[variant]} ${className}`}>
-      {loading && (
-        <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-        </svg>
-      )}
-      {children}
-    </button>
-  );
-}
-
-// ── Detail Row ────────────────────────────────────────────────────────────────
-function DetailRow({ label, value, mono = false }) {
-  return (
-    <div className="flex items-start justify-between gap-4 py-2.5 border-b border-gray-100 last:border-0">
-      <span className="text-xs text-gray-400 flex-shrink-0">{label}</span>
-      <span className={`text-xs font-medium text-gray-800 text-right ${mono ? 'font-mono tracking-wider' : ''}`}>
-        {value || '—'}
-      </span>
+    <div className="flex items-center justify-between py-2.5 border-b border-gray-100 last:border-0">
+      <span className="text-xs text-gray-400">{label}</span>
+      <span className="text-xs font-semibold text-gray-800 text-right max-w-[60%]">{value}</span>
     </div>
   );
 }
 
-// ── Rule Row ──────────────────────────────────────────────────────────────────
-function RuleRow({ label, passed, touched }) {
-  const color = !touched ? 'text-gray-400' : passed ? 'text-emerald-600' : 'text-red-500';
-  const bg    = !touched ? 'bg-gray-100'   : passed ? 'bg-emerald-100'   : 'bg-red-100';
-  return (
-    <div className="flex items-center gap-2">
-      <div className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 ${bg}`}>
-        {!touched ? (
-          <div className="w-1.5 h-1.5 rounded-full bg-gray-400" />
-        ) : passed ? (
-          <svg className="w-2.5 h-2.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-          </svg>
-        ) : (
-          <svg className="w-2.5 h-2.5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        )}
-      </div>
-      <span className={`text-xs font-medium ${color}`}>{label}</span>
-    </div>
-  );
-}
+/* ── Centre-top toast that auto-dismisses ── */
+function VerificationToast({ status, panType, message, isSuccess }) {
+  const [visible, setVisible] = useState(false);
+  const [leaving, setLeaving] = useState(false);
 
-// ── Update PAN Modal ──────────────────────────────────────────────────────────
-function UpdateModal({ currentPAN, onCancel, onConfirm }) {
-  const [pan, setPan]       = useState(currentPAN || '');
-  const [touched, setTouched] = useState(false);
-  const [step, setStep]     = useState('edit'); // 'edit' | 'confirm'
-  const [saving, setSaving] = useState(false);
+  useEffect(() => {
+    // Slight delay so page animation finishes first
+    const show = setTimeout(() => setVisible(true), 400);
+    const hide = setTimeout(() => {
+      setLeaving(true);
+      setTimeout(() => setVisible(false), 350);
+    }, 4000);
+    return () => { clearTimeout(show); clearTimeout(hide); };
+  }, []);
 
-  const upper   = pan.toUpperCase();
-  const error   = validatePAN(upper);
-  const isValid = !error && upper.length === 10;
-  const rules   = PAN_RULES.map(r => ({ label: r.label, passed: r.test(upper) }));
-
-  const handleChange = (e) => {
-    const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10);
-    setPan(val);
-    if (!touched && val.length > 0) setTouched(true);
-  };
-
-  const handleUpdate = async () => {
-    setSaving(true);
-    await new Promise(r => setTimeout(r, 1200));
-    setSaving(false);
-    onConfirm(upper);
-  };
+  if (!visible) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/30 backdrop-blur-[2px]">
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-xl p-6 w-full max-w-sm">
+    <div
+      style={{
+        position: 'fixed',
+        top: 20,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        zIndex: 9999,
+        animation: leaving
+          ? 'toastOut 0.35s cubic-bezier(0.4,0,1,1) forwards'
+          : 'toastIn 0.4s cubic-bezier(0.34,1.4,0.64,1) forwards',
+      }}
+    >
+      <style>{`
+        @keyframes toastIn {
+          from { opacity:0; transform:translateX(-50%) translateY(-16px) scale(0.95); }
+          to   { opacity:1; transform:translateX(-50%) translateY(0)     scale(1);    }
+        }
+        @keyframes toastOut {
+          from { opacity:1; transform:translateX(-50%) translateY(0)     scale(1);    }
+          to   { opacity:0; transform:translateX(-50%) translateY(-12px) scale(0.96); }
+        }
+      `}</style>
 
-        {step === 'edit' ? (
-          <>
-            <div className="flex items-center justify-between mb-5">
-              <div>
-                <h3 className="text-base font-medium text-gray-900">Update PAN number</h3>
-                <p className="text-xs text-gray-400 mt-0.5">Enter your corrected PAN</p>
-              </div>
-              <button onClick={onCancel}
-                className="w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors">
-                <svg className="w-3.5 h-3.5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
+      <div className={`flex items-center gap-3 px-4 py-3 rounded-2xl shadow-xl border
+        ${isSuccess
+          ? 'bg-white border-emerald-100 shadow-emerald-100/60'
+          : 'bg-white border-red-100 shadow-red-100/60'}`}
+        style={{ minWidth: 280, maxWidth: 360 }}
+      >
+        {/* Left icon circle */}
+        <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center
+          ${isSuccess ? 'bg-emerald-500' : 'bg-red-500'}`}>
+          <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            {isSuccess
+              ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+              : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />}
+          </svg>
+        </div>
 
-            {/* Input + rules side by side in modal */}
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div>
-                <label className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1.5 block">PAN Number</label>
-                <input
-                  type="text"
-                  placeholder="ABCDE1234F"
-                  value={upper}
-                  onChange={handleChange}
-                  onBlur={() => pan && setTouched(true)}
-                  maxLength={10}
-                  className={`w-full px-3 py-2.5 bg-white border-2 rounded-xl text-xs font-mono font-semibold text-gray-800 tracking-widest
-                    placeholder:text-gray-300 placeholder:font-sans placeholder:tracking-normal outline-none transition-all duration-200
-                    ${!touched ? 'border-gray-200 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100'
-                      : isValid ? 'border-emerald-400 ring-2 ring-emerald-100'
-                      : 'border-red-300 ring-2 ring-red-100'}`}
-                />
-              </div>
-              <div className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5">
-                <div className="space-y-1.5">
-                  {rules.map((r, i) => <RuleRow key={i} label={r.label} passed={r.passed} touched={touched} />)}
-                </div>
-              </div>
-            </div>
+        {/* Pills row */}
+        <div className="flex items-center gap-1.5 flex-wrap flex-1">
+          {/* Status */}
+          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold
+            ${isSuccess ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'}`}>
+            {status}
+          </span>
 
-            {/* Warning */}
-            <div className="mb-4 bg-amber-50 border border-amber-100 rounded-xl px-4 py-3">
-              <p className="text-xs text-amber-700 font-medium flex items-start gap-1.5">
-                <svg className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Updating will re-verify your PAN and may incur charges.
-              </p>
-            </div>
+          {/* Divider dot */}
+          <span className="w-1 h-1 rounded-full bg-gray-300" />
 
-            <div className="flex gap-3">
-              <PrimaryButton variant="outline" onClick={onCancel} className="flex-1">Cancel</PrimaryButton>
-              <PrimaryButton onClick={() => setStep('confirm')} disabled={!isValid || upper === currentPAN} className="flex-1">
-                Next →
-              </PrimaryButton>
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="text-center mb-5">
-              <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-3">
-                <svg className="w-6 h-6 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <h3 className="text-base font-medium text-gray-900">Confirm PAN update</h3>
-              <p className="text-xs text-gray-400 mt-1 leading-relaxed">
-                Are you sure you want to update PAN details?<br />
-                This will re-verify and may incur charges.
-              </p>
-            </div>
+          {/* PAN Type */}
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold
+            bg-blue-50 text-blue-700">
+            <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16" />
+            </svg>
+            {panType}
+          </span>
 
-            <div className="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 mb-5 text-center">
-              <p className="text-xs text-gray-400 mb-1">New PAN</p>
-              <p className="text-base font-mono font-medium text-gray-900 tracking-widest">{upper}</p>
-            </div>
+          {/* Divider dot */}
+          <span className="w-1 h-1 rounded-full bg-gray-300" />
 
-            <div className="flex gap-3">
-              <PrimaryButton variant="outline" onClick={() => setStep('edit')} className="flex-1">Back</PrimaryButton>
-              <PrimaryButton onClick={handleUpdate} loading={saving} className="flex-1">
-                {saving ? 'Updating…' : 'Yes, update'}
-              </PrimaryButton>
-            </div>
-          </>
-        )}
+          {/* Message */}
+          <span className="text-[10px] text-gray-400 font-medium">{message}</span>
+        </div>
+
+        {/* Auto-dismiss progress bar */}
+        <div className="absolute bottom-0 left-0 right-0 h-0.5 rounded-b-2xl overflow-hidden">
+          <div
+            className={`h-full ${isSuccess ? 'bg-emerald-400' : 'bg-red-400'}`}
+            style={{ animation: 'shrink 3.6s linear 0.4s forwards', transformOrigin: 'left' }}
+          />
+        </div>
+        <style>{`
+          @keyframes shrink {
+            from { transform: scaleX(1); }
+            to   { transform: scaleX(0); }
+          }
+        `}</style>
       </div>
     </div>
   );
 }
 
-// ── Mock PAN data ─────────────────────────────────────────────────────────────
-const DEFAULT_PAN_DATA = {
-  panNumber: 'ABCDE1234F',
-  name:      'ABC PRIVATE LIMITED',
-  legalName: 'ABC PRIVATE LIMITED',
-  dob:       '15/06/2020',
-  status:    'Active',
-  panType:   'Company',
-};
+export default function Step7PANReadOnly() {
+  const { setSubStep } = useOnboardingStore();
+  const panDetails = useOnboardingStore(state => state.formData.panDetails);
+  const brandId = useOnboardingStore(state => state.formData.brandId);
 
-// ── Main Component ────────────────────────────────────────────────────────────
-export default function Step7PANReadOnly({ panData = DEFAULT_PAN_DATA }) {
-  const { goToStep } = useOnboardingStore();
-  const [data, setData]           = useState(panData);
-  const [showModal, setShowModal] = useState(false);
+  const [posting, setPosting] = useState(false);
+  const [postError, setPostError] = useState(null);
 
-  const handleConfirmUpdate = (newPAN) => {
-    setData(prev => ({ ...prev, panNumber: newPAN }));
-    setShowModal(false);
+  const raw = panDetails?.data ?? panDetails ?? {};
+  const addr = raw.addressDetails || {};
+
+  const addrParts = [
+    addr.building_name, addr.street_name, addr.locality,
+    addr.city, addr.state, addr.pincode, addr.country,
+  ].filter(v => v && v.trim() !== '');
+  const addrString = addrParts.length > 0 ? addrParts.join(', ') : null;
+
+  const convertDobToISO = (dob) => {
+    if (!dob) return null;
+    if (dob.includes('T')) return dob;
+    const [day, month, year] = dob.split("/");
+    if (!day || !month || !year) return null;
+    return new Date(Date.UTC(Number(year), Number(month) - 1, Number(day))).toISOString();
+  };
+
+  const d = {
+    pan: raw.pan || '—',
+    panType: raw.panType?.toUpperCase()?.trim() || '—',
+    fullName: raw.fullName || raw.lastName || '—',
+    dob: raw.dob || '—',
+    status: raw.status || '—',
+    message: raw.message || '—',
+    address: addrString,
+  };
+
+  const isSuccess = ['Active', 'SUCCESS'].includes(d.status);
+
+  const handleContinue = async () => {
+    if (!brandId) {
+      setPostError('Brand ID not found. Please restart onboarding.');
+      return;
+    }
+    setPosting(true);
+    setPostError(null);
+    try {
+      const baseUrl = import.meta.env.VITE_BASE_URL;
+      const token = localStorage.getItem('token');
+      const verifyData = panDetails?.data ?? panDetails ?? {};
+
+      const verifyResponse = panDetails?.requestId
+        ? panDetails
+        : {
+          success: verifyData.success ?? true,
+          message: verifyData.message || 'PAN verification completed',
+          data: verifyData,
+          requestId: verifyData.clientRefNum || null,
+          timestamp: verifyData.timestamp || new Date().toISOString(),
+          statusCode: 200,
+          status: verifyData.status || 'SUCCESS',
+        };
+
+      const payload = {
+        brandId,
+        pan: verifyData.pan || d.pan,
+        panType: verifyData.panType?.toUpperCase()?.trim() || d.panType,
+        fullName: verifyData.fullName || d.fullName,
+        isVerified: verifyData.success ?? true,
+        verificationStatus: verifyData.status || 'SUCCESS',
+        verificationMessage: verifyData.message || 'Pan verified successfully',
+        providerTransactionId: verifyData.transactionId || verifyData.providerTransactionId,
+        providerRequestId: verifyData.clientRefNum,
+        verifiedAt: verifyData.timestamp || new Date().toISOString(),
+        verificationResponse: verifyResponse,
+        firstName: verifyData.firstName || undefined,
+        middleName: verifyData.middleName || undefined,
+        lastName: verifyData.lastName || undefined,
+        dob: convertDobToISO(verifyData.dob) || undefined,
+        gender: verifyData.gender || undefined,
+        aadhaarNumber: verifyData.aadhaarNumber || undefined,
+        isAadhaarLinked: verifyData.aadhaarLinked ?? undefined,
+        addressDetails: verifyData.addressDetails &&
+          Object.values(verifyData.addressDetails).some(v => v && v.trim() !== '')
+          ? {
+            buildingName: verifyData.addressDetails.building_name || undefined,
+            locality: verifyData.addressDetails.locality || undefined,
+            streetName: verifyData.addressDetails.street_name || undefined,
+            pincode: verifyData.addressDetails.pincode || undefined,
+            city: verifyData.addressDetails.city || undefined,
+            state: verifyData.addressDetails.state || undefined,
+            country: verifyData.addressDetails.country || undefined,
+          }
+          : undefined,
+        verificationProvider: 'CGPEY',
+        currentScreen: 'GST_VERIFICATION',
+      };
+
+      const res = await fetch(`${baseUrl}brands/onboarding/add-pan-details`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        if (res.status === 400 && err?.message?.toLowerCase().includes('already exists')) {
+          setSubStep(BIZ_SUB.GST_VERIFICATION);
+          return;
+        }
+        throw new Error(err?.message || `Server error ${res.status}`);
+      }
+
+      setSubStep(BIZ_SUB.GST_VERIFICATION);
+    } catch (err) {
+      setPostError(err.message || 'Failed to save PAN details. Please try again.');
+    } finally {
+      setPosting(false);
+    }
   };
 
   return (
-    <div className="flex items-center justify-center p-0">
-      <div className="w-full max-w-4xl ">
+    <>
+      {/* Toast — renders outside the card flow, fixed at top-center */}
+      <VerificationToast
+        status={d.status}
+        panType={d.panType}
+        message={d.message}
+        isSuccess={isSuccess}
+      />
 
-        {/* Icon + Title */}
-        <div className="text-center mb-8">
-          
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Your PAN details</h2>
-          {/* <span className="inline-flex items-center gap-1.5 bg-emerald-100 text-emerald-700 text-xs font-medium px-3 py-1 rounded-full">
+      <div className="w-full" style={{ animation: 'stepIn 0.35s cubic-bezier(0.34,1.4,0.64,1) both' }}>
+        <style>{`
+          @keyframes stepIn {
+            from { opacity:0; transform:translateY(14px) scale(0.98); }
+            to   { opacity:1; transform:translateY(0) scale(1); }
+          }
+        `}</style>
+
+        {/* Header */}
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <h2 className="text-lg font-bold text-gray-900 leading-tight">PAN Verified</h2>
+            <p className="text-xs text-gray-400 mt-0.5">Review your details carefully before continuing</p>
+          </div>
+          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border
+            bg-emerald-50 border-emerald-200 text-emerald-700 text-[11px] font-semibold">
             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
             </svg>
             Verified
-          </span> */}
-        </div>
-
-        {/* Horizontal layout: left = details card, right = status + actions */}
-        <div className="grid grid-cols-2 gap-5 mb-6">
-
-          {/* LEFT — Detail rows */}
-          <div className="bg-gray-50 border border-gray-100 rounded-xl px-4 py-1">
-            <DetailRow label="PAN number"            value={data.panNumber}  mono />
-            <DetailRow label="Name (as per PAN)"     value={data.name} />
-            <DetailRow label="Legal name"            value={data.legalName} />
-            <DetailRow label="Date of incorporation" value={data.dob} />
-            <DetailRow label="Status"                value={data.status} />
-            <DetailRow label="PAN type"              value={data.panType} />
-          </div>
-
-          {/* RIGHT — Status pills + info */}
-          <div className="flex flex-col justify-between gap-4">
-            {/* Status pills */}
-            <div className="flex flex-col gap-2">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Status</p>
-              <div className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium w-full
-                ${data.status === 'Active' ? 'bg-emerald-50 border border-emerald-100 text-emerald-700' : 'bg-red-50 border border-red-100 text-red-600'}`}>
-                <div className={`w-1.5 h-1.5 rounded-full ${data.status === 'Active' ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                {data.status}
-              </div>
-              <div className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium w-full bg-blue-50 border border-blue-100 text-blue-600">
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16" />
-                </svg>
-                {data.panType}
-              </div>
-            </div>
-
-            {/* Info note */}
-            <div className="bg-amber-50 border border-amber-100 rounded-xl px-3 py-3">
-              <p className="text-xs text-amber-700 leading-relaxed flex items-start gap-1.5">
-                <svg className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Please verify these details carefully before continuing. Incorrect PAN details may cause issues later.
-              </p>
-            </div>
           </div>
         </div>
 
-        {/* Action buttons */}
+        {/* PAN Card */}
+        <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-2xl px-5 py-4 mb-4
+          flex items-center justify-between shadow-md shadow-emerald-100">
+          <div>
+            <p className="text-emerald-100 text-[10px] font-semibold uppercase tracking-widest mb-1">PAN Number</p>
+            <p className="text-white text-xl font-mono font-bold tracking-[0.2em]">{d.pan}</p>
+          </div>
+          <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
+            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Detail card — full width, clean */}
+        <div className="bg-white border border-gray-100 rounded-2xl px-4 py-1 shadow-sm mb-4">
+          <DetailRow label="Full Name" value={d.fullName} />
+          <DetailRow label="PAN Type" value={d.panType} />
+          <DetailRow label="Registration Date" value={d.dob} />
+          <DetailRow label="Address" value={d.address} />
+        </div>
+
+        {/* Warning notice */}
+        <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-3
+          flex items-start gap-2.5 mb-4">
+          <svg className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <p className="text-xs text-amber-700 leading-relaxed">
+            Please verify these details carefully. Incorrect PAN details may cause issues during payment processing.
+          </p>
+        </div>
+
+        {/* Error */}
+        {postError && (
+          <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-3 py-2.5 mb-4">
+            <svg className="w-4 h-4 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="text-xs text-red-600 font-medium">{postError}</p>
+          </div>
+        )}
+
+        {/* Actions */}
         <div className="flex gap-3">
-          <PrimaryButton variant="outline" onClick={() => setShowModal(true)} className="flex-1">
+          <button
+            onClick={() => setSubStep(BIZ_SUB.PAN_VERIFICATION)}
+            disabled={posting}
+            className="flex-1 py-2.5 rounded-xl border-2 border-gray-200 bg-white
+              hover:border-gray-300 hover:bg-gray-50 text-gray-600 text-sm font-semibold
+              transition-all duration-200 active:scale-[0.98] flex items-center justify-center
+              gap-2 disabled:opacity-50"
+          >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
             </svg>
-            Update PAN
-          </PrimaryButton>
-          <PrimaryButton
-            onClick={() => goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.GST_ENTER)}
-            className="flex-1"
+            Change Details
+          </button>
+
+          <button
+            onClick={handleContinue}
+            disabled={posting}
+            className="flex-1 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white
+              text-sm font-semibold transition-all duration-200 active:scale-[0.98]
+              shadow-sm shadow-emerald-200 flex items-center justify-center gap-2
+              disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            Continue →
-          </PrimaryButton>
+            {posting ? (
+              <>
+                <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                </svg>
+                Saving…
+              </>
+            ) : (
+              <>
+                Continue
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                </svg>
+              </>
+            )}
+          </button>
         </div>
-
-        <p className="text-center text-xs text-gray-300 mt-4">Step 7 of 13</p>
       </div>
-
-      {showModal && (
-        <UpdateModal
-          currentPAN={data.panNumber}
-          onCancel={() => setShowModal(false)}
-          onConfirm={handleConfirmUpdate}
-        />
-      )}
-    </div>
+    </>
   );
 }
-

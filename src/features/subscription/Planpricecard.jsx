@@ -1,12 +1,16 @@
 // ── Price section — changes per selected tab ──────────────────────────────────
 import { PLANS } from "@/utils/Plandata";
 
+
+
 const fmt = (n) =>
   new Intl.NumberFormat("en-IN", { minimumFractionDigits: 2 }).format(n);
 
 export default function PlanPriceCard({ selectedId, onPurchase }) {
   const plan = PLANS.find((p) => p.id === selectedId);
   if (!plan) return null;
+
+
 
   const planName = plan.label;
 
