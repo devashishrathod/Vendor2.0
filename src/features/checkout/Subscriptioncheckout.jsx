@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-// ─── Data ────────────────────────────────────────────────────────────────────
 const PLAN_DATA = {
   name: "Basic Plan",
   yearlyPrice: 1999,
@@ -33,7 +32,6 @@ const VALID_PROMO_CODES = {
   WELCOME2026: 18,
 };
 
-// ─── Utils ───────────────────────────────────────────────────────────────────
 const fmt = (amount) =>
   new Intl.NumberFormat("en-IN", {
     style: "currency",
@@ -41,15 +39,14 @@ const fmt = (amount) =>
     minimumFractionDigits: 2,
   }).format(amount);
 
-// ─── TrustBar ────────────────────────────────────────────────────────────────
 function TrustBar({ badges }) {
   return (
-    <div className="w-full bg-gray-50 border border-gray-200 rounded-xl px-6 py-3 mb-6">
-      <div className="flex flex-wrap items-center justify-center gap-6 divide-x divide-gray-300">
+    <div className="w-full bg-gray-50 border border-gray-200 rounded-xl px-8 py-3 mb-6">
+      <div className="flex items-center justify-center gap-6 divide-x divide-gray-300 overflow-x-auto">
         {badges.map((b, i) => (
-          <div key={i} className="flex items-center gap-2 px-4 first:pl-0 last:pr-0">
+          <div key={i} className="flex items-center gap-2 px-4 first:pl-0 last:pr-0 shrink-0">
             <span className="text-lg">{b.icon}</span>
-            <span className="text-sm font-medium text-gray-700">{b.label}</span>
+            <span className="text-sm font-medium text-gray-700 whitespace-nowrap">{b.label}</span>
             {b.rating && (
               <>
                 <div className="flex gap-0.5">
@@ -59,7 +56,7 @@ function TrustBar({ badges }) {
                     </svg>
                   ))}
                 </div>
-                <span className="text-sm text-gray-500">{b.rating}</span>
+                <span className="text-sm text-gray-500 whitespace-nowrap">{b.rating}</span>
               </>
             )}
           </div>
@@ -69,7 +66,6 @@ function TrustBar({ badges }) {
   );
 }
 
-// ─── PlanInfo ─────────────────────────────────────────────────────────────────
 function PlanInfo({ plan }) {
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-6">
@@ -97,7 +93,6 @@ function PlanInfo({ plan }) {
   );
 }
 
-// ─── BillingDetailsCard ───────────────────────────────────────────────────────
 const BILLING_FIELDS = [
   { key: "brandName", label: "Brand name", type: "text" },
   { key: "address",   label: "Address",    type: "textarea" },
@@ -110,54 +105,27 @@ function BillingDetailsCard({ details, onSave }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(details);
 
-  const handleEdit = () => {
-    setDraft(details);
-    setEditing(true);
-  };
-
-  const handleSave = () => {
-    onSave(draft);
-    setEditing(false);
-  };
-
-  const handleCancel = () => {
-    setDraft(details);
-    setEditing(false);
-  };
-
+  const handleEdit = () => { setDraft(details); setEditing(true); };
+  const handleSave = () => { onSave(draft); setEditing(false); };
+  const handleCancel = () => { setDraft(details); setEditing(false); };
   const handleChange = (key, val) => setDraft((prev) => ({ ...prev, [key]: val }));
 
   return (
     <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-      {/* Header */}
       <div className="bg-gray-50 px-6 py-3 border-b border-gray-200 flex items-center justify-between">
         <h3 className="text-sm font-bold text-gray-800">Billing Details</h3>
         {!editing ? (
-          <button
-            onClick={handleEdit}
-            className="text-sm font-semibold text-teal-600 hover:text-teal-700 transition-colors"
-          >
+          <button onClick={handleEdit} className="text-sm font-semibold text-teal-600 hover:text-teal-700 transition-colors">
             Edit
           </button>
         ) : (
           <div className="flex gap-3">
-            <button
-              onClick={handleCancel}
-              className="text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSave}
-              className="text-sm font-semibold text-teal-600 hover:text-teal-700 transition-colors"
-            >
-              Save
-            </button>
+            <button onClick={handleCancel} className="text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors">Cancel</button>
+            <button onClick={handleSave} className="text-sm font-semibold text-teal-600 hover:text-teal-700 transition-colors">Save</button>
           </div>
         )}
       </div>
 
-      {/* Rows */}
       <div className="divide-y divide-gray-100">
         {BILLING_FIELDS.map(({ key, label, type }) => (
           <div key={key} className="px-6 py-4 grid grid-cols-3 gap-4 items-start">
@@ -187,19 +155,12 @@ function BillingDetailsCard({ details, onSave }) {
         ))}
       </div>
 
-      {/* Save bar when editing */}
       {editing && (
         <div className="px-6 py-4 bg-teal-50 border-t border-teal-100 flex justify-end gap-3">
-          <button
-            onClick={handleCancel}
-            className="px-5 py-2 text-sm font-medium text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
-          >
+          <button onClick={handleCancel} className="px-5 py-2 text-sm font-medium text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors">
             Cancel
           </button>
-          <button
-            onClick={handleSave}
-            className="px-6 py-2 text-sm font-semibold text-white bg-teal-600 hover:bg-teal-700 rounded-lg transition-colors"
-          >
+          <button onClick={handleSave} className="px-6 py-2 text-sm font-semibold text-white bg-teal-600 hover:bg-teal-700 rounded-lg transition-colors">
             Save Changes
           </button>
         </div>
@@ -208,7 +169,6 @@ function BillingDetailsCard({ details, onSave }) {
   );
 }
 
-// ─── PromoCodePanel ───────────────────────────────────────────────────────────
 function PromoCodePanel({ appliedCode, appliedPct, onApply, onRemove }) {
   const [open, setOpen] = useState(false);
   const [code, setCode] = useState("");
@@ -227,11 +187,7 @@ function PromoCodePanel({ appliedCode, appliedPct, onApply, onRemove }) {
     }
   };
 
-  const handleRemove = () => {
-    onRemove();
-    setCode("");
-    setError("");
-  };
+  const handleRemove = () => { onRemove(); setCode(""); setError(""); };
 
   return (
     <div className="mb-5">
@@ -247,7 +203,6 @@ function PromoCodePanel({ appliedCode, appliedPct, onApply, onRemove }) {
         )}
       </div>
 
-      {/* Input panel */}
       {open && !appliedCode && (
         <div className="mt-3">
           <div className="flex gap-2">
@@ -259,10 +214,7 @@ function PromoCodePanel({ appliedCode, appliedPct, onApply, onRemove }) {
               placeholder="Have a promo code? Type here"
               className="flex-1 text-sm border border-gray-300 rounded-lg px-4 py-2.5 outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent transition"
             />
-            <button
-              onClick={handleApply}
-              className="bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors"
-            >
+            <button onClick={handleApply} className="bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors">
               Apply
             </button>
             <button
@@ -281,7 +233,6 @@ function PromoCodePanel({ appliedCode, appliedPct, onApply, onRemove }) {
   );
 }
 
-// ─── SummaryRow ───────────────────────────────────────────────────────────────
 function SummaryRow({ label, value, muted, accent, sub }) {
   return (
     <div className="border-b border-gray-100 pb-4">
@@ -303,35 +254,21 @@ function SummaryRow({ label, value, muted, accent, sub }) {
   );
 }
 
-// ─── OrderSummary ─────────────────────────────────────────────────────────────
 function OrderSummary({ plan }) {
   const [appliedCode, setAppliedCode] = useState("");
   const [promoDiscount, setPromoDiscount] = useState(0);
-    const navigate = useNavigate();
+  const navigate = useNavigate();
 
   const billValue = plan.yearlyPrice;
   const promoSaving = parseFloat(((billValue * promoDiscount) / 100).toFixed(2));
   const discountedBill = billValue - promoSaving;
   const igst = parseFloat((discountedBill * plan.igstRate).toFixed(2));
   const totalPayable = parseFloat((discountedBill + igst).toFixed(2));
-  const totalSaved = parseFloat((plan.originalPrice - discountedBill + (promoSaving > 0 ? 0 : 0)).toFixed(2));
-  // total saved = originalPrice minus what they actually pay (ex-tax)
   const totalSavedFull = parseFloat((plan.originalPrice + igst - totalPayable).toFixed(2));
 
-  const handleApply = (code, pct) => {
-    setAppliedCode(code);
-    setPromoDiscount(pct);
-  };
-
-  const handleRemove = () => {
-    setAppliedCode("");
-    setPromoDiscount(0);
-  };
-
-    const handleCheckout = () => {
-        // For demo, we'll just alert the summary. In real app, you'd integrate with payment gateway here.
-        navigate('/oulet');
-    };
+  const handleApply = (code, pct) => { setAppliedCode(code); setPromoDiscount(pct); };
+  const handleRemove = () => { setAppliedCode(""); setPromoDiscount(0); };
+  const handleCheckout = () => navigate("/oulet");
 
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-6 sticky top-4">
@@ -341,36 +278,28 @@ function OrderSummary({ plan }) {
         <SummaryRow label="Original Price" value={fmt(plan.originalPrice)} muted />
         <SummaryRow label="Bill Value" value={fmt(billValue)} />
         <SummaryRow label={`IGST @ ${(plan.igstRate * 100).toFixed(2)}%`} value={fmt(igst)} />
-
-        {/* Promo discount row — only visible when code is applied */}
         {appliedCode && (
           <SummaryRow
             label="Trydood Discount"
             value={`-${fmt(promoSaving)}`}
             accent
-            sub={{
-              label: appliedCode,
-              onRemove: handleRemove,
-            }}
+            sub={{ label: appliedCode, onRemove: handleRemove }}
           />
         )}
       </div>
 
-      {/* Total */}
       <div className="border-t border-dashed border-gray-200 pt-4 mb-2">
         <div className="flex items-center justify-between">
           <span className="text-base font-bold text-gray-900">You'll Pay</span>
           <span className="text-xl font-extrabold text-gray-900">{fmt(totalPayable)}</span>
         </div>
         <p className="text-sm text-gray-500 font-medium mt-1">
-          You saved{" "}
-          <span className="text-teal-600 font-semibold">{fmt(totalSavedFull)}</span> on This Plan
+          You saved <span className="text-teal-600 font-semibold">{fmt(totalSavedFull)}</span> on This Plan
         </p>
       </div>
 
       <div className="border-t border-gray-100 my-5" />
 
-      {/* Promo Code Toggle */}
       <PromoCodePanel
         appliedCode={appliedCode}
         appliedPct={promoDiscount}
@@ -378,38 +307,36 @@ function OrderSummary({ plan }) {
         onRemove={handleRemove}
       />
 
-      {/* Checkout */}
-      <button onClick={handleCheckout} className="w-full bg-teal-600 hover:bg-teal-700 active:scale-[0.99] text-white font-bold text-base py-4 rounded-xl transition-all duration-150 mb-3">
+      <button
+        onClick={handleCheckout}
+        className="w-full active:scale-[0.99] text-white font-bold text-base py-4 rounded-xl transition-all duration-150 mb-3"
+        style={{ background: "linear-gradient(135deg, #09B285 0%, #0F0E20 100%)" }}
+        onMouseEnter={(e) => (e.currentTarget.style.background = "linear-gradient(135deg, #07a077 0%, #1a1a3e 100%)")}
+        onMouseLeave={(e) => (e.currentTarget.style.background = "linear-gradient(135deg, #09B285 0%, #0F0E20 100%)")}
+      >
         Check Out
       </button>
 
       <div className="text-center">
         <p className="text-xs font-semibold text-gray-600 mb-1">🔒 100% Secure payment</p>
-        <p className="text-xs text-gray-500">
-          We also accept Indian Debit Cards, UPI and Netbanking.
-        </p>
+        <p className="text-xs text-gray-500">We also accept Indian Debit Cards, UPI and Netbanking.</p>
       </div>
     </div>
   );
 }
 
-// ─── Root ─────────────────────────────────────────────────────────────────────
 export default function SubscriptionCheckout() {
   const [billing, setBilling] = useState(INITIAL_BILLING);
 
   return (
     <div className="min-h-screen bg-gray-100 p-4 md:p-8">
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         <TrustBar badges={TRUST_BADGES} />
-
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-5">
-          {/* Left */}
           <div className="flex flex-col gap-4">
             <PlanInfo plan={PLAN_DATA} />
             <BillingDetailsCard details={billing} onSave={setBilling} />
           </div>
-
-          {/* Right */}
           <OrderSummary plan={PLAN_DATA} />
         </div>
       </div>

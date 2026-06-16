@@ -1,7 +1,52 @@
 import { useEffect } from 'react';
 
+function resolveVariant(status, message = '') {
+  if (status === 403) {
+    if (message.toLowerCase().includes('inactive') || message.toLowerCase().includes('deactivated')) {
+      return {
+        icon: 'ti-user-off',
+        titleColor: 'var(--color-text-warning)',
+        msgColor: 'var(--color-text-warning)',
+        background: 'var(--color-background-warning)',
+        border: '0.5px solid var(--color-border-warning)',
+        borderLeft: '3px solid #f59e0b',
+        iconColor: 'var(--color-text-warning)',
+      };
+    }
+    return {
+      icon: 'ti-shield-off',
+      titleColor: 'var(--color-text-primary)',
+      msgColor: 'var(--color-text-secondary)',
+      background: 'var(--color-background-primary)',
+      border: '0.5px solid #F09595',
+      borderLeft: '3px solid #E24B4A',
+      iconColor: '#E24B4A',
+    };
+  }
+  if (status === 401) {
+    return {
+      icon: 'ti-lock',
+      titleColor: 'var(--color-text-primary)',
+      msgColor: 'var(--color-text-secondary)',
+      background: 'var(--color-background-primary)',
+      border: '0.5px solid #F09595',
+      borderLeft: '3px solid #E24B4A',
+      iconColor: '#E24B4A',
+    };
+  }
+  return {
+    icon: 'ti-alert-circle',
+    titleColor: 'var(--color-text-primary)',
+    msgColor: 'var(--color-text-secondary)',
+    background: 'var(--color-background-primary)',
+    border: '0.5px solid #F09595',
+    borderLeft: '3px solid #E24B4A',
+    iconColor: '#E24B4A',
+  };
+}
+
 export default function ErrorToast({ error, onDismiss, duration = 5000 }) {
-  const { humanMessage, txnId } = error || {};
+  const { status, message, txnId } = error || {};
 
   useEffect(() => {
     if (!error) return;
@@ -11,15 +56,17 @@ export default function ErrorToast({ error, onDismiss, duration = 5000 }) {
 
   if (!error) return null;
 
+  const v = resolveVariant(status, message);
+
   return (
     <div
       role="alert"
       style={{
         position: 'fixed', bottom: 24, right: 24, zIndex: 9999,
         maxWidth: 380, width: 'calc(100vw - 48px)',
-        background: 'var(--color-background-primary)',
-        border: '0.5px solid #F09595',
-        borderLeft: '3px solid #E24B4A',
+        background: v.background,
+        border: v.border,
+        borderLeft: v.borderLeft,
         borderRadius: 'var(--border-radius-md)',
         padding: '12px 14px',
         display: 'flex', alignItems: 'flex-start', gap: 10,
@@ -33,18 +80,13 @@ export default function ErrorToast({ error, onDismiss, duration = 5000 }) {
         }
       `}</style>
 
-      <i className="ti ti-alert-circle"
-        style={{ fontSize: 18, color: '#E24B4A', flexShrink: 0, marginTop: 1 }}
+      <i className={`ti ${v.icon}`}
+        style={{ fontSize: 18, color: v.iconColor, flexShrink: 0, marginTop: 1 }}
         aria-hidden="true" />
 
       <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ fontSize: 13, fontWeight: 500,
-          color: 'var(--color-text-primary)', margin: '0 0 2px' }}>
-          Verification failed
-        </p>
-        <p style={{ fontSize: 12, color: 'var(--color-text-secondary)',
-          margin: 0, wordBreak: 'break-word' }}>
-          {humanMessage}
+        <p style={{ fontSize: 12, color: v.msgColor, margin: 0, wordBreak: 'break-word' }}>
+          {message}
         </p>
         {txnId && (
           <p style={{ fontSize: 11, color: 'var(--color-text-tertiary)',

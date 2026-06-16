@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useOnboardingStore, BIZ_SUB } from "@/features/onboarding/store/onboardingStore";
 import { STEPS } from "@/features/onboarding/constants/steps";
 import { updateBusinessEntityType } from '@/features/onboarding/services/api/brand.api';
+import SuccessToast from '@/components/common/SuccessToast';
+import ErrorToast from '@/components/common/ErrorToast';
 
 function PrimaryButton({ children, onClick, disabled, loading, className = '' }) {
   return (
@@ -27,11 +29,11 @@ function PrimaryButton({ children, onClick, disabled, loading, className = '' })
 }
 
 const ENTITY_TYPE_MAP = {
-  pvt_ltd:        'PRIVATE_LIMITED',
-  llp:            'LLP',
-  partnership:    'PARTNERSHIP',
+  pvt_ltd: 'PRIVATE_LIMITED',
+  llp: 'LLP',
+  partnership: 'PARTNERSHIP',
   proprietorship: 'PROPRIETORSHIP',
-  others:         'TRUST',
+  others: 'TRUST',
 };
 
 const BUSINESS_TYPES = [
@@ -114,13 +116,11 @@ function TypeCard({ type, selected, onClick }) {
           : 'border-gray-200 bg-white hover:border-emerald-200 hover:bg-gray-50/50'
         }`}
     >
-      {/* Icon */}
       <div className={`w-11 h-11 rounded-xl flex items-center justify-center transition-colors duration-200
         ${isActive ? 'bg-emerald-100' : 'bg-gray-100'}`}>
         {type.icon(isActive)}
       </div>
 
-      {/* Label + desc */}
       <div className="flex flex-col items-center gap-0.5">
         <span className={`text-sm font-semibold leading-tight transition-colors duration-200
           ${isActive ? 'text-emerald-700' : 'text-gray-800'}`}>
@@ -129,13 +129,11 @@ function TypeCard({ type, selected, onClick }) {
         <p className="text-[11px] text-gray-400 leading-tight">{type.description}</p>
       </div>
 
-      {/* Radio */}
       <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all duration-200
         ${isActive ? 'border-emerald-500 bg-emerald-500' : 'border-gray-300 bg-white'}`}>
         {isActive && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
       </div>
 
-      {/* ✅ Most Popular badge — bottom center */}
       {type.badge && (
         <span className={`text-[10px] font-semibold px-2.5 py-0.5 rounded-full transition-colors duration-200
           ${isActive ? 'bg-emerald-500 text-white' : 'bg-emerald-100 text-emerald-700'}`}>
@@ -150,18 +148,24 @@ export default function Step5BusinessType() {
   const { goToStep } = useOnboardingStore();
   const [selected, setSelected] = useState(null);
 
-  const [loading,  setLoading]  = useState(false);
+  const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState(null);
+  const [successMsg, setSuccessMsg] = useState(null);
 
   const handleContinue = async () => {
     if (!selected) return;
     const entityType = ENTITY_TYPE_MAP[selected];
     setLoading(true);
     setApiError(null);
+    setSuccessMsg(null);
     try {
       await updateBusinessEntityType({ entityType });
       useOnboardingStore.getState().setField('businessType', selected);
-      goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_VERIFICATION);
+      setSuccessMsg('Business type saved successfully!');
+
+      setTimeout(() => {
+        goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_VERIFICATION);
+      }, 1500); // toast dikhne ka time
     } catch (err) {
       setApiError(err.message || 'Something went wrong. Please try again.');
     } finally {
@@ -173,6 +177,9 @@ export default function Step5BusinessType() {
 
   return (
     <div className="flex items-center justify-center p-4">
+      <SuccessToast message={successMsg} onDismiss={() => setSuccessMsg(null)} />
+      <ErrorToast error={apiError} onDismiss={() => setApiError(null)} />
+
       <div className="w-full max-w-3xl">
 
         {/* Header */}
@@ -195,7 +202,7 @@ export default function Step5BusinessType() {
               key={type.id}
               type={type}
               selected={selected}
-              onClick={(id) => { setSelected(id); setApiError(null); }}
+              onClick={(id) => { setSelected(id); setApiError(null); setSuccessMsg(null); }}
             />
           ))}
         </div>
@@ -212,17 +219,6 @@ export default function Step5BusinessType() {
             </p>
           </div>
         </div>
-
-        {/* API Error */}
-        {apiError && (
-          <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4">
-            <svg className="w-4 h-4 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-            </svg>
-            <p className="text-xs text-red-600 font-medium">{apiError}</p>
-          </div>
-        )}
 
         {/* CTA */}
         <div className="max-w-sm mx-auto">

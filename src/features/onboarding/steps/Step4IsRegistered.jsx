@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useOnboardingStore, BASIC_SUB } from "@/features/onboarding/store/onboardingStore";
 import { STEPS } from "@/features/onboarding/constants/steps";
 import { updateRegistrationStatus } from '@/features/onboarding/services/api/brand.api';
+import SuccessToast from '@/components/common/SuccessToast';
+import ErrorToast from '@/components/common/ErrorToast';
 
 // ── Primary Button ────────────────────────────────────────────────────────────
 function PrimaryButton({ children, onClick, disabled, loading, className = '', variant = 'emerald' }) {
@@ -283,21 +285,25 @@ export default function Step4IsRegistered() {
   const navigate = useNavigate();
 
   const [loading,  setLoading]  = useState(false);
+  const [successMsg, setSuccessMsg] = useState(null);
   const [apiError, setApiError] = useState(null);
 
   // ✅ API call — registered select karke continue
-  const proceedAsRegistered = async () => {
-    setLoading(true);
-    setApiError(null);
-    try {
-      await updateRegistrationStatus({ status: 'REGISTERED' });
+ const proceedAsRegistered = async () => {
+  setLoading(true);
+  setApiError(null);
+  try {
+    await updateRegistrationStatus({ status: 'REGISTERED' });
+    setSuccessMsg('Registration status updated successfully.');
+    setTimeout(() => {
       setSubStep(BASIC_SUB.REGISTRATION_ENTITY_TYPE);
-    } catch (err) {
-      setApiError(err.message || 'Something went wrong. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
+    }, 1500);
+  } catch (err) {
+    setApiError({ status: err.status, message: err.message, txnId: err.txnId });
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleContinue = async () => {
     if (!selected) return;
@@ -402,6 +408,9 @@ export default function Step4IsRegistered() {
           onSelectRegistered={handleSelectRegisteredFromModal}
         />
       )}
+
+      <SuccessToast message={successMsg} onDismiss={() => setSuccessMsg(null)} />
+      <ErrorToast   error={apiError}     onDismiss={() => setApiError(null)} />
     </div>
   );
 }
