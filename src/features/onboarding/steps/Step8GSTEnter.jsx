@@ -116,10 +116,8 @@ export default function Step8GSTEnter({ pan = '' }) {
   const [successMsg, setSuccessMsg] = useState(false);
 
   const upper   = gstin.toUpperCase();
-  // ✅ Pass pan to validateGST so cross-check runs
   const error   = validateGST(upper, pan);
   const isValid = !error && upper.length === 15;
-  // ✅ Pass pan to each GST_RULE test
   const rules   = GST_RULES.map(r => ({ label: r.label, passed: r.test(upper, pan) }));
 
   const handleChange = (e) => {
@@ -134,7 +132,6 @@ export default function Step8GSTEnter({ pan = '' }) {
   const handleFetch = async () => {
     if (!isValid) return;
 
-    // ✅ Extra guard: block API call if PAN mismatch (shouldn't reach here, but safety net)
     if (pan && pan.trim().length === 10) {
       const panFromGST = upper.substring(2, 12);
       if (panFromGST !== pan.toUpperCase()) return;
@@ -164,12 +161,17 @@ export default function Step8GSTEnter({ pan = '' }) {
       );
       setApiError(parsed);
       setShowModal(true);
+
+      setTimeout(() => {
+        setShowModal(false);
+        setApiError(null);
+      }, 3500);
+
     } finally {
       setFetching(false);
     }
   };
 
-  // PAN mismatch exists in current input (for banner logic)
   const hasPANMismatch = pan && pan.trim().length === 10
     && upper.length >= 12
     && upper.substring(2, 12) !== pan.toUpperCase();
@@ -202,7 +204,6 @@ export default function Step8GSTEnter({ pan = '' }) {
           </p>
         </div>
 
-        {/* PAN chip — shows which PAN it will be matched against */}
         {pan && (
           <div className="ml-auto flex items-center gap-1.5 bg-blue-50 border border-blue-100
             rounded-full px-3 py-1.5 flex-shrink-0">
@@ -269,7 +270,6 @@ export default function Step8GSTEnter({ pan = '' }) {
             </div>
             <p className="text-[11px] text-gray-300 mt-1.5">Format: 2 digits · 10 PAN · 1 digit · 1 letter · 1 digit</p>
 
-            {/* ✅ PAN mismatch inline banner */}
             <PANMismatchBanner gstin={upper} pan={pan} />
           </div>
 

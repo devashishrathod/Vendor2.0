@@ -248,7 +248,7 @@ export default function Step12BankReadOnly({ accountType }) {
         throw new Error(err?.message || `Server error ${res.status}`);
       }
 
-      goToStep(STEPS.PARTNER_CONTRACT);
+      goToStep(STEPS.SYSTEM_VERIFY);
     } catch (err) {
       setPostError(err.message || 'Failed to save bank details. Please try again.');
     } finally {

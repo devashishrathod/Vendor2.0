@@ -117,7 +117,6 @@ export default function Step6PANEnter({ onFetchSuccess }) {
     try {
       const data = await verifyPAN(upper);
 
-      // ✅ 200 success
       const pan_data = data?.data || data;
 
       console.log('Step6 — raw API response:', data);
@@ -127,14 +126,13 @@ export default function Step6PANEnter({ onFetchSuccess }) {
       if (onFetchSuccess) onFetchSuccess(pan_data);
 
       setFetchDone(true);
-      setSuccessMsg(true); // show success toast
+      setSuccessMsg(true);
 
       setTimeout(() => {
         goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_READONLY);
       }, 1500);
 
     } catch (err) {
-      // ✅ 400 — parse nested error
       let parsed;
       try {
         const errData = typeof err.message === 'string'
@@ -146,6 +144,12 @@ export default function Step6PANEnter({ onFetchSuccess }) {
       }
       setApiError(parsed);
       setShowModal(true);
+
+      setTimeout(() => {
+        setShowModal(false);
+        setApiError(null);
+      }, 3500);
+
     } finally {
       setFetching(false);
     }
@@ -272,13 +276,11 @@ export default function Step6PANEnter({ onFetchSuccess }) {
         </div>
       </div>
 
-
-
       {/* Tips — compact card */}
       <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 mb-4 step-in"
         style={{ animationDelay: '0.1s' }}>
         <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest
-    flex items-center gap-1.5 mb-2">
+          flex items-center gap-1.5 mb-2">
           <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
               d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
