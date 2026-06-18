@@ -3,14 +3,14 @@
 // All vendor / business related API calls
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { request } from './client';
+import { request } from "./client";
 
 /**
  * Get vendor profile / business details
  * GET /vendor/profile
  */
 export const getVendorProfile = () =>
-  request('/vendor/profile', 'GET', null, true);
+  request("/vendor/profile", "GET", null, true);
 
 /**
  * Update vendor / business profile
@@ -21,14 +21,14 @@ export const getVendorProfile = () =>
  * await vendorAPI.updateVendorProfile({ businessName: 'My Shop', category: 'Food' });
  */
 export const updateVendorProfile = (data) =>
-  request('/vendor/profile', 'PUT', data, true);
+  request("/vendor/profile", "PUT", data, true);
 
 /**
  * Get all services listed by this vendor
  * GET /vendor/services
  */
 export const getVendorServices = () =>
-  request('/vendor/services', 'GET', null, true);
+  request("/vendor/services", "GET", null, true);
 
 /**
  * Add a new service
@@ -37,7 +37,7 @@ export const getVendorServices = () =>
  * @param {object} serviceData
  */
 export const addService = (serviceData) =>
-  request('/vendor/services', 'POST', serviceData, true);
+  request("/vendor/services", "POST", serviceData, true);
 
 /**
  * Update an existing service
@@ -47,7 +47,7 @@ export const addService = (serviceData) =>
  * @param {object} serviceData
  */
 export const updateService = (serviceId, serviceData) =>
-  request(`/vendor/services/${serviceId}`, 'PUT', serviceData, true);
+  request(`/vendor/services/${serviceId}`, "PUT", serviceData, true);
 
 /**
  * Delete a service
@@ -56,7 +56,7 @@ export const updateService = (serviceId, serviceData) =>
  * @param {string} serviceId
  */
 export const deleteService = (serviceId) =>
-  request(`/vendor/services/${serviceId}`, 'DELETE', null, true);
+  request(`/vendor/services/${serviceId}`, "DELETE", null, true);
 
 const vendorAPI = {
   getVendorProfile,

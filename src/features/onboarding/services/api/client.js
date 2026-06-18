@@ -1,12 +1,9 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// services/api/client.js
-
-export const BASE_URL = 'https://backend2-0-4v4i.onrender.com/trydood/v1';
+import { BASE_URL } from "../../../../config";
 
 // ── Token helpers ─────────────────────────────────────────────────────────────
-export const getToken   = ()      => localStorage.getItem('token');
-export const setToken   = (t)     => localStorage.setItem('token', t);
-export const clearToken = ()      => localStorage.removeItem('token');
+export const getToken = () => localStorage.getItem("token");
+export const setToken = (t) => localStorage.setItem("token", t);
+export const clearToken = () => localStorage.removeItem("token");
 
 // ── Core request ──────────────────────────────────────────────────────────────
 /**
@@ -15,13 +12,18 @@ export const clearToken = ()      => localStorage.removeItem('token');
  * @param {object}  body          - JSON body (optional)
  * @param {boolean} requiresAuth  - attach Bearer token if true
  */
-export async function request(endpoint, method = 'GET', body = null, requiresAuth = false) {
-  const headers = { 'Content-Type': 'application/json' };
+export async function request(
+  endpoint,
+  method = "GET",
+  body = null,
+  requiresAuth = false,
+) {
+  const headers = { "Content-Type": "application/json" };
 
   if (requiresAuth) {
     const token = getToken();
-    if (!token) throw new Error('Session expired. Please log in again.');
-    headers['Authorization'] = `Bearer ${token}`;
+    if (!token) throw new Error("Session expired. Please log in again.");
+    headers["Authorization"] = `Bearer ${token}`;
   }
 
   const config = { method, headers };
@@ -31,18 +33,20 @@ export async function request(endpoint, method = 'GET', body = null, requiresAut
   try {
     res = await fetch(`${BASE_URL}${endpoint}`, config);
   } catch {
-    throw new Error('Network error. Please check your internet connection.');
+    throw new Error("Network error. Please check your internet connection.");
   }
 
   let data;
   try {
     data = await res.json();
   } catch {
-    throw new Error('Invalid response from server.');
+    throw new Error("Invalid response from server.");
   }
 
   if (!res.ok) {
-    throw new Error(data?.message || data?.error || `Error ${res.status}: ${res.statusText}`);
+    throw new Error(
+      data?.message || data?.error || `Error ${res.status}: ${res.statusText}`,
+    );
   }
 
   return data;

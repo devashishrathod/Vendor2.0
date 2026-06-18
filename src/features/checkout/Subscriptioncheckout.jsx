@@ -14,14 +14,19 @@ const PLAN_DATA = {
 
 const INITIAL_BILLING = {
   brandName: "Yoga Education And Research Pvt Ltd",
-  address: "New No. 9 (Old No. 23), Plot No. 4363, 4th Floor, X Block, 5th Street, Annanagar West, Chennai – 600040",
+  address:
+    "New No. 9 (Old No. 23), Plot No. 4363, 4th Floor, X Block, 5th Street, Annanagar West, Chennai – 600040",
   cin: "U47912TN2023PTC163139",
   gstin: "09AAKFF2211N2ZA",
   pan: "ABCDE1234F",
 };
 
 const TRUST_BADGES = [
-  { icon: "⭐", label: "1 Million Trusted Partner Ship", rating: "13,02,55 (Review)" },
+  {
+    icon: "⭐",
+    label: "1 Million Trusted Partner Ship",
+    rating: "13,02,55 (Review)",
+  },
   { icon: "🏷️", label: "10,00,000 New Listing Brand" },
   { icon: "🛒", label: "One Destination, 5 Million Products" },
 ];
@@ -44,19 +49,30 @@ function TrustBar({ badges }) {
     <div className="w-full bg-gray-50 border border-gray-200 rounded-xl px-8 py-3 mb-6">
       <div className="flex items-center justify-center gap-6 divide-x divide-gray-300 overflow-x-auto">
         {badges.map((b, i) => (
-          <div key={i} className="flex items-center gap-2 px-4 first:pl-0 last:pr-0 shrink-0">
+          <div
+            key={i}
+            className="flex items-center gap-2 px-4 first:pl-0 last:pr-0 shrink-0"
+          >
             <span className="text-lg">{b.icon}</span>
-            <span className="text-sm font-medium text-gray-700 whitespace-nowrap">{b.label}</span>
+            <span className="text-sm font-medium text-gray-700 whitespace-nowrap">
+              {b.label}
+            </span>
             {b.rating && (
               <>
                 <div className="flex gap-0.5">
                   {[...Array(5)].map((_, s) => (
-                    <svg key={s} className="w-4 h-4 text-teal-500 fill-current" viewBox="0 0 20 20">
+                    <svg
+                      key={s}
+                      className="w-4 h-4 text-teal-500 fill-current"
+                      viewBox="0 0 20 20"
+                    >
                       <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                     </svg>
                   ))}
                 </div>
-                <span className="text-sm text-gray-500 whitespace-nowrap">{b.rating}</span>
+                <span className="text-sm text-gray-500 whitespace-nowrap">
+                  {b.rating}
+                </span>
               </>
             )}
           </div>
@@ -73,7 +89,9 @@ function PlanInfo({ plan }) {
         Subscribe to {plan.name}
       </h2>
       <div className="flex items-center gap-3 mb-6">
-        <span className="text-3xl font-extrabold text-gray-900">{fmt(plan.yearlyPrice)}</span>
+        <span className="text-3xl font-extrabold text-gray-900">
+          {fmt(plan.yearlyPrice)}
+        </span>
         <span className="text-gray-500 font-medium">/ {plan.billingCycle}</span>
         <span className="bg-teal-600 text-white text-xs font-semibold px-3 py-1 rounded-md">
           {plan.discountPercent}% Off
@@ -95,41 +113,69 @@ function PlanInfo({ plan }) {
 
 const BILLING_FIELDS = [
   { key: "brandName", label: "Brand name", type: "text" },
-  { key: "address",   label: "Address",    type: "textarea" },
-  { key: "cin",       label: "CIN",        type: "text" },
-  { key: "gstin",     label: "GSTIN",      type: "text" },
-  { key: "pan",       label: "Pan",        type: "text" },
+  { key: "address", label: "Address", type: "textarea" },
+  { key: "cin", label: "CIN", type: "text" },
+  { key: "gstin", label: "GSTIN", type: "text" },
+  { key: "pan", label: "Pan", type: "text" },
 ];
 
 function BillingDetailsCard({ details, onSave }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(details);
 
-  const handleEdit = () => { setDraft(details); setEditing(true); };
-  const handleSave = () => { onSave(draft); setEditing(false); };
-  const handleCancel = () => { setDraft(details); setEditing(false); };
-  const handleChange = (key, val) => setDraft((prev) => ({ ...prev, [key]: val }));
+  const handleEdit = () => {
+    setDraft(details);
+    setEditing(true);
+  };
+  const handleSave = () => {
+    onSave(draft);
+    setEditing(false);
+  };
+  const handleCancel = () => {
+    setDraft(details);
+    setEditing(false);
+  };
+  const handleChange = (key, val) =>
+    setDraft((prev) => ({ ...prev, [key]: val }));
 
   return (
     <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
       <div className="bg-gray-50 px-6 py-3 border-b border-gray-200 flex items-center justify-between">
         <h3 className="text-sm font-bold text-gray-800">Billing Details</h3>
         {!editing ? (
-          <button onClick={handleEdit} className="text-sm font-semibold text-teal-600 hover:text-teal-700 transition-colors">
+          <button
+            onClick={handleEdit}
+            className="text-sm font-semibold text-teal-600 hover:text-teal-700 transition-colors"
+          >
             Edit
           </button>
         ) : (
           <div className="flex gap-3">
-            <button onClick={handleCancel} className="text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors">Cancel</button>
-            <button onClick={handleSave} className="text-sm font-semibold text-teal-600 hover:text-teal-700 transition-colors">Save</button>
+            <button
+              onClick={handleCancel}
+              className="text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              className="text-sm font-semibold text-teal-600 hover:text-teal-700 transition-colors"
+            >
+              Save
+            </button>
           </div>
         )}
       </div>
 
       <div className="divide-y divide-gray-100">
         {BILLING_FIELDS.map(({ key, label, type }) => (
-          <div key={key} className="px-6 py-4 grid grid-cols-3 gap-4 items-start">
-            <span className="text-sm font-semibold text-gray-700 col-span-1 pt-1">{label}</span>
+          <div
+            key={key}
+            className="px-6 py-4 grid grid-cols-3 gap-4 items-start"
+          >
+            <span className="text-sm font-semibold text-gray-700 col-span-1 pt-1">
+              {label}
+            </span>
             <div className="col-span-2">
               {editing ? (
                 type === "textarea" ? (
@@ -157,10 +203,16 @@ function BillingDetailsCard({ details, onSave }) {
 
       {editing && (
         <div className="px-6 py-4 bg-teal-50 border-t border-teal-100 flex justify-end gap-3">
-          <button onClick={handleCancel} className="px-5 py-2 text-sm font-medium text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors">
+          <button
+            onClick={handleCancel}
+            className="px-5 py-2 text-sm font-medium text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
+          >
             Cancel
           </button>
-          <button onClick={handleSave} className="px-6 py-2 text-sm font-semibold text-white bg-teal-600 hover:bg-teal-700 rounded-lg transition-colors">
+          <button
+            onClick={handleSave}
+            className="px-6 py-2 text-sm font-semibold text-white bg-teal-600 hover:bg-teal-700 rounded-lg transition-colors"
+          >
             Save Changes
           </button>
         </div>
@@ -187,15 +239,24 @@ function PromoCodePanel({ appliedCode, appliedPct, onApply, onRemove }) {
     }
   };
 
-  const handleRemove = () => { onRemove(); setCode(""); setError(""); };
+  const handleRemove = () => {
+    onRemove();
+    setCode("");
+    setError("");
+  };
 
   return (
     <div className="mb-5">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-gray-700">Have a promo code?</span>
+        <span className="text-sm font-medium text-gray-700">
+          Have a promo code?
+        </span>
         {!appliedCode && (
           <button
-            onClick={() => { setOpen((v) => !v); setError(""); }}
+            onClick={() => {
+              setOpen((v) => !v);
+              setError("");
+            }}
             className="text-sm font-semibold text-teal-600 hover:text-teal-700 transition-colors"
           >
             {open ? "Hide" : "Apply Here"}
@@ -209,20 +270,40 @@ function PromoCodePanel({ appliedCode, appliedPct, onApply, onRemove }) {
             <input
               type="text"
               value={code}
-              onChange={(e) => { setCode(e.target.value); setError(""); }}
+              onChange={(e) => {
+                setCode(e.target.value);
+                setError("");
+              }}
               onKeyDown={(e) => e.key === "Enter" && handleApply()}
               placeholder="Have a promo code? Type here"
               className="flex-1 text-sm border border-gray-300 rounded-lg px-4 py-2.5 outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent transition"
             />
-            <button onClick={handleApply} className="bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors">
+            <button
+              onClick={handleApply}
+              className="bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors"
+            >
               Apply
             </button>
             <button
-              onClick={() => { setOpen(false); setError(""); setCode(""); }}
+              onClick={() => {
+                setOpen(false);
+                setError("");
+                setCode("");
+              }}
               className="w-10 h-10 flex items-center justify-center border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
             >
-              <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                className="w-4 h-4 text-gray-500"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>
@@ -237,15 +318,24 @@ function SummaryRow({ label, value, muted, accent, sub }) {
   return (
     <div className="border-b border-gray-100 pb-4">
       <div className="flex items-center justify-between">
-        <span className={`text-sm ${muted ? "text-gray-500" : "text-gray-700"}`}>{label}</span>
-        <span className={`text-sm font-semibold ${muted ? "text-gray-500" : accent ? "text-teal-600" : "text-gray-800"}`}>
+        <span
+          className={`text-sm ${muted ? "text-gray-500" : "text-gray-700"}`}
+        >
+          {label}
+        </span>
+        <span
+          className={`text-sm font-semibold ${muted ? "text-gray-500" : accent ? "text-teal-600" : "text-gray-800"}`}
+        >
           {value}
         </span>
       </div>
       {sub && (
         <div className="flex items-center justify-between mt-1">
           <span className="text-xs text-gray-400">{sub.label}</span>
-          <button onClick={sub.onRemove} className="text-xs font-semibold text-red-400 hover:text-red-600 transition-colors">
+          <button
+            onClick={sub.onRemove}
+            className="text-xs font-semibold text-red-400 hover:text-red-600 transition-colors"
+          >
             Remove
           </button>
         </div>
@@ -260,14 +350,24 @@ function OrderSummary({ plan }) {
   const navigate = useNavigate();
 
   const billValue = plan.yearlyPrice;
-  const promoSaving = parseFloat(((billValue * promoDiscount) / 100).toFixed(2));
+  const promoSaving = parseFloat(
+    ((billValue * promoDiscount) / 100).toFixed(2),
+  );
   const discountedBill = billValue - promoSaving;
   const igst = parseFloat((discountedBill * plan.igstRate).toFixed(2));
   const totalPayable = parseFloat((discountedBill + igst).toFixed(2));
-  const totalSavedFull = parseFloat((plan.originalPrice + igst - totalPayable).toFixed(2));
+  const totalSavedFull = parseFloat(
+    (plan.originalPrice + igst - totalPayable).toFixed(2),
+  );
 
-  const handleApply = (code, pct) => { setAppliedCode(code); setPromoDiscount(pct); };
-  const handleRemove = () => { setAppliedCode(""); setPromoDiscount(0); };
+  const handleApply = (code, pct) => {
+    setAppliedCode(code);
+    setPromoDiscount(pct);
+  };
+  const handleRemove = () => {
+    setAppliedCode("");
+    setPromoDiscount(0);
+  };
   const handleCheckout = () => navigate("/oulet");
 
   return (
@@ -275,9 +375,16 @@ function OrderSummary({ plan }) {
       <h2 className="text-2xl font-bold text-gray-900 mb-6">Order Summary</h2>
 
       <div className="space-y-4 mb-5">
-        <SummaryRow label="Original Price" value={fmt(plan.originalPrice)} muted />
+        <SummaryRow
+          label="Original Price"
+          value={fmt(plan.originalPrice)}
+          muted
+        />
         <SummaryRow label="Bill Value" value={fmt(billValue)} />
-        <SummaryRow label={`IGST @ ${(plan.igstRate * 100).toFixed(2)}%`} value={fmt(igst)} />
+        <SummaryRow
+          label={`IGST @ ${(plan.igstRate * 100).toFixed(2)}%`}
+          value={fmt(igst)}
+        />
         {appliedCode && (
           <SummaryRow
             label="Trydood Discount"
@@ -291,10 +398,16 @@ function OrderSummary({ plan }) {
       <div className="border-t border-dashed border-gray-200 pt-4 mb-2">
         <div className="flex items-center justify-between">
           <span className="text-base font-bold text-gray-900">You'll Pay</span>
-          <span className="text-xl font-extrabold text-gray-900">{fmt(totalPayable)}</span>
+          <span className="text-xl font-extrabold text-gray-900">
+            {fmt(totalPayable)}
+          </span>
         </div>
         <p className="text-sm text-gray-500 font-medium mt-1">
-          You saved <span className="text-teal-600 font-semibold">{fmt(totalSavedFull)}</span> on This Plan
+          You saved{" "}
+          <span className="text-teal-600 font-semibold">
+            {fmt(totalSavedFull)}
+          </span>{" "}
+          on This Plan
         </p>
       </div>
 
@@ -310,16 +423,28 @@ function OrderSummary({ plan }) {
       <button
         onClick={handleCheckout}
         className="w-full active:scale-[0.99] text-white font-bold text-base py-4 rounded-xl transition-all duration-150 mb-3"
-        style={{ background: "linear-gradient(135deg, #09B285 0%, #0F0E20 100%)" }}
-        onMouseEnter={(e) => (e.currentTarget.style.background = "linear-gradient(135deg, #07a077 0%, #1a1a3e 100%)")}
-        onMouseLeave={(e) => (e.currentTarget.style.background = "linear-gradient(135deg, #09B285 0%, #0F0E20 100%)")}
+        style={{
+          background: "linear-gradient(135deg, #09B285 0%, #0F0E20 100%)",
+        }}
+        onMouseEnter={(e) =>
+          (e.currentTarget.style.background =
+            "linear-gradient(135deg, #07a077 0%, #1a1a3e 100%)")
+        }
+        onMouseLeave={(e) =>
+          (e.currentTarget.style.background =
+            "linear-gradient(135deg, #09B285 0%, #0F0E20 100%)")
+        }
       >
         Check Out
       </button>
 
       <div className="text-center">
-        <p className="text-xs font-semibold text-gray-600 mb-1">🔒 100% Secure payment</p>
-        <p className="text-xs text-gray-500">We also accept Indian Debit Cards, UPI and Netbanking.</p>
+        <p className="text-xs font-semibold text-gray-600 mb-1">
+          🔒 100% Secure payment
+        </p>
+        <p className="text-xs text-gray-500">
+          We also accept Indian Debit Cards, UPI and Netbanking.
+        </p>
       </div>
     </div>
   );
