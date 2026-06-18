@@ -11,9 +11,9 @@
 //   import { sendOTP, verifyOTP } from '@/services/api/auth.api';
 // ─────────────────────────────────────────────────────────────────────────────
 
-export { default as authAPI }   from './auth.api';
-export { default as userAPI }   from './user.api';
-export { default as vendorAPI } from './vendor.api';
+export { default as authAPI } from "./auth.api";
+export { default as userAPI } from "./user.api";
+export { default as vendorAPI } from "./vendor.api";
 
 // Also export token utils for convenience
-export { getToken, setToken, clearToken } from './client';
+export { getToken, setToken, clearToken } from "./client";

@@ -5,27 +5,43 @@ import { useNavigate } from "react-router-dom";
 // ─── Static Data ───────────────────────────────────────────────────────────────
 const MERCHANT_DATA = {
   token: "A4FG1WJOIUN20",
-  address: "New No. 9 (Old No. 23), Plot No. 4363, 4th Floor, X Block 5th Street, Annanagar West, Chennai - 600040",
+  address:
+    "New No. 9 (Old No. 23), Plot No. 4363, 4th Floor, X Block 5th Street, Annanagar West, Chennai - 600040",
   mapsLink: "https://maps.app.goo.gl/PgwWnUXuiNy5XuVg7",
   latitude: "13.0827° N",
   longitude: "80.2707° E",
 };
 
-const CATEGORIES = ["Food & Drinks", "Health & Wellness", "Beauty & Spa", "Education", "Entertainment", "Fitness"];
+const CATEGORIES = [
+  "Food & Drinks",
+  "Health & Wellness",
+  "Beauty & Spa",
+  "Education",
+  "Entertainment",
+  "Fitness",
+];
 const SUB_CATEGORIES = {
-  "Food & Drinks": ["Buffet Restaurants", "Cafes", "Bakeries", "Fast Food", "Fine Dining"],
+  "Food & Drinks": [
+    "Buffet Restaurants",
+    "Cafes",
+    "Bakeries",
+    "Fast Food",
+    "Fine Dining",
+  ],
   "Health & Wellness": ["Yoga", "Meditation", "Ayurveda", "Naturopathy"],
   "Beauty & Spa": ["Salon", "Spa", "Nail Studio", "Skin Clinic"],
-  "Education": ["Coaching", "Workshops", "Online Classes"],
-  "Entertainment": ["Events", "Gaming", "Movies"],
-  "Fitness": ["Gym", "Crossfit", "Zumba", "Swimming"],
+  Education: ["Coaching", "Workshops", "Online Classes"],
+  Entertainment: ["Events", "Gaming", "Movies"],
+  Fitness: ["Gym", "Crossfit", "Zumba", "Swimming"],
 };
 
 // ─── Sub-components ────────────────────────────────────────────────────────────
 
 function SectionCard({ children, className = "" }) {
   return (
-    <div className={`bg-white border border-gray-200 rounded-2xl p-6 mb-6 ${className}`}>
+    <div
+      className={`bg-white border border-gray-200 rounded-2xl p-6 mb-6 ${className}`}
+    >
       {children}
     </div>
   );
@@ -39,7 +55,10 @@ function SectionHeader({ title, subtitle, linkText, onLink }) {
         {subtitle && <p className="text-sm text-gray-500 mt-0.5">{subtitle}</p>}
       </div>
       {linkText && (
-        <button onClick={onLink} className="text-sm text-blue-500 hover:underline whitespace-nowrap ml-4 mt-0.5">
+        <button
+          onClick={onLink}
+          className="text-sm text-blue-500 hover:underline whitespace-nowrap ml-4 mt-0.5"
+        >
           {linkText}
         </button>
       )}
@@ -73,18 +92,35 @@ function UploadBox({ extraCols = [] }) {
       ))}
       <div className="flex items-center gap-2 ml-auto shrink-0">
         {fileName && (
-          <span className="text-xs text-gray-500 max-w-[120px] truncate">{fileName}</span>
+          <span className="text-xs text-gray-500 max-w-[120px] truncate">
+            {fileName}
+          </span>
         )}
         <button
           onClick={() => inputRef.current.click()}
           className="flex items-center gap-2 bg-[#1a1a2e] text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-[#2d2d5e] transition-colors"
         >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+            />
           </svg>
           Upload
         </button>
-        <input ref={inputRef} type="file" className="hidden" onChange={handleFile} />
+        <input
+          ref={inputRef}
+          type="file"
+          className="hidden"
+          onChange={handleFile}
+        />
       </div>
     </div>
   );
@@ -116,21 +152,50 @@ function PreviewUploadBox({ sizeRule, sizeLimit, extraCols = [] }) {
       ))}
       <div className="flex items-center gap-2 ml-auto shrink-0">
         <button className="bg-indigo-600 text-white p-2.5 rounded-xl hover:bg-indigo-700 transition-colors">
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+            />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+            />
           </svg>
         </button>
         <button
           onClick={() => inputRef.current.click()}
           className="flex items-center gap-2 bg-[#1a1a2e] text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-[#2d2d5e] transition-colors"
         >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+            />
           </svg>
           Upload
         </button>
-        <input ref={inputRef} type="file" className="hidden" onChange={handleFile} />
+        <input
+          ref={inputRef}
+          type="file"
+          className="hidden"
+          onChange={handleFile}
+        />
       </div>
     </div>
   );
@@ -152,32 +217,38 @@ export default function CreateBrandOutlet() {
   const handleSave = () => {
     setSaving(true);
     setTimeout(() => setSaving(false), 2000);
-    navigate('/under-review');
+    navigate("/under-review");
   };
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
-
       {/* Navbar */}
       <nav className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between sticky top-0 z-50">
         <div className="flex items-center gap-1">
-         {/* img */}
-         <img src={logo2} alt="Trydood Logo" className="w-12 h-12 object-contain" />
+          {/* img */}
+          <img
+            src={logo2}
+            alt="Trydood Logo"
+            className="w-12 h-12 object-contain"
+          />
           {/* <span className="text-lg font-black text-[#1a1a2e] tracking-tight">TRYDOOD</span> */}
         </div>
-       
       </nav>
 
       <div className="max-w-4xl mx-auto px-4 py-8">
-
         {/* Page Title + Token */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Create Your Brand Outlet</h1>
-            <p className="text-sm text-gray-500 mt-1">You are just a few steps away from listing your event on Trydood!</p>
+            <h1 className="text-2xl font-bold text-gray-900">
+              Create Your Brand Outlet
+            </h1>
+            <p className="text-sm text-gray-500 mt-1">
+              You are just a few steps away from listing your event on Trydood!
+            </p>
           </div>
           <div className="border-2 border-dashed border-blue-300 rounded-xl px-6 py-3 bg-blue-50 text-sm font-semibold text-gray-700 whitespace-nowrap">
-            Merchant Token : <span className="text-gray-900">{MERCHANT_DATA.token}</span>
+            Merchant Token :{" "}
+            <span className="text-gray-900">{MERCHANT_DATA.token}</span>
           </div>
         </div>
 
@@ -200,7 +271,9 @@ export default function CreateBrandOutlet() {
             subtitle="Build Your Brand Identity"
             linkText="Description guidelines"
           />
-          <label className="block text-sm font-semibold text-gray-700 mb-2">Fill Brand Name</label>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            Fill Brand Name
+          </label>
           <input
             type="text"
             value={brandName}
@@ -222,23 +295,44 @@ export default function CreateBrandOutlet() {
           />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Category *</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Category *
+              </label>
               <div className="relative">
                 <select
                   value={category}
-                  onChange={(e) => { setCategory(e.target.value); setSubCategory(""); }}
+                  onChange={(e) => {
+                    setCategory(e.target.value);
+                    setSubCategory("");
+                  }}
                   className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-indigo-400 appearance-none bg-white text-gray-700"
                 >
                   <option value="">eg : Food & Drinks</option>
-                  {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                  {CATEGORIES.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
                 </select>
-                <svg className="absolute right-3 top-3.5 w-4 h-4 text-gray-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                <svg
+                  className="absolute right-3 top-3.5 w-4 h-4 text-gray-400 pointer-events-none"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M19 9l-7 7-7-7"
+                  />
                 </svg>
               </div>
             </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Sub-Category</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Sub-Category
+              </label>
               <div className="relative">
                 <select
                   value={subCategory}
@@ -247,10 +341,24 @@ export default function CreateBrandOutlet() {
                   disabled={!category}
                 >
                   <option value="">eg : buffet restaurants</option>
-                  {(SUB_CATEGORIES[category] || []).map((s) => <option key={s} value={s}>{s}</option>)}
+                  {(SUB_CATEGORIES[category] || []).map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
                 </select>
-                <svg className="absolute right-3 top-3.5 w-4 h-4 text-gray-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                <svg
+                  className="absolute right-3 top-3.5 w-4 h-4 text-gray-400 pointer-events-none"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M19 9l-7 7-7-7"
+                  />
                 </svg>
               </div>
             </div>
@@ -276,20 +384,29 @@ export default function CreateBrandOutlet() {
                 className="mt-0.5 w-4 h-4 accent-indigo-600 cursor-pointer"
               />
               <div>
-                <label htmlFor="gstSame" className="text-sm font-bold text-gray-800 cursor-pointer">
+                <label
+                  htmlFor="gstSame"
+                  className="text-sm font-bold text-gray-800 cursor-pointer"
+                >
                   GST Address Is The Same As The Outlet Location.
                 </label>
-                <p className="text-sm text-gray-500 mt-0.5">Search and select your Outlet address</p>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  Search and select your Outlet address
+                </p>
               </div>
             </div>
 
             <div className="mb-3">
-              <p className="text-sm font-semibold text-gray-700 mb-1">Address</p>
+              <p className="text-sm font-semibold text-gray-700 mb-1">
+                Address
+              </p>
               <p className="text-sm text-gray-800">{MERCHANT_DATA.address}</p>
             </div>
 
             <div>
-              <p className="text-sm font-semibold text-gray-700 mb-2">Exact Google Maps link</p>
+              <p className="text-sm font-semibold text-gray-700 mb-2">
+                Exact Google Maps link
+              </p>
               <input
                 type="text"
                 value={mapsLink}
@@ -302,16 +419,25 @@ export default function CreateBrandOutlet() {
           {/* Google Maps coordinates */}
           <div className="border border-gray-200 rounded-xl p-4">
             <div className="flex items-start gap-3 mb-5">
-              <input type="checkbox" className="mt-0.5 w-4 h-4 accent-indigo-600" />
+              <input
+                type="checkbox"
+                className="mt-0.5 w-4 h-4 accent-indigo-600"
+              />
               <div>
-                <p className="text-sm font-bold text-gray-800">Find Your Outlet Location Using Google Maps.</p>
-                <p className="text-sm text-gray-500 mt-0.5">Discover your outlet instantly with smart map navigation.</p>
+                <p className="text-sm font-bold text-gray-800">
+                  Find Your Outlet Location Using Google Maps.
+                </p>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  Discover your outlet instantly with smart map navigation.
+                </p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Latitude *</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Latitude *
+                </label>
                 <input
                   type="text"
                   value={latitude}
@@ -321,7 +447,9 @@ export default function CreateBrandOutlet() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Longitude</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Longitude
+                </label>
                 <input
                   type="text"
                   value={longitude}
@@ -340,7 +468,9 @@ export default function CreateBrandOutlet() {
 
         {/* ── Showcase Collection ── */}
         <div className="mb-2">
-          <h2 className="text-base font-bold text-gray-900 mb-4 px-1">Showcase Collection</h2>
+          <h2 className="text-base font-bold text-gray-900 mb-4 px-1">
+            Showcase Collection
+          </h2>
         </div>
 
         {/* Ambience Photos */}
@@ -350,7 +480,10 @@ export default function CreateBrandOutlet() {
             subtitle="Ensure images follow our event card guidelines and are provided in both formats."
             linkText="Images  guidelines"
           />
-          <PreviewUploadBox sizeRule="3:4 aspect ratio (50px by 50px)" sizeLimit="1.5MB" />
+          <PreviewUploadBox
+            sizeRule="3:4 aspect ratio (50px by 50px)"
+            sizeLimit="1.5MB"
+          />
         </SectionCard>
 
         {/* Ambience Videos */}
@@ -378,7 +511,6 @@ export default function CreateBrandOutlet() {
         >
           {saving ? "Saving..." : "Save & Process"}
         </button>
-
       </div>
     </div>
   );

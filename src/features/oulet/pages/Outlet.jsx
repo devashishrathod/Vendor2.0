@@ -17,8 +17,15 @@ const VALID_PROMO_CODES = {
 const CONFETTI_ITEMS = Array.from({ length: 48 }, (_, i) => ({
   id: i,
   color: [
-    "#f472b6","#818cf8","#34d399","#fb923c",
-    "#facc15","#60a5fa","#a78bfa","#f87171","#2dd4bf",
+    "#f472b6",
+    "#818cf8",
+    "#34d399",
+    "#fb923c",
+    "#facc15",
+    "#60a5fa",
+    "#a78bfa",
+    "#f87171",
+    "#2dd4bf",
   ][Math.floor(Math.random() * 9)],
   left: Math.random() * 100,
   top: Math.random() * 90,
@@ -33,7 +40,7 @@ export default function TrydoodOutlet() {
   const [promoCode, setPromoCode] = useState("");
   const [promoStatus, setPromoStatus] = useState(null); // null | { type: "success"|"error", message: string }
 
- const navigate = useNavigate();
+  const navigate = useNavigate();
   const togglePromo = () => {
     setPromoOpen((prev) => !prev);
     setPromoCode("");
@@ -47,21 +54,26 @@ export default function TrydoodOutlet() {
       return;
     }
     if (VALID_PROMO_CODES[code]) {
-      setPromoStatus({ type: "success", message: `✓ ${VALID_PROMO_CODES[code]}` });
+      setPromoStatus({
+        type: "success",
+        message: `✓ ${VALID_PROMO_CODES[code]}`,
+      });
     } else {
-      setPromoStatus({ type: "error", message: "✗ Invalid promo code. Please try again." });
+      setPromoStatus({
+        type: "error",
+        message: "✗ Invalid promo code. Please try again.",
+      });
     }
   };
 
   const handleAddListing = () => {
     alert("Redirecting to Add Listing...");
     // navigate("/add-listing") or your router call
-     navigate('/brand-outlet');
+    navigate("/brand-outlet");
   };
 
   return (
     <div className="relative min-h-screen bg-white overflow-hidden font-sans">
-
       {/* Confetti */}
       <div className="absolute top-0 left-0 right-0 h-40 pointer-events-none z-0">
         {CONFETTI_ITEMS.map((item) => (
@@ -83,7 +95,6 @@ export default function TrydoodOutlet() {
 
       {/* Main Content */}
       <div className="relative z-10 px-6 md:px-10 pb-16">
-
         {/* Header */}
         <div className="text-center pt-10 pb-10">
           <h1 className="text-3xl md:text-4xl font-semibold text-[#1a1a2e] mb-2">
@@ -96,13 +107,12 @@ export default function TrydoodOutlet() {
 
         {/* Card */}
         <div className="max-w-5xl mx-auto bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
-
           <h2 className="text-xl font-bold text-[#1a1a2e] mb-2">
             Create Your Brand Outlet's
           </h2>
           <p className="text-sm text-gray-500 mb-6">
-            Register your outlet to showcase your products, services, and offers.
-            Reach more customers and grow your business easily.
+            Register your outlet to showcase your products, services, and
+            offers. Reach more customers and grow your business easily.
           </p>
 
           <hr className="border-gray-200 mb-6" />
@@ -118,15 +128,21 @@ export default function TrydoodOutlet() {
           <div className="flex flex-wrap gap-8 mb-8 text-sm text-gray-700">
             <span>
               Merchant Token :{" "}
-              <span className="text-indigo-500 font-medium">{BRAND_DATA.merchantToken}</span>
+              <span className="text-indigo-500 font-medium">
+                {BRAND_DATA.merchantToken}
+              </span>
             </span>
             <span>
               GST No :{" "}
-              <span className="text-indigo-500 font-medium">{BRAND_DATA.gstNo}</span>
+              <span className="text-indigo-500 font-medium">
+                {BRAND_DATA.gstNo}
+              </span>
             </span>
             <span>
               PAN No :{" "}
-              <span className="text-indigo-500 font-medium">{BRAND_DATA.panNo}</span>
+              <span className="text-indigo-500 font-medium">
+                {BRAND_DATA.panNo}
+              </span>
             </span>
           </div>
 
@@ -149,7 +165,11 @@ export default function TrydoodOutlet() {
                 stroke="currentColor"
                 strokeWidth={2}
               >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M19 9l-7 7-7-7"
+                />
               </svg>
             </button>
 
@@ -159,7 +179,9 @@ export default function TrydoodOutlet() {
               }`}
             >
               <div className="px-4 pb-4">
-                <p className="text-xs font-semibold text-gray-600 mb-2">Enter Promo Code</p>
+                <p className="text-xs font-semibold text-gray-600 mb-2">
+                  Enter Promo Code
+                </p>
                 <div className="flex gap-3">
                   <input
                     type="text"
@@ -204,11 +226,14 @@ export default function TrydoodOutlet() {
               stroke="currentColor"
               strokeWidth={2}
             >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 4v16m8-8H4"
+              />
             </svg>
             Add Listing
           </button>
-
         </div>
       </div>
     </div>

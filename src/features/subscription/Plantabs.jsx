@@ -4,11 +4,11 @@ import { PieIcon } from "./PlanIcons";
 
 export default function PlanTabs({ selected, onChange }) {
   const containerRef = useRef(null);
-  const btnRefs      = useRef({});
+  const btnRefs = useRef({});
   const [pill, setPill] = useState({ left: 0, width: 0, ready: false });
 
   const updatePill = (id) => {
-    const btn       = btnRefs.current[id];
+    const btn = btnRefs.current[id];
     const container = containerRef.current;
     if (!btn || !container) return;
     const cRect = container.getBoundingClientRect();
@@ -36,7 +36,8 @@ export default function PlanTabs({ selected, onChange }) {
             width: pill.width,
             transform: `translateX(${pill.left}px)`,
             left: 0,
-            transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+            transition:
+              "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
           }}
         />
       )}

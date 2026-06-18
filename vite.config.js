@@ -5,11 +5,7 @@ import svgr from "vite-plugin-svgr";
 import path from "path";
 
 export default defineConfig({
-  plugins: [
-    react(),
-    tailwindcss(),
-    svgr(),
-  ],
+  plugins: [react(), tailwindcss(), svgr()],
 
   resolve: {
     alias: {

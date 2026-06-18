@@ -7,7 +7,9 @@
   --font-display: "DM Serif Display", ui-serif, serif;
 }
 
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 

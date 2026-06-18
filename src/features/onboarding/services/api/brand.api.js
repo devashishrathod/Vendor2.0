@@ -4,9 +4,9 @@
 // Handles all three onboarding screens with their respective bodies.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { request } from './client';
+import { request } from "./client";
 
-const ENDPOINT = '/brands/onboarding/basic-details';
+const ENDPOINT = "/brands/onboarding/basic-details";
 
 // ── Screen 1 — Business Name (Step3BusinessName) ──────────────────────────────
 // currentScreen: "REGISTRATION_STATUS"
@@ -16,11 +16,11 @@ const ENDPOINT = '/brands/onboarding/basic-details';
  */
 export async function updateBusinessName({ legalBusinessName, brandName }) {
   const body = {
-    currentScreen: 'REGISTRATION_STATUS',
+    currentScreen: "REGISTRATION_STATUS",
     legalBusinessName,
     ...(brandName?.trim() && { brandName: brandName.trim() }),
   };
-  return request(ENDPOINT, 'POST', body, true);
+  return request(ENDPOINT, "POST", body, true);
 }
 
 // ── Screen 2 — Registration Status (Step4IsRegistered) ────────────────────────
@@ -31,10 +31,10 @@ export async function updateBusinessName({ legalBusinessName, brandName }) {
  */
 export async function updateRegistrationStatus({ status }) {
   const body = {
-    currentScreen: 'REGISTRATION_ENTITY_TYPE',
+    currentScreen: "REGISTRATION_ENTITY_TYPE",
     businessRegistrationStatus: status,
   };
-  return request(ENDPOINT, 'POST', body, true);
+  return request(ENDPOINT, "POST", body, true);
 }
 
 // ── Screen 3 — Business Type (Step5BusinessType) ──────────────────────────────
@@ -47,8 +47,8 @@ export async function updateRegistrationStatus({ status }) {
  */
 export async function updateBusinessEntityType({ entityType }) {
   const body = {
-    currentScreen: 'PAN_VERIFICATION',
+    currentScreen: "PAN_VERIFICATION",
     businessEntityType: entityType,
   };
-  return request(ENDPOINT, 'POST', body, true);
+  return request(ENDPOINT, "POST", body, true);
 }

@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
-import HeroBanner          from "./HeroBanner";
-import PlanTabs            from "./PlanTabs";
-import PlanPriceCard       from "./PlanPriceCard";
+import HeroBanner from "./HeroBanner";
+import PlanTabs from "./PlanTabs";
+import PlanPriceCard from "./PlanPriceCard";
 import PlanComparisonTable from "./Plancomparisontable";
 import { useNavigate } from "react-router-dom";
 
-export default function SubscriptionPlan({ businessName: propBusinessName = "Yoga Education and Research Pvt Ltd" }) {
+export default function SubscriptionPlan({
+  businessName: propBusinessName = "Yoga Education and Research Pvt Ltd",
+}) {
   const navigate = useNavigate();
   const [selectedPlan, setSelectedPlan] = useState("advanced");
   const [businessName, setBusinessName] = useState(propBusinessName);
@@ -29,7 +31,7 @@ export default function SubscriptionPlan({ businessName: propBusinessName = "Yog
 
   const handlePurchase = (plan) => {
     console.log("Purchase:", plan);
-    navigate('/subscription/checkout');
+    navigate("/subscription/checkout");
   };
 
   return (
@@ -60,12 +62,17 @@ export default function SubscriptionPlan({ businessName: propBusinessName = "Yog
 
       <div
         className="absolute bottom-0 left-0 w-[500px] h-[500px] pointer-events-none"
-        style={{ background: 'radial-gradient(ellipse at bottom left, rgba(16,185,129,0.15) 0%, transparent 70%)' }}
+        style={{
+          background:
+            "radial-gradient(ellipse at bottom left, rgba(16,185,129,0.15) 0%, transparent 70%)",
+        }}
       />
 
       <div className="relative z-10 max-w-5xl mx-auto px-6 py-6">
-
-        <div className="text-center" style={{ animation: "slideDown 0.5s ease both" }}>
+        <div
+          className="text-center"
+          style={{ animation: "slideDown 0.5s ease both" }}
+        >
           <span className="inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 text-emerald-600 text-xs font-semibold px-3 py-1 rounded-full">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
             Choose Your Plan
@@ -74,7 +81,8 @@ export default function SubscriptionPlan({ businessName: propBusinessName = "Yog
             Subscription Plan
           </h1>
           <p className="text-sm text-gray-400 max-w-md mx-auto leading-relaxed">
-            Enjoy enhanced benefits, exclusive content, and priority support with your subscription.
+            Enjoy enhanced benefits, exclusive content, and priority support
+            with your subscription.
           </p>
         </div>
 
@@ -82,17 +90,25 @@ export default function SubscriptionPlan({ businessName: propBusinessName = "Yog
           <HeroBanner businessName={businessName} />
         </div>
 
-        <div className="mt-8 mb-2" style={{ animation: "fadeUp 0.5s 0.2s ease both", opacity: 0 }}>
+        <div
+          className="mt-8 mb-2"
+          style={{ animation: "fadeUp 0.5s 0.2s ease both", opacity: 0 }}
+        >
           <PlanTabs selected={selectedPlan} onChange={setSelectedPlan} />
         </div>
 
         <div key={selectedPlan} style={{ animation: "fadeUp 0.3s ease both" }}>
-          <PlanPriceCard selectedId={selectedPlan} onPurchase={handlePurchase} />
+          <PlanPriceCard
+            selectedId={selectedPlan}
+            onPurchase={handlePurchase}
+          />
         </div>
 
         <div className="flex items-center gap-4 my-10">
           <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
-          <span className="text-xs text-gray-400 font-medium tracking-widest uppercase px-2">Compare Plans</span>
+          <span className="text-xs text-gray-400 font-medium tracking-widest uppercase px-2">
+            Compare Plans
+          </span>
           <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
         </div>
 

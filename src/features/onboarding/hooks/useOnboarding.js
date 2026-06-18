@@ -1,16 +1,30 @@
-import { useOnboardingStore, BASIC_SUB, BIZ_SUB, BANK_SUB } from "../store/onboardingStore";
-import { STEPS } from "../constants/steps";
 import {
-  validateBusinessName, validateShortName,
-  validatePAN, validateGST, validateBankDetails,
+  useOnboardingStore,
+  BASIC_SUB,
+  BIZ_SUB,
+  BANK_SUB,
+} from "../store/onboardingStore";
+import {
+  validateBusinessName,
+  validateShortName,
+  validatePAN,
+  validateGST,
+  validateBankDetails,
 } from "../validation";
 
 export function useOnboarding() {
   const store = useOnboardingStore();
   const {
-    formData, setField, setLoading, setError,
-    nextStep, goToStep, setSubStep,
-    setPanDetails, setGstDetails, setBankDetails,
+    formData,
+    setField,
+    setLoading,
+    setError,
+    nextStep,
+    goToStep,
+    setSubStep,
+    setPanDetails,
+    setGstDetails,
+    setBankDetails,
   } = store;
 
   // ── BASIC DETAILS (Step 1) ────────────────────────────────────────────────
@@ -33,7 +47,8 @@ export function useOnboarding() {
   };
 
   const submitBusinessType = () => {
-    if (!formData.businessType) return setError("Please select a business type");
+    if (!formData.businessType)
+      return setError("Please select a business type");
     nextStep(); // → BUSINESS_VERIFICATION
   };
 
@@ -44,11 +59,11 @@ export function useOnboarding() {
     setLoading(true);
     try {
       const mockData = {
-        panNumber:           formData.pan.toUpperCase(),
-        name:                "ABC PRIVATE LIMITED",
+        panNumber: formData.pan.toUpperCase(),
+        name: "ABC PRIVATE LIMITED",
         dateOfIncorporation: "15/06/2020",
-        status:              "Active",
-        panType:             "Company",
+        status: "Active",
+        panType: "Company",
       };
       setPanDetails(mockData);
       setError(null);
@@ -68,12 +83,12 @@ export function useOnboarding() {
     setLoading(true);
     try {
       const mockData = {
-        gstin:            formData.gstin.toUpperCase(),
-        legalName:        "ABC PRIVATE LIMITED",
-        tradeName:        "ABC PRIVATE LIMITED",
+        gstin: formData.gstin.toUpperCase(),
+        legalName: "ABC PRIVATE LIMITED",
+        tradeName: "ABC PRIVATE LIMITED",
         registrationDate: "15/06/2020",
-        gstType:          "Regular",
-        status:           "Active",
+        gstType: "Regular",
+        status: "Active",
       };
       setGstDetails(mockData);
       setError(null);
@@ -103,23 +118,23 @@ export function useOnboarding() {
   // ── BANK VERIFICATION (Step 4) ────────────────────────────────────────────
   const fetchBankDetails = async () => {
     const errors = validateBankDetails({
-      accountNumber:     formData.bankAccount,
-      ifsc:              formData.bankIfsc,
+      accountNumber: formData.bankAccount,
+      ifsc: formData.bankIfsc,
       accountHolderName: formData.bankHolderName,
     });
     if (errors) return setError(Object.values(errors)[0]);
     setLoading(true);
     try {
       const mockData = {
-        bankName:          "HDFC BANK",
-        accountNumber:     formData.bankAccount,
-        ifscCode:          formData.bankIfsc.toUpperCase(),
+        bankName: "HDFC BANK",
+        accountNumber: formData.bankAccount,
+        ifscCode: formData.bankIfsc.toUpperCase(),
         accountHolderName: formData.bankHolderName,
-        accountType:       "Current Account",
+        accountType: "Current Account",
       };
       setBankDetails(mockData);
       setError(null);
-      setSubStep(BANK_SUB.READONLY);  // → Bank ReadOnly (sub-step 2)
+      setSubStep(BANK_SUB.READONLY); // → Bank ReadOnly (sub-step 2)
     } catch (e) {
       setError(e.message || "Bank verification failed");
     } finally {
