@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import HeroBanner from "./HeroBanner";
 import PlanTabs from "./PlanTabs";
 import PlanPriceCard from "./PlanPriceCard";
-import PlanComparisonTable from "./Plancomparisontable";
+import PlanComparisonTable from "./PlanComparisonTable";
 import { useNavigate } from "react-router-dom";
 
 export default function SubscriptionPlan({
