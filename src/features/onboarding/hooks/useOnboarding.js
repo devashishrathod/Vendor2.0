@@ -1,29 +1,43 @@
-import { useOnboardingStore, BASIC_SUB, BIZ_SUB } from "../store/onboardingStore";
-import { STEPS } from "../constants/steps";
 import {
-  validateBusinessName, validatePAN, validateGST, validateBankDetails,
+  useOnboardingStore,
+  BASIC_SUB,
+  BIZ_SUB,
+  BANK_SUB,
+} from "../store/onboardingStore";
+import {
+  validateBusinessName,
+  validateShortName,
+  validatePAN,
+  validateGST,
+  validateBankDetails,
 } from "../validation";
 
 export function useOnboarding() {
   const store = useOnboardingStore();
   const {
-    formData, setField, setLoading, setError,
-    nextStep, goToStep, setSubStep,
-    setPanDetails, setGstDetails, setBankDetails,
+    formData,
+    setField,
+    setLoading,
+    setError,
+    nextStep,
+    goToStep,
+    setSubStep,
+    setPanDetails,
+    setGstDetails,
+    setBankDetails,
   } = store;
 
-  // ── BASIC DETAILS sub-steps ───────────────────────────────────────────────
-
+  // ── BASIC DETAILS (Step 1) ────────────────────────────────────────────────
   const submitBusinessName = () => {
-    const err = validateBusinessName(formData.businessName);
-    if (err) return setError(err);
+    const nErr = validateBusinessName(formData.businessName);
+    if (nErr) return setError(nErr);
     setError(null);
-    setSubStep(BASIC_SUB.REGISTRATION);           // → sub-step 2
+    setSubStep(BASIC_SUB.REGISTRATION);
   };
 
   const selectRegistration = (isRegistered) => {
     setField("isRegistered", isRegistered);
-    if (isRegistered) setSubStep(BASIC_SUB.BUSINESS_TYPE); // → sub-step 3
+    if (isRegistered) setSubStep(BASIC_SUB.BUSINESS_TYPE);
     // unregistered → blocking modal handled in UI
   };
 
@@ -33,12 +47,12 @@ export function useOnboarding() {
   };
 
   const submitBusinessType = () => {
-    if (!formData.businessType) return setError("Please select a business type");
-    nextStep(); // BASIC_DETAILS → BUSINESS_VERIFICATION (sub 1: PAN_ENTER)
+    if (!formData.businessType)
+      return setError("Please select a business type");
+    nextStep(); // → BUSINESS_VERIFICATION
   };
 
-  // ── BUSINESS VERIFICATION sub-steps ──────────────────────────────────────
-
+  // ── BUSINESS VERIFICATION (Step 2) ───────────────────────────────────────
   const fetchPANDetails = async () => {
     const err = validatePAN(formData.pan);
     if (err) return setError(err);
@@ -53,7 +67,7 @@ export function useOnboarding() {
       };
       setPanDetails(mockData);
       setError(null);
-      setSubStep(BIZ_SUB.PAN_READONLY);           // → sub-step 2
+      setSubStep(BIZ_SUB.PAN_READONLY);
     } catch (e) {
       setError(e.message || "PAN not found or invalid");
     } finally {
@@ -61,7 +75,7 @@ export function useOnboarding() {
     }
   };
 
-  const continuePAN = () => setSubStep(BIZ_SUB.GST_ENTER); // → sub-step 3
+  const continuePAN = () => setSubStep(BIZ_SUB.GST_ENTER);
 
   const fetchGSTDetails = async () => {
     const err = validateGST(formData.gstin);
@@ -78,7 +92,7 @@ export function useOnboarding() {
       };
       setGstDetails(mockData);
       setError(null);
-      setSubStep(BIZ_SUB.GST_READONLY);           // → sub-step 4
+      setSubStep(BIZ_SUB.GST_READONLY);
     } catch (e) {
       setError(e.message || "GST not found or invalid");
     } finally {
@@ -86,15 +100,14 @@ export function useOnboarding() {
     }
   };
 
-  const continueGST = () => nextStep(); // BUSINESS_VERIFICATION → SYSTEM_VERIFY
+  const continueGST = () => nextStep(); // → SYSTEM_VERIFY
 
-  // ── Remaining steps (unchanged logic) ────────────────────────────────────
-
+  // ── SYSTEM VERIFY (Step 3) ────────────────────────────────────────────────
   const runSystemVerification = async () => {
     setLoading(true);
     try {
       setField("systemVerified", true);
-      nextStep(); // → BANK_ENTER
+      nextStep(); // → BANK_VERIFICATION
     } catch (e) {
       setError(e.message || "Verification failed");
     } finally {
@@ -102,25 +115,26 @@ export function useOnboarding() {
     }
   };
 
+  // ── BANK VERIFICATION (Step 4) ────────────────────────────────────────────
   const fetchBankDetails = async () => {
     const errors = validateBankDetails({
-      accountNumber:     formData.bankAccount,
-      ifsc:              formData.bankIfsc,
+      accountNumber: formData.bankAccount,
+      ifsc: formData.bankIfsc,
       accountHolderName: formData.bankHolderName,
     });
     if (errors) return setError(Object.values(errors)[0]);
     setLoading(true);
     try {
       const mockData = {
-        bankName:          "HDFC BANK",
-        accountNumber:     formData.bankAccount,
-        ifscCode:          formData.bankIfsc.toUpperCase(),
+        bankName: "HDFC BANK",
+        accountNumber: formData.bankAccount,
+        ifscCode: formData.bankIfsc.toUpperCase(),
         accountHolderName: formData.bankHolderName,
-        accountType:       "Current Account",
+        accountType: "Current Account",
       };
       setBankDetails(mockData);
       setError(null);
-      nextStep(); // → BANK_READONLY
+      setSubStep(BANK_SUB.READONLY); // → Bank ReadOnly (sub-step 2)
     } catch (e) {
       setError(e.message || "Bank verification failed");
     } finally {
@@ -128,7 +142,7 @@ export function useOnboarding() {
     }
   };
 
-  const continueBank = () => nextStep(); // → PARTNER_CONTRACT
+  const continueBank = () => nextStep(); // → PARTNER_CONTRACT (Step 5 = last)
 
   return {
     ...store,
