@@ -1,96 +1,203 @@
 import { useNavigate } from "react-router-dom";
+import { STEPS } from "@/features/onboarding/constants/steps";
+import { useAuthStore } from "@/features/onboarding/store/authStore";
 
-const STEPS = [
-  { id: 1, label: "Pan Details",        sub: "STEP 1" },
-  { id: 2, label: "GST selection",      sub: "STEP 2" },
-  { id: 3, label: "Bank Details",       sub: "STEP 3" },
-  { id: 4, label: "Register as author", sub: "STEP 4" },
-  { id: 5, label: "Partner Contract",   sub: "STEP 5" },
+const SIDEBAR_STEPS = [
+  { id: STEPS.BASIC_DETAILS, label: "Basic Details" },
+  { id: STEPS.BUSINESS_VERIFICATION, label: "Business Verification" },
+  { id: STEPS.BANK_VERIFICATION, label: "Bank Verification" },
+  { id: STEPS.SYSTEM_VERIFY, label: "System Verify" },
+  { id: STEPS.PARTNER_CONTRACT, label: "Partner Contract" },
 ];
 
-const LockIcon = () => (
-  <svg className="w-3 h-3 inline-block" viewBox="0 0 24 24" fill="none"
-    stroke="currentColor" strokeWidth={2}>
-    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+const CheckCircle = () => (
+  <svg
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    fill="none"
+    className="flex-shrink-0"
+  >
+    <circle cx="12" cy="12" r="10" fill="#10b981" />
+    <polyline
+      points="7 12 10.5 15.5 17 9"
+      stroke="white"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
   </svg>
 );
 
-export default function Sidebar({ currentStep, setCurrentStep }) {
+const ActiveCircle = () => (
+  <svg
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    fill="none"
+    className="flex-shrink-0"
+  >
+    <circle
+      cx="12"
+      cy="12"
+      r="10"
+      fill="white"
+      stroke="#10b981"
+      strokeWidth="2"
+    />
+    <circle cx="12" cy="12" r="5" fill="#10b981" />
+  </svg>
+);
+
+const LockCircle = () => (
+  <svg
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    fill="none"
+    className="flex-shrink-0"
+  >
+    <circle cx="12" cy="12" r="10" fill="#f3f4f6" />
+    <rect
+      x="8"
+      y="11"
+      width="8"
+      height="6"
+      rx="1"
+      fill="none"
+      stroke="#c4c9d4"
+      strokeWidth="1.5"
+    />
+    <path
+      d="M9.5 11V9a2.5 2.5 0 0 1 5 0v2"
+      stroke="#c4c9d4"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+    />
+  </svg>
+);
+
+const Chevron = ({ active, done }) => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={active ? "#10b981" : done ? "#6b7280" : "#d1d5db"}
+    strokeWidth="2.5"
+    className="flex-shrink-0"
+  >
+    <path d="M9 18l6-6-6-6" />
+  </svg>
+);
+
+export default function Sidebar({ currentStep, goToStep, goBack, isFirst }) {
+  const { logout } = useAuthStore();
   const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/");
+  };
 
   return (
     <div
-      className="w-56 flex-shrink-0 flex flex-col px-5 py-6"
+      className="w-56 flex-shrink-0 flex flex-col self-stretch bg-gray-100 min-h-full border-r border-gray-200"
       style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif" }}
     >
-      {/* Back */}
-      <button
-        onClick={() => navigate(-1)}
-        className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-emerald-500 transition mb-6 w-fit"
-      >
-        <svg viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
-          <path fillRule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clipRule="evenodd"/>
-        </svg>
-        Back
-      </button>
+      {/* Back + Logout */}
+      <div className="flex justify-between px-4 pt-5 pb-4">
+        <button
+          onClick={goBack}
+          disabled={isFirst}
+          className={`flex items-center gap-1.5 text-[11px] font-medium transition-colors
+            ${isFirst ? "text-gray-200 cursor-not-allowed" : "text-gray-400 hover:text-emerald-500 cursor-pointer"}`}
+        >
+          <svg viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
+            <path
+              fillRule="evenodd"
+              d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z"
+              clipRule="evenodd"
+            />
+          </svg>
+          Back
+        </button>
 
-      {/* Steps */}
-      <div className="flex flex-col">
-        {STEPS.map((step, idx) => {
-          const isDone   = step.id < currentStep;
-          const isActive = step.id === currentStep;
-          const isLocked = step.id > currentStep;
-          const isLast   = idx === STEPS.length - 1;
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-1.5 text-[11px] font-medium transition-colors border border-gray-300 rounded-md py-1 px-3 text-gray-400 hover:text-red-500 hover:border-red-300 cursor-pointer"
+        >
+          Logout
+        </button>
+      </div>
 
-          // line color: green if this step is done or active, gray if locked
-          const lineColor = isDone ? '#10b981' : '#e5e7eb';
+      {/* Divider */}
+      <div className="h-px bg-gray-100 mx-4 mb-2" />
 
-          return (
-            <button
-              key={step.id}
-              onClick={() => !isLocked && setCurrentStep(step.id)}
-              className={`text-left flex items-stretch gap-4 ${isLocked ? "cursor-not-allowed" : "cursor-pointer"}`}
-            >
-              {/* Left: only line, no dot */}
-              <div className="flex flex-col items-center flex-shrink-0" style={{ width: 2 }}>
-                <div
-                  className="w-[2px] transition-colors duration-500"
-                  style={{
-                    flex: 1,
-                    background: lineColor,
-                    // first step: line starts from middle of text row
-                    // last step: line ends at middle, not bottom
-                    marginTop:    idx === 0 ? 18 : 0,
-                    marginBottom: isLast   ? 18 : 0,
-                  }}
-                />
-              </div>
+      {/* Steps — line + rows */}
+      <div className="flex pb-4 pt-1 px-2.5">
+        {/* Continuous vertical line */}
+        <div className="relative flex-shrink-0" style={{ width: 8 }}>
+          {/* gray base */}
+          <div
+            className="absolute inset-x-0 top-[14px] bottom-[14px] bg-gray-200"
+            style={{ borderRadius: 2 }}
+          />
+          {/* green fill up to active step */}
+          {(() => {
+            const activeIdx = SIDEBAR_STEPS.findIndex(
+              (s) => s.id === currentStep,
+            );
+            const pct =
+              activeIdx <= 0
+                ? 0
+                : (activeIdx / (SIDEBAR_STEPS.length - 1)) * 100;
+            return (
+              <div
+                className="absolute inset-x-0 top-[14px] bg-emerald-500 transition-all duration-500"
+                style={{ borderRadius: 2, height: `${pct}%` }}
+              />
+            );
+          })()}
+        </div>
 
-              {/* Text */}
-              <div className={`${isLast ? "pb-0" : "pb-7"} pt-1`}>
-                <p className={`text-sm font-semibold leading-tight
-                  ${isActive ? "text-emerald-500"
-                  : isDone   ? "text-gray-800"
-                  :            "text-gray-300"}`}>
+        {/* Step buttons */}
+        <div className="flex flex-col flex-1 ml-2">
+          {SIDEBAR_STEPS.map((step) => {
+            const isDone = step.id < currentStep;
+            const isActive = step.id === currentStep;
+            const isLocked = step.id > currentStep;
+
+            return (
+              <button
+                key={step.id}
+                onClick={() => !isLocked && goToStep(step.id)}
+                className={`flex items-center gap-2.5 w-full text-left
+                  px-2 py-3.5 rounded-xl transition-colors duration-200 flex-1
+                  ${
+                    isActive
+                      ? "bg-emerald-50 cursor-pointer"
+                      : isLocked
+                        ? "cursor-not-allowed"
+                        : "cursor-pointer hover:bg-gray-50"
+                  }`}
+              >
+                {isDone && <CheckCircle />}
+                {isActive && <ActiveCircle />}
+                {isLocked && <LockCircle />}
+
+                <span
+                  className={`flex-1 text-xs font-semibold leading-tight
+                  ${isActive ? "text-emerald-800" : isDone ? "text-gray-700" : "text-gray-400"}`}
+                >
                   {step.label}
-                </p>
-                <p className={`text-[11px] mt-0.5 tracking-wide
-                  ${isActive ? "text-emerald-400" : "text-gray-400"}`}>
-                  {step.sub}
-                </p>
-                {isDone && (
-                  <p className="flex items-center gap-1 text-[11px] text-gray-400 mt-0.5">
-                    Documents Secured <LockIcon />
-                  </p>
-                )}
-                {isLocked && (
-                  <span className="text-gray-300 mt-0.5"><LockIcon /></span>
-                )}
-              </div>
-            </button>
-          );
-        })}
+                </span>
+
+                <Chevron active={isActive} done={isDone} />
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

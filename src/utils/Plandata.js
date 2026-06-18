@@ -17,7 +17,7 @@ export const PLANS = [
     originalPrice: 6000,
     discount: 50,
     priceInWords: "Two thousand nine hundred ninety nine Rupees Only",
-    iconFill: 0.50,
+    iconFill: 0.5,
   },
   {
     id: "pro-lite",

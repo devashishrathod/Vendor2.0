@@ -16,14 +16,18 @@ export default function PlanPriceCard({ selectedId, onPurchase }) {
       <h2 className="text-3xl font-bold text-gray-900 mb-1">
         Subscribe to {planName} Plan
       </h2>
-      <p className="text-sm text-gray-400 mb-5">One-time payment, one year access</p>
+      <p className="text-sm text-gray-400 mb-5">
+        One-time payment, one year access
+      </p>
 
       {/* Price row */}
       <div className="flex items-baseline justify-center gap-3 mb-2">
         <span className="text-4xl font-bold text-gray-900">
           ₹ {fmt(plan.price)}
         </span>
-        <span className="text-gray-400 text-base font-medium">/ Yearly Plan</span>
+        <span className="text-gray-400 text-base font-medium">
+          / Yearly Plan
+        </span>
       </div>
 
       {/* Original + discount */}

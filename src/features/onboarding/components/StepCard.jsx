@@ -1,5 +1,10 @@
 // ── Shared wrapper card for all steps ────────────────────────────────────────
-export default function StepCard({ title, subtitle, children, className = "" }) {
+export default function StepCard({
+  title,
+  subtitle,
+  children,
+  className = "",
+}) {
   return (
     <div
       className={`bg-white rounded-2xl shadow-sm border border-gray-100 p-6 w-full max-w-sm mx-auto ${className}`}
@@ -11,8 +16,12 @@ export default function StepCard({ title, subtitle, children, className = "" }) 
           to   { opacity: 1; transform: translateY(0); }
         }
       `}</style>
-      {title && <h2 className="text-base font-bold text-gray-900 mb-1">{title}</h2>}
-      {subtitle && <p className="text-xs text-gray-400 mb-4 leading-relaxed">{subtitle}</p>}
+      {title && (
+        <h2 className="text-base font-bold text-gray-900 mb-1">{title}</h2>
+      )}
+      {subtitle && (
+        <p className="text-xs text-gray-400 mb-4 leading-relaxed">{subtitle}</p>
+      )}
       {children}
     </div>
   );
