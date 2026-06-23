@@ -279,11 +279,13 @@ export default function Step7PANReadOnly() {
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) {
+       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
+        const errMsg = err?.message?.toLowerCase() || "";
         if (
           res.status === 400 &&
-          err?.message?.toLowerCase().includes("already exists")
+          (errMsg.includes("already exists") ||
+            errMsg.includes("already in use"))
         ) {
           setSubStep(BIZ_SUB.GST_VERIFICATION);
           return;

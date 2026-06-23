@@ -174,7 +174,7 @@ export default function Step9GSTReadOnly() {
 
   console.log("Step9 — gstDetails from store:", gstDetails);
 
-  const raw = gstDetails ?? {};
+  const raw = gstDetails?.data ?? {};
 
   console.log("Step9 — raw gstDetails:", raw);
 
@@ -347,9 +347,11 @@ export default function Step9GSTReadOnly() {
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
+        const errMsg = err?.message?.toLowerCase() || "";
         if (
           res.status === 400 &&
-          err?.message?.toLowerCase().includes("already exists")
+          (errMsg.includes("already exists") ||
+            errMsg.includes("already in use"))
         ) {
           goToStep(STEPS.BANK_VERIFICATION, BANK_SUB.BANK_VERIFICATION);
           return;

@@ -1,8 +1,18 @@
 import { useNavigate } from "react-router-dom";
 import logo from "@/assets/Logo1.jpg"; // ✅ apna logo path yahan daal do
 
+import { useOnboardingStore } from "@/features/onboarding/store/onboardingStore";
+
 export default function YourOutlet() {
   const navigate = useNavigate();
+    const { formData } = useOnboardingStore();
+
+   const brandData = {
+    companyName:   formData.gstDetails?.legalName   || formData.businessName || "—",
+    merchantToken: formData.marchentId                  || "A4FG1WJOIUN20",
+    gstNo:         formData.gstDetails?.gstNumber    || formData.gstin        || "—",
+    panNo:         formData.pan                      || "—",
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
@@ -84,11 +94,11 @@ export default function YourOutlet() {
             {/* Info */}
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-gray-900 truncate">
-                Andiappan Yoga Education And Research Trust
+               {brandData.companyName}
               </p>
               <p className="text-xs text-gray-400 mt-0.5">
-                Merchant Token: A4FGNU3DUN0D &nbsp;·&nbsp; Created on: February
-                25 | 03:14
+                Merchant Token: {brandData.merchantToken} &nbsp;·&nbsp; <br /> Created on: February
+                22 | 03:14
               </p>
             </div>
 

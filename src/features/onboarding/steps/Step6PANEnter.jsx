@@ -203,25 +203,14 @@ export default function Step6PANEnter({ onFetchSuccess }) {
       setTimeout(() => {
         goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_READONLY);
       }, 1500);
-    } catch (err) {
-      let parsed;
-      try {
-        const errData =
-          typeof err.message === "string" ? JSON.parse(err.message) : err;
-        parsed = parseApiError(errData);
-      } catch {
-        parsed = {
-          humanMessage: err.message || "PAN verification failed.",
-          txnId: null,
-        };
-      }
-      setApiError(parsed);
-      setShowModal(true);
-
-      setTimeout(() => {
-        setShowModal(false);
-        setApiError(null);
-      }, 3500);
+    }  catch (err) {
+  // err = plain Error object, sirf .message string hai
+  setApiError({
+    humanMessage: err.message ?? 'PAN verification failed. Please try again.',
+    txnId: null,
+  });
+  setShowModal(true);
+  setTimeout(() => { setShowModal(false); setApiError(null); }, 3500);
     } finally {
       setFetching(false);
     }
