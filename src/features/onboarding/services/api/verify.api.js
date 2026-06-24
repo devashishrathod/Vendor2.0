@@ -42,3 +42,13 @@ export async function systemVerify() {
     true
   );
 }
+
+// Approve Partnership
+export async function approvePartnership() {
+  return request(
+    "/brands/onboarding/accept-partnership",
+    "PUT",
+    null,
+    true
+  );
+}

@@ -114,7 +114,7 @@ export default function YourOutlet() {
           </div>
 
           {/* Manage bar */}
-          <button
+          {/* <button
             onClick={() => navigate("/outlet/manage")}
             className="w-full border-t border-gray-100 px-5 py-3 flex items-center justify-center
               gap-2 text-gray-500 hover:bg-gray-50 transition-colors duration-150 group"
@@ -139,7 +139,7 @@ export default function YourOutlet() {
               />
             </svg>
             <span className="text-xs font-semibold">Manage your outlet</span>
-          </button>
+          </button> */}
         </div>
       </div>
     </div>

@@ -23,7 +23,6 @@ export const BANK_SUB = {
 export const SYSTEM_SUB  = { SYSTEM_VERIFICATION: 1 };
 export const PARTNER_SUB = { PARTNERSHIP_DEED: 1 };
 
-// Which failed check key maps to which step for "Edit" navigation
 export const FAILED_CHECK_STEP_MAP = {
   pan:       { step: STEPS.BUSINESS_VERIFICATION, subStep: BIZ_SUB.PAN_VERIFICATION },
   gst:       { step: STEPS.BUSINESS_VERIFICATION, subStep: BIZ_SUB.GST_VERIFICATION },
@@ -51,7 +50,7 @@ const initialFormData = {
   partnerContractAccepted: false,
 };
 
-const MAX_SUB = {
+export const MAX_SUB = {
   [STEPS.BASIC_DETAILS]:         3,
   [STEPS.BUSINESS_VERIFICATION]: 4,
   [STEPS.BANK_VERIFICATION]:     2,
@@ -59,6 +58,41 @@ const MAX_SUB = {
   [STEPS.PARTNER_CONTRACT]:      1,
 };
 
+export const STEP_ORDER = [
+  STEPS.BASIC_DETAILS,
+  STEPS.BUSINESS_VERIFICATION,
+  STEPS.BANK_VERIFICATION,
+  STEPS.SYSTEM_VERIFY,
+  STEPS.PARTNER_CONTRACT,
+];
+
+// ─── Flat ordered list of all positions ─────────────────────────────────────
+const ALL_POSITIONS = STEP_ORDER.flatMap((step) =>
+  Array.from({ length: MAX_SUB[step] ?? 1 }, (_, i) => ({
+    step,
+    subStep: i + 1,
+  }))
+);
+
+function positionIndex(step, subStep) {
+  return ALL_POSITIONS.findIndex(
+    (p) => p.step === step && p.subStep === subStep
+  );
+}
+
+// ─── Pure helper — safe as Zustand selector ──────────────────────────────────
+export function computeCanGoBack({ currentStep, currentSubStep, completedKeys }) {
+  // Pehla position → block
+  const currentIdx = positionIndex(currentStep, currentSubStep);
+  if (currentIdx <= 0) return false;
+
+  // Koi bhi substep kabhi complete hua → back permanently block
+  if (completedKeys.length > 0) return false;
+
+  return true;
+}
+
+// ─── Store ───────────────────────────────────────────────────────────────────
 export const useOnboardingStore = create(
   persist(
     (set, get) => ({
@@ -67,19 +101,11 @@ export const useOnboardingStore = create(
       formData:       { ...initialFormData },
       loading:        false,
       error:          null,
-
-      // completed steps track karne ke liye
-      completedKeys: [],
-
-      // ✅ NEW: verification ke baad failed/warned check keys store karo
-      // e.g. ["pan", "bank"] — in steps pe warning icon show hoga sidebar mein
+      completedKeys:  [],
       verificationFailedChecks: [],
-
-      // ✅ NEW: edit ke baad system verify pe wapas aana hai
-      // null = normal flow, STEPS.SYSTEM_VERIFY = edit ke baad return
       returnToStepAfterEdit: null,
 
-      // Ek step/subStep ko complete mark karo
+      // ─── Mark a single step:subStep as complete ────────────────────────────
       markComplete: (step, subStep) =>
         set((s) => {
           const key = `${step}:${subStep}`;
@@ -87,12 +113,59 @@ export const useOnboardingStore = create(
           return { completedKeys: [...s.completedKeys, key] };
         }),
 
-      // Check karo kya step:subStep complete hai
-      isCompleted: (step, subStep) => {
-        const key = `${step}:${subStep}`;
-        return get().completedKeys.includes(key);
+      // ─── Mark ALL substeps of a step as complete ───────────────────────────
+      markStepComplete: (step) =>
+        set((s) => {
+          const max     = MAX_SUB[step] ?? 1;
+          const newKeys = [];
+          for (let i = 1; i <= max; i++) {
+            const key = `${step}:${i}`;
+            if (!s.completedKeys.includes(key)) newKeys.push(key);
+          }
+          if (newKeys.length === 0) return {};
+          return { completedKeys: [...s.completedKeys, ...newKeys] };
+        }),
+
+      // ─── Check if a specific step:subStep is completed ────────────────────
+      isCompleted: (step, subStep) =>
+        get().completedKeys.includes(`${step}:${subStep}`),
+
+      // ─── Check if ALL sub-steps of a parent step are completed ────────────
+      isStepFullyCompleted: (step) => {
+        const maxSub = MAX_SUB[step] ?? 1;
+        const keys   = get().completedKeys;
+        for (let i = 1; i <= maxSub; i++) {
+          if (!keys.includes(`${step}:${i}`)) return false;
+        }
+        return true;
       },
 
+      // ─── Check if a sub-step is locked ────────────────────────────────────
+      isSubStepLocked: (step, subStep) =>
+        get().completedKeys.includes(`${step}:${subStep}`),
+
+      // ─── canGoBack (delegates to pure helper) ─────────────────────────────
+      canGoBack: () => computeCanGoBack(get()),
+
+      // ─── goBack — skips all locked positions ──────────────────────────────
+      goBack: () =>
+        set((s) => {
+          if (!computeCanGoBack(s)) return {};
+
+          const currentIdx = positionIndex(s.currentStep, s.currentSubStep);
+          if (currentIdx <= 0) return {};
+
+          for (let i = currentIdx - 1; i >= 0; i--) {
+            const { step, subStep } = ALL_POSITIONS[i];
+            if (!s.completedKeys.includes(`${step}:${subStep}`)) {
+              return { currentStep: step, currentSubStep: subStep, error: null };
+            }
+          }
+
+          return {};
+        }),
+
+      // ─── Navigate to a specific step ──────────────────────────────────────
       goToStep: (step, subStep = 1) =>
         set({ currentStep: step, currentSubStep: subStep, error: null }),
 
@@ -112,19 +185,13 @@ export const useOnboardingStore = create(
           error:          null,
         })),
 
-      goBack: () =>
-        set((s) => {
-          const { currentStep, currentSubStep } = s;
-          if (currentSubStep > 1) {
-            return { currentSubStep: currentSubStep - 1, error: null };
-          }
-          if (currentStep <= STEPS.BASIC_DETAILS) {
-            return {};
-          }
-          const prevStep    = currentStep - 1;
-          const prevSubStep = MAX_SUB[prevStep] ?? 1;
-          return { currentStep: prevStep, currentSubStep: prevSubStep, error: null };
-        }),
+      // ─── Sidebar click guard ───────────────────────────────────────────────
+      canNavigateToStep: (step) => {
+        const s = get();
+        const systemVerifyDone = s.isCompleted(STEPS.SYSTEM_VERIFY, 1);
+        if (systemVerifyDone) return step === STEPS.PARTNER_CONTRACT;
+        return step === s.currentStep;
+      },
 
       setField: (key, value) =>
         set((s) => ({ formData: { ...s.formData, [key]: value } })),
@@ -137,15 +204,12 @@ export const useOnboardingStore = create(
       setBankDetails: (data) => set((s) => ({ formData: { ...s.formData, bankDetails: data } })),
       setBrandId:     (id)   => set((s) => ({ formData: { ...s.formData, brandId:     id   } })),
 
-      // ✅ NEW: verification result set karo — failed/warned check keys save karo
       setVerificationFailedChecks: (failedKeys) =>
         set({ verificationFailedChecks: failedKeys }),
 
-      // ✅ NEW: edit ke baad return target set karo
       setReturnToStepAfterEdit: (step, subStep = 1) =>
         set({ returnToStepAfterEdit: step != null ? { step, subStep } : null }),
 
-      // ✅ NEW: return target clear karo
       clearReturnToStepAfterEdit: () =>
         set({ returnToStepAfterEdit: null }),
 
@@ -169,8 +233,8 @@ export const useOnboardingStore = create(
         currentSubStep:           state.currentSubStep,
         formData:                 state.formData,
         completedKeys:            state.completedKeys,
-        verificationFailedChecks: state.verificationFailedChecks,  // ✅ persist
-        returnToStepAfterEdit:    state.returnToStepAfterEdit,      // ✅ persist
+        verificationFailedChecks: state.verificationFailedChecks,
+        returnToStepAfterEdit:    state.returnToStepAfterEdit,
       }),
     },
   ),

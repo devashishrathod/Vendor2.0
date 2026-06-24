@@ -495,7 +495,7 @@ export default function Step5BusinessType() {
 
       setTimeout(() => {
         goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_VERIFICATION);
-      }, 1500); // toast dikhne ka time
+      }, 5000); // toast dikhne ka time
     } catch (err) {
       setApiError(err.message || "Something went wrong. Please try again.");
     } finally {

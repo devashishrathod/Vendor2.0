@@ -253,7 +253,7 @@ const WHY_ITEMS = [
 
 function RightInfoPanel() {
   return (
-    <div className="w-full md:w-[260px] flex-shrink-0 flex flex-col gap-3">
+    <div className="w-full md:w-[260px] flex-shrink-0 flex flex-col gap-3 mt-[-74px]">
       <div className="rounded-xl overflow-hidden border border-emerald-100 bg-emerald-50/40 p-2">
         <CityIllustration />
       </div>
@@ -369,7 +369,7 @@ function BlockingContent({ onRegister, onDelete, deleting }) {
       </div>
 
       {/* RIGHT — Actions */}
-      <div className="p-7 flex flex-col gap-4 bg-gray-50/40">
+      <div className="p-7 flex flex-col item-center justify-center gap-4 bg-gray-50/40">
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5 flex flex-col gap-4">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center flex-shrink-0">
@@ -396,10 +396,12 @@ function BlockingContent({ onRegister, onDelete, deleting }) {
               </p>
             </div>
           </div>
-          {/* ✅ Click pe registered select ho aur modal band ho */}
-          <PrimaryButton className="w-full" onClick={onRegister}>
-            Complete Business Registration →
-          </PrimaryButton>
+          {/* ✅ Centered button */}
+          <div className="flex justify-center">
+            <PrimaryButton className="w-auto px-8" onClick={onRegister}>
+              Complete Business Registration
+            </PrimaryButton>
+          </div>
         </div>
 
         <div className="rounded-2xl border border-gray-200 bg-white p-4 flex items-center gap-3">
@@ -430,37 +432,6 @@ function BlockingContent({ onRegister, onDelete, deleting }) {
             </a>
           </div>
         </div>
-
-        {/* <div className="rounded-2xl border border-red-100 bg-red-50/40 p-4 flex flex-col gap-3 mt-auto">
-          <div className="flex items-start gap-3">
-            <div className="w-9 h-9 rounded-xl bg-red-100 flex items-center justify-center flex-shrink-0">
-              <svg
-                className="w-4 h-4 text-red-500"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.8}
-                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                />
-              </svg>
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-gray-700">
-                Delete Account
-              </p>
-              <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">
-                Permanent action — cannot be undone.
-              </p>
-            </div>
-          </div>
-          <PrimaryButton variant="danger" onClick={onDelete} loading={deleting}>
-            {deleting ? "Deleting account…" : "Delete Unregistered Account"}
-          </PrimaryButton>
-        </div> */}
       </div>
     </div>
   );
@@ -478,7 +449,8 @@ function BlockingModal({ onClose, onDelete, onSelectRegistered }) {
   };
 
   const handleRegister = () => {
-    // ✅ registered card select karo aur modal band karo — parent handleContinue call karega
+    // ✅ sirf registered select karo aur modal band karo
+    // API call tab hogi jab user Continue dabayega
     onSelectRegistered();
     onClose();
   };
@@ -588,7 +560,7 @@ export default function Step4IsRegistered() {
   const [successMsg, setSuccessMsg] = useState(null);
   const [apiError, setApiError] = useState(null);
 
-  // ✅ API call — registered select karke continue
+  // ✅ API call — registered select karke continue dabane par
   const proceedAsRegistered = async () => {
     setLoading(true);
     setApiError(null);
@@ -597,7 +569,7 @@ export default function Step4IsRegistered() {
       setSuccessMsg("Registration status updated successfully.");
       setTimeout(() => {
         setSubStep(BASIC_SUB.REGISTRATION_ENTITY_TYPE);
-      }, 1500);
+      }, 5000);
     } catch (err) {
       setApiError({
         status: err.status,
@@ -617,16 +589,15 @@ export default function Step4IsRegistered() {
       return;
     }
 
-    // registered
+    // registered — API call tabhi hogi
     await proceedAsRegistered();
   };
 
-  // ✅ Modal ke "Complete Business Registration" button se:
-  // selected = 'registered' set karo, modal band karo, API call karo
-  const handleSelectRegisteredFromModal = async () => {
+  // ✅ Modal ke button se sirf select karo, modal band karo
+  // API call user ke Continue dabane par hogi
+  const handleSelectRegisteredFromModal = () => {
     setSelected("registered");
     setShowModal(false);
-    await proceedAsRegistered();
   };
 
   const handleDeleteAccount = () => {
@@ -762,7 +733,7 @@ export default function Step4IsRegistered() {
 
               {/* Footer */}
               <div className="flex items-center justify-between border-t border-gray-100 pt-3 mt-1">
-                <button
+                {/* <button
                   onClick={() => window.history?.back?.()}
                   className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 font-medium px-2 py-2 transition"
                 >
@@ -780,7 +751,7 @@ export default function Step4IsRegistered() {
                     />
                   </svg>
                   Previous
-                </button>
+                </button> */}
                 <p className="text-xs text-gray-300">Step 5 of 13</p>
                 <PrimaryButton
                   onClick={handleContinue}

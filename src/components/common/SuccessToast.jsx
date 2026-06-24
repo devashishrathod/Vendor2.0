@@ -10,66 +10,48 @@ export default function SuccessToast({ message, onDismiss, duration = 4000 }) {
   if (!message) return null;
 
   return (
-    <div
-      role="status"
-      style={{
-        position: "fixed",
-        bottom: 24,
-        right: 24,
-        zIndex: 9999,
-        maxWidth: 380,
-        width: "calc(100vw - 48px)",
-        background: "var(--color-background-primary)",
-        border: "0.5px solid #6ee7b7",
-        borderLeft: "3px solid #10b981",
-        borderRadius: "var(--border-radius-md)",
-        padding: "12px 14px",
-        display: "flex",
-        alignItems: "flex-start",
-        gap: 10,
-        animation: "slideInToast 0.2s ease",
-      }}
-    >
+    <>
       <style>{`
-        @keyframes slideInToast {
-          from { opacity: 0; transform: translateY(12px); }
-          to   { opacity: 1; transform: translateY(0); }
+        @keyframes toastIn {
+          from { opacity: 0; transform: translateY(-14px) scale(0.96); }
+          to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes dotPulse {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(110,231,183,0.5); }
+          50% { box-shadow: 0 0 0 6px rgba(110,231,183,0.15); }
         }
       `}</style>
 
-      <i
-        className="ti ti-circle-check"
-        style={{ fontSize: 18, color: "#10b981", flexShrink: 0, marginTop: 1 }}
-        aria-hidden="true"
-      />
+      <div
+        role="status"
+        className="fixed top-2 right-2 z-[9999]
+                   max-w-[350px] w-[calc(100vw-48px)]
+                   bg-gradient-to-br from-emerald-700 via-emerald-800 to-[#06150f]
+                   border border-emerald-400/25
+                   rounded-2xl px-4 py-4.5
+                   flex items-start gap-3
+                   shadow-[0_8px_32px_-4px_rgba(16,185,129,0.35),0_4px_16px_rgba(0,0,0,0.45)]"
+        style={{ animation: "toastIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)" }}
+      >
+        <span
+          className="w-2.5 h-2.5 rounded-full bg-emerald-300 shrink-0 mt-1"
+          style={{ animation: "dotPulse 1.8s ease-in-out infinite" }}
+        />
 
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <p
-          style={{
-            fontSize: 12,
-            color: "var(--color-text-secondary)",
-            margin: 0,
-            wordBreak: "break-word",
-          }}
-        >
+        <p className="flex-1 min-w-0 text-[13.5px] font-medium text-white m-0 leading-snug break-words">
           {message}
         </p>
-      </div>
 
-      <button
-        onClick={onDismiss}
-        aria-label="Dismiss"
-        style={{
-          background: "none",
-          border: "none",
-          cursor: "pointer",
-          padding: 0,
-          lineHeight: 1,
-          color: "var(--color-text-secondary)",
-        }}
-      >
-        <i className="ti ti-x" style={{ fontSize: 16 }} aria-hidden="true" />
-      </button>
-    </div>
+        <button
+          onClick={onDismiss}
+          aria-label="Dismiss"
+          className="bg-transparent border-none cursor-pointer p-1 leading-none
+                     text-emerald-100/60 rounded-full shrink-0
+                     transition-colors hover:bg-white/10 hover:text-white"
+        >
+          <i className="ti ti-x text-[14px]" aria-hidden="true" />
+        </button>
+      </div>
+    </>
   );
 }

@@ -1,8 +1,7 @@
-
 import { useNavigate } from "react-router-dom";
 import { STEPS } from "@/features/onboarding/constants/steps";
 import { useAuthStore } from "@/features/onboarding/store/authStore";
-import { useOnboardingStore } from "@/features/onboarding/store/onboardingStore";
+import { useOnboardingStore, computeCanGoBack } from "@/features/onboarding/store/onboardingStore";
 import TrydoodLogo from "@/assets/svg/trydood.svg";
 
 const SIDEBAR_STEPS = [
@@ -46,6 +45,8 @@ function calcGranularProgress(currentStep, currentSubStep) {
   return Math.round((done / TOTAL_SUBSTEPS) * 100);
 }
 
+// ── Icons ──────────────────────────────────────────────────────────────────
+
 const CheckCircle = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="flex-shrink-0">
     <circle cx="12" cy="12" r="10" fill="#10b981" />
@@ -61,7 +62,14 @@ const ActiveCircle = () => (
   </svg>
 );
 
-// Gray lock — used after systemVerifyDone for all non-partner steps
+const DoneLockCircle = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="flex-shrink-0">
+    <circle cx="12" cy="12" r="10" fill="#d1fae5" stroke="#10b981" strokeWidth="1.5" />
+    <polyline points="7 12 10.5 15.5 17 9" stroke="#10b981" strokeWidth="2.2"
+      strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
 const LockCircle = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="flex-shrink-0">
     <circle cx="12" cy="12" r="10" fill="#e5e7eb" />
@@ -70,7 +78,6 @@ const LockCircle = () => (
   </svg>
 );
 
-// Gray lock circle — used for future steps not yet reached (normal flow)
 const PendingCircle = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="flex-shrink-0">
     <circle cx="12" cy="12" r="10" fill="#f3f4f6" stroke="#e5e7eb" strokeWidth="1.5" />
@@ -78,10 +85,9 @@ const PendingCircle = () => (
   </svg>
 );
 
-const Chevron = ({ active, done }) => (
+const Chevron = ({ color = "#d1d5db" }) => (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-    stroke={active ? "#10b981" : done ? "#10b981" : "#d1d5db"}
-    strokeWidth="2.5" className="flex-shrink-0">
+    stroke={color} strokeWidth="2.5" className="flex-shrink-0">
     <path d="M9 18l6-6-6-6" />
   </svg>
 );
@@ -94,6 +100,8 @@ const GrayLockChevron = () => (
   </svg>
 );
 
+// ── Sidebar ─────────────────────────────────────────────────────────────────
+
 export default function Sidebar({
   currentStep,
   currentSubStep = 1,
@@ -101,19 +109,28 @@ export default function Sidebar({
   goBack,
   isFirst,
 }) {
-  const { logout } = useAuthStore();
-  const navigate   = useNavigate();
+  const { logout }           = useAuthStore();
+  const navigate             = useNavigate();
+  const isCompleted          = useOnboardingStore((s) => s.isCompleted);
+  const isStepFullyCompleted = useOnboardingStore((s) => s.isStepFullyCompleted);
 
-  // Read systemVerifyDone directly from store
-  const isCompleted      = useOnboardingStore((s) => s.isCompleted);
+  // ✅ KEY FIX: use computeCanGoBack as a proper selector
+  // This re-evaluates whenever currentStep, currentSubStep, or completedKeys changes
+  // Old: s.canGoBack()  ← called store method in selector → stale, didn't re-render
+  // New: computeCanGoBack(s) ← pure function of state slice → always fresh
+  const canGoBack = useOnboardingStore((s) => computeCanGoBack(s));
+
   const systemVerifyDone = isCompleted(STEPS.SYSTEM_VERIFY, 1);
 
   const handleLogout = () => { logout(); navigate("/"); };
 
   const pct = calcGranularProgress(currentStep, currentSubStep);
 
-  // Back is disabled on first step OR when everything is locked after system verify
-  const backDisabled = isFirst || systemVerifyDone;
+  // Back disabled when:
+  //   1. isFirst (very first substep of whole flow)
+  //   2. system verify done (everything locked)
+  //   3. computeCanGoBack says false (current or prev substep already submitted)
+  const backDisabled = isFirst || systemVerifyDone || !canGoBack;
 
   return (
     <div
@@ -146,8 +163,8 @@ export default function Sidebar({
           disabled={backDisabled}
           className={`flex items-center ml-6 gap-1.5 text-[13px] font-medium transition-colors
             ${backDisabled
-              ? "text-gray-300 cursor-not-allowed"
-              : "text-gray-500 hover:text-emerald-500 cursor-pointer"
+              ? "text-gray-400 cursor-not-allowed"
+              : "text-gray-600 hover:text-emerald-500 cursor-pointer"
             }`}
         >
           <svg viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
@@ -158,19 +175,6 @@ export default function Sidebar({
           Back
         </button>
 
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-1.5 text-[11px] font-medium
-            transition-colors border border-gray-400 rounded-lg py-1 px-2.5
-            text-gray-500 hover:text-red-500 hover:border-red-200 hover:bg-red-50 cursor-pointer"
-        >
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
-            <polyline points="16 17 21 12 16 7" />
-            <line x1="21" y1="12" x2="9" y2="12" />
-          </svg>
-          Logout
-        </button>
       </div>
 
       <div className="h-px bg-gray-200 mx-4 mb-2" />
@@ -181,68 +185,90 @@ export default function Sidebar({
           {SIDEBAR_STEPS.map((step) => {
             const isPartnerContract = step.id === STEPS.PARTNER_CONTRACT;
 
-            let isActive, isDone, isLocked, isFuture;
+            let isActive     = false;
+            let isDoneLocked = false;
+            let isHardLocked = false;
+            let isFuture     = false;
 
             if (systemVerifyDone) {
-              // After system verify: everything locked except PARTNER_CONTRACT
-              isActive  = isPartnerContract;
-              isDone    = false;
-              isLocked  = !isPartnerContract;
-              isFuture  = false;
+              if (isPartnerContract) {
+                isActive = true;
+              } else {
+                isHardLocked = true;
+              }
             } else {
-              // Normal flow
-              isActive  = step.id === currentStep;
-              isDone    = step.id < currentStep;
-              isLocked  = false;
-              isFuture  = step.id > currentStep;
+              if (step.id === currentStep) {
+                isActive = true;
+              } else if (step.id < currentStep || isStepFullyCompleted(step.id)) {
+                isDoneLocked = true;
+              } else {
+                isFuture = true;
+              }
             }
+
+            const nonClickable = isDoneLocked || isHardLocked || isFuture;
 
             return (
               <button
                 key={step.id}
                 onClick={() => {
-                  if (isLocked || isFuture) return;
+                  if (nonClickable) return;
                   goToStep(step.id);
                 }}
-                disabled={isLocked || isFuture}
+                disabled={nonClickable}
                 className={`flex items-center gap-3 w-full text-left
                   px-2 py-1.5 rounded-xl transition-all duration-200
-                  ${isActive  ? "bg-emerald-50 ring-1 ring-emerald-200 cursor-pointer"
-                  : isLocked  ? "cursor-not-allowed opacity-60"
-                  : isDone    ? "opacity-70 cursor-default"
-                  : isFuture  ? "opacity-40 cursor-not-allowed"
-                              : "cursor-pointer hover:bg-white"}`}
+                  ${isActive      ? "bg-emerald-50 ring-1 ring-emerald-200 cursor-pointer"
+                  : isDoneLocked  ? "opacity-75 cursor-not-allowed"
+                  : isHardLocked  ? "opacity-50 cursor-not-allowed"
+                  : isFuture      ? "opacity-40 cursor-not-allowed"
+                                  : "cursor-pointer hover:bg-white"}`}
               >
-                {/* Circle icon */}
                 <div className="flex-shrink-0">
-                  {isDone    && <CheckCircle />}
-                  {isActive  && <ActiveCircle />}
-                  {isLocked  && <LockCircle />}
-                  {isFuture  && <PendingCircle />}
+                  {isActive      && <ActiveCircle />}
+                  {isDoneLocked  && <DoneLockCircle />}
+                  {isHardLocked  && <LockCircle />}
+                  {isFuture      && <PendingCircle />}
                 </div>
 
-                {/* Label — no sub-text at all */}
                 <div className="flex-1 min-w-0">
                   <span className={`block text-xs font-semibold leading-tight truncate
-                    ${isActive  ? "text-emerald-800"
-                    : isLocked  ? "text-gray-500"
-                    : isDone    ? "text-gray-700"
-                                : "text-gray-400"}`}>
+                    ${isActive      ? "text-emerald-800"
+                    : isDoneLocked  ? "text-gray-500"
+                    : isHardLocked  ? "text-gray-800"
+                                    : "text-gray-400"}`}>
                     {step.label}
                   </span>
                 </div>
 
-                {/* Right icon */}
                 <div className="flex-shrink-0">
-                  {isLocked
-                    ? <GrayLockChevron />
-                    : <Chevron active={isActive} done={isDone} />
-                  }
+                  {isActive     && <Chevron color="#10b981" />}
+                  {isDoneLocked && <GrayLockChevron />}
+                  {isHardLocked && <GrayLockChevron />}
+                  {isFuture     && <Chevron color="#e5e7eb" />}
                 </div>
               </button>
             );
           })}
         </div>
+      </div>
+       {/* ── Logout ── */}
+      <div className="px-4 py-4 flex justify-center">
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-2 text-[11px] font-medium w-full justify-center
+            transition-all rounded-xl py-2 px-3
+            text-gray-400 border border-gray-200
+            hover:text-red-500 hover:border-red-200 hover:bg-red-50 cursor-pointer"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+          Logout
+        </button>
       </div>
     </div>
   );

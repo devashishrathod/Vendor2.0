@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { STEPS, STEP_LABELS } from "@/features/onboarding/constants/steps";
 import {
@@ -69,7 +68,6 @@ function SubStepDots({ total, current }) {
   );
 }
 
-// ── Mobile Header Bar ──────────────────────────────────────────────────────
 function MobileHeader({ title, sub, onMenuOpen, pct, displayIndex, totalSteps, isLast }) {
   return (
     <header className="lg:hidden sticky top-0 z-30 flex items-center justify-between
@@ -118,7 +116,6 @@ function MobileHeader({ title, sub, onMenuOpen, pct, displayIndex, totalSteps, i
   );
 }
 
-// ── Mobile Sidebar Drawer ──────────────────────────────────────────────────
 function MobileSidebarDrawer({ open, onClose, children }) {
   if (!open) return null;
   return (
@@ -157,7 +154,6 @@ function MobileSidebarDrawer({ open, onClose, children }) {
   );
 }
 
-// ── Main Page ──────────────────────────────────────────────────────────────
 export default function OnboardingPage() {
   const {
     currentStep,
@@ -165,6 +161,7 @@ export default function OnboardingPage() {
     goToStep,
     goBack,
     markComplete,
+    markStepComplete,  // ← NEW
     isCompleted,
   } = useOnboardingStore();
 
@@ -175,11 +172,19 @@ export default function OnboardingPage() {
   const [mobileMenuOpen, setMobileMenuOpen]   = useState(false);
 
   const systemVerifyDone = isCompleted(STEPS.SYSTEM_VERIFY, 1);
-
   const isFirst = currentStep === STEPS.BASIC_DETAILS && currentSubStep === 1;
 
+  // ── FIXED completeAndGo ────────────────────────────────────────────────────
+  // Agar next step alag parent step hai → pura current step mark karo (saare substeps)
+  // Agar same parent step ke andar substep change hai → sirf current substep mark karo
   function completeAndGo(nextStep, nextSubStep = 1) {
-    markComplete(currentStep, currentSubStep);
+    if (nextStep !== currentStep) {
+      // Parent step change ho raha hai → pura step lock karo
+      markStepComplete(currentStep);
+    } else {
+      // Same step, sirf yeh substep mark karo
+      markComplete(currentStep, currentSubStep);
+    }
     goToStep(nextStep, nextSubStep);
   }
 
@@ -289,26 +294,21 @@ export default function OnboardingPage() {
         }
       `}</style>
 
-      {/* Background decorations */}
       <div className="absolute bottom-0 left-0 w-[500px] h-[500px] pointer-events-none"
         style={{ background: "radial-gradient(ellipse at bottom left,rgba(16,185,129,0.13) 0%,transparent 70%)", zIndex: 0 }} />
       <div className="absolute top-0 right-0 w-[400px] h-[400px] pointer-events-none"
         style={{ background: "radial-gradient(ellipse at top right,rgba(99,102,241,0.06) 0%,transparent 70%)", zIndex: 0 }} />
 
-      {/* ── DESKTOP Sidebar ── */}
       <div className="hidden lg:block relative flex-shrink-0" style={{ zIndex: 1 }}>
         <Sidebar {...sidebarProps} />
       </div>
 
-      {/* ── MOBILE Sidebar Drawer ── */}
       <MobileSidebarDrawer open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)}>
         <Sidebar {...sidebarProps} />
       </MobileSidebarDrawer>
 
-      {/* ── RIGHT PANEL ── */}
       <div className="relative flex flex-col flex-1 min-w-0 min-h-screen" style={{ zIndex: 1 }}>
 
-        {/* ── Mobile top bar ── */}
         <MobileHeader
           title="Vendor Onboarding"
           sub={headerSub}
@@ -319,7 +319,6 @@ export default function OnboardingPage() {
           isLast={isLast}
         />
 
-        {/* ── Desktop top bar ── */}
         <header className="hidden lg:flex px-8 pt-5 pb-4 items-center justify-between
           border-b border-gray-100/80 backdrop-blur-sm bg-white/70 flex-shrink-0">
           <div className="flex items-center gap-3">
@@ -350,7 +349,6 @@ export default function OnboardingPage() {
           )}
         </header>
 
-        {/* ── MAIN CONTENT ── */}
         <div className="flex-1 flex flex-col min-h-0 py-4 px-4 sm:py-6 sm:px-6 lg:px-8">
           {!isLast && (
             <div className="inline-flex items-center gap-1.5 mb-4 bg-emerald-50
@@ -378,4 +376,3 @@ export default function OnboardingPage() {
     </div>
   );
 }
-

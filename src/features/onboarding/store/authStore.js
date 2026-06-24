@@ -1,6 +1,7 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware'; // ← ADD
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { authAPI } from '../services/api/index';
+import { useOnboardingStore } from './onboardingStore'; // ← apne actual path se adjust karo
 
 const SCREEN_MAP = {
   LANDING_SCREEN: "BUSINESS_NAME",
@@ -16,7 +17,7 @@ const SCREEN_MAP = {
 };
 
 export const useAuthStore = create(
-  persist(                                                        // ← WRAP
+  persist(
     (set, get) => ({
       user:          null,
       token:         null,
@@ -57,18 +58,45 @@ export const useAuthStore = create(
         }
       },
 
+      // ─── logout: pura data clear ───────────────────────────────────────
       logout: () => {
-        authAPI.logout();
-        set({ user: null, token: null, isFirst: null, currentScreen: 'BUSINESS_NAME', error: null });
+        try {
+          authAPI.logout();
+        } catch (e) {
+          // API call fail ho bhi jaye, local clear zaroor hona chahiye
+          console.error('authAPI.logout failed:', e);
+        }
+
+        // 1) auth store reset to initial values
+        set({
+          user:          null,
+          token:         null,
+          isFirst:       null,
+          currentScreen: 'BUSINESS_NAME',
+          loading:       false,
+          error:         null,
+        });
+
+        // 2) onboarding store reset (formData, completedKeys, currentStep, etc.)
+        useOnboardingStore.getState().reset();
+
+        // 3) localStorage se persisted keys hata do (safety net)
+        localStorage.removeItem('auth-storage');
+        localStorage.removeItem('onboarding-store');
+
+        // 4) agar koi aur app-specific localStorage/sessionStorage keys hain
+        // unhe bhi yahan clear karo, e.g.:
+        // localStorage.removeItem('cart-storage');
+        // sessionStorage.clear();
       },
 
       setError:   (error) => set({ error }),
       clearError: ()      => set({ error: null }),
     }),
     {
-      name:        'auth-storage',                               // ← CONFIG
+      name:        'auth-storage',
       storage:     createJSONStorage(() => localStorage),
-      partialize:  (s) => ({                                     // sirf zaruri fields save karo
+      partialize:  (s) => ({
         token:         s.token,
         user:          s.user,
         isFirst:       s.isFirst,

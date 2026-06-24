@@ -71,7 +71,7 @@ function CharRing({ value, max }) {
 
 function InputField({
   label, optional, placeholder, value, onChange, onBlur, onKeyDown,
-  maxLength, error, valid, charMax, uppercase, validMessage, validNode, locked,
+  maxLength, error, valid, charMax, uppercase, validMessage, validNode,
 }) {
   const [focused, setFocused] = useState(false);
   return (
@@ -82,15 +82,6 @@ function InputField({
         {optional && (
           <span className="bg-gray-100 text-gray-400 text-[9px] font-semibold px-1.5 py-0.5 rounded normal-case tracking-normal">
             Optional
-          </span>
-        )}
-        {locked && (
-          <span className="ml-auto flex items-center gap-1 text-amber-500">
-            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-            </svg>
-            <span className="text-[9px] font-bold tracking-wide">Locked</span>
           </span>
         )}
       </label>
@@ -104,26 +95,18 @@ function InputField({
           onFocus={() => setFocused(true)}
           onKeyDown={onKeyDown}
           maxLength={maxLength}
-          disabled={locked}
           className={`w-full px-4 py-3 pr-12 bg-white border rounded-xl text-sm text-gray-800
             placeholder:text-gray-300 outline-none transition-all duration-200
             ${uppercase ? "font-bold tracking-widest uppercase" : "font-normal"}
-            ${locked
-              ? "opacity-60 cursor-not-allowed bg-gray-50 border-gray-200"
-              : error
-                ? "border-red-200 bg-red-50/30 focus:border-red-300 focus:ring-2 focus:ring-red-50"
-                : valid
-                  ? "border-emerald-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50"
-                  : "border-gray-200 focus:border-emerald-300 focus:ring-2 focus:ring-emerald-50"
+            ${error
+              ? "border-red-200 bg-red-50/30 focus:border-red-300 focus:ring-2 focus:ring-red-50"
+              : valid
+                ? "border-emerald-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50"
+                : "border-gray-200 focus:border-emerald-300 focus:ring-2 focus:ring-emerald-50"
             }`}
         />
         <div className="absolute right-3 top-1/2 -translate-y-1/2">
-          {locked ? (
-            <svg className="w-4 h-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-            </svg>
-          ) : value.length > 0 ? (
+          {value.length > 0 ? (
             <CharRing value={value.length} max={charMax} />
           ) : (
             <span className="text-gray-300 text-[10px] font-medium">{charMax}</span>
@@ -131,13 +114,13 @@ function InputField({
         </div>
       </div>
       <div className="min-h-[22px]">
-        {!locked && (error ? (
+        {error ? (
           <ErrorMessage message={error} />
         ) : valid && validNode ? (
           validNode
         ) : valid && validMessage ? (
           <SuccessNote text={validMessage} />
-        ) : null)}
+        ) : null}
       </div>
     </div>
   );
@@ -145,7 +128,7 @@ function InputField({
 
 // ── Main component ────────────────────────────────────────────────
 
-export default function Step3BusinessName({ locked = false }) {
+export default function Step3BusinessName() {
   const savedName      = useOnboardingStore((s) => s.formData.businessName);
   const savedShortName = useOnboardingStore((s) => s.formData.shortName);
   const currentStep    = useOnboardingStore((s) => s.currentStep);
@@ -177,8 +160,6 @@ export default function Step3BusinessName({ locked = false }) {
   };
 
   const handleContinue = async () => {
-    if (locked) return;
-
     setNameTouched(true);
     setShortTouched(true);
     const nErr = validateBusinessName(name);
@@ -202,7 +183,7 @@ export default function Step3BusinessName({ locked = false }) {
       setSuccessMsg("Business name updated successfully.");
       setTimeout(() => {
         setSubStep(BASIC_SUB.REGISTRATION_STATUS);
-      }, 1500);
+      }, 5000);
     } catch (err) {
       setApiError({
         humanMessage: err.message ?? "Failed to save business name.",
@@ -216,7 +197,7 @@ export default function Step3BusinessName({ locked = false }) {
   const handleKeyDown = (e) => { if (e.key === "Enter") handleContinue(); };
   const nameValid     = !validateBusinessName(name) && name.trim().length > 0;
   const shortValid    = !validateShortName(shortName) && shortName.trim().length > 0;
-  const canContinue   = !locked && name.trim().length > 0 && !loading;
+  const canContinue   = name.trim().length > 0 && !loading;
 
   return (
     <div className="relative w-full max-w-4xl mx-auto" style={{ minHeight: 480 }}>
@@ -251,15 +232,6 @@ export default function Step3BusinessName({ locked = false }) {
                   Enter your business name as it appears on official documents.
                 </p>
               </div>
-              {locked && (
-                <span className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200
-                  text-emerald-700 text-[10px] font-bold px-2.5 py-1 rounded-full">
-                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                  </svg>
-                  Submitted
-                </span>
-              )}
             </div>
 
             {/* Inputs */}
@@ -276,7 +248,6 @@ export default function Step3BusinessName({ locked = false }) {
                 error={nameError}
                 valid={nameValid}
                 validMessage="Looks good!"
-                locked={locked}
               />
               <InputField
                 label="Short Name"
@@ -292,11 +263,10 @@ export default function Step3BusinessName({ locked = false }) {
                 valid={shortValid}
                 uppercase
                 validNode={<ShortNameBadge value={shortName} />}
-                locked={locked}
               />
             </div>
 
-            {/* Tips panel — always shown (locked or not) */}
+            {/* Tips panel */}
             <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 mb-4 step-in"
               style={{ animationDelay: "0.1s" }}>
               <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest
@@ -322,59 +292,57 @@ export default function Step3BusinessName({ locked = false }) {
               </div>
             </div>
 
-            {/* CTA row — only when not locked */}
-            {!locked && (
-              <div className="flex items-center gap-3 step-in" style={{ animationDelay: "0.15s" }}>
-                <div className="flex-1 min-w-0">
-                  {name.trim() ? (
-                    <div className="flex items-center gap-2 bg-gray-50 border border-gray-100
-                      rounded-xl px-3 py-2.5 overflow-hidden">
-                      <span className="text-[9px] font-bold text-gray-300 uppercase tracking-widest flex-shrink-0">Preview</span>
-                      <span className="w-px h-3 bg-gray-200 flex-shrink-0" />
-                      <span className="text-xs font-semibold text-gray-800 truncate">{name.trim()}</span>
-                      {shortName.trim() && (
-                        <>
-                          <span className="w-px h-3 bg-gray-200 flex-shrink-0" />
-                          <span className="text-[10px] font-black text-emerald-600 tracking-widest uppercase flex-shrink-0">
-                            {shortName.trim()}
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  ) : (
-                    <p className="text-[11px] text-gray-300 pl-1">Your brand preview appears here</p>
-                  )}
-                </div>
-
-                <button
-                  onClick={handleContinue}
-                  disabled={!canContinue}
-                  className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm
-                    tracking-wide transition-all duration-200 flex-shrink-0
-                    ${canContinue
-                      ? "bg-emerald-500 hover:bg-emerald-600 active:scale-[0.97] text-white shadow-sm shadow-emerald-100"
-                      : "bg-gray-100 text-gray-300 cursor-not-allowed"
-                    }`}
-                >
-                  {loading ? (
-                    <>
-                      <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-                      </svg>
-                      Saving…
-                    </>
-                  ) : (
-                    <>
-                      Continue
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                      </svg>
-                    </>
-                  )}
-                </button>
+            {/* CTA row */}
+            <div className="flex items-center gap-3 step-in" style={{ animationDelay: "0.15s" }}>
+              <div className="flex-1 min-w-0">
+                {name.trim() ? (
+                  <div className="flex items-center gap-2 bg-gray-50 border border-gray-100
+                    rounded-xl px-3 py-2.5 overflow-hidden">
+                    <span className="text-[9px] font-bold text-gray-300 uppercase tracking-widest flex-shrink-0">Preview</span>
+                    <span className="w-px h-3 bg-gray-200 flex-shrink-0" />
+                    <span className="text-xs font-semibold text-gray-800 truncate">{name.trim()}</span>
+                    {shortName.trim() && (
+                      <>
+                        <span className="w-px h-3 bg-gray-200 flex-shrink-0" />
+                        <span className="text-[10px] font-black text-emerald-600 tracking-widest uppercase flex-shrink-0">
+                          {shortName.trim()}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-gray-300 pl-1">Your brand preview appears here</p>
+                )}
               </div>
-            )}
+
+              <button
+                onClick={handleContinue}
+                disabled={!canContinue}
+                className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm
+                  tracking-wide transition-all duration-200 flex-shrink-0
+                  ${canContinue
+                    ? "bg-emerald-500 hover:bg-emerald-600 active:scale-[0.97] text-white shadow-sm shadow-emerald-100"
+                    : "bg-gray-100 text-gray-300 cursor-not-allowed"
+                  }`}
+              >
+                {loading ? (
+                  <>
+                    <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                    </svg>
+                    Saving…
+                  </>
+                ) : (
+                  <>
+                    Continue
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                    </svg>
+                  </>
+                )}
+              </button>
+            </div>
 
           </div>
 
