@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { validatePAN, PAN_RULES } from "../validation";
 import {
   useOnboardingStore,
@@ -6,88 +6,9 @@ import {
 } from "@/features/onboarding/store/onboardingStore";
 import { STEPS } from "@/features/onboarding/constants/steps";
 import { verifyPAN } from "@/features/onboarding/services/api/verify.api";
-import ErrorToast from "@/components/common/ErrorToast";
+import SuccessToast from "@/components/common/SuccessToast";
 import ErrorModal from "@/components/common/ErrorModal";
 import { parseApiError } from "@/hooks/useApiError";
-
-// ── Success Toast (200) ─────────────────────────────────────────────
-function SuccessToast({ show, pan, onDismiss }) {
-  useEffect(() => {
-    if (!show) return;
-    const t = setTimeout(onDismiss, 3500);
-    return () => clearTimeout(t);
-  }, [show, onDismiss]);
-
-  if (!show) return null;
-  return (
-    <div
-      role="status"
-      className="fixed bottom-6 right-6 z-[9999] flex items-start gap-3 px-4 py-3 rounded-xl
-        max-w-sm w-[calc(100vw-3rem)]"
-      style={{
-        background: "#f0fdf4",
-        border: "0.5px solid #86efac",
-        borderLeft: "3px solid #22c55e",
-        animation: "slideInToast 0.22s cubic-bezier(0.34,1.4,0.64,1) both",
-      }}
-    >
-      <style>{`
-        @keyframes slideInToast {
-          from { opacity:0; transform:translateY(14px) scale(0.97); }
-          to   { opacity:1; transform:translateY(0) scale(1); }
-        }
-      `}</style>
-
-      <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0">
-        <svg
-          className="w-4 h-4 text-white"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={3}
-            d="M5 13l4 4L19 7"
-          />
-        </svg>
-      </div>
-
-      <div className="flex-1 min-w-0">
-        <p className="text-xs font-semibold text-emerald-800">
-          PAN verified successfully
-        </p>
-        <p className="text-[11px] text-emerald-600 mt-0.5 font-mono tracking-widest">
-          {pan}
-        </p>
-        <p className="text-[10px] text-emerald-500 mt-1">
-          Redirecting to review screen…
-        </p>
-      </div>
-
-      <button
-        onClick={onDismiss}
-        aria-label="Dismiss"
-        className="text-emerald-400 hover:text-emerald-600 transition-colors flex-shrink-0"
-      >
-        <svg
-          className="w-4 h-4"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M6 18L18 6M6 6l12 12"
-          />
-        </svg>
-      </button>
-    </div>
-  );
-}
 
 // ── RuleRow ─────────────────────────────────────────────────────────
 function RuleRow({ label, passed, touched }) {
@@ -204,20 +125,12 @@ export default function Step6PANEnter({ onFetchSuccess }) {
         goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_READONLY);
       }, 1500);
     } catch (err) {
-      let parsed;
-      try {
-        const errData =
-          typeof err.message === "string" ? JSON.parse(err.message) : err;
-        parsed = parseApiError(errData);
-      } catch {
-        parsed = {
-          humanMessage: err.message || "PAN verification failed.",
-          txnId: null,
-        };
-      }
-      setApiError(parsed);
+      // err = plain Error object, sirf .message string hai
+      setApiError({
+        humanMessage: err.message ?? "PAN verification failed. Please try again.",
+        txnId: null,
+      });
       setShowModal(true);
-
       setTimeout(() => {
         setShowModal(false);
         setApiError(null);
@@ -569,9 +482,9 @@ export default function Step6PANEnter({ onFetchSuccess }) {
 
       {/* ── Success Toast — 200 ── */}
       <SuccessToast
-        show={successMsg}
-        pan={upper}
+        message={successMsg ? `PAN ${upper} verified successfully` : null}
         onDismiss={() => setSuccessMsg(false)}
+        duration={3500}
       />
 
       {/* ── Error Modal — 400 ── */}
@@ -586,12 +499,6 @@ export default function Step6PANEnter({ onFetchSuccess }) {
           setApiError(null);
           handleFetch();
         }}
-      />
-
-      {/* ── Error Toast — fallback ── */}
-      <ErrorToast
-        error={!showModal && apiError ? apiError : null}
-        onDismiss={() => setApiError(null)}
       />
     </div>
   );

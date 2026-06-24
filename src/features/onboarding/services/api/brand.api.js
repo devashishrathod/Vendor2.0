@@ -6,7 +6,7 @@
 
 import { request } from "./client";
 
-const ENDPOINT = "/brands/onboarding/basic-details";
+const ENDPOINT = "/brands/onboarding/add-basic-details";
 
 // ── Screen 1 — Business Name (Step3BusinessName) ──────────────────────────────
 // currentScreen: "REGISTRATION_STATUS"
