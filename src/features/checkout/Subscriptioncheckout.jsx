@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useOnboardingStore } from "@/features/onboarding/store/onboardingStore";
 
 const PLAN_DATA = {
   name: "Basic Plan",
@@ -451,7 +452,30 @@ function OrderSummary({ plan }) {
 }
 
 export default function SubscriptionCheckout() {
-  const [billing, setBilling] = useState(INITIAL_BILLING);
+
+  const { formData } = useOnboardingStore();
+
+  // Map onboarding store data to billing details
+  const billingFromStore = {
+    brandName: formData.gstDetails?.legalName || formData.businessName || "",
+    address: formData.gstDetails?.address
+      ? [
+          formData.gstDetails.address.floor_number,
+          formData.gstDetails.address.city,
+          formData.gstDetails.address.district,
+          formData.gstDetails.address.state,
+          formData.gstDetails.address.pin,
+        ]
+          .filter(Boolean)
+          .join(", ")
+      : "",
+    cin: "" || "U47912TN2023PTC163139",  // Not in store — fetch from API or leave blank
+    gstin: formData.gstDetails?.gstNumber || formData.gstin || "",
+    pan: formData.pan || "",
+  };
+
+  const [billing, setBilling] = useState(billingFromStore);
+
 
   return (
     <div className="min-h-screen bg-gray-100 p-4 md:p-8">

@@ -1,76 +1,91 @@
-import { useState } from "react";
-
 import { useNavigate } from "react-router-dom";
-const BRAND_DATA = {
-  companyName: "Yoga Education And Research Pvt Ltd",
-  merchantToken: "A4FG1WJOIUN20",
-  gstNo: "33AAFPA2907F1ZF",
-  panNo: "ABCDE1234F",
-};
+import { useOnboardingStore } from "@/features/onboarding/store/onboardingStore";
 
-const VALID_PROMO_CODES = {
-  TRYDOOD20: "20% off applied! Code TRYDOOD20 accepted.",
-  YOGA10: "10% off applied! Code YOGA10 accepted.",
-  OUTLET50: "₹50 flat discount applied! Code OUTLET50 accepted.",
+const PLAN_DATA = {
+  name: "Basic Plan",
+  yearlyPrice: 1999,
+  originalPrice: 4000,
+  igstRate: 0.18,
+  discountPercent: 50,
 };
 
 const CONFETTI_ITEMS = Array.from({ length: 48 }, (_, i) => ({
   id: i,
   color: [
-    "#f472b6",
-    "#818cf8",
-    "#34d399",
-    "#fb923c",
-    "#facc15",
-    "#60a5fa",
-    "#a78bfa",
-    "#f87171",
-    "#2dd4bf",
+    "#f472b6","#818cf8","#34d399","#fb923c","#facc15",
+    "#60a5fa","#a78bfa","#f87171","#2dd4bf",
   ][Math.floor(Math.random() * 9)],
-  left: Math.random() * 100,
-  top: Math.random() * 90,
+  left:   Math.random() * 100,
+  top:    Math.random() * 90,
   isDash: Math.random() > 0.5,
-  width: Math.random() * 10 + 6,
+  width:  Math.random() * 10 + 6,
   height: Math.random() * 6 + 3,
   rotate: Math.floor(Math.random() * 60 - 30),
 }));
 
+const fmt = (amount) =>
+  new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    minimumFractionDigits: 2,
+  }).format(amount);
+
+function PlanSummaryCard({ plan }) {
+  const billValue      = plan.yearlyPrice;
+  const igst           = parseFloat((billValue * plan.igstRate).toFixed(2));
+  const trydoodDiscount = parseFloat((igst).toFixed(2)); // matches screenshot: discount = igst amount
+  const totalPayable   = parseFloat((billValue + igst - trydoodDiscount).toFixed(2));
+
+  const rows = [
+    { label: "Original Price",   value: fmt(plan.originalPrice), accent: false },
+    { label: "Bill Value",       value: fmt(billValue),          accent: false },
+    { label: `IGST @ ${(plan.igstRate * 100).toFixed(2)}%`, value: fmt(igst), accent: false },
+    { label: "Trydood Discount", value: `-${fmt(trydoodDiscount)}`, accent: true  },
+  ];
+
+  return (
+    <div className="border border-gray-200 rounded-xl overflow-hidden mb-8 bg-white">
+      {/* Header */}
+      <div className="px-5 py-3 bg-gray-50 border-b border-gray-200">
+        <p className="text-sm font-semibold text-gray-700">
+          Plan Name : {plan.name}
+        </p>
+      </div>
+
+      {/* Rows */}
+      <div className="px-5 py-4 space-y-3">
+        <p className="text-sm font-semibold text-gray-700 mb-3">
+          Plan Name : {plan.name}
+        </p>
+        {rows.map((row) => (
+          <div key={row.label} className="flex items-center justify-between">
+            <span className="text-sm text-gray-600">{row.label}</span>
+            <span
+              className={`text-sm font-semibold ${
+                row.accent ? "text-teal-600" : "text-gray-800"
+              }`}
+            >
+              {row.value}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function TrydoodOutlet() {
-  const [promoOpen, setPromoOpen] = useState(false);
-  const [promoCode, setPromoCode] = useState("");
-  const [promoStatus, setPromoStatus] = useState(null); // null | { type: "success"|"error", message: string }
+  const { formData } = useOnboardingStore();
+  const navigate     = useNavigate();
 
-  const navigate = useNavigate();
-  const togglePromo = () => {
-    setPromoOpen((prev) => !prev);
-    setPromoCode("");
-    setPromoStatus(null);
+  const brandData = {
+    companyName:   formData.gstDetails?.legalName   || formData.businessName || "—",
+    merchantToken: formData.brandId                  || "—",
+    gstNo:         formData.gstDetails?.gstNumber    || formData.gstin        || "—",
+    panNo:         formData.pan                      || "—",
   };
 
-  const applyPromo = () => {
-    const code = promoCode.trim().toUpperCase();
-    if (!code) {
-      setPromoStatus({ type: "error", message: "Please enter a promo code." });
-      return;
-    }
-    if (VALID_PROMO_CODES[code]) {
-      setPromoStatus({
-        type: "success",
-        message: `✓ ${VALID_PROMO_CODES[code]}`,
-      });
-    } else {
-      setPromoStatus({
-        type: "error",
-        message: "✗ Invalid promo code. Please try again.",
-      });
-    }
-  };
-
-  const handleAddListing = () => {
-    alert("Redirecting to Add Listing...");
-    // navigate("/add-listing") or your router call
-    navigate("/brand-outlet");
-  };
+  const handleAddListing = () => navigate("/brand-outlet");
 
   return (
     <div className="relative min-h-screen bg-white overflow-hidden font-sans">
@@ -81,13 +96,13 @@ export default function TrydoodOutlet() {
             key={item.id}
             className="absolute opacity-80"
             style={{
-              left: `${item.left}%`,
-              top: `${item.top}%`,
-              background: item.color,
-              width: item.isDash ? `${item.width}px` : `${item.height}px`,
-              height: item.isDash ? `${item.height / 2}px` : `${item.height}px`,
-              borderRadius: item.isDash ? "2px" : "50%",
-              transform: item.isDash ? `rotate(${item.rotate}deg)` : undefined,
+              left:         `${item.left}%`,
+              top:          `${item.top}%`,
+              background:   item.color,
+              width:        item.isDash ? `${item.width}px`      : `${item.height}px`,
+              height:       item.isDash ? `${item.height / 2}px` : `${item.height}px`,
+              borderRadius: item.isDash ? "2px"                  : "50%",
+              transform:    item.isDash ? `rotate(${item.rotate}deg)` : undefined,
             }}
           />
         ))}
@@ -122,97 +137,32 @@ export default function TrydoodOutlet() {
             Brand Details
           </p>
           <p className="text-base font-bold text-[#1a1a2e] mb-5">
-            {BRAND_DATA.companyName}
+            {brandData.companyName}
           </p>
 
           <div className="flex flex-wrap gap-8 mb-8 text-sm text-gray-700">
             <span>
               Merchant Token :{" "}
               <span className="text-indigo-500 font-medium">
-                {BRAND_DATA.merchantToken}
+                {brandData.merchantToken}
               </span>
             </span>
             <span>
               GST No :{" "}
               <span className="text-indigo-500 font-medium">
-                {BRAND_DATA.gstNo}
+                {brandData.gstNo}
               </span>
             </span>
             <span>
               PAN No :{" "}
               <span className="text-indigo-500 font-medium">
-                {BRAND_DATA.panNo}
+                {brandData.panNo}
               </span>
             </span>
           </div>
 
-          {/* Promo Code Accordion */}
-          <div className="border border-gray-200 rounded-xl overflow-hidden mb-8 bg-gray-50">
-            <button
-              onClick={togglePromo}
-              className="w-full flex items-center justify-between px-4 py-3 text-left focus:outline-none"
-            >
-              <span className="text-sm font-semibold text-gray-700">
-                Have a Promo Code?{" "}
-                <span className="ml-2 inline-block bg-indigo-50 text-indigo-600 text-xs font-semibold px-2 py-0.5 rounded-md">
-                  Optional
-                </span>
-              </span>
-              <svg
-                className={`w-4 h-4 text-gray-500 transition-transform duration-300 ${promoOpen ? "rotate-180" : ""}`}
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M19 9l-7 7-7-7"
-                />
-              </svg>
-            </button>
-
-            <div
-              className={`transition-all duration-300 ease-in-out overflow-hidden ${
-                promoOpen ? "max-h-52 opacity-100" : "max-h-0 opacity-0"
-              }`}
-            >
-              <div className="px-4 pb-4">
-                <p className="text-xs font-semibold text-gray-600 mb-2">
-                  Enter Promo Code
-                </p>
-                <div className="flex gap-3">
-                  <input
-                    type="text"
-                    value={promoCode}
-                    onChange={(e) => setPromoCode(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && applyPromo()}
-                    placeholder="e.g. TRYDOOD20"
-                    className="flex-1 px-3 py-2.5 text-sm border border-gray-200 rounded-lg outline-none focus:border-indigo-400 bg-white text-gray-800 transition-colors"
-                  />
-                  <button
-                    onClick={applyPromo}
-                    className="px-5 py-2.5 bg-[#1a1a2e] text-white text-sm font-medium rounded-lg hover:bg-[#2d2d5e] transition-colors whitespace-nowrap"
-                  >
-                    Apply
-                  </button>
-                </div>
-
-                {promoStatus && (
-                  <div
-                    className={`mt-3 px-3 py-2 rounded-lg text-sm font-medium ${
-                      promoStatus.type === "success"
-                        ? "bg-green-50 text-green-700 border border-green-200"
-                        : "bg-red-50 text-red-700 border border-red-200"
-                    }`}
-                  >
-                    {promoStatus.message}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
+          {/* Plan Summary Card */}
+          <PlanSummaryCard plan={PLAN_DATA} />
 
           {/* Add Listing Button */}
           <button

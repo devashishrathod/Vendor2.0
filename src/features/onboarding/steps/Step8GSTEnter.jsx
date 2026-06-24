@@ -182,8 +182,20 @@ function PANMismatchBanner({ gstin, pan }) {
 }
 
 // ── Main Component ───────────────────────────────────────────────────
-export default function Step8GSTEnter({ pan = "" }) {
+export default function Step8GSTEnter({ pan: panProp = "" }) {
   const { goToStep } = useOnboardingStore();
+
+  // Fallback: pull PAN from the onboarding store in case the parent
+  // didn't pass the `pan` prop correctly (this was the root cause of
+  // "PAN embedded matches" always failing even on a valid GSTIN).
+  const panFromStore = useOnboardingStore(
+    (state) =>
+      state.formData?.panDetails?.data?.pan ||
+      state.formData?.panDetails?.pan ||
+      "",
+  );
+
+  const pan = panProp || panFromStore;
 
   const [gstin, setGstin] = useState("");
   const [touched, setTouched] = useState(false);
@@ -239,16 +251,12 @@ export default function Step8GSTEnter({ pan = "" }) {
         goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.GST_READONLY);
       }, 1500);
     } catch (err) {
-      const parsed = parseApiError(
-        err.responseData || { message: err.message },
-      );
-      setApiError(parsed);
+      setApiError({
+        humanMessage: err.message ?? 'GST verification failed. Please try again.',
+        txnId: null,
+      });
       setShowModal(true);
-
-      setTimeout(() => {
-        setShowModal(false);
-        setApiError(null);
-      }, 3500);
+      setTimeout(() => { setShowModal(false); setApiError(null); }, 3500);
     } finally {
       setFetching(false);
     }
@@ -350,14 +358,13 @@ export default function Step8GSTEnter({ pan = "" }) {
                 className={`w-full px-4 py-3 pr-10 bg-white border rounded-xl text-sm font-mono font-semibold
                   text-gray-800 tracking-widest placeholder:text-gray-300 placeholder:font-sans
                   placeholder:tracking-normal outline-none transition-all duration-200
-                  ${
-                    !touched
-                      ? "border-gray-200 focus:border-emerald-300 focus:ring-2 focus:ring-emerald-50"
-                      : isValid
-                        ? "border-emerald-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50"
-                        : hasPANMismatch
-                          ? "border-orange-300 bg-orange-50/30 focus:border-orange-300 focus:ring-2 focus:ring-orange-50"
-                          : "border-red-200 bg-red-50/30 focus:border-red-300 focus:ring-2 focus:ring-red-50"
+                  ${!touched
+                    ? "border-gray-200 focus:border-emerald-300 focus:ring-2 focus:ring-emerald-50"
+                    : isValid
+                      ? "border-emerald-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50"
+                      : hasPANMismatch
+                        ? "border-orange-300 bg-orange-50/30 focus:border-orange-300 focus:ring-2 focus:ring-orange-50"
+                        : "border-red-200 bg-red-50/30 focus:border-red-300 focus:ring-2 focus:ring-red-50"
                   }`}
               />
               {touched && (
@@ -579,10 +586,9 @@ export default function Step8GSTEnter({ pan = "" }) {
           disabled={!isValid || fetching || fetchDone}
           className={`flex items-center gap-2 px-7 py-3 rounded-xl font-bold text-sm
             tracking-wide transition-all duration-200 flex-shrink-0
-            ${
-              isValid && !fetching && !fetchDone
-                ? "bg-emerald-500 hover:bg-emerald-600 active:scale-[0.97] text-white shadow-sm shadow-emerald-100"
-                : "bg-gray-100 text-gray-300 cursor-not-allowed"
+            ${isValid && !fetching && !fetchDone
+              ? "bg-emerald-500 hover:bg-emerald-600 active:scale-[0.97] text-white shadow-sm shadow-emerald-100"
+              : "bg-gray-100 text-gray-300 cursor-not-allowed"
             }`}
         >
           {fetching ? (

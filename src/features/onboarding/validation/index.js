@@ -20,6 +20,8 @@ export function validateOTP(otp) {
 export function validateBusinessName(name) {
   if (!name?.trim()) return "Business name is required";
   if (name.trim().length < 3) return "Must be at least 3 characters";
+  if (!/^[A-Za-z\s&.'\-,()]+$/.test(name.trim()))
+    return "Business name must contain only letters and allowed characters (& . ' - , )";
   return null;
 }
 
@@ -30,6 +32,8 @@ export function validateShortName(short) {
   if (s.length > 10) return "Short name must be 10 characters or less";
   if (!/^[A-Za-z0-9 &.'-]+$/.test(s))
     return "Only letters, numbers, spaces, &, ., ' and - allowed";
+  if (!/[A-Za-z]/.test(s))
+    return "Short name must contain at least one letter";
   return null;
 }
 
@@ -131,6 +135,6 @@ export const BANK_RULES = [
     label: "Valid IFSC code",
     test: (v) => /^[A-Z]{4}0[A-Z0-9]{6}$/i.test(v.ifsc),
   },
-  { label: "Account not found", test: () => true }, // checked via API
-  { label: "Name mismatch", test: () => true }, // checked via API
+  { label: "Account not found", test: () => true },
+  { label: "Name mismatch", test: () => true },
 ];
