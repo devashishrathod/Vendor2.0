@@ -1,13 +1,22 @@
 import { Navigate } from 'react-router-dom';
 import { useAuthStore } from '@/features/onboarding/store/authStore';
 
-/**
- * PublicRoute
- * Token hai     → already logged in → /onboarding pe bhejo
- * Token nahi    → children render karo (login page dikhao)
- */
+const SCREEN_ROUTES = {
+  SUBSCRIBE_PLAN: "/subscription",
+  UNDER_REVIEW:   "/under-review",
+  DASHBOARD:      "/oulet",
+};
+
 export default function PublicRoute({ children }) {
-  const token = useAuthStore((s) => s.token);
-  if (token) return <Navigate to="/onboarding" replace />;
-  return children;
+  const token         = useAuthStore((s) => s.token);
+  const currentScreen = useAuthStore((s) => s.currentScreen);
+
+  if (!token) return children;
+
+  // Post-onboarding screen hai → sahi route pe bhejo
+  const redirect = SCREEN_ROUTES[currentScreen];
+  if (redirect) return <Navigate to={redirect} replace />;
+
+  // Onboarding screen hai → /onboarding pe bhejo
+  return <Navigate to="/onboarding" replace />;
 }

@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { approvePartnership } from "@/features/onboarding/services/api/verify.api";
 
 const TERMS = [
@@ -17,18 +16,21 @@ const TERMS = [
   },
 ];
 
-export default function Step5PartnerContract() {
+// ✅ CHANGED: locked prop add kiya
+export default function Step14PartnerContract({ onComplete, locked }) {
   const [agreed,   setAgreed]   = useState(false);
   const [loading,  setLoading]  = useState(false);
   const [apiError, setApiError] = useState(null);
-  const navigate = useNavigate();
 
   async function handleSubmit() {
     setLoading(true);
     setApiError(null);
     try {
-      await approvePartnership();
-      navigate("/subscription");
+      const res = await approvePartnership();
+      console.log('[PartnerContract] full res:', res);
+      const backendScreen = res?.data?.user?.currentScreen ?? "SUBSCRIBE_PLAN";
+      console.log('[PartnerContract] backendScreen:', backendScreen);
+      onComplete?.(backendScreen);
     } catch (err) {
       setApiError(err?.message ?? "Something went wrong. Please try again.");
     } finally {
@@ -63,8 +65,9 @@ export default function Step5PartnerContract() {
                 <h2 className="text-base font-bold text-gray-900 leading-tight">
                   Partner Deed Agreement
                 </h2>
+                {/* ✅ CHANGED: locked ho to subtitle change */}
                 <p className="text-xs text-gray-400 mt-0.5">
-                  Review and accept to complete onboarding
+                  {locked ? "Agreement already submitted" : "Review and accept to complete onboarding"}
                 </p>
               </div>
             </div>
@@ -77,9 +80,7 @@ export default function Step5PartnerContract() {
                 You're nearly there! Review and sign the digital contract below
                 to finish onboarding with Trydood.
               </p>
-              
               <a
-              
                 href="https://community.docusign.com/salesforce-30/url-link-with-the-docusign-agreement-1353"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -100,7 +101,6 @@ export default function Step5PartnerContract() {
               </svg>
               Also review the full{" "}
               <a
-              
                 href="https://community.docusign.com/salesforce-30/url-link-with-the-docusign-agreement-1353"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -111,21 +111,24 @@ export default function Step5PartnerContract() {
               before accepting.
             </div>
 
-            {/* ── Checkbox — sirf UI, no API ── */}
-            <label className={`flex items-start gap-3 cursor-pointer p-4 rounded-xl border-2 transition-all duration-200
-              border-gray-100 hover:border-emerald-200 hover:bg-emerald-50/40
-              ${agreed ? "border-emerald-300 bg-emerald-50/60" : ""}`}
+            {/* ✅ CHANGED: locked ho to checkbox disabled + always checked */}
+            <label className={`flex items-start gap-3 p-4 rounded-xl border-2 transition-all duration-200
+              ${locked
+                ? "border-emerald-300 bg-emerald-50/60 cursor-not-allowed"
+                : `cursor-pointer border-gray-100 hover:border-emerald-200 hover:bg-emerald-50/40 ${agreed ? "border-emerald-300 bg-emerald-50/60" : ""}`
+              }`}
             >
               <input
                 type="checkbox"
-                checked={agreed}
-                onChange={(e) => setAgreed(e.target.checked)}
-                className="mt-0.5 w-4 h-4 accent-emerald-500 cursor-pointer flex-shrink-0"
+                checked={locked ? true : agreed}
+                onChange={(e) => { if (!locked) setAgreed(e.target.checked); }}
+                disabled={locked}
+                className="mt-0.5 w-4 h-4 accent-emerald-500 flex-shrink-0"
+                style={{ cursor: locked ? "not-allowed" : "pointer" }}
               />
               <span className="text-sm text-gray-600">
                 I have read and agree to the{" "}
                 <a
-                
                   href="https://community.docusign.com/salesforce-30/url-link-with-the-docusign-agreement-1353"
                   target="_blank"
                   rel="noopener noreferrer"
@@ -134,8 +137,8 @@ export default function Step5PartnerContract() {
                   Trydood Partner Agreement
                 </a>{" "}
                 and all associated{" "}
-                <a
                 
+                <a
                   href="https://community.docusign.com/salesforce-30/url-link-with-the-docusign-agreement-1353"
                   target="_blank"
                   rel="noopener noreferrer"
@@ -147,7 +150,6 @@ export default function Step5PartnerContract() {
               </span>
             </label>
 
-            {/* ── API Error ── */}
             {apiError && (
               <div className="flex items-start gap-2 bg-red-50 border border-red-100 rounded-xl px-4 py-3">
                 <svg className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -159,17 +161,23 @@ export default function Step5PartnerContract() {
             )}
 
             <div className="mt-auto">
+              {/* ✅ CHANGED: locked ho to button disabled + lock icon + "Agreement Accepted" */}
               <button
                 onClick={handleSubmit}
-                disabled={!agreed || loading}
+                disabled={locked || !agreed || loading}
                 className={`w-full py-3 rounded-xl font-bold text-sm tracking-wide
                   transition-all duration-200 flex items-center justify-center gap-2
-                  ${agreed && !loading
+                  ${!locked && agreed && !loading
                     ? "bg-emerald-500 text-white hover:bg-emerald-600 active:scale-[0.98] shadow-sm shadow-emerald-200"
                     : "bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed"
                   }`}
               >
-                {loading ? (
+                {locked ? (
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                ) : loading ? (
                   <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
@@ -179,12 +187,12 @@ export default function Step5PartnerContract() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                   </svg>
                 ) : null}
-                {loading ? "Processing..." : "Subscription Plan"}
+                {locked ? "Agreement Accepted" : loading ? "Processing..." : "Subscription Plan"}
               </button>
             </div>
           </div>
 
-          {/* RIGHT */}
+          {/* RIGHT — unchanged */}
           <div className="p-7 bg-gray-50/50 flex flex-col gap-4">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
               Terms &amp; Conditions Summary

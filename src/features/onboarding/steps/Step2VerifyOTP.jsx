@@ -12,88 +12,49 @@ import { STEPS } from "@/features/onboarding/constants/steps";
 import { ROLES } from "@/constants";
 
 const SCREEN_TO_STEP = {
-  BUSINESS_NAME: {
-    step: STEPS.BASIC_DETAILS,
-    subStep: BASIC_SUB.BUSINESS_NAME,
-  },
-  REGISTRATION_STATUS: {
-    step: STEPS.BASIC_DETAILS,
-    subStep: BASIC_SUB.REGISTRATION_STATUS,
-  },
-  REGISTRATION_ENTITY_TYPE: {
-    step: STEPS.BASIC_DETAILS,
-    subStep: BASIC_SUB.REGISTRATION_ENTITY_TYPE,
-  },
-  PAN_VERIFICATION: {
-    step: STEPS.BUSINESS_VERIFICATION,
-    subStep: BIZ_SUB.PAN_VERIFICATION,
-  },
-  GST_VERIFICATION: {
-    step: STEPS.BUSINESS_VERIFICATION,
-    subStep: BIZ_SUB.GST_VERIFICATION,
-  },
-  BANK_VERIFICATION: {
-    step: STEPS.BANK_VERIFICATION,
-    subStep: BANK_SUB.BANK_VERIFICATION,
-  },
-  SYSTEM_VERIFICATION: { step: STEPS.SYSTEM_VERIFY, subStep: 1 },
-  PARTNERSHIP_DEED: { step: STEPS.PARTNER_CONTRACT, subStep: 1 },
+  BUSINESS_NAME:            { step: STEPS.BASIC_DETAILS,         subStep: BASIC_SUB.BUSINESS_NAME },
+  REGISTRATION_STATUS:      { step: STEPS.BASIC_DETAILS,         subStep: BASIC_SUB.REGISTRATION_STATUS },
+  REGISTRATION_ENTITY_TYPE: { step: STEPS.BASIC_DETAILS,         subStep: BASIC_SUB.REGISTRATION_ENTITY_TYPE },
+  PAN_VERIFICATION:         { step: STEPS.BUSINESS_VERIFICATION, subStep: BIZ_SUB.PAN_VERIFICATION },
+  GST_VERIFICATION:         { step: STEPS.BUSINESS_VERIFICATION, subStep: BIZ_SUB.GST_VERIFICATION },
+  BANK_VERIFICATION:        { step: STEPS.BANK_VERIFICATION,     subStep: BANK_SUB.BANK_VERIFICATION },
+  SYSTEM_VERIFICATION:      { step: STEPS.SYSTEM_VERIFY,         subStep: 1 },
+  PARTNERSHIP_DEED:         { step: STEPS.PARTNER_CONTRACT,      subStep: 1 },
+  SUBSCRIBE_PLAN:           { redirect: "/subscription" },
+  UNDER_REVIEW:             { redirect: "/under-review" },
+  DASHBOARD:                { redirect: "/oulet" },
 };
 
 function ErrorMessage({ message }) {
   if (!message) return null;
   return (
     <div className="flex items-start gap-2 mt-2 text-red-500 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
-      <svg
-        className="w-4 h-4 mt-0.5 flex-shrink-0"
-        viewBox="0 0 20 20"
-        fill="currentColor"
-      >
-        <path
-          fillRule="evenodd"
+      <svg className="w-4 h-4 mt-0.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+        <path fillRule="evenodd"
           d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-          clipRule="evenodd"
-        />
+          clipRule="evenodd" />
       </svg>
       <span className="text-xs font-medium">{message}</span>
     </div>
   );
 }
 
-function PrimaryButton({
-  children,
-  onClick,
-  disabled,
-  loading,
-  className = "",
-}) {
+function PrimaryButton({ children, onClick, disabled, loading, className = "" }) {
   return (
     <button
       onClick={onClick}
       disabled={disabled || loading}
       className={`w-full py-3 rounded-xl font-bold text-sm tracking-wide transition-all duration-200
         flex items-center justify-center gap-2
-        ${
-          disabled || loading
-            ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-            : "bg-emerald-500 hover:bg-emerald-600 text-white active:scale-[0.98] shadow-sm shadow-emerald-200"
+        ${disabled || loading
+          ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+          : "bg-emerald-500 hover:bg-emerald-600 text-white active:scale-[0.98] shadow-sm shadow-emerald-200"
         } ${className}`}
     >
       {loading && (
         <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
-          <circle
-            className="opacity-25"
-            cx="12"
-            cy="12"
-            r="10"
-            stroke="currentColor"
-            strokeWidth="4"
-          />
-          <path
-            className="opacity-75"
-            fill="currentColor"
-            d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-          />
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
         </svg>
       )}
       {children}
@@ -101,14 +62,9 @@ function PrimaryButton({
   );
 }
 
-export default function Step2VerifyOTP({
-  isOpen,
-  onClose,
-  phoneNumber,
-  onVerified,
-}) {
+export default function Step2VerifyOTP({ isOpen, onClose, phoneNumber, onVerified }) {
   const { verifyOTP, sendOTP, loading } = useAuthStore();
-  const { goToStep, setBrandId } = useOnboardingStore(); // ✅ setBrandId add kiya
+  const { goToStep, setBrandId } = useOnboardingStore();
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [error, setError] = useState(null);
   const [resendTimer, setResendTimer] = useState(30);
@@ -122,11 +78,7 @@ export default function Step2VerifyOTP({
     setCanResend(false);
     const interval = setInterval(() => {
       setResendTimer((t) => {
-        if (t <= 1) {
-          clearInterval(interval);
-          setCanResend(true);
-          return 0;
-        }
+        if (t <= 1) { clearInterval(interval); setCanResend(true); return 0; }
         return t - 1;
       });
     }, 1000);
@@ -151,20 +103,14 @@ export default function Step2VerifyOTP({
   };
 
   const handleKeyDown = (index, e) => {
-    if (e.key === "Backspace" && !otp[index] && index > 0)
-      inputRefs.current[index - 1]?.focus();
-    if (e.key === "ArrowLeft" && index > 0)
-      inputRefs.current[index - 1]?.focus();
-    if (e.key === "ArrowRight" && index < 5)
-      inputRefs.current[index + 1]?.focus();
+    if (e.key === "Backspace" && !otp[index] && index > 0) inputRefs.current[index - 1]?.focus();
+    if (e.key === "ArrowLeft"  && index > 0) inputRefs.current[index - 1]?.focus();
+    if (e.key === "ArrowRight" && index < 5) inputRefs.current[index + 1]?.focus();
   };
 
   const handlePaste = (e) => {
     e.preventDefault();
-    const pasted = e.clipboardData
-      .getData("text")
-      .replace(/\D/g, "")
-      .slice(0, 6);
+    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
     if (pasted.length === 6) {
       setOtp(pasted.split(""));
       inputRefs.current[5]?.focus();
@@ -179,23 +125,27 @@ export default function Step2VerifyOTP({
     try {
       const res = await verifyOTP(phoneNumber, otpString, ROLES.VENDOR);
 
-      // ✅ brandId store mein save karo
+      console.log('[OTP] verifyOTP response:', res);
+      console.log('[OTP] currentScreen from backend:', res?.data?.user?.currentScreen);
+
       const brandId = res?.data?.user?.brandId;
       if (brandId) {
         setBrandId(brandId);
-        console.log("✅ brandId saved to store:", brandId);
-      } else {
-        console.warn("⚠️ brandId not found in OTP response:", res);
+        console.log('✅ brandId saved:', brandId);
       }
 
-      // user ka currentScreen lo aur onboardingStore set karo
       const currentScreen = res?.data?.user?.currentScreen ?? "BUSINESS_NAME";
-      const mapped = SCREEN_TO_STEP[currentScreen] ?? {
-        step: STEPS.BASIC_DETAILS,
-        subStep: BASIC_SUB.BUSINESS_NAME,
-      };
-      goToStep(mapped.step, mapped.subStep);
+      const mapped = SCREEN_TO_STEP[currentScreen];
+      console.log('[OTP] mapped:', mapped);
 
+      if (mapped?.redirect) {
+        onVerified?.();
+        navigate(mapped.redirect);
+        return;
+      }
+
+      const target = mapped ?? { step: STEPS.BASIC_DETAILS, subStep: BASIC_SUB.BUSINESS_NAME };
+      goToStep(target.step, target.subStep);
       onVerified?.();
       navigate("/onboarding");
     } catch (e) {
@@ -216,11 +166,7 @@ export default function Step2VerifyOTP({
     }
     const interval = setInterval(() => {
       setResendTimer((t) => {
-        if (t <= 1) {
-          clearInterval(interval);
-          setCanResend(true);
-          return 0;
-        }
+        if (t <= 1) { clearInterval(interval); setCanResend(true); return 0; }
         return t - 1;
       });
     }, 1000);
@@ -241,16 +187,10 @@ export default function Step2VerifyOTP({
         style={{ animation: "fadeIn 0.2s ease both" }}
       />
 
-      <div
-        className="fixed inset-0 z-50 flex items-center justify-center p-4"
-        style={{ pointerEvents: "none" }}
-      >
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ pointerEvents: "none" }}>
         <div
           className="bg-white rounded-2xl shadow-2xl border border-gray-100 p-8 w-full max-w-sm relative"
-          style={{
-            animation: "slideUp 0.3s cubic-bezier(0.34,1.56,0.64,1) both",
-            pointerEvents: "auto",
-          }}
+          style={{ animation: "slideUp 0.3s cubic-bezier(0.34,1.56,0.64,1) both", pointerEvents: "auto" }}
         >
           <style>{`
             @keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
@@ -261,44 +201,22 @@ export default function Step2VerifyOTP({
             onClick={onClose}
             className="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 transition"
           >
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
 
           <div className="text-center mb-6">
             <div className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto mb-4">
-              <svg
-                className="w-7 h-7 text-emerald-500"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.8}
-                  d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
-                />
+              <svg className="w-7 h-7 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+                  d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
               </svg>
             </div>
             <h2 className="text-xl font-bold text-gray-900 mb-1">Verify OTP</h2>
             <p className="text-xs text-gray-400 leading-relaxed">
-              We have sent a 6-digit OTP on
-              <br />
-              <span className="text-gray-600 font-semibold">
-                {maskedNumber}
-              </span>
+              We have sent a 6-digit OTP on<br />
+              <span className="text-gray-600 font-semibold">{maskedNumber}</span>
             </p>
           </div>
 
@@ -341,11 +259,7 @@ export default function Step2VerifyOTP({
             )}
           </div>
 
-          <PrimaryButton
-            onClick={handleVerify}
-            disabled={otpString.length < 6}
-            loading={loading}
-          >
+          <PrimaryButton onClick={handleVerify} disabled={otpString.length < 6} loading={loading}>
             {loading ? "Verifying…" : "Continue →"}
           </PrimaryButton>
 
