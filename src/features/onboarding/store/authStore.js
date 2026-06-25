@@ -1,20 +1,52 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { authAPI } from '../services/api/index';
-import { useOnboardingStore } from './onboardingStore'; // ← apne actual path se adjust karo
+import { useOnboardingStore } from './onboardingStore';
 
+// ─── SCREEN_MAP — backend string → frontend canonical screen name ─────────────
+// Fix: SUBSCRIBE_PLAN, UNDER_REVIEW, DASHBOARD added (ye missing the isliye
+//      Chrome clear karne ke baad BUSINESS_NAME pe reset ho raha tha)
 const SCREEN_MAP = {
-  LANDING_SCREEN: "BUSINESS_NAME",
-  BUSINESS_NAME: "BUSINESS_NAME",
-  REGISTRATION_STATUS: "REGISTRATION_STATUS",
+  LANDING_SCREEN:           "BUSINESS_NAME",
+  BUSINESS_NAME:            "BUSINESS_NAME",
+  REGISTRATION_STATUS:      "REGISTRATION_STATUS",
   REGISTRATION_ENTITY_TYPE: "REGISTRATION_ENTITY_TYPE",
-  BUSINESS_VERIFICATION: "PAN_VERIFICATION",
-  PAN_VERIFICATION: "PAN_VERIFICATION",
-  GST_VERIFICATION: "GST_VERIFICATION",
-  BANK_VERIFICATION: "BANK_VERIFICATION",
-  SYSTEM_VERIFICATION: "SYSTEM_VERIFICATION",
-  PARTNERSHIP_DEED: "PARTNERSHIP_DEED",
+  BUSINESS_VERIFICATION:    "PAN_VERIFICATION",
+  PAN_VERIFICATION:         "PAN_VERIFICATION",
+  PAN_READONLY:             "PAN_READONLY",
+  GST_VERIFICATION:         "GST_VERIFICATION",
+  GST_READONLY:             "GST_READONLY",
+  BANK_VERIFICATION:        "BANK_VERIFICATION",
+  BANK_READONLY:            "BANK_READONLY",
+  SYSTEM_VERIFICATION:      "SYSTEM_VERIFICATION",
+  PARTNERSHIP_DEED:         "PARTNERSHIP_DEED",
+  SUBSCRIBE_PLAN:           "SUBSCRIBE_PLAN",   // ✅ added
+  UNDER_REVIEW:             "UNDER_REVIEW",     // ✅ added
+  DASHBOARD:                "DASHBOARD",        // ✅ added
 };
+
+// ─── SCREEN_ORDER — forward-only guard ke liye ────────────────────────────────
+// auth-storage currentScreen kabhi peeche nahi jayega (advanceScreen check karta hai)
+const SCREEN_ORDER = [
+  "BUSINESS_NAME",
+  "REGISTRATION_STATUS",
+  "REGISTRATION_ENTITY_TYPE",
+  "PAN_VERIFICATION",
+  "PAN_READONLY",
+  "GST_VERIFICATION",
+  "GST_READONLY",
+  "BANK_VERIFICATION",
+  "BANK_READONLY",
+  "SYSTEM_VERIFICATION",
+  "PARTNERSHIP_DEED",
+  "SUBSCRIBE_PLAN",   // ✅ added
+  "UNDER_REVIEW",     // ✅ added
+  "DASHBOARD",        // ✅ added
+];
+
+function screenIndex(screen) {
+  return SCREEN_ORDER.indexOf(screen);
+}
 
 export const useAuthStore = create(
   persist(
@@ -26,12 +58,16 @@ export const useAuthStore = create(
       loading:       false,
       error:         null,
 
+      // ─── sendOTP ─────────────────────────────────────────────────────────
+      // Backend se currentScreen fetch karke set karta hai login pe
       sendOTP: async (whatsappNumber, role = 'VENDOR') => {
         set({ loading: true, error: null });
         try {
           const res           = await authAPI.sendOTP(whatsappNumber, role);
           const isFirst       = res?.data?.isFirst ?? null;
           const rawScreen     = res?.data?.user?.currentScreen ?? '';
+          // SCREEN_MAP mein key nahi mili → fallback BUSINESS_NAME
+          // Ab SUBSCRIBE_PLAN/UNDER_REVIEW/DASHBOARD bhi map mein hain ✅
           const currentScreen = SCREEN_MAP[rawScreen] ?? 'BUSINESS_NAME';
           set({ isFirst, currentScreen, loading: false });
           return res;
@@ -41,6 +77,7 @@ export const useAuthStore = create(
         }
       },
 
+      // ─── verifyOTP ───────────────────────────────────────────────────────
       verifyOTP: async (whatsappNumber, otp, role = 'VENDOR') => {
         set({ loading: true, error: null });
         try {
@@ -58,16 +95,36 @@ export const useAuthStore = create(
         }
       },
 
-      // ─── logout: pura data clear ───────────────────────────────────────
+      // ─── advanceScreen ───────────────────────────────────────────────────
+      // onboardingStore ke syncAuthScreen se call hota hai har step pe.
+      // Sirf FORWARD move karta hai — kabhi peeche nahi.
+      advanceScreen: (newScreen) => {
+        const mapped  = SCREEN_MAP[newScreen] ?? newScreen;
+        const current = get().currentScreen;
+
+        const newIdx  = screenIndex(mapped);
+        const currIdx = screenIndex(current);
+
+        if (newIdx > currIdx) {
+          set({ currentScreen: mapped });
+
+          // user object ke andar bhi sync karo (koi component user.currentScreen
+          // read karta ho to consistent rahe)
+          const user = get().user;
+          if (user) {
+            set({ user: { ...user, currentScreen: newScreen } });
+          }
+        }
+      },
+
+      // ─── logout ──────────────────────────────────────────────────────────
       logout: () => {
         try {
           authAPI.logout();
         } catch (e) {
-          // API call fail ho bhi jaye, local clear zaroor hona chahiye
           console.error('authAPI.logout failed:', e);
         }
 
-        // 1) auth store reset to initial values
         set({
           user:          null,
           token:         null,
@@ -77,26 +134,19 @@ export const useAuthStore = create(
           error:         null,
         });
 
-        // 2) onboarding store reset (formData, completedKeys, currentStep, etc.)
         useOnboardingStore.getState().reset();
 
-        // 3) localStorage se persisted keys hata do (safety net)
         localStorage.removeItem('auth-storage');
         localStorage.removeItem('onboarding-store');
-
-        // 4) agar koi aur app-specific localStorage/sessionStorage keys hain
-        // unhe bhi yahan clear karo, e.g.:
-        // localStorage.removeItem('cart-storage');
-        // sessionStorage.clear();
       },
 
       setError:   (error) => set({ error }),
       clearError: ()      => set({ error: null }),
     }),
     {
-      name:        'auth-storage',
-      storage:     createJSONStorage(() => localStorage),
-      partialize:  (s) => ({
+      name:       'auth-storage',
+      storage:    createJSONStorage(() => localStorage),
+      partialize: (s) => ({
         token:         s.token,
         user:          s.user,
         isFirst:       s.isFirst,

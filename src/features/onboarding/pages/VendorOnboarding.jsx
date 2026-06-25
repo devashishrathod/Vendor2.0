@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { STEPS, STEP_LABELS } from "@/features/onboarding/constants/steps";
 import {
   useOnboardingStore,
@@ -6,6 +7,7 @@ import {
   BIZ_SUB,
   BANK_SUB,
 } from "@/features/onboarding/store/onboardingStore";
+import { useAuthStore } from "@/features/onboarding/store/authStore";
 
 import Sidebar from "@/features/onboarding/components/Sidebar";
 
@@ -25,6 +27,12 @@ const SUB_TOTALS = {
   [STEPS.BASIC_DETAILS]:         3,
   [STEPS.BUSINESS_VERIFICATION]: 4,
   [STEPS.BANK_VERIFICATION]:     2,
+};
+
+const SCREEN_ROUTES = {
+  SUBSCRIBE_PLAN: "/subscription",
+  UNDER_REVIEW:   "/under-review",
+  DASHBOARD:      "/oulet",
 };
 
 function getSubLabel(currentStep, currentSubStep) {
@@ -155,13 +163,21 @@ function MobileSidebarDrawer({ open, onClose, children }) {
 }
 
 export default function OnboardingPage() {
+  const navigate = useNavigate();
+
+  const currentScreen = useAuthStore((s) => s.currentScreen);
+  useEffect(() => {
+    const route = SCREEN_ROUTES[currentScreen];
+    if (route) navigate(route, { replace: true });
+  }, [currentScreen]);
+
   const {
     currentStep,
     currentSubStep,
     goToStep,
     goBack,
     markComplete,
-    markStepComplete,  // ← NEW
+    markStepComplete,
     isCompleted,
   } = useOnboardingStore();
 
@@ -171,26 +187,42 @@ export default function OnboardingPage() {
   const [bankAccountType, setBankAccountType] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen]   = useState(false);
 
-  const systemVerifyDone = isCompleted(STEPS.SYSTEM_VERIFY, 1);
+  const systemVerifyDone    = isCompleted(STEPS.SYSTEM_VERIFY, 1);
+  const partnerContractDone = isCompleted(STEPS.PARTNER_CONTRACT, 1);
   const isFirst = currentStep === STEPS.BASIC_DETAILS && currentSubStep === 1;
 
-  // ── FIXED completeAndGo ────────────────────────────────────────────────────
-  // Agar next step alag parent step hai → pura current step mark karo (saare substeps)
-  // Agar same parent step ke andar substep change hai → sirf current substep mark karo
+  // ✅ CHANGED: partner contract done ho to browser back button block karo
+  useEffect(() => {
+    if (!partnerContractDone) return;
+
+    window.history.pushState(null, "", window.location.href);
+    const handlePopState = () => {
+      window.history.pushState(null, "", window.location.href);
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [partnerContractDone]);
+
   function completeAndGo(nextStep, nextSubStep = 1) {
     if (nextStep !== currentStep) {
-      // Parent step change ho raha hai → pura step lock karo
       markStepComplete(currentStep);
     } else {
-      // Same step, sirf yeh substep mark karo
       markComplete(currentStep, currentSubStep);
     }
     goToStep(nextStep, nextSubStep);
   }
 
+  function handlePartnerComplete(backendScreen) {
+    markComplete(STEPS.PARTNER_CONTRACT, 1);
+    console.log('[OnboardingPage] handlePartnerComplete backendScreen:', backendScreen);
+    const route = SCREEN_ROUTES[backendScreen] ?? "/subscription";
+    navigate(route);
+  }
+
   function resolveComponent(step, subStep) {
+    // ✅ CHANGED: PARTNER_CONTRACT ko bhi lock karo
     const locked = (() => {
-      if (systemVerifyDone && step !== STEPS.PARTNER_CONTRACT) return true;
+      if (systemVerifyDone) return true;
       return isCompleted(step, subStep);
     })();
 
@@ -242,7 +274,9 @@ export default function OnboardingPage() {
         />
       );
 
-    if (step === STEPS.PARTNER_CONTRACT) return <Step14PartnerContract />;
+    if (step === STEPS.PARTNER_CONTRACT)
+      return <Step14PartnerContract locked={locked} onComplete={handlePartnerComplete} />;
+
     return null;
   }
 
@@ -350,16 +384,6 @@ export default function OnboardingPage() {
         </header>
 
         <div className="flex-1 flex flex-col min-h-0 py-4 px-4 sm:py-6 sm:px-6 lg:px-8">
-          {!isLast && (
-            <div className="inline-flex items-center gap-1.5 mb-4 bg-emerald-50
-              px-2.5 py-1 rounded-full w-fit">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              <span className="text-[10px] font-semibold text-emerald-600 tracking-wide uppercase">
-                Step {displayIndex} of {totalSteps}{subLabel ? ` · ${subLabel}` : ""}
-              </span>
-            </div>
-          )}
-
           {hasSubDots && (
             <SubStepDots total={SUB_TOTALS[currentStep]} current={currentSubStep} />
           )}

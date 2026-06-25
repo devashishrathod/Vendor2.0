@@ -8,6 +8,7 @@ import { useState } from "react";
 import { BASE_URL } from "../../../config";
 import SuccessToast from "@/components/common/SuccessToast";
 import ErrorModal from "@/components/common/ErrorModal";
+import ConfirmModal from "@/components/common/ConfirmModal";
 
 function IconBadge({ bgColor, children }) {
   return (
@@ -45,6 +46,7 @@ export default function Step9GSTReadOnly() {
   const [posting, setPosting] = useState(false);
   const [postError, setPostError] = useState(null);
   const [successMsg, setSuccessMsg] = useState(true);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const gstDetails = useOnboardingStore((state) => state.formData.gstDetails);
 
@@ -261,7 +263,7 @@ export default function Step9GSTReadOnly() {
       />
 
       <div
-        className="w-full max-w-xl mx-auto"
+        className="w-full max-w-xl mx-auto "
         style={{ animation: "stepIn 0.35s cubic-bezier(0.34,1.4,0.64,1) both" }}
       >
         <style>{`
@@ -443,7 +445,8 @@ export default function Step9GSTReadOnly() {
         {/* ── Actions ── */}
         <div className="flex gap-3">
           <button
-            onClick={() => setSubStep(BIZ_SUB.GST_VERIFICATION)}
+            // onClick={() => setSubStep(BIZ_SUB.GST_VERIFICATION)}
+            onClick={() => setShowConfirm(true)}
             disabled={posting}
             className="flex-1 py-2.5 rounded-xl border border-gray-200 bg-white
               hover:border-gray-300 hover:bg-gray-50 text-gray-600 text-sm font-semibold
@@ -483,7 +486,18 @@ export default function Step9GSTReadOnly() {
             )}
           </button>
         </div>
+
+
       </div>
+{showConfirm && (
+  <ConfirmModal
+    title="Change GST details?"
+    description="Are you sure you want to go back and change your GST? Your current verified information will be cleared."
+    onCancel={() => setShowConfirm(false)}
+    onConfirm={() => { setShowConfirm(false); setSubStep(BIZ_SUB.GST_VERIFICATION); }}
+  />
+)}
+
     </>
   );
 }

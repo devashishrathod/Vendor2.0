@@ -45,8 +45,6 @@ function calcGranularProgress(currentStep, currentSubStep) {
   return Math.round((done / TOTAL_SUBSTEPS) * 100);
 }
 
-// ── Icons ──────────────────────────────────────────────────────────────────
-
 const CheckCircle = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="flex-shrink-0">
     <circle cx="12" cy="12" r="10" fill="#10b981" />
@@ -100,8 +98,6 @@ const GrayLockChevron = () => (
   </svg>
 );
 
-// ── Sidebar ─────────────────────────────────────────────────────────────────
-
 export default function Sidebar({
   currentStep,
   currentSubStep = 1,
@@ -113,23 +109,16 @@ export default function Sidebar({
   const navigate             = useNavigate();
   const isCompleted          = useOnboardingStore((s) => s.isCompleted);
   const isStepFullyCompleted = useOnboardingStore((s) => s.isStepFullyCompleted);
+  const canGoBack            = useOnboardingStore((s) => computeCanGoBack(s));
 
-  // ✅ KEY FIX: use computeCanGoBack as a proper selector
-  // This re-evaluates whenever currentStep, currentSubStep, or completedKeys changes
-  // Old: s.canGoBack()  ← called store method in selector → stale, didn't re-render
-  // New: computeCanGoBack(s) ← pure function of state slice → always fresh
-  const canGoBack = useOnboardingStore((s) => computeCanGoBack(s));
-
-  const systemVerifyDone = isCompleted(STEPS.SYSTEM_VERIFY, 1);
+  const systemVerifyDone    = isCompleted(STEPS.SYSTEM_VERIFY, 1);
+  // ✅ CHANGED: partner contract bhi check karo
+  const partnerContractDone = isCompleted(STEPS.PARTNER_CONTRACT, 1);
 
   const handleLogout = () => { logout(); navigate("/"); };
 
   const pct = calcGranularProgress(currentStep, currentSubStep);
 
-  // Back disabled when:
-  //   1. isFirst (very first substep of whole flow)
-  //   2. system verify done (everything locked)
-  //   3. computeCanGoBack says false (current or prev substep already submitted)
   const backDisabled = isFirst || systemVerifyDone || !canGoBack;
 
   return (
@@ -137,7 +126,6 @@ export default function Sidebar({
       className="w-64 flex-shrink-0 flex flex-col self-stretch bg-gray-100 min-h-full border-r border-gray-200 relative"
       style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif" }}
     >
-      {/* ── LEFT EDGE vertical progress line ── */}
       <div style={{ position: "absolute", left: 4, top: 20, bottom: 20, width: 8, zIndex: 10 }}>
         <div style={{ position: "absolute", inset: 0, backgroundColor: "#e5e7eb", borderRadius: 999 }} />
         <div style={{
@@ -147,7 +135,6 @@ export default function Sidebar({
         }} />
       </div>
 
-      {/* ── Logo ── */}
       <div className="px-4 pt-5 pb-4">
         <div className="flex items-center justify-center gap-2.5 mb-4 ml-6">
           <div className="rounded-lg flex items-center justify-center flex-shrink-0">
@@ -156,7 +143,6 @@ export default function Sidebar({
         </div>
       </div>
 
-      {/* ── Back + Logout ── */}
       <div className="flex items-center justify-between px-4 pb-3">
         <button
           onClick={goBack}
@@ -174,12 +160,10 @@ export default function Sidebar({
           </svg>
           Back
         </button>
-
       </div>
 
       <div className="h-px bg-gray-200 mx-4 mb-2" />
 
-      {/* ── STEPS ── */}
       <div className="flex flex-1 pb-4 pt-4 px-3">
         <div className="flex flex-col flex-1 ml-2.5 gap-4.5">
           {SIDEBAR_STEPS.map((step) => {
@@ -192,7 +176,12 @@ export default function Sidebar({
 
             if (systemVerifyDone) {
               if (isPartnerContract) {
-                isActive = true;
+                // ✅ CHANGED: partner contract done ho to hardLock, warna active
+                if (partnerContractDone) {
+                  isHardLocked = true;
+                } else {
+                  isActive = true;
+                }
               } else {
                 isHardLocked = true;
               }
@@ -252,7 +241,7 @@ export default function Sidebar({
           })}
         </div>
       </div>
-       {/* ── Logout ── */}
+
       <div className="px-4 py-4 flex justify-center">
         <button
           onClick={handleLogout}

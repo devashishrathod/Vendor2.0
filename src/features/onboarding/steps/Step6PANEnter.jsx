@@ -69,7 +69,7 @@ function RuleRow({ label, passed, touched }) {
 }
 
 // ── Main Component ───────────────────────────────────────────────────
-export default function Step6PANEnter({ onFetchSuccess }) {
+export default function Step6PANEnter({ onFetchSuccess ,onComplete}) {
   const { goToStep } = useOnboardingStore();
 
   const [pan, setPan] = useState("");
@@ -123,7 +123,8 @@ export default function Step6PANEnter({ onFetchSuccess }) {
 
       setTimeout(() => {
         goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_READONLY);
-      }, 1500);
+
+      }, 3000);
     } catch (err) {
       // err = plain Error object, sirf .message string hai
       setApiError({
@@ -134,7 +135,7 @@ export default function Step6PANEnter({ onFetchSuccess }) {
       setTimeout(() => {
         setShowModal(false);
         setApiError(null);
-      }, 3500);
+      }, 5000);
     } finally {
       setFetching(false);
     }

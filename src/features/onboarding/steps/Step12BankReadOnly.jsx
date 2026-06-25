@@ -7,6 +7,7 @@ import { useState } from "react";
 import { BASE_URL } from "../../../config";
 import SuccessToast from "@/components/common/SuccessToast";
 import ErrorModal from "@/components/common/ErrorModal";
+import ConfirmModal from "@/components/common/ConfirmModal";
 
 function IconBadge({ bgColor, children }) {
   return (
@@ -24,18 +25,16 @@ function DetailRow({ icon, iconBg, label, value, mono = false, last }) {
     return null;
   return (
     <div
-      className={`flex items-center justify-between py-2.5 ${
-        last ? "" : "border-b border-gray-100"
-      } last:border-0`}
+      className={`flex items-center justify-between py-2.5 ${last ? "" : "border-b border-gray-100"
+        } last:border-0`}
     >
       <div className="flex items-center gap-2">
         <IconBadge bgColor={iconBg}>{icon}</IconBadge>
         <span className="text-xs text-gray-400">{label}</span>
       </div>
       <span
-        className={`text-xs font-semibold text-gray-800 text-right max-w-[55%] ${
-          mono ? "font-mono tracking-wider" : ""
-        }`}
+        className={`text-xs font-semibold text-gray-800 text-right max-w-[55%] ${mono ? "font-mono tracking-wider" : ""
+          }`}
       >
         {value}
       </span>
@@ -48,6 +47,7 @@ export default function Step12BankReadOnly({ accountType }) {
   const [posting, setPosting] = useState(false);
   const [postError, setPostError] = useState(null);
   const [successMsg, setSuccessMsg] = useState(true);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const bankDetails = useOnboardingStore((state) => state.formData.bankDetails);
 
@@ -56,6 +56,12 @@ export default function Step12BankReadOnly({ accountType }) {
 
   const enteredAccountNumber =
     raw.enteredAccountNumber || result.account_number || "—";
+
+  // ── Bank name/branch/address — from CGPEY result first, fallback to
+  // the live Razorpay IFSC lookup data saved on Step11 ──
+  const ifscAddressParts = [raw.ifscBankAddress, raw.ifscCity, raw.ifscState].filter(
+    Boolean,
+  );
 
   const d = {
     status: raw.status || "—",
@@ -73,9 +79,11 @@ export default function Step12BankReadOnly({ accountType }) {
         ? `${result.matching_score}%`
         : null,
     accountType: accountType || result.account_type || null,
-    bank_name: result.bank_name || null,
-    bank_branch: result.bank_branch || null,
-    bank_address: result.bank_address || null,
+    bank_name: result.bank_name || raw.ifscBankName || null,
+    bank_branch: result.bank_branch || raw.ifscBranchName || null,
+    bank_address:
+      result.bank_address ||
+      (ifscAddressParts.length ? ifscAddressParts.join(", ") : null),
   };
 
   const isSuccess = ["SUCCESS", "success"].includes(d.status) && d.isValid;
@@ -96,16 +104,16 @@ export default function Step12BankReadOnly({ accountType }) {
       const verifyResponse = raw.requestId
         ? raw
         : {
-            success: raw.success ?? true,
-            status: raw.status || "SUCCESS",
-            message: raw.message || "Bank verified successfully",
-            result: raw.result ?? {},
-            tranx_id: raw.tranx_id || null,
-            requestId: raw.requestId || null,
-            timestamp: raw.timestamp || new Date().toISOString(),
-            chargeble: raw.chargeble ?? true,
-            user_consent: raw.user_consent ?? true,
-          };
+          success: raw.success ?? true,
+          status: raw.status || "SUCCESS",
+          message: raw.message || "Bank verified successfully",
+          result: raw.result ?? {},
+          tranx_id: raw.tranx_id || null,
+          requestId: raw.requestId || null,
+          timestamp: raw.timestamp || new Date().toISOString(),
+          chargeble: raw.chargeble ?? true,
+          user_consent: raw.user_consent ?? true,
+        };
 
       const verifyResult = verifyResponse.result ?? {};
 
@@ -124,18 +132,26 @@ export default function Step12BankReadOnly({ accountType }) {
         verifiedAt: verifyResponse.timestamp,
         verificationResponse: verifyResponse,
         accountType: accountType || undefined,
-        bankName: verifyResult.bank_name || undefined,
-        branchName: verifyResult.bank_branch || undefined,
+        // ── bank name / branch — CGPEY result first, IFSC lookup fallback ──
+        bankName: verifyResult.bank_name || raw.ifscBankName || undefined,
+        branchName: verifyResult.bank_branch || raw.ifscBranchName || undefined,
         bankAddress: verifyResult.bank_address
           ? {
-              addressLine1: verifyResult.bank_address.addressLine1 || undefined,
-              city: verifyResult.bank_address.city || undefined,
-              district: verifyResult.bank_address.district || undefined,
-              state: verifyResult.bank_address.state || undefined,
-              pinCode: verifyResult.bank_address.pinCode || undefined,
-              country: verifyResult.bank_address.country || undefined,
+            addressLine1: verifyResult.bank_address.addressLine1 || undefined,
+            city: verifyResult.bank_address.city || undefined,
+            district: verifyResult.bank_address.district || undefined,
+            state: verifyResult.bank_address.state || undefined,
+            pinCode: verifyResult.bank_address.pinCode || undefined,
+            country: verifyResult.bank_address.country || undefined,
+          }
+          : raw.ifscBankAddress
+            ? {
+              addressLine1: raw.ifscBankAddress,
+              city: raw.ifscCity || undefined,
+              district: raw.ifscDistrict || undefined,
+              state: raw.ifscState || undefined,
             }
-          : undefined,
+            : undefined,
         isNameMatch: verifyResult.is_name_match ?? undefined,
         matchingScore:
           verifyResult.matching_score != null
@@ -191,7 +207,6 @@ export default function Step12BankReadOnly({ accountType }) {
 
   return (
     <>
-      {/* ── Success Toast ── */}
       <SuccessToast
         message={
           successMsg && isSuccess
@@ -202,7 +217,6 @@ export default function Step12BankReadOnly({ accountType }) {
         duration={3500}
       />
 
-      {/* ── Error Modal ── */}
       <ErrorModal
         error={postError}
         onDismiss={() => setPostError(null)}
@@ -213,7 +227,7 @@ export default function Step12BankReadOnly({ accountType }) {
       />
 
       <div
-        className="w-full max-w-xl mx-auto"
+        className="w-full max-w-xl mx-auto "
         style={{ animation: "stepIn 0.35s cubic-bezier(0.34,1.4,0.64,1) both" }}
       >
         <style>{`
@@ -223,7 +237,6 @@ export default function Step12BankReadOnly({ accountType }) {
           }
         `}</style>
 
-        {/* ── Header ── */}
         <div className="flex items-start justify-between mb-5">
           <div>
             <h2 className="text-lg font-bold text-gray-900 leading-tight">
@@ -234,7 +247,6 @@ export default function Step12BankReadOnly({ accountType }) {
             </p>
           </div>
           <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border bg-emerald-50 border-emerald-200 text-emerald-700 text-[11px] font-semibold flex-shrink-0">
-            {/* circle-check icon */}
             <svg className="w-3.5 h-3.5 fill-emerald-500" viewBox="0 0 24 24">
               <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1.41 14.08L6.7 12.2l1.41-1.42 2.48 2.49 5.31-5.32 1.41 1.42-6.72 6.71z" />
             </svg>
@@ -242,9 +254,7 @@ export default function Step12BankReadOnly({ accountType }) {
           </div>
         </div>
 
-        {/* ── Account Number Card ── */}
         <div className="relative bg-emerald-50 border border-emerald-100 rounded-2xl px-5 py-4 mb-4 flex items-center justify-between overflow-hidden">
-          {/* watermark */}
           <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-10 pointer-events-none">
             <svg className="w-20 h-20 text-emerald-500" fill="currentColor" viewBox="0 0 24 24">
               <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-1 14l-3-3 1.41-1.41L11 12.17l4.59-4.58L17 9l-6 6z" />
@@ -255,7 +265,6 @@ export default function Step12BankReadOnly({ accountType }) {
               Account Number
             </p>
             <div className="flex items-center gap-2.5">
-              {/* bank icon */}
               <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center flex-shrink-0">
                 <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
@@ -273,9 +282,7 @@ export default function Step12BankReadOnly({ accountType }) {
           </div>
         </div>
 
-        {/* ── Detail Card ── */}
         <div className="bg-white border border-gray-100 rounded-2xl px-4 py-1 shadow-sm mb-4">
-          {/* Account Holder Name */}
           <DetailRow
             label="Account Holder Name"
             value={d.accountHolderName}
@@ -287,7 +294,6 @@ export default function Step12BankReadOnly({ accountType }) {
             }
           />
 
-          {/* IFSC Code */}
           <DetailRow
             label="IFSC Code"
             value={d.ifscCode}
@@ -300,7 +306,6 @@ export default function Step12BankReadOnly({ accountType }) {
             }
           />
 
-          {/* Account Type */}
           <DetailRow
             label="Account Type"
             value={d.accountType}
@@ -312,43 +317,7 @@ export default function Step12BankReadOnly({ accountType }) {
             }
           />
 
-          {/* Recommended Action */}
-          <DetailRow
-            label="Recommended Action"
-            value={d.recommendedAction}
-            iconBg="#FFF7ED"
-            icon={
-              <svg className="w-3.5 h-3.5 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-            }
-          />
-
-          {/* Name Match */}
-          <DetailRow
-            label="Name Match"
-            value={nameMatchValue}
-            iconBg="#FFF1F2"
-            icon={
-              <svg className="w-3.5 h-3.5 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            }
-          />
-
-          {/* Matching Score */}
-          <DetailRow
-            label="Matching Score"
-            value={d.matchingScore}
-            iconBg="#F0FDFA"
-            icon={
-              <svg className="w-3.5 h-3.5 text-teal-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm6 0V9a2 2 0 00-2-2h-2a2 2 0 00-2 2v10m0 0a2 2 0 002 2h2a2 2 0 002-2zm6 0V5a2 2 0 00-2-2h-2a2 2 0 00-2 2v14a2 2 0 002 2h2a2 2 0 002-2z" />
-              </svg>
-            }
-          />
-
-          {/* Bank Name */}
+          {/* ── Bank Name ── */}
           <DetailRow
             label="Bank Name"
             value={d.bank_name}
@@ -360,7 +329,7 @@ export default function Step12BankReadOnly({ accountType }) {
             }
           />
 
-          {/* Branch Name */}
+          {/* ── Branch Name ── */}
           <DetailRow
             label="Branch Name"
             value={d.bank_branch}
@@ -372,11 +341,10 @@ export default function Step12BankReadOnly({ accountType }) {
             }
           />
 
-          {/* Bank Address */}
+          {/* ── Bank Address ── */}
           <DetailRow
             label="Bank Address"
             value={d.bank_address}
-            last
             iconBg="#ECFDF5"
             icon={
               <svg className="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -385,9 +353,42 @@ export default function Step12BankReadOnly({ accountType }) {
               </svg>
             }
           />
+
+          <DetailRow
+            label="Recommended Action"
+            value={d.recommendedAction}
+            iconBg="#FFF7ED"
+            icon={
+              <svg className="w-3.5 h-3.5 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            }
+          />
+
+          <DetailRow
+            label="Name Match"
+            value={nameMatchValue}
+            iconBg="#FFF1F2"
+            icon={
+              <svg className="w-3.5 h-3.5 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            }
+          />
+
+          <DetailRow
+            label="Matching Score"
+            value={d.matchingScore}
+            last
+            iconBg="#F0FDFA"
+            icon={
+              <svg className="w-3.5 h-3.5 text-teal-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm6 0V9a2 2 0 00-2-2h-2a2 2 0 00-2 2v10m0 0a2 2 0 002 2h2a2 2 0 002-2zm6 0V5a2 2 0 00-2-2h-2a2 2 0 00-2 2v14a2 2 0 002 2h2a2 2 0 002-2z" />
+              </svg>
+            }
+          />
         </div>
 
-        {/* ── Warning Notice ── */}
         <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 flex items-start gap-2.5 mb-4">
           <div className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0 mt-0.5">
             <svg className="w-3.5 h-3.5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -405,17 +406,15 @@ export default function Step12BankReadOnly({ accountType }) {
           </div>
         </div>
 
-        {/* ── Actions ── */}
         <div className="flex gap-3">
           <button
-            onClick={() => setSubStep(BANK_SUB.BANK_VERIFICATION)}
+            onClick={() => setShowConfirm(true)}
             disabled={posting}
             className="flex-1 py-2.5 rounded-xl border border-gray-200 bg-white
               hover:border-gray-300 hover:bg-gray-50 text-gray-600 text-sm font-semibold
               transition-all duration-200 active:scale-[0.98] flex items-center justify-center
               gap-2 disabled:opacity-50"
           >
-            {/* pencil icon */}
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
             </svg>
@@ -449,6 +448,15 @@ export default function Step12BankReadOnly({ accountType }) {
           </button>
         </div>
       </div>
+
+      {showConfirm && (
+        <ConfirmModal
+          title="Change bank details?"
+          description="Are you sure you want to go back and change your bank account? Your current verified information will be cleared."
+          onCancel={() => setShowConfirm(false)}
+          onConfirm={() => { setShowConfirm(false); setSubStep(BANK_SUB.BANK_VERIFICATION); }}
+        />
+      )}
     </>
   );
 }
