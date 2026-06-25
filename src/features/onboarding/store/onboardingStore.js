@@ -66,7 +66,6 @@ export const STEP_ORDER = [
   STEPS.PARTNER_CONTRACT,
 ];
 
-// ─── Flat ordered list of all positions ─────────────────────────────────────
 const ALL_POSITIONS = STEP_ORDER.flatMap((step) =>
   Array.from({ length: MAX_SUB[step] ?? 1 }, (_, i) => ({
     step,
@@ -80,19 +79,37 @@ function positionIndex(step, subStep) {
   );
 }
 
-// ─── Pure helper — safe as Zustand selector ──────────────────────────────────
+const STEP_TO_SCREEN = {
+  "1:1": "BUSINESS_NAME",
+  "1:2": "REGISTRATION_STATUS",
+  "1:3": "REGISTRATION_ENTITY_TYPE",
+  "2:1": "PAN_VERIFICATION",
+  "2:2": "PAN_READONLY",
+  "2:3": "GST_VERIFICATION",
+  "2:4": "GST_READONLY",
+  "3:1": "BANK_VERIFICATION",
+  "3:2": "BANK_READONLY",
+  "4:1": "SYSTEM_VERIFICATION",
+  "5:1": "PARTNERSHIP_DEED",
+};
+
+function syncAuthScreen(step, subStep) {
+  const screen = STEP_TO_SCREEN[`${step}:${subStep}`];
+  if (!screen) return;
+  import("./authStore").then(({ useAuthStore }) => {
+    useAuthStore.getState().advanceScreen(screen);
+  });
+}
+
+// ✅ CHANGED: PARTNER_CONTRACT complete ho to kabhi back nahi
 export function computeCanGoBack({ currentStep, currentSubStep, completedKeys }) {
-  // Pehla position → block
+  if (completedKeys.includes(`${STEPS.PARTNER_CONTRACT}:1`)) return false;
   const currentIdx = positionIndex(currentStep, currentSubStep);
   if (currentIdx <= 0) return false;
-
-  // Koi bhi substep kabhi complete hua → back permanently block
   if (completedKeys.length > 0) return false;
-
   return true;
 }
 
-// ─── Store ───────────────────────────────────────────────────────────────────
 export const useOnboardingStore = create(
   persist(
     (set, get) => ({
@@ -105,7 +122,6 @@ export const useOnboardingStore = create(
       verificationFailedChecks: [],
       returnToStepAfterEdit: null,
 
-      // ─── Mark a single step:subStep as complete ────────────────────────────
       markComplete: (step, subStep) =>
         set((s) => {
           const key = `${step}:${subStep}`;
@@ -113,7 +129,6 @@ export const useOnboardingStore = create(
           return { completedKeys: [...s.completedKeys, key] };
         }),
 
-      // ─── Mark ALL substeps of a step as complete ───────────────────────────
       markStepComplete: (step) =>
         set((s) => {
           const max     = MAX_SUB[step] ?? 1;
@@ -126,11 +141,9 @@ export const useOnboardingStore = create(
           return { completedKeys: [...s.completedKeys, ...newKeys] };
         }),
 
-      // ─── Check if a specific step:subStep is completed ────────────────────
       isCompleted: (step, subStep) =>
         get().completedKeys.includes(`${step}:${subStep}`),
 
-      // ─── Check if ALL sub-steps of a parent step are completed ────────────
       isStepFullyCompleted: (step) => {
         const maxSub = MAX_SUB[step] ?? 1;
         const keys   = get().completedKeys;
@@ -140,14 +153,11 @@ export const useOnboardingStore = create(
         return true;
       },
 
-      // ─── Check if a sub-step is locked ────────────────────────────────────
       isSubStepLocked: (step, subStep) =>
         get().completedKeys.includes(`${step}:${subStep}`),
 
-      // ─── canGoBack (delegates to pure helper) ─────────────────────────────
       canGoBack: () => computeCanGoBack(get()),
 
-      // ─── goBack — skips all locked positions ──────────────────────────────
       goBack: () =>
         set((s) => {
           if (!computeCanGoBack(s)) return {};
@@ -165,18 +175,23 @@ export const useOnboardingStore = create(
           return {};
         }),
 
-      // ─── Navigate to a specific step ──────────────────────────────────────
-      goToStep: (step, subStep = 1) =>
-        set({ currentStep: step, currentSubStep: subStep, error: null }),
+      goToStep: (step, subStep = 1) => {
+        syncAuthScreen(step, subStep);
+        set({ currentStep: step, currentSubStep: subStep, error: null });
+      },
 
-      setSubStep: (subStep) => set({ currentSubStep: subStep, error: null }),
+      setSubStep: (subStep) => {
+        const step = get().currentStep;
+        syncAuthScreen(step, subStep);
+        set({ currentSubStep: subStep, error: null });
+      },
 
       nextStep: () =>
-        set((s) => ({
-          currentStep:    s.currentStep + 1,
-          currentSubStep: 1,
-          error:          null,
-        })),
+        set((s) => {
+          const newStep = s.currentStep + 1;
+          syncAuthScreen(newStep, 1);
+          return { currentStep: newStep, currentSubStep: 1, error: null };
+        }),
 
       prevStep: () =>
         set((s) => ({
@@ -185,7 +200,6 @@ export const useOnboardingStore = create(
           error:          null,
         })),
 
-      // ─── Sidebar click guard ───────────────────────────────────────────────
       canNavigateToStep: (step) => {
         const s = get();
         const systemVerifyDone = s.isCompleted(STEPS.SYSTEM_VERIFY, 1);

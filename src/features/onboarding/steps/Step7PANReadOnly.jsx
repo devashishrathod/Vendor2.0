@@ -6,6 +6,7 @@ import { useState } from "react";
 import { BASE_URL } from "../../../config";
 import SuccessToast from "@/components/common/SuccessToast";
 import ErrorModal from "@/components/common/ErrorModal";
+import ConfirmModal from "@/components/common/ConfirmModal";
 
 function IconBadge({ bgColor, children }) {
   return (
@@ -37,6 +38,8 @@ export default function Step7PANReadOnly() {
   const { setSubStep } = useOnboardingStore();
   const panDetails = useOnboardingStore((state) => state.formData.panDetails);
   const brandId = useOnboardingStore((state) => state.formData.brandId);
+
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const [posting, setPosting] = useState(false);
   const [postError, setPostError] = useState(null);
@@ -214,7 +217,7 @@ export default function Step7PANReadOnly() {
         `}</style>
 
         {/* ── Header ── */}
-        <div className="flex items-start justify-between mb-5">
+        <div className="flex items-start justify-between mb-5 ">
           <div>
             <h2 className="text-lg font-bold text-gray-900 leading-tight">
               PAN Verified
@@ -348,7 +351,8 @@ export default function Step7PANReadOnly() {
         {/* ── Actions ── */}
         <div className="flex gap-3">
           <button
-            onClick={() => setSubStep(BIZ_SUB.PAN_VERIFICATION)}
+            // onClick={() => setSubStep(BIZ_SUB.PAN_VERIFICATION)}
+            onClick={() => setShowConfirm(true)}
             disabled={posting}
             className="flex-1 py-2.5 rounded-xl border border-gray-200 bg-white
               hover:border-gray-300 hover:bg-gray-50 text-gray-600 text-sm font-semibold
@@ -389,6 +393,17 @@ export default function Step7PANReadOnly() {
           </button>
         </div>
       </div>
+
+    
+{showConfirm && (
+  <ConfirmModal
+    title="Change PAN details?"
+    description="Are you sure you want to go back and change your PAN? Your current verified information will be cleared."
+    onCancel={() => setShowConfirm(false)}
+    onConfirm={() => { setShowConfirm(false); setSubStep(BIZ_SUB.PAN_VERIFICATION); }}
+  />
+)}
+
     </>
   );
 }

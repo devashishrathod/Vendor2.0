@@ -60,7 +60,7 @@ export default function ErrorModal({ error, onDismiss, onRetry, duration = 10000
             </p>
           )}
 
-          {onRetry && (
+          {/* {onRetry && (
             <button
               onClick={() => {
                 onDismiss();
@@ -79,7 +79,7 @@ export default function ErrorModal({ error, onDismiss, onRetry, duration = 10000
               </svg>
               Try again
             </button>
-          )}
+          )} */}
         </div>
 
         <button
