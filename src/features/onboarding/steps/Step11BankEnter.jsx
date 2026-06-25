@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   useOnboardingStore,
   BANK_SUB,
@@ -73,11 +73,28 @@ function RuleRow({ label, passed, touched }) {
   );
 }
 
+// ── Eye icons for account number reveal/hide ──
+const EyeIcon = () => (
+  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+  </svg>
+);
+
+const EyeOffIcon = () => (
+  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+      d="M3 3l18 18M10.584 10.587a2 2 0 002.828 2.83M9.363 5.365A9.466 9.466 0 0112 5c4.478 0 8.268 2.943 9.542 7a10.523 10.523 0 01-4.293 5.774M6.228 6.228A10.45 10.45 0 002.458 12c1.274 4.057 5.065 7 9.542 7a9.46 9.46 0 004.638-1.227" />
+  </svg>
+);
+
 function InputField({
   label,
   placeholder,
   value,
   onChange,
+  onFocus,
   onBlur,
   touched,
   isValid,
@@ -86,6 +103,9 @@ function InputField({
   inputMode,
   required,
   icon,
+  showEyeToggle,
+  revealed,
+  onToggleReveal,
 }) {
   return (
     <div className="flex flex-col">
@@ -104,11 +124,13 @@ function InputField({
           placeholder={placeholder}
           value={value}
           onChange={onChange}
+          onFocus={onFocus}
           onBlur={onBlur}
           maxLength={maxLength}
           inputMode={inputMode}
-          className={`w-full py-2.5 pr-10 bg-white border rounded-lg text-sm font-medium text-gray-800
+          className={`w-full py-2.5 bg-white border rounded-lg text-sm font-medium text-gray-800
             ${icon ? "pl-9" : "pl-3"}
+            ${showEyeToggle ? "pr-16" : "pr-10"}
             ${mono ? "font-mono tracking-widest" : ""}
             placeholder:text-gray-300 placeholder:font-sans placeholder:tracking-normal outline-none transition-all duration-200
             ${
@@ -119,6 +141,18 @@ function InputField({
                   : "border-red-200 bg-red-50/30 focus:border-red-300 focus:ring-2 focus:ring-red-50"
             }`}
         />
+
+        {showEyeToggle && (
+          <button
+            type="button"
+            onClick={onToggleReveal}
+            tabIndex={-1}
+            className="absolute right-9 top-1/2 -translate-y-1/2 text-gray-400 hover:text-emerald-500 transition-colors"
+          >
+            {revealed ? <EyeOffIcon /> : <EyeIcon />}
+          </button>
+        )}
+
         {touched && (
           <div className="absolute right-3 top-1/2 -translate-y-1/2">
             {isValid ? (
@@ -270,6 +304,15 @@ export default function Step11BankEnter({ onFetchSuccess }) {
   const [fetchDone, setFetchDone] = useState(false);
   const [apiError, setApiError] = useState(null);
 
+  // ── Account number reveal/mask ──
+  const [revealAccount, setRevealAccount] = useState(false);
+  const [accountFocused, setAccountFocused] = useState(false);
+
+  // ── IFSC live bank lookup (Razorpay IFSC API) ──
+  const [ifscInfo, setIfscInfo] = useState(null);
+  const [ifscLoading, setIfscLoading] = useState(false);
+  const [ifscLookupError, setIfscLookupError] = useState(null);
+
   const normalised = {
     accountNumber: fields.accountNumber.replace(/\D/g, "").slice(0, 18),
     ifscCode: fields.ifscCode
@@ -289,17 +332,26 @@ export default function Step11BankEnter({ onFetchSuccess }) {
   const anyTouched = Object.values(touched).some(Boolean);
   const allValid = Object.values(fieldValid).every(Boolean);
 
-  // ✅ validateBankDetails only called for side-effects / logging if needed
-  // NOT used in isFormValid — it may require beneficiaryName internally
-  // isFormValid only checks required fields: accountNumber + ifscCode + accountType
-  // beneficiaryName is completely optional — button works without it
   const isFormValid = allValid && !!accountType;
 
-  // ✅ beneficiaryName validation only shown if user has typed something
   const hasBeneficiaryInput = fields.beneficiaryName.trim().length > 0;
   const isBeneficiaryValid = hasBeneficiaryInput
     ? fields.beneficiaryName.trim().length >= 3
-    : true; // always valid if empty (optional)
+    : true;
+
+  // ── Mask account number: first 3 + X's + last 4 ──
+  const maskAccountNumber = (acc) => {
+    if (!acc) return "";
+    if (acc.length <= 7) return acc;
+    const first3 = acc.slice(0, 3);
+    const last4 = acc.slice(-4);
+    return `${first3}${"X".repeat(acc.length - 7)}${last4}`;
+  };
+
+  const accountDisplayValue =
+    revealAccount || accountFocused
+      ? normalised.accountNumber
+      : maskAccountNumber(normalised.accountNumber);
 
   const handleChange = (key) => (e) => {
     let val = e.target.value;
@@ -308,7 +360,6 @@ export default function Step11BankEnter({ onFetchSuccess }) {
       val = val.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 11);
     setFields((prev) => ({ ...prev, [key]: val }));
 
-    // Only track touched for required fields
     if (key !== "beneficiaryName") {
       if (!touched[key] && val.length > 0)
         setTouched((prev) => ({ ...prev, [key]: true }));
@@ -322,6 +373,45 @@ export default function Step11BankEnter({ onFetchSuccess }) {
       setTouched((prev) => ({ ...prev, [key]: true }));
   };
 
+  // ── Live IFSC → bank name / branch lookup ──
+  useEffect(() => {
+    if (!fieldValid.ifscCode) {
+      setIfscInfo(null);
+      setIfscLookupError(null);
+      setIfscLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setIfscLoading(true);
+    setIfscLookupError(null);
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`https://ifsc.razorpay.com/${normalised.ifscCode}`);
+        if (!res.ok) throw new Error("not found");
+        const data = await res.json();
+        if (!cancelled) {
+          setIfscInfo(data);
+          setIfscLookupError(null);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setIfscInfo(null);
+          setIfscLookupError("Couldn't find bank details for this IFSC");
+        }
+      } finally {
+        if (!cancelled) setIfscLoading(false);
+      }
+    }, 350);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [normalised.ifscCode, fieldValid.ifscCode]);
+
   const handleVerify = async () => {
     if (!isFormValid) return;
 
@@ -331,7 +421,6 @@ export default function Step11BankEnter({ onFetchSuccess }) {
       const data = await verifyBank({
         accountNumber: normalised.accountNumber,
         ifsc: normalised.ifscCode,
-        // ✅ pass beneficiaryName only if user typed it, else omit
         ...(normalised.beneficiaryName.trim()
           ? { beneficiaryName: normalised.beneficiaryName.trim() }
           : {}),
@@ -357,6 +446,13 @@ export default function Step11BankEnter({ onFetchSuccess }) {
         ...bank_data,
         enteredAccountNumber: normalised.accountNumber,
         accountType: accountType,
+        // ── bank name/branch/address fetched live via IFSC lookup ──
+        ifscBankName: ifscInfo?.BANK || null,
+        ifscBranchName: ifscInfo?.BRANCH || null,
+        ifscBankAddress: ifscInfo?.ADDRESS || null,
+        ifscCity: ifscInfo?.CITY || null,
+        ifscDistrict: ifscInfo?.DISTRICT || null,
+        ifscState: ifscInfo?.STATE || null,
       });
 
       console.log(
@@ -416,9 +512,13 @@ export default function Step11BankEnter({ onFetchSuccess }) {
           <InputField
             label="Account Number"
             placeholder="Enter account number"
-            value={normalised.accountNumber}
+            value={accountDisplayValue}
             onChange={handleChange("accountNumber")}
-            onBlur={handleBlur("accountNumber")}
+            onFocus={() => setAccountFocused(true)}
+            onBlur={() => {
+              setAccountFocused(false);
+              handleBlur("accountNumber")();
+            }}
             touched={touched.accountNumber}
             isValid={fieldValid.accountNumber}
             mono
@@ -426,7 +526,11 @@ export default function Step11BankEnter({ onFetchSuccess }) {
             inputMode="numeric"
             required
             icon={<CardIcon />}
+            showEyeToggle
+            revealed={revealAccount}
+            onToggleReveal={() => setRevealAccount((p) => !p)}
           />
+
           <InputField
             label="IFSC Code"
             placeholder="e.g. HDFC0001234"
@@ -440,6 +544,44 @@ export default function Step11BankEnter({ onFetchSuccess }) {
             required
             icon={<LocationIcon />}
           />
+
+          {/* ── Live bank name/branch from IFSC ── */}
+          {(ifscLoading || ifscInfo || ifscLookupError) && (
+            <div
+              className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg border -mt-1.5 ${
+                ifscLookupError
+                  ? "bg-red-50 border-red-100"
+                  : "bg-emerald-50 border-emerald-100"
+              }`}
+            >
+              {ifscLoading ? (
+                <>
+                  <svg className="w-3.5 h-3.5 animate-spin text-emerald-500 flex-shrink-0" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                  </svg>
+                  <span className="text-xs text-emerald-600 font-medium">Fetching bank details…</span>
+                </>
+              ) : ifscLookupError ? (
+                <span className="text-xs text-red-500 font-medium">{ifscLookupError}</span>
+              ) : ifscInfo ? (
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-7 h-7 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                    <svg className="w-3.5 h-3.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                    </svg>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-emerald-800 truncate">{ifscInfo.BANK}</p>
+                    <p className="text-[11px] text-emerald-500 truncate">
+                      {ifscInfo.BRANCH}
+                      {ifscInfo.CITY ? `, ${ifscInfo.CITY}` : ""}
+                    </p>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          )}
 
           <AccountTypeSelect
             value={accountType}
@@ -477,7 +619,6 @@ export default function Step11BankEnter({ onFetchSuccess }) {
                         : "border-red-200 bg-red-50/30 focus:border-red-300 focus:ring-2 focus:ring-red-50"
                   }`}
               />
-              {/* ✅ show tick/cross only when user has typed something */}
               {hasBeneficiaryInput && (
                 <div className="absolute right-3 top-1/2 -translate-y-1/2">
                   {isBeneficiaryValid ? (
@@ -555,7 +696,6 @@ export default function Step11BankEnter({ onFetchSuccess }) {
                 />
               ))}
 
-              {/* ✅ beneficiaryName RuleRow — only renders when user has typed something */}
               {hasBeneficiaryInput && (
                 <RuleRow
                   label="Account holder name (min. 3 characters)"

@@ -4,10 +4,12 @@ import PlanTabs from "./PlanTabs";
 import PlanPriceCard from "./PlanPriceCard";
 import PlanComparisonTable from "./PlanComparisonTable";
 import { useNavigate } from "react-router-dom";
+import { useBlockBack } from "@/hooks/useBlockBack";
 
 export default function SubscriptionPlan({
   businessName: propBusinessName = "Yoga Education and Research Pvt Ltd",
 }) {
+   useBlockBack(); // ✅ bas itna — back block ho jayega hamesha
   const navigate = useNavigate();
   const [selectedPlan, setSelectedPlan] = useState("advanced");
   const [businessName, setBusinessName] = useState(propBusinessName);

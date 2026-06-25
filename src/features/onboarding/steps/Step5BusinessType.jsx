@@ -495,7 +495,7 @@ export default function Step5BusinessType() {
 
       setTimeout(() => {
         goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_VERIFICATION);
-      }, 5000); // toast dikhne ka time
+      }, 3000); // toast dikhne ka time
     } catch (err) {
       setApiError(err.message || "Something went wrong. Please try again.");
     } finally {
@@ -516,7 +516,7 @@ export default function Step5BusinessType() {
 
       <div className="w-full max-w-6xl">
         <div className="">
-          <div className="flex flex-col md:flex-row gap-5">
+          <div className="flex flex-col md:flex-row gap-5 mt-14">
             {/* LEFT — Main content */}
             <div className="flex-1 min-w-0">
               {/* Header */}
@@ -609,26 +609,8 @@ export default function Step5BusinessType() {
 
               {/* Footer */}
               <div className="flex items-center justify-between border-t border-gray-100 pt-3 mt-1">
-                <button
-                  onClick={() => window.history?.back?.()}
-                  className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 font-medium px-2 py-2 transition"
-                >
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 19l-7-7 7-7"
-                    />
-                  </svg>
-                  Previous
-                </button>
-                <p className="text-xs text-gray-300">Step 5 of 13</p>
+               
+               
                 <PrimaryButton
                   onClick={handleContinue}
                   disabled={!selected}

@@ -183,7 +183,7 @@ export default function Step3BusinessName() {
       setSuccessMsg("Business name updated successfully.");
       setTimeout(() => {
         setSubStep(BASIC_SUB.REGISTRATION_STATUS);
-      }, 5000);
+      }, 3000);
     } catch (err) {
       setApiError({
         humanMessage: err.message ?? "Failed to save business name.",
@@ -200,7 +200,7 @@ export default function Step3BusinessName() {
   const canContinue   = name.trim().length > 0 && !loading;
 
   return (
-    <div className="relative w-full max-w-4xl mx-auto" style={{ minHeight: 480 }}>
+    <div className="relative w-full max-w-4xl mx-auto " style={{ minHeight: 480 }}>
       <div className="relative z-10 w-full">
 
         <style>{`
@@ -214,7 +214,7 @@ export default function Step3BusinessName() {
         <div className="flex gap-5 items-start flex-wrap">
 
           {/* ── Form card ── */}
-          <div className="flex-1 min-w-[320px] bg-white border border-gray-100 rounded-2xl
+          <div className="flex-1 min-w-[320px] bg-white border border-gray-100 rounded-2xl mt-14
             shadow-sm p-6 step-in" style={{ animationDelay: "0s" }}>
 
             {/* Header */}
