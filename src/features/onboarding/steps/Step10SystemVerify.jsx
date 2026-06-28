@@ -3,9 +3,9 @@ import { useOnboardingStore } from "@/features/onboarding/store/onboardingStore"
 import { STEPS } from "@/features/onboarding/constants/steps";
 import { systemVerify } from "@/features/onboarding/services/api/verify.api";
 import { parseApiError } from "@/hooks/useApiError";
-import { Loader2Icon, AlertTriangleIcon, XIcon, CheckIcon } from 'lucide-react';
+import { Loader2Icon, AlertTriangleIcon, XIcon, CheckIcon, InfoIcon, ShieldCheckIcon, RotateCwIcon, FileSearchIcon, ArrowRightIcon } from 'lucide-react';
 
-// ── Multi-Boom Confetti ───────────────────────────────────────────────────────
+// ── Multi-Boom Confetti (emoji boom removed, particle confetti kept) ──────────
 function Confetti({ active }) {
   const canvasRef = useRef(null);
   const animRef   = useRef(null);
@@ -59,38 +59,8 @@ function Confetti({ active }) {
     };
     animRef.current = requestAnimationFrame(draw);
 
-    // Emoji booms — multiple icons screen pe
-    const BOOM_EMOJIS = ["🎉","🎊","✨","🥳","🎈","🎁","⭐","💥"];
-    const container = document.createElement("div");
-    container.style.cssText = "position:fixed;inset:0;pointer-events:none;z-index:99998;overflow:hidden;";
-    document.body.appendChild(container);
-
-    const spawnBoom = (delay) => {
-      setTimeout(() => {
-        const el = document.createElement("span");
-        el.textContent = BOOM_EMOJIS[Math.floor(Math.random() * BOOM_EMOJIS.length)];
-        const x    = 5 + Math.random() * 88;
-        const size = 28 + Math.random() * 36;
-        el.style.cssText = `position:absolute;left:${x}vw;bottom:-60px;font-size:${size}px;opacity:0;transform:scale(0.3) rotate(${(Math.random()-0.5)*40}deg);transition:opacity 0.35s ease,transform 0.45s cubic-bezier(0.34,1.6,0.64,1),bottom 0.6s ease;will-change:transform,opacity;`;
-        container.appendChild(el);
-        requestAnimationFrame(() => {
-          el.style.bottom   = `${20 + Math.random() * 68}vh`;
-          el.style.opacity  = "1";
-          el.style.transform = `scale(1) rotate(${(Math.random()-0.5)*15}deg)`;
-          setTimeout(() => {
-            el.style.opacity   = "0";
-            el.style.transform = `scale(0.4) translateY(-30px)`;
-          }, 800 + Math.random() * 400);
-        });
-      }, delay);
-    };
-
-    for (let i = 0; i < 12; i++) spawnBoom(i * 110 + Math.random() * 60);
-    for (let i = 0; i < 8;  i++) spawnBoom(650 + i * 100 + Math.random() * 80);
-
     return () => {
       cancelAnimationFrame(animRef.current);
-      if (container.parentNode) container.parentNode.removeChild(container);
     };
   }, [active]);
 
@@ -109,26 +79,31 @@ function CheckCard({ label, status, detail, index }) {
   }, [index]);
 
   const cfg = {
-    done:     { wrap:"bg-green-50 border-green-200",   icon:"bg-emerald-500 text-white",    label:"text-emerald-800", sub:"text-emerald-700", badge:"bg-green-100 text-emerald-800" },
-    warn:     { wrap:"bg-yellow-50 border-yellow-200", icon:"bg-amber-400 text-white",      label:"text-amber-900",   sub:"text-amber-700",   badge:"bg-yellow-100 text-amber-800" },
-    failed:   { wrap:"bg-red-50 border-red-200",       icon:"bg-red-400 text-white",        label:"text-red-800",     sub:"text-red-700",     badge:"bg-red-100 text-red-800"      },
-    checking: { wrap:"bg-gray-50 border-gray-100",     icon:"bg-green-100 text-green-600",  label:"text-gray-500",    sub:"text-gray-400",    badge:"" },
-    pending:  { wrap:"bg-gray-50 border-gray-100",     icon:"bg-gray-100",                  label:"text-gray-300",    sub:"",                 badge:"" },
+    done:     { wrap:"bg-white border-slate-100",      icon:"bg-emerald-500 text-white", label:"text-slate-800", sub:"text-slate-400", badge:"bg-emerald-50 text-emerald-600" },
+    warn:     { wrap:"bg-amber-50 border-amber-100",    icon:"bg-amber-400 text-white",   label:"text-slate-800", sub:"text-slate-500", badge:"bg-amber-100 text-amber-700" },
+    failed:   { wrap:"bg-red-50 border-red-100",        icon:"bg-red-400 text-white",     label:"text-slate-800", sub:"text-slate-500", badge:"bg-red-100 text-red-700" },
+    checking: { wrap:"bg-white border-slate-100",       icon:"bg-emerald-100 text-emerald-500", label:"text-slate-400", sub:"text-slate-300", badge:"" },
+    pending:  { wrap:"bg-white border-slate-100",       icon:"bg-slate-100",              label:"text-slate-300", sub:"",                badge:"" },
   }[status] || {};
 
   const Icon = () => {
-    if (status === "done")     return <CheckIcon className="w-3.5 h-3.5" />;
-    if (status === "failed")   return <XIcon className="w-3.5 h-3.5" />;
-    if (status === "warn")     return <AlertTriangleIcon className="w-3.5 h-3.5" />;
+    if (status === "done")     return <CheckIcon className="w-3.5 h-3.5" strokeWidth={3} />;
+    if (status === "failed")   return <XIcon className="w-3.5 h-3.5" strokeWidth={3} />;
+    if (status === "warn")     return <AlertTriangleIcon className="w-3.5 h-3.5" fill="white" strokeWidth={0} />;
     if (status === "checking") return <Loader2Icon className="w-3.5 h-3.5 animate-spin" />;
-    return <div className="w-2 h-2 rounded-full bg-gray-300 animate-pulse" />;
+    return <div className="w-2 h-2 rounded-full bg-slate-300 animate-pulse" />;
   };
 
   const badgeLabel = status==="done" ? "OK" : status==="warn" ? "Review" : status==="failed" ? "Error" : null;
 
+  // pull a trailing "(NN%)" out of the detail text — shown as its own badge, matching the reference
+  const pctMatch = detail ? detail.match(/\((\d+)%\)/) : null;
+  const pct = pctMatch ? pctMatch[1] : null;
+  const detailText = detail ? detail.replace(/\s*\(\d+%\)\s*$/, "") : null;
+
   return (
     <div
-      className={`flex items-center gap-2 px-3 py-2.5 rounded-2xl border ${cfg.wrap}`}
+      className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl border ${cfg.wrap}`}
       style={{
         opacity: visible ? 1 : 0,
         transform: visible ? "translateX(0)" : "translateX(-28px)",
@@ -136,18 +111,25 @@ function CheckCard({ label, status, detail, index }) {
         transitionDelay: `${index * 65}ms`,
       }}
     >
-      <div className={`w-7 h-7 rounded-[9px] flex items-center justify-center flex-shrink-0 ${cfg.icon}`}>
+      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${cfg.icon}`}>
         <Icon />
       </div>
       <div className="flex-1 min-w-0">
-        <p className={`text-[11px] font-semibold leading-tight ${cfg.label}`}>{label}</p>
-        {detail && <p className={`text-[9px] mt-0.5 leading-snug ${cfg.sub}`}>{detail}</p>}
+        <p className={`text-[13px] font-semibold leading-tight ${cfg.label}`}>{label}</p>
+        {detailText && <p className={`text-[11px] mt-0.5 leading-snug ${cfg.sub}`}>{detailText}</p>}
       </div>
-      {badgeLabel && (
-        <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${cfg.badge}`}>
-          {badgeLabel}
-        </span>
-      )}
+      <div className="flex items-center gap-1.5 flex-shrink-0">
+        {badgeLabel && (
+          <span className={`text-[10.5px] font-bold px-2.5 py-1 rounded-lg ${cfg.badge}`}>
+            {badgeLabel}
+          </span>
+        )}
+        {pct && (
+          <span className="text-[10.5px] font-bold px-2.5 py-1 rounded-lg bg-amber-100 text-amber-700">
+            {pct}%
+          </span>
+        )}
+      </div>
     </div>
   );
 }
@@ -156,12 +138,12 @@ function CheckCard({ label, status, detail, index }) {
 function buildChecks(flags = {}, remarks = []) {
   const r = (key) => remarks.find((x) => x.toLowerCase().includes(key)) || null;
   return [
-    { key:"pan",       label:"PAN verified",          status: flags.panVerified ? "done" : "failed",                                                    detail: !flags.panVerified ? "PAN could not be verified" : null },
-    { key:"gst",       label:"GST verified & active", status: !flags.gstVerified ? "failed" : !flags.gstActive ? "warn" : "done",                        detail: !flags.gstVerified ? "GST not verified" : !flags.gstActive ? "GST inactive" : null },
-    { key:"panGst",    label:"PAN ↔ GST match",       status: flags.panMatchedWithGST ? "done" : "warn",                                                  detail: !flags.panMatchedWithGST ? r("pan") || "Name mismatch" : null },
-    { key:"bank",      label:"Bank account verified",  status: !flags.bankVerified ? "failed" : !flags.bankMatched ? "warn" : "done",                     detail: !flags.bankVerified ? "Bank not verified" : !flags.bankMatched ? r("bank") || "Holder name mismatch" : null },
-    { key:"entity",    label:"Business entity match",  status: flags.businessEntityMatched ? "done" : "warn",                                             detail: !flags.businessEntityMatched ? "Entity type mismatch" : null },
-    { key:"duplicate", label:"No duplicate records",   status: (flags.duplicatePAN||flags.duplicateGST||flags.duplicateBank||flags.duplicateWhatsapp) ? "warn" : "done", detail: flags.duplicateWhatsapp ? r("duplicate") || "Duplicate detected" : null },
+    { key:"pan",       label:"PAN verified",          status: flags.panVerified ? "done" : "failed",                                                    detail: flags.panVerified ? "PAN is verified successfully" : "PAN could not be verified" },
+    { key:"gst",       label:"GST verified & active", status: !flags.gstVerified ? "failed" : !flags.gstActive ? "warn" : "done",                        detail: !flags.gstVerified ? "GST not verified" : !flags.gstActive ? "GST inactive" : "GST is verified and active" },
+    { key:"panGst",    label:"PAN ↔ GST match",       status: flags.panMatchedWithGST ? "done" : "warn",                                                  detail: flags.panMatchedWithGST ? "PAN & GST details match" : (r("pan") || "Name mismatch") },
+    { key:"bank",      label:"Bank account verified",  status: !flags.bankVerified ? "failed" : !flags.bankMatched ? "warn" : "done",                     detail: !flags.bankVerified ? "Bank not verified" : !flags.bankMatched ? (r("bank") || "Holder name mismatch") : "Bank account details match" },
+    { key:"entity",    label:"Business entity match",  status: flags.businessEntityMatched ? "done" : "warn",                                             detail: flags.businessEntityMatched ? "Business entity details match" : "Entity type mismatch" },
+    { key:"duplicate", label:"No duplicate records",   status: (flags.duplicatePAN||flags.duplicateGST||flags.duplicateBank||flags.duplicateWhatsapp) ? "warn" : "done", detail: flags.duplicateWhatsapp ? (r("duplicate") || "Duplicate detected") : "No duplicate records found" },
   ];
 }
 
@@ -288,7 +270,7 @@ export default function Step10SystemVerify({ onSuccess }) {
   const showRetry = phase === "failed" || phase === "error";
 
   return (
-    <div className="flex items-center justify-center w-full">
+    <div className="flex items-center justify-center w-full py-6">
       <style>{`
         @keyframes stepIn { from{opacity:0;transform:translateY(20px) scale(0.96)} to{opacity:1;transform:none} }
         @keyframes popIn  { from{opacity:0;transform:scale(0.4) rotate(-15deg)} to{opacity:1;transform:scale(1) rotate(0)} }
@@ -297,45 +279,50 @@ export default function Step10SystemVerify({ onSuccess }) {
 
       <Confetti active={showConfetti} />
 
-      <div className="w-full max-w-sm" style={{ animation:"stepIn 0.4s cubic-bezier(0.34,1.4,0.64,1) both" }}>
+      <div className="w-full max-w-3xl" style={{ animation:"stepIn 0.4s cubic-bezier(0.34,1.4,0.64,1) both" }}>
 
-        {/* ── Header ── */}
-        <div className="relative bg-gradient-to-br from-emerald-400 to-emerald-500 rounded-3xl px-5 pt-5 pb-5 mb-3 overflow-hidden">
-          <div className="absolute inset-0 opacity-10 pointer-events-none">
-            <div className="w-28 h-28 rounded-full bg-white absolute -top-8 -right-8" />
-            <div className="w-16 h-16 rounded-full bg-white absolute -bottom-4 -left-4" />
+        {/* ── Hero ── */}
+        <div className="relative rounded-3xl px-7 py-6 mb-5 overflow-hidden border border-emerald-100" style={{ background: "linear-gradient(120deg, #ecfdf5 0%, #f0fdf9 55%, #ffffff 100%)" }}>
+          {/* dotted pattern */}
+          <div className="absolute right-44 top-1/2 -translate-y-1/2 grid grid-cols-6 gap-1.5 opacity-40 pointer-events-none">
+            {[...Array(24)].map((_, i) => (
+              <span key={i} className="w-1 h-1 rounded-full bg-emerald-300" />
+            ))}
           </div>
-          <div className="relative flex items-start justify-between gap-3">
-            <div>
-              {phase === "loading" ? (
-                <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center mb-2">
-                  <svg className="w-6 h-6 text-white" style={{ animation:"spin 2s linear infinite" }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                </div>
-              ) : (
-                <div className="text-3xl mb-1.5" style={{ animation:"popIn 0.5s cubic-bezier(0.34,1.6,0.64,1) 0.1s both" }}>
-                  {phase === "success" ? "🎉" : "🛡️"}
-                </div>
-              )}
-              <h2 className="text-base font-bold text-white leading-tight">
-                {phase === "loading" ? "Verifying your details" : "System verification"}
-              </h2>
-              <p className="text-[11px] text-white/75 mt-1 leading-relaxed max-w-[200px]">
-                {phase === "loading"
-                  ? "Cross-checking PAN, GST and bank…"
-                  : phase === "success"
-                  ? "All checks passed successfully."
-                  : "Verification complete. See results below."}
-              </p>
+
+          <div className="relative flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div
+                className="w-14 h-14 rounded-full bg-white shadow-sm flex items-center justify-center flex-shrink-0"
+                style={{ animation: phase!=="loading" ? "popIn 0.5s cubic-bezier(0.34,1.6,0.64,1) 0.1s both" : "none" }}
+              >
+                {phase === "loading" ? (
+                  <Loader2Icon className="w-6 h-6 text-emerald-500 animate-spin" />
+                ) : (
+                  <ShieldCheckIcon className="w-7 h-7 text-emerald-500" fill="#d1fae5" strokeWidth={1.75} />
+                )}
+              </div>
+              <div>
+                <h2 className="text-[22px] font-bold text-slate-800 leading-tight">
+                  {phase === "loading" ? "Verifying your details" : "System verification"}
+                </h2>
+                <p className="text-[13px] text-slate-500 mt-1 leading-relaxed">
+                  {phase === "loading"
+                    ? "Cross-checking PAN, GST and bank…"
+                    : "Verification complete. See results below."}
+                </p>
+              </div>
             </div>
+
             {sysData?.score != null && (
-              <div className="bg-white/20 rounded-2xl px-3 py-2 text-center flex-shrink-0" style={{ animation:"popIn 0.5s cubic-bezier(0.34,1.6,0.64,1) 0.2s both" }}>
-                <p className="text-xl font-bold text-white">{sysData.score}</p>
-                <p className="text-[9px] text-white/80 font-semibold mt-0.5">
+              <div className="bg-white rounded-2xl shadow-sm px-5 py-3 text-center flex-shrink-0" style={{ animation:"popIn 0.5s cubic-bezier(0.34,1.6,0.64,1) 0.2s both" }}>
+                <p className="text-3xl font-extrabold text-emerald-500 leading-none">{sysData.score}</p>
+                <p className="text-[12px] text-emerald-500 font-semibold mt-1">
                   {sysData.score >= 80 ? "Excellent" : sysData.score >= 50 ? "Fair" : "Low"}
                 </p>
+                <div className="w-20 h-1 rounded-full bg-slate-100 mt-2 overflow-hidden">
+                  <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${Math.min(100, sysData.score)}%` }} />
+                </div>
               </div>
             )}
           </div>
@@ -343,31 +330,36 @@ export default function Step10SystemVerify({ onSuccess }) {
 
         {/* ── Check cards ── */}
         {checks.length > 0 && (
-          <div className="grid grid-cols-2 gap-2 mb-3">
+          <div className="grid grid-cols-2 gap-4 mb-5">
             {checks.map((c, i) => <CheckCard key={c.key} {...c} index={i} />)}
           </div>
         )}
 
         {/* ── Skeleton ── */}
         {phase === "loading" && checks.length === 0 && (
-          <div className="grid grid-cols-2 gap-2 mb-3">
+          <div className="grid grid-cols-2 gap-4 mb-5">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="flex items-center gap-2 px-3 py-2.5 rounded-2xl bg-gray-50 border border-gray-100" style={{ opacity:0.55 }}>
-                <div className="w-7 h-7 rounded-xl bg-gray-200 animate-pulse flex-shrink-0" />
-                <div className="h-2.5 rounded-full bg-gray-200 animate-pulse flex-1" />
+              <div key={i} className="flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-white border border-slate-100" style={{ opacity:0.55 }}>
+                <div className="w-8 h-8 rounded-full bg-slate-200 animate-pulse flex-shrink-0" />
+                <div className="h-2.5 rounded-full bg-slate-200 animate-pulse flex-1" />
               </div>
             ))}
           </div>
         )}
 
-        {/* ── Remarks — BLUE styling ── */}
+        {/* ── Remarks ── */}
         {sysData?.remarks?.length > 0 && (
-          <div className="bg-blue-50 border border-blue-100 rounded-2xl px-4 py-3 mb-3">
-            <p className="text-[9px] font-bold text-blue-400 uppercase tracking-widest mb-1.5">Remarks</p>
+          <div className="bg-sky-50 border border-sky-100 rounded-2xl px-5 py-4 mb-5">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-4 h-4 rounded-full bg-sky-500 flex items-center justify-center flex-shrink-0">
+                <InfoIcon className="w-2.5 h-2.5 text-white" strokeWidth={3} />
+              </div>
+              <p className="text-[11px] font-bold text-sky-600 uppercase tracking-widest">Remarks</p>
+            </div>
             {sysData.remarks.map((r, i) => (
-              <div key={i} className="flex items-start gap-1.5 mb-1 last:mb-0">
-                <span className="w-1 h-1 rounded-full bg-blue-300 flex-shrink-0 mt-1.5" />
-                <span className="text-[11px] text-blue-600 leading-snug">{r}</span>
+              <div key={i} className="flex items-start gap-1.5 mb-1 last:mb-0 pl-6">
+                <span className="w-1 h-1 rounded-full bg-sky-400 flex-shrink-0 mt-1.5" />
+                <span className="text-[12.5px] text-sky-700 leading-snug">{r}</span>
               </div>
             ))}
           </div>
@@ -375,28 +367,32 @@ export default function Step10SystemVerify({ onSuccess }) {
 
         {/* ── Actions ── */}
         {phase !== "loading" && (
-          <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-end gap-3">
             {showRetry && (
               <button
                 onClick={handleRetry}
                 disabled={retrying}
-                className="w-full py-3 rounded-2xl border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 text-sm font-semibold transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50"
+                className="px-5 py-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 text-sm font-semibold transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {retrying
-                  ? <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/></svg>
-                  : <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                  ? <Loader2Icon className="w-4 h-4 animate-spin" />
+                  : <RotateCwIcon className="w-4 h-4" />
                 }
                 {retrying ? "Retrying…" : "Try again"}
               </button>
             )}
+            {/* {!showRetry && (
+              <button className="px-5 py-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-sm font-semibold transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+                <FileSearchIcon className="w-4 h-4" />
+                View Details
+              </button>
+            )} */}
             <button
               onClick={handleContinue}
-              className="w-full py-3 rounded-2xl text-white text-sm font-bold tracking-wide transition-all active:scale-[0.98] flex items-center justify-center gap-2 shadow-sm bg-emerald-500 hover:bg-emerald-600"
+              className="px-6 py-3 rounded-xl text-white text-sm font-bold tracking-wide transition-all active:scale-[0.98] flex items-center justify-center gap-2 shadow-sm bg-emerald-500 hover:bg-emerald-600"
             >
               Continue to partner contract
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7"/>
-              </svg>
+              <ArrowRightIcon className="w-4 h-4" />
             </button>
           </div>
         )}

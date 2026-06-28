@@ -8,7 +8,7 @@ import { STEPS } from "@/features/onboarding/constants/steps";
 import { verifyPAN } from "@/features/onboarding/services/api/verify.api";
 import SuccessToast from "@/components/common/SuccessToast";
 import ErrorModal from "@/components/common/ErrorModal";
-import { parseApiError } from "@/hooks/useApiError";
+import Input from "@/components/common/Input";
 
 // ── RuleRow ─────────────────────────────────────────────────────────
 function RuleRow({ label, passed, touched }) {
@@ -189,12 +189,12 @@ export default function Step6PANEnter({ onFetchSuccess ,onComplete}) {
         {/* LEFT — Input */}
         <div className="flex flex-col gap-4">
           <div className="flex flex-col">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+            {/* <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
               Business PAN
               <span className="text-red-400">*</span>
-            </label>
+            </label> */}
             <div className="relative">
-              <input
+              {/* <input
                 type="text"
                 placeholder="ABCDE1234F"
                 value={upper}
@@ -213,7 +213,24 @@ export default function Step6PANEnter({ onFetchSuccess ,onComplete}) {
                         ? "border-emerald-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50"
                         : "border-red-200 bg-red-50/30 focus:border-red-300 focus:ring-2 focus:ring-red-50"
                   }`}
+              /> */}
+              <Input
+                label="Business PAN"
+                required
+                placeholder="ABCDE1234F"
+                value={upper}
+                onChange={handleChange}
+                onBlur={() => { if (pan) setTouched(true); }}
+                touched={touched}
+                isValid={isValid}
+                mono
+                uppercase
+                maxLength={10}
+                minLength={10}
+                errorMsg="Enter a valid 10-digit PAN (e.g. ABCDE1234F)"
+                successMsg="Valid PAN format"
               />
+  
               {touched && (
                 <div className="absolute right-3 top-1/2 -translate-y-1/2">
                   {isValid ? (
@@ -258,7 +275,7 @@ export default function Step6PANEnter({ onFetchSuccess ,onComplete}) {
           </div>
 
           {/* Status banner */}
-          {touched && (
+          {/* {touched && (
             <div
               className={`flex items-start gap-3 p-3 rounded-xl border transition-all duration-200
               ${isValid ? "bg-emerald-50 border-emerald-100" : "bg-red-50/60 border-red-100"}`}
@@ -312,7 +329,7 @@ export default function Step6PANEnter({ onFetchSuccess ,onComplete}) {
                 </p>
               </div>
             </div>
-          )}
+          )} */}
         </div>
 
         {/* RIGHT — Validation checklist */}

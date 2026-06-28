@@ -329,7 +329,8 @@ function RightInfoPanel({ selectedOption }) {
     : "Why registration matters?";
 
   return (
-    <div className="w-full md:w-[260px] flex-shrink-0 flex flex-col gap-3 mt-[-74px]">
+    // On mobile: no negative top margin, full width. On md+: original sidebar layout
+    <div className="w-full md:w-[260px] flex-shrink-0 flex flex-col gap-3 md:mt-[-74px]">
       {/* Illustration */}
       <div
         className={`rounded-xl overflow-hidden border p-2 transition-all duration-300 ${
@@ -624,99 +625,121 @@ export default function Step4IsRegistered() {
   };
 
   return (
-    <div className="flex items-center justify-center px-4">
-      <div className="relative z-10 w-full max-w-6xl py-4">
-        <div className="flex flex-col md:flex-row gap-5 mt-14">
-          {/* LEFT — Main content */}
-          <div className="flex-1 min-w-0">
-            {/* Header */}
-            <div className="flex items-start gap-2.5 mb-3.5">
-              <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0">
-                <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12h6m-6 4h6M9 8h1M5 21h14a2 2 0 002-2V8.414a2 2 0 00-.586-1.414l-4.414-4.414A2 2 0 0014.586 2H5a2 2 0 00-2 2v15a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <div>
-                <h2 className="text-base md:text-lg font-semibold text-gray-900 mb-0.5">
-                  Is your business registered?
-                </h2>
-                <p className="text-xs text-gray-400">
-                  Select the most applicable option to continue
-                </p>
-              </div>
-            </div>
+    <>
+      {/*
+        ── Mobile: pb-24 so sticky footer doesn't overlap content
+        ── Desktop: no padding needed, button is inline
+      */}
+      <div className="flex items-center justify-center px-4 pb-24 md:pb-0">
+        <div className="relative z-10 w-full max-w-6xl py-4">
+          <div className="flex flex-col md:flex-row gap-5 mt-14">
 
-            {/* Options */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3.5">
-              <OptionCard
-                selected={selected === "registered"}
-                onClick={() => { setSelected("registered"); setApiError(null); }}
-                accent="emerald"
-                title="Registered Business"
-                subtitle="My business is officially registered with a valid PAN, GST, or other government documents."
-                badge="Recommended"
-                pointsLabel="What you get"
-                points={[
-                  "Accept online payments",
-                  "GST invoice & tax compliance",
-                  "Access to all features",
-                  "Eligible for marketplace & loans",
-                ]}
-                icon={
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            {/* LEFT — Main content */}
+            <div className="flex-1 min-w-0">
+              {/* Header */}
+              <div className="flex items-start gap-2.5 mb-3.5">
+                <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12h6m-6 4h6M9 8h1M5 21h14a2 2 0 002-2V8.414a2 2 0 00-.586-1.414l-4.414-4.414A2 2 0 0014.586 2H5a2 2 0 00-2 2v15a2 2 0 002 2z" />
                   </svg>
-                }
-              />
-              <OptionCard
-                selected={selected === "unregistered"}
-                onClick={() => { setSelected("unregistered"); setApiError(null); }}
-                accent="blue"
-                title="Unregistered Business"
-                subtitle="My business is not yet registered with any government authority."
-                badge="Not eligible"
-                pointsLabel="Please note"
-                points={[
-                  "Limited features access",
-                  "No GST invoice",
-                  "Lower transaction limits",
-                  "Verification required later",
-                ]}
-                icon={
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                  </svg>
-                }
-              />
-            </div>
-
-            {/* API Error */}
-            {apiError && (
-              <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4">
-                <svg className="w-4 h-4 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-                <p className="text-xs text-red-600 font-medium">
-                  {apiError.message || "Something went wrong. Please try again."}
-                </p>
+                </div>
+                <div>
+                  <h2 className="text-base md:text-lg font-semibold text-gray-900 mb-0.5">
+                    Is your business registered?
+                  </h2>
+                  <p className="text-xs text-gray-400">
+                    Select the most applicable option to continue
+                  </p>
+                </div>
               </div>
-            )}
 
-            {/* Footer */}
-            <div className="flex items-center justify-between border-t border-gray-100 pt-3 mt-1">
-              <PrimaryButton
-                onClick={handleContinue}
-                disabled={!selected}
-                loading={loading}
-              >
-                {loading ? "Saving…" : "Continue →"}
-              </PrimaryButton>
+              {/* Options */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3.5">
+                <OptionCard
+                  selected={selected === "registered"}
+                  onClick={() => { setSelected("registered"); setApiError(null); }}
+                  accent="emerald"
+                  title="Registered Business"
+                  subtitle="My business is officially registered with a valid PAN, GST, or other government documents."
+                  badge="Recommended"
+                  pointsLabel="What you get"
+                  points={[
+                    "Accept online payments",
+                    "GST invoice & tax compliance",
+                    "Access to all features",
+                    "Eligible for marketplace & loans",
+                  ]}
+                  icon={
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                  }
+                />
+                <OptionCard
+                  selected={selected === "unregistered"}
+                  onClick={() => { setSelected("unregistered"); setApiError(null); }}
+                  accent="blue"
+                  title="Unregistered Business"
+                  subtitle="My business is not yet registered with any government authority."
+                  badge="Not eligible"
+                  pointsLabel="Please note"
+                  points={[
+                    "Limited features access",
+                    "No GST invoice",
+                    "Lower transaction limits",
+                    "Verification required later",
+                  ]}
+                  icon={
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                    </svg>
+                  }
+                />
+              </div>
+
+              {/* API Error */}
+              {apiError && (
+                <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4">
+                  <svg className="w-4 h-4 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <p className="text-xs text-red-600 font-medium">
+                    {apiError.message || "Something went wrong. Please try again."}
+                  </p>
+                </div>
+              )}
+
+              {/* Footer — visible only on md+ (desktop) */}
+              <div className="hidden md:flex items-center justify-between border-t border-gray-100 pt-3 mt-1">
+                <PrimaryButton
+                  onClick={handleContinue}
+                  disabled={!selected}
+                  loading={loading}
+                >
+                  {loading ? "Saving…" : "Continue →"}
+                </PrimaryButton>
+              </div>
             </div>
+
+            {/* RIGHT — Dynamic info panel */}
+            <RightInfoPanel selectedOption={selected} />
           </div>
-
-          {/* RIGHT — Dynamic info panel */}
-          <RightInfoPanel selectedOption={selected} />
         </div>
+      </div>
+
+      {/*
+        ── Mobile sticky footer button — fixed at bottom, only shown on mobile
+        ── Mirrors the exact same disabled/loading state as the desktop button
+      */}
+      <div className="fixed bottom-0 left-0 right-0 z-30 md:hidden bg-white border-t border-gray-100 px-4 py-3 safe-area-pb">
+        <PrimaryButton
+          onClick={handleContinue}
+          disabled={!selected}
+          loading={loading}
+          className="w-full"
+        >
+          {loading ? "Saving…" : "Continue →"}
+        </PrimaryButton>
       </div>
 
       {showModal && (
@@ -729,7 +752,7 @@ export default function Step4IsRegistered() {
 
       <SuccessToast message={successMsg} onDismiss={() => setSuccessMsg(null)} />
       <ErrorToast error={apiError} onDismiss={() => setApiError(null)} />
-    </div>
+    </>
   );
 }
 

@@ -7,6 +7,7 @@ import {
 import { updateBusinessName } from "@/features/onboarding/services/api/brand.api";
 import SuccessToast from "@/components/common/SuccessToast";
 import ErrorToast from "@/components/common/ErrorToast";
+import Input from "@/components/common/Input";
 
 // ── UI-only helpers ──────────────────────────────────────────────
 
@@ -69,62 +70,62 @@ function CharRing({ value, max }) {
   );
 }
 
-function InputField({
-  label, optional, placeholder, value, onChange, onBlur, onKeyDown,
-  maxLength, error, valid, charMax, uppercase, validMessage, validNode,
-}) {
-  const [focused, setFocused] = useState(false);
-  return (
-    <div className="flex flex-col">
-      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
-        {label}
-        {!optional && <span className="text-red-400">*</span>}
-        {optional && (
-          <span className="bg-gray-100 text-gray-400 text-[9px] font-semibold px-1.5 py-0.5 rounded normal-case tracking-normal">
-            Optional
-          </span>
-        )}
-      </label>
-      <div className={`relative rounded-xl transition-all duration-200 ${focused ? "shadow-sm" : ""}`}>
-        <input
-          type="text"
-          placeholder={placeholder}
-          value={value}
-          onChange={onChange}
-          onBlur={() => { setFocused(false); onBlur?.(); }}
-          onFocus={() => setFocused(true)}
-          onKeyDown={onKeyDown}
-          maxLength={maxLength}
-          className={`w-full px-4 py-3 pr-12 bg-white border rounded-xl text-sm text-gray-800
-            placeholder:text-gray-300 outline-none transition-all duration-200
-            ${uppercase ? "font-bold tracking-widest uppercase" : "font-normal"}
-            ${error
-              ? "border-red-200 bg-red-50/30 focus:border-red-300 focus:ring-2 focus:ring-red-50"
-              : valid
-                ? "border-emerald-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50"
-                : "border-gray-200 focus:border-emerald-300 focus:ring-2 focus:ring-emerald-50"
-            }`}
-        />
-        <div className="absolute right-3 top-1/2 -translate-y-1/2">
-          {value.length > 0 ? (
-            <CharRing value={value.length} max={charMax} />
-          ) : (
-            <span className="text-gray-300 text-[10px] font-medium">{charMax}</span>
-          )}
-        </div>
-      </div>
-      <div className="min-h-[22px]">
-        {error ? (
-          <ErrorMessage message={error} />
-        ) : valid && validNode ? (
-          validNode
-        ) : valid && validMessage ? (
-          <SuccessNote text={validMessage} />
-        ) : null}
-      </div>
-    </div>
-  );
-}
+// function InputField({
+//   label, optional, placeholder, value, onChange, onBlur, onKeyDown,
+//   maxLength, error, valid, charMax, uppercase, validMessage, validNode,
+// }) {
+//   const [focused, setFocused] = useState(false);
+//   return (
+//     <div className="flex flex-col">
+//       <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+//         {label}
+//         {!optional && <span className="text-red-400">*</span>}
+//         {optional && (
+//           <span className="bg-gray-100 text-gray-400 text-[9px] font-semibold px-1.5 py-0.5 rounded normal-case tracking-normal">
+//             Optional
+//           </span>
+//         )}
+//       </label>
+//       <div className={`relative rounded-xl transition-all duration-200 ${focused ? "shadow-sm" : ""}`}>
+//         <input
+//           type="text"
+//           placeholder={placeholder}
+//           value={value}
+//           onChange={onChange}
+//           onBlur={() => { setFocused(false); onBlur?.(); }}
+//           onFocus={() => setFocused(true)}
+//           onKeyDown={onKeyDown}
+//           maxLength={maxLength}
+//           className={`w-full px-4 py-3 pr-12 bg-white border rounded-xl text-sm text-gray-800
+//             placeholder:text-gray-300 outline-none transition-all duration-200
+//             ${uppercase ? "font-bold tracking-widest uppercase" : "font-normal"}
+//             ${error
+//               ? "border-red-200 bg-red-50/30 focus:border-red-300 focus:ring-2 focus:ring-red-50"
+//               : valid
+//                 ? "border-emerald-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50"
+//                 : "border-gray-200 focus:border-emerald-300 focus:ring-2 focus:ring-emerald-50"
+//             }`}
+//         />
+//         <div className="absolute right-3 top-1/2 -translate-y-1/2">
+//           {value.length > 0 ? (
+//             <CharRing value={value.length} max={charMax} />
+//           ) : (
+//             <span className="text-gray-300 text-[10px] font-medium">{charMax}</span>
+//           )}
+//         </div>
+//       </div>
+//       <div className="min-h-[22px]">
+//         {error ? (
+//           <ErrorMessage message={error} />
+//         ) : valid && validNode ? (
+//           validNode
+//         ) : valid && validMessage ? (
+//           <SuccessNote text={validMessage} />
+//         ) : null}
+//       </div>
+//     </div>
+//   );
+// }
 
 // ── Main component ────────────────────────────────────────────────
 
@@ -236,7 +237,7 @@ export default function Step3BusinessName() {
 
             {/* Inputs */}
             <div className="grid grid-cols-2 gap-4 mb-4 step-in" style={{ animationDelay: "0.05s" }}>
-              <InputField
+              {/* <InputField
                 label="Legal Business Name"
                 placeholder="e.g. Kentucky Fried Chicken"
                 value={name}
@@ -263,7 +264,46 @@ export default function Step3BusinessName() {
                 valid={shortValid}
                 uppercase
                 validNode={<ShortNameBadge value={shortName} />}
+              /> */}
+
+               {/* import Input from "@/components/common/Input";
+
+              // Legal Business Name — pura purana InputField hata do: */}
+              <Input
+                label="Legal Business Name"
+                required
+                placeholder="e.g. Kentucky Fried Chicken"
+                value={name}
+                onChange={handleNameChange}
+                onBlur={() => { setNameTouched(true); setNameError(validateBusinessName(name)); }}
+                onKeyDown={handleKeyDown}
+                touched={nameTouched}
+                isValid={nameValid}
+                maxLength={60}
+                minLength={3}
+                errorMsg={nameError}
+                successMsg="Looks good!"
               />
+
+
+              <Input
+                label="Short Name"
+                optional
+                placeholder="KFC"
+                value={shortName}
+                onChange={handleShortChange}
+                onBlur={() => { setShortTouched(true); setShortError(validateShortName(shortName)); }}
+                onKeyDown={handleKeyDown}
+                touched={shortTouched}
+                isValid={shortValid}
+                mono
+                uppercase
+                maxLength={10}
+                minLength={2}
+                errorMsg={shortError}
+              />
+
+{/* // {shortValid && <ShortNameBadge value={shortName} />} */}
             </div>
 
             {/* Tips panel */}

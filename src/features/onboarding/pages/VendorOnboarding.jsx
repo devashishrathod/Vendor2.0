@@ -84,7 +84,7 @@ function MobileHeader({ title, sub, onMenuOpen, pct, displayIndex, totalSteps, i
         <button
           onClick={onMenuOpen}
           className="w-9 h-9 flex items-center justify-center rounded-xl
-            bg-gray-50 border border-gray-200 text-gray-500 hover:bg-emerald-50
+            bg-gray-50 border border-gray-200 text-gray-800 hover:bg-emerald-50
             hover:border-emerald-200 hover:text-emerald-600 transition-all cursor-pointer"
           aria-label="Open menu"
         >
@@ -384,9 +384,9 @@ export default function OnboardingPage() {
         </header>
 
         <div className="flex-1 flex flex-col min-h-0 py-4 px-4 sm:py-6 sm:px-6 lg:px-8">
-          {hasSubDots && (
+          {/* {hasSubDots && (
             <SubStepDots total={SUB_TOTALS[currentStep]} current={currentSubStep} />
-          )}
+          )} */}
 
           <div
             key={`${currentStep}-${currentSubStep}`}
