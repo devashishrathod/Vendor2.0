@@ -9,6 +9,14 @@ import SuccessToast from "@/components/common/SuccessToast";
 import ErrorModal from "@/components/common/ErrorModal";
 import ConfirmModal from "@/components/common/ConfirmModal";
 
+// ── Extract a 6-digit standalone pincode from a free-form address string.
+function extractPincode(address) {
+  if (!address) return null;
+  const matches = address.match(/\b\d{6}\b/g);
+  if (!matches || matches.length === 0) return null;
+  return matches[matches.length - 1];
+}
+
 function IconBadge({ bgColor, children }) {
   return (
     <div
@@ -23,45 +31,76 @@ function IconBadge({ bgColor, children }) {
 function DetailRow({ icon, iconBg, label, value, mono = false, last }) {
   if (!value || value === "—" || value === "null" || value === null)
     return null;
+
+  // ── If value is an object (bank_address), render as formatted string ──
+  const displayValue =
+    typeof value === "object"
+      ? [value.addressLine1, value.city, value.district, value.state, value.pinCode, value.country]
+          .filter(Boolean)
+          .join(", ")
+      : value;
+
   return (
     <div
-      className={`flex items-center justify-between py-2.5 ${last ? "" : "border-b border-gray-100"
-        } last:border-0`}
+      className={`flex items-center justify-between py-2.5 ${
+        last ? "" : "border-b border-gray-100"
+      } last:border-0`}
     >
       <div className="flex items-center gap-2">
         <IconBadge bgColor={iconBg}>{icon}</IconBadge>
         <span className="text-xs text-gray-400">{label}</span>
       </div>
       <span
-        className={`text-xs font-semibold text-gray-800 text-right max-w-[55%] ${mono ? "font-mono tracking-wider" : ""
-          }`}
+        className={`text-xs font-semibold text-gray-800 text-right max-w-[55%] ${
+          mono ? "font-mono tracking-wider" : ""
+        }`}
       >
-        {value}
+        {displayValue}
       </span>
     </div>
   );
 }
 
+// ── Navigation delay — must match SuccessToast duration ──
+const NAV_DELAY = 1500;
+
 export default function Step12BankReadOnly({ accountType }) {
   const { goToStep, setSubStep } = useOnboardingStore();
   const [posting, setPosting] = useState(false);
   const [postError, setPostError] = useState(null);
-  const [successMsg, setSuccessMsg] = useState(true);
+  const [successMsg, setSuccessMsg] = useState(null);
   const [showConfirm, setShowConfirm] = useState(false);
 
   const bankDetails = useOnboardingStore((state) => state.formData.bankDetails);
 
   const raw = bankDetails ?? {};
+
+  // ── result is now single source of truth (merged in Step11) ──
   const result = raw.result ?? {};
 
   const enteredAccountNumber =
     raw.enteredAccountNumber || result.account_number || "—";
 
-  // ── Bank name/branch/address — from CGPEY result first, fallback to
-  // the live Razorpay IFSC lookup data saved on Step11 ──
-  const ifscAddressParts = [raw.ifscBankAddress, raw.ifscCity, raw.ifscState].filter(
-    Boolean,
-  );
+  // ── Safe address display: result.bank_address is object (from Step11 merge),
+  //    fallback to raw ifsc string parts if somehow still old format ──
+  const bankAddressDisplay = (() => {
+    if (result.bank_address && typeof result.bank_address === "object") {
+      return [
+        result.bank_address.addressLine1,
+        // result.bank_address.city,
+        // result.bank_address.district,
+        // result.bank_address.state,
+        // result.bank_address.pinCode,
+      ]
+        .filter(Boolean)
+        .join(", ") || null;
+    }
+    if (typeof result.bank_address === "string") return result.bank_address;
+    // fallback — old store shape
+    return [raw.ifscBankAddress, raw.ifscCity, raw.ifscState]
+      .filter(Boolean)
+      .join(", ") || null;
+  })();
 
   const d = {
     status: raw.status || "—",
@@ -78,15 +117,12 @@ export default function Step12BankReadOnly({ accountType }) {
       result.matching_score !== null && result.matching_score !== undefined
         ? `${result.matching_score}%`
         : null,
-    accountType: accountType || result.account_type || null,
-    bank_name: result.bank_name || raw.ifscBankName || null,
-    bank_branch: result.bank_branch || raw.ifscBranchName || null,
-    bank_address:
-      result.bank_address ||
-      (ifscAddressParts.length ? ifscAddressParts.join(", ") : null),
+    accountType: accountType || raw.accountType || result.account_type || null,
+    // ── All three now come directly from merged result ──
+    bank_name:    result.bank_name    || raw.ifscBankName   || null,
+    bank_branch:  result.bank_branch  || raw.ifscBranchName || null,
+    bank_address: bankAddressDisplay,
   };
-
-  const isSuccess = ["SUCCESS", "success"].includes(d.status) && d.isValid;
 
   const nameMatchValue =
     d.isNameMatch === true
@@ -101,72 +137,106 @@ export default function Step12BankReadOnly({ accountType }) {
     try {
       const token = localStorage.getItem("token");
 
-      const verifyResponse = raw.requestId
-        ? raw
-        : {
-          success: raw.success ?? true,
-          status: raw.status || "SUCCESS",
-          message: raw.message || "Bank verified successfully",
-          result: raw.result ?? {},
-          tranx_id: raw.tranx_id || null,
-          requestId: raw.requestId || null,
-          timestamp: raw.timestamp || new Date().toISOString(),
-          chargeble: raw.chargeble ?? true,
-          user_consent: raw.user_consent ?? true,
-        };
+      // ── Build verifyResponse from raw store data ──
+      const verifyResponse = {
+        success: raw.success ?? true,
+        status: raw.status || "SUCCESS",
+        message: raw.message || "Bank verified successfully",
+        result: raw.result ?? {},
+        tranx_id: raw.tranx_id || null,
+        requestId: raw.requestId || null,
+        timestamp: raw.timestamp || new Date().toISOString(),
+        chargeble: raw.chargeble ?? true,
+        user_consent: raw.user_consent ?? true,
+      };
 
+      // ── result is already merged with Razorpay data from Step11 ──
       const verifyResult = verifyResponse.result ?? {};
 
+      // ── Build bankAddress payload object cleanly from merged result ──
+      const bankAddressPayload = (() => {
+        if (verifyResult.bank_address && typeof verifyResult.bank_address === "object") {
+          // Already structured object from Step11 merge — use directly
+          return {
+            addressLine1: verifyResult.bank_address.addressLine1 || undefined,
+            city:         verifyResult.bank_address.city         || undefined,
+            district:     verifyResult.bank_address.district     || undefined,
+            state:        verifyResult.bank_address.state        || undefined,
+            pinCode:      verifyResult.bank_address.pinCode      || undefined,
+            country:      verifyResult.bank_address.country      || "India",
+          };
+        }
+        if (typeof verifyResult.bank_address === "string") {
+          // Edge case: string address
+          return {
+            addressLine1: verifyResult.bank_address,
+            pinCode: extractPincode(verifyResult.bank_address) || undefined,
+          };
+        }
+        // Fallback: raw Razorpay fields (safe-net, usually not needed after Step11 merge)
+        if (raw.ifscBankAddress) {
+          return {
+            addressLine1: raw.ifscBankAddress,
+            city:         raw.ifscCity     || undefined,
+            district:     raw.ifscDistrict || undefined,
+            state:        raw.ifscState    || undefined,
+            pinCode:      extractPincode(raw.ifscBankAddress) || undefined,
+            country:      "India",
+          };
+        }
+        return undefined;
+      })();
+
       const payload = {
-        isValid: verifyResult.is_valid,
+        // ── Core bank fields ──
+        isValid:          verifyResult.is_valid,
         recommendedAction: verifyResult.recommended_action,
         accountHolderName: verifyResult.account_holder_name,
-        accountNumber: enteredAccountNumber,
-        ifscCode: verifyResult.account_ifsc,
-        isVerified: verifyResponse.success ?? true,
-        verificationStatus: verifyResponse.status || "SUCCESS",
-        verificationMessage:
-          verifyResponse.message || "Bank verified successfully",
-        providerTransactionId: verifyResponse.tranx_id,
-        providerRequestId: verifyResponse.requestId,
-        verifiedAt: verifyResponse.timestamp,
-        verificationResponse: verifyResponse,
-        accountType: accountType || undefined,
-        // ── bank name / branch — CGPEY result first, IFSC lookup fallback ──
-        bankName: verifyResult.bank_name || raw.ifscBankName || undefined,
+        accountNumber:     enteredAccountNumber,
+        ifscCode:          verifyResult.account_ifsc,
+
+        // ── Verification meta ──
+        isVerified:              verifyResponse.success ?? true,
+        verificationStatus:      verifyResponse.status || "SUCCESS",
+        verificationMessage:     verifyResponse.message || "Bank verified successfully",
+        providerTransactionId:   verifyResponse.tranx_id   || undefined,
+        providerRequestId:       verifyResponse.requestId  || undefined,
+        verifiedAt:              verifyResponse.timestamp,
+        verificationResponse:    verifyResponse,
+        verificationProvider:    "CGPEY",
+        currentScreen:           "SYSTEM_VERIFICATION",
+
+        // ── Account type (from store, set in Step11) ──
+        accountType: accountType || raw.accountType || undefined,
+
+        // ── Bank info — all from merged result (single source of truth) ──
+        bankName:   verifyResult.bank_name   || raw.ifscBankName   || undefined,
         branchName: verifyResult.bank_branch || raw.ifscBranchName || undefined,
-        bankAddress: verifyResult.bank_address
-          ? {
-            addressLine1: verifyResult.bank_address.addressLine1 || undefined,
-            city: verifyResult.bank_address.city || undefined,
-            district: verifyResult.bank_address.district || undefined,
-            state: verifyResult.bank_address.state || undefined,
-            pinCode: verifyResult.bank_address.pinCode || undefined,
-            country: verifyResult.bank_address.country || undefined,
-          }
-          : raw.ifscBankAddress
-            ? {
-              addressLine1: raw.ifscBankAddress,
-              city: raw.ifscCity || undefined,
-              district: raw.ifscDistrict || undefined,
-              state: raw.ifscState || undefined,
-            }
-            : undefined,
-        isNameMatch: verifyResult.is_name_match ?? undefined,
+        bankAddress: bankAddressPayload,
+
+        // ── MICR — from merged result.micr_code, fallback raw ifscMicr ──
+        micrCode: verifyResult.micr_code || raw.ifscMicr || undefined,
+
+        // ── Name match & score ──
+        isNameMatch:   verifyResult.is_name_match ?? undefined,
         matchingScore:
           verifyResult.matching_score != null
             ? String(verifyResult.matching_score)
             : undefined,
-        paymentMmode: verifyResult.payment_mode || undefined,
-        failureReason: verifyResult.failure_reason || undefined,
-        npciErrorCode: verifyResult.npci_error_code || undefined,
-        retrievalReferenceNumber: verifyResult.rrn || undefined,
-        user: verifyResult.user || undefined,
-        chargeable: raw.chargeble === "true" || raw.chargeble === true,
-        userConsent: raw.user_consent === "true" || raw.user_consent === true,
-        verificationProvider: "CGPEY",
-        currentScreen: "SYSTEM_VERIFICATION",
+
+        // ── Payment & failure info ──
+        paymentMode:              verifyResult.payment_mode    || undefined,
+        failureReason:            verifyResult.failure_reason  || undefined,
+        npciErrorCode:            verifyResult.npci_error_code || undefined,
+        retrievalReferenceNumber: verifyResult.rrn             || undefined,
+        user:                     verifyResult.user            || undefined,
+
+        // ── Consent & billing ──
+        chargeable:  raw.chargeble === "true"     || raw.chargeble === true,
+        userConsent: raw.user_consent === "true"  || raw.user_consent === true,
       };
+
+      console.log("Step12 — payload being sent:", JSON.stringify(payload, null, 2));
 
       const res = await fetch(`${BASE_URL}/brands/onboarding/add-bank-details`, {
         method: "POST",
@@ -193,7 +263,10 @@ export default function Step12BankReadOnly({ accountType }) {
         throw new Error(err?.message || `Server error ${res.status}`);
       }
 
-      goToStep(STEPS.SYSTEM_VERIFY);
+      setSuccessMsg(`Bank account ${d.accountNumber} verified successfully`);
+      setTimeout(() => {
+        goToStep(STEPS.SYSTEM_VERIFY);
+      }, NAV_DELAY);
     } catch (err) {
       setPostError({
         humanMessage:
@@ -208,13 +281,9 @@ export default function Step12BankReadOnly({ accountType }) {
   return (
     <>
       <SuccessToast
-        message={
-          successMsg && isSuccess
-            ? `Bank account ${d.accountNumber} verified successfully`
-            : null
-        }
-        onDismiss={() => setSuccessMsg(false)}
-        duration={3500}
+        message={successMsg}
+        onDismiss={() => setSuccessMsg(null)}
+        duration={NAV_DELAY}
       />
 
       <ErrorModal
@@ -227,7 +296,7 @@ export default function Step12BankReadOnly({ accountType }) {
       />
 
       <div
-        className="w-full max-w-xl mx-auto "
+        className="w-full max-w-xl mx-auto"
         style={{ animation: "stepIn 0.35s cubic-bezier(0.34,1.4,0.64,1) both" }}
       >
         <style>{`
@@ -317,7 +386,6 @@ export default function Step12BankReadOnly({ accountType }) {
             }
           />
 
-          {/* ── Bank Name ── */}
           <DetailRow
             label="Bank Name"
             value={d.bank_name}
@@ -329,7 +397,6 @@ export default function Step12BankReadOnly({ accountType }) {
             }
           />
 
-          {/* ── Branch Name ── */}
           <DetailRow
             label="Branch Name"
             value={d.bank_branch}
@@ -341,7 +408,6 @@ export default function Step12BankReadOnly({ accountType }) {
             }
           />
 
-          {/* ── Bank Address ── */}
           <DetailRow
             label="Bank Address"
             value={d.bank_address}
@@ -454,7 +520,10 @@ export default function Step12BankReadOnly({ accountType }) {
           title="Change bank details?"
           description="Are you sure you want to go back and change your bank account? Your current verified information will be cleared."
           onCancel={() => setShowConfirm(false)}
-          onConfirm={() => { setShowConfirm(false); setSubStep(BANK_SUB.BANK_VERIFICATION); }}
+          onConfirm={() => {
+            setShowConfirm(false);
+            setSubStep(BANK_SUB.BANK_VERIFICATION);
+          }}
         />
       )}
     </>

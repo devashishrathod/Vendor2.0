@@ -26,9 +26,8 @@ function DetailRow({ icon, iconBg, label, value, last }) {
     return null;
   return (
     <div
-      className={`flex items-center justify-between py-2.5 ${
-        last ? "" : "border-b border-gray-100"
-      } last:border-0`}
+      className={`flex items-center justify-between py-2.5 ${last ? "" : "border-b border-gray-100"
+        } last:border-0`}
     >
       <div className="flex items-center gap-2">
         <IconBadge bgColor={iconBg}>{icon}</IconBadge>
@@ -45,7 +44,7 @@ export default function Step9GSTReadOnly() {
   const { setSubStep, goToStep } = useOnboardingStore();
   const [posting, setPosting] = useState(false);
   const [postError, setPostError] = useState(null);
-  const [successMsg, setSuccessMsg] = useState(true);
+  const [successMsg, setSuccessMsg] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
   const gstDetails = useOnboardingStore((state) => state.formData.gstDetails);
@@ -141,14 +140,14 @@ export default function Step9GSTReadOnly() {
       const verifyResponse = gstDetails?.requestId
         ? gstDetails
         : {
-            success: verifyData.success ?? true,
-            message: verifyData.message || "GST verification completed",
-            data: verifyData,
-            requestId: verifyData.clientRefNum || null,
-            timestamp: verifyData.timestamp || new Date().toISOString(),
-            statusCode: 200,
-            status: verifyData.status || "SUCCESS",
-          };
+          success: verifyData.success ?? true,
+          message: verifyData.message || "GST verification completed",
+          data: verifyData,
+          requestId: verifyData.clientRefNum || null,
+          timestamp: verifyData.timestamp || new Date().toISOString(),
+          statusCode: 200,
+          status: verifyData.status || "SUCCESS",
+        };
 
       const payload = {
         gstNumber: verifyData.gstNumber,
@@ -172,7 +171,7 @@ export default function Step9GSTReadOnly() {
         centerCode: verifyData.centerCode || undefined,
         natureOfBusiness:
           Array.isArray(verifyData.natureOfBusiness) &&
-          verifyData.natureOfBusiness.length > 0
+            verifyData.natureOfBusiness.length > 0
             ? verifyData.natureOfBusiness
             : undefined,
         stateJurisdiction: verifyData.stateJurisdiction || undefined,
@@ -180,23 +179,23 @@ export default function Step9GSTReadOnly() {
         lastUpdated: convertToISO(verifyData.lastUpdated),
         address:
           verifyData.address &&
-          Object.values(verifyData.address).some(
-            (v) => v && String(v).trim() !== "",
-          )
+            Object.values(verifyData.address).some(
+              (v) => v && String(v).trim() !== "",
+            )
             ? {
-                floorNumber: verifyData.address.floor_number || undefined,
-                buildingNumber: verifyData.address.building_number || undefined,
-                buildingName: verifyData.address.building_name || undefined,
-                location: verifyData.address.location || undefined,
-                city: verifyData.address.city || undefined,
-                district: verifyData.address.district || undefined,
-                state: verifyData.address.state || undefined,
-                pin: verifyData.address.pin || undefined,
-                country: "India",
-                latitude: verifyData.address.latitude || undefined,
-                longitude: verifyData.address.longitude || undefined,
-                businessNature: verifyData.address.business_nature || undefined,
-              }
+              floorNumber: verifyData.address.floor_number || undefined,
+              buildingNumber: verifyData.address.building_number || undefined,
+              buildingName: verifyData.address.building_name || undefined,
+              location: verifyData.address.location || undefined,
+              city: verifyData.address.city || undefined,
+              district: verifyData.address.district || undefined,
+              state: verifyData.address.state || undefined,
+              pin: verifyData.address.pin || undefined,
+              country: "India",
+              latitude: verifyData.address.latitude || undefined,
+              longitude: verifyData.address.longitude || undefined,
+              businessNature: verifyData.address.business_nature || undefined,
+            }
             : undefined,
         chargeable: verifyData.chargeable ?? true,
         userConsent: verifyData.userConsent ?? true,
@@ -226,8 +225,10 @@ export default function Step9GSTReadOnly() {
         }
         throw new Error(err?.message || `Server error ${res.status}`);
       }
-
-      goToStep(STEPS.BANK_VERIFICATION, BANK_SUB.BANK_VERIFICATION);
+      setSuccessMsg(true);
+      setTimeout(() => {
+        goToStep(STEPS.BANK_VERIFICATION, BANK_SUB.BANK_VERIFICATION);
+      }, 3000);
     } catch (err) {
       setPostError({
         humanMessage:
@@ -489,14 +490,14 @@ export default function Step9GSTReadOnly() {
 
 
       </div>
-{showConfirm && (
-  <ConfirmModal
-    title="Change GST details?"
-    description="Are you sure you want to go back and change your GST? Your current verified information will be cleared."
-    onCancel={() => setShowConfirm(false)}
-    onConfirm={() => { setShowConfirm(false); setSubStep(BIZ_SUB.GST_VERIFICATION); }}
-  />
-)}
+      {showConfirm && (
+        <ConfirmModal
+          title="Change GST details?"
+          description="Are you sure you want to go back and change your GST? Your current verified information will be cleared."
+          onCancel={() => setShowConfirm(false)}
+          onConfirm={() => { setShowConfirm(false); setSubStep(BIZ_SUB.GST_VERIFICATION); }}
+        />
+      )}
 
     </>
   );
