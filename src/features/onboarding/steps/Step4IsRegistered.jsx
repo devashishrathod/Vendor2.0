@@ -310,14 +310,14 @@ function RightInfoPanel({ selectedOption }) {
   const panelBorder = isUnregistered
     ? "border-red-100"
     : isRegistered
-    ? "border-emerald-100"
-    : "border-gray-100";
+      ? "border-emerald-100"
+      : "border-gray-100";
 
   const panelBg = isUnregistered
     ? "bg-red-50/40"
     : isRegistered
-    ? "bg-emerald-50/40"
-    : "bg-gray-50/40";
+      ? "bg-emerald-50/40"
+      : "bg-gray-50/40";
 
   const iconBg = isUnregistered ? "bg-red-100" : "bg-emerald-100";
   const iconColor = isUnregistered ? "text-red-600" : "text-emerald-600";
@@ -333,9 +333,8 @@ function RightInfoPanel({ selectedOption }) {
     <div className="w-full md:w-[260px] flex-shrink-0 flex flex-col gap-3 md:mt-[-74px]">
       {/* Illustration */}
       <div
-        className={`rounded-xl overflow-hidden border p-2 transition-all duration-300 ${
-          isUnregistered ? "border-red-100 bg-red-50/40" : "border-emerald-100 bg-emerald-50/40"
-        }`}
+        className={`rounded-xl overflow-hidden border p-2 transition-all duration-300 ${isUnregistered ? "border-red-100 bg-red-50/40" : "border-emerald-100 bg-emerald-50/40"
+          }`}
       >
         <CityIllustration isUnregistered={isUnregistered} />
       </div>
@@ -591,9 +590,7 @@ export default function Step4IsRegistered() {
     try {
       await updateRegistrationStatus({ status: "REGISTERED" });
       setSuccessMsg("Registration status updated successfully.");
-      setTimeout(() => {
-        setSubStep(BASIC_SUB.REGISTRATION_ENTITY_TYPE);
-      }, 3000);
+    
     } catch (err) {
       setApiError({
         status: err.status,
@@ -750,7 +747,13 @@ export default function Step4IsRegistered() {
         />
       )}
 
-      <SuccessToast message={successMsg} onDismiss={() => setSuccessMsg(null)} />
+      <SuccessToast
+        message={successMsg}
+        onDismiss={() => {
+          setSuccessMsg(null);
+           setSubStep(BASIC_SUB.REGISTRATION_ENTITY_TYPE);
+        }}
+      />
       <ErrorToast error={apiError} onDismiss={() => setApiError(null)} />
     </>
   );

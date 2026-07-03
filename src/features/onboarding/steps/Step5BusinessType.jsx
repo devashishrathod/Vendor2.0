@@ -21,10 +21,9 @@ function PrimaryButton({
       disabled={disabled || loading}
       className={`py-2.5 px-5 rounded-xl font-medium text-sm tracking-wide transition-all duration-200
         flex items-center justify-center gap-2
-        ${
-          disabled || loading
-            ? "bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200"
-            : "bg-emerald-500 hover:bg-emerald-600 text-white active:scale-[0.98]"
+        ${disabled || loading
+          ? "bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200"
+          : "bg-emerald-500 hover:bg-emerald-600 text-white active:scale-[0.98]"
         } ${className}`}
     >
       {loading && (
@@ -311,10 +310,9 @@ function TypeCard({ type, selected, onClick }) {
       onClick={() => onClick(type.id)}
       className={`relative flex flex-col items-start gap-1.5 p-3 rounded-xl border
         transition-all duration-200 w-full text-left
-        ${
-          isActive
-            ? "border-2 border-emerald-500 bg-emerald-50/50 shadow-sm shadow-emerald-100"
-            : "border border-gray-200 bg-white hover:border-emerald-200 hover:bg-gray-50/50"
+        ${isActive
+          ? "border-2 border-emerald-500 bg-emerald-50/50 shadow-sm shadow-emerald-100"
+          : "border border-gray-200 bg-white hover:border-emerald-200 hover:bg-gray-50/50"
         }`}
     >
       <div className="flex items-start justify-between w-full">
@@ -493,9 +491,6 @@ export default function Step5BusinessType() {
       useOnboardingStore.getState().setField("businessType", selected);
       setSuccessMsg("Business type saved successfully!");
 
-      setTimeout(() => {
-        goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_VERIFICATION);
-      }, 3000); // toast dikhne ka time
     } catch (err) {
       setApiError(err.message || "Something went wrong. Please try again.");
     } finally {
@@ -510,7 +505,10 @@ export default function Step5BusinessType() {
     <div className="flex items-center justify-center p-4">
       <SuccessToast
         message={successMsg}
-        onDismiss={() => setSuccessMsg(null)}
+        onDismiss={() => {
+          setSuccessMsg(null);
+          goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_VERIFICATION);
+        }}
       />
       <ErrorToast error={apiError} onDismiss={() => setApiError(null)} />
 
@@ -609,8 +607,8 @@ export default function Step5BusinessType() {
 
               {/* Footer */}
               <div className="flex items-center justify-between border-t border-gray-100 pt-3 mt-1">
-               
-               
+
+
                 <PrimaryButton
                   onClick={handleContinue}
                   disabled={!selected}

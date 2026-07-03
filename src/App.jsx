@@ -12,6 +12,8 @@ import YourOutlet            from './features/oulet/pages/Youroutlet';
 import TrydoodOutlet         from './features/oulet/pages/Outlet';
 import Dashboard             from './features/dashboard/pages/Dashboard';
 import AnalysisReport        from './features/dashboard/pages/AnalysisReport';
+import Transactions          from './features/dashboard/pages/Transactions';
+import OrderDetail           from './features/dashboard/pages/OrderDetail';
 
 function App() {
   return (
@@ -34,6 +36,10 @@ function App() {
         {/* ─── DASHBOARD ─── */}
         <Route path="/dashboard"             element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/analysis-report"       element={<ProtectedRoute><AnalysisReport /></ProtectedRoute>} />
+
+        {/* ─── TRANSACTIONS ─── */}
+        <Route path="/transactions"                element={<ProtectedRoute><Transactions /></ProtectedRoute>} />
+        <Route path="/transactions/order/:orderId" element={<ProtectedRoute><OrderDetail /></ProtectedRoute>} />
 
         {/* ─── Fallback ─── */}
         <Route path="*" element={<Navigate to="/" replace />} />

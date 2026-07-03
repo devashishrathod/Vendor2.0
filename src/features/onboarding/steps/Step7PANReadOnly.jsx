@@ -43,7 +43,7 @@ export default function Step7PANReadOnly() {
 
   const [posting, setPosting] = useState(false);
   const [postError, setPostError] = useState(null);
-  const [successMsg, setSuccessMsg] = useState(true);
+  const [successMsg, setSuccessMsg] = useState(null);
 
   const raw = panDetails?.data ?? panDetails ?? {};
   const addr = raw.addressDetails || {};
@@ -98,14 +98,14 @@ export default function Step7PANReadOnly() {
       const verifyResponse = panDetails?.requestId
         ? panDetails
         : {
-            success: verifyData.success ?? true,
-            message: verifyData.message || "PAN verification completed",
-            data: verifyData,
-            requestId: verifyData.clientRefNum || null,
-            timestamp: verifyData.timestamp || new Date().toISOString(),
-            statusCode: 200,
-            status: verifyData.status || "SUCCESS",
-          };
+          success: verifyData.success ?? true,
+          message: verifyData.message || "PAN verification completed",
+          data: verifyData,
+          requestId: verifyData.clientRefNum || null,
+          timestamp: verifyData.timestamp || new Date().toISOString(),
+          statusCode: 200,
+          status: verifyData.status || "SUCCESS",
+        };
 
       const payload = {
         brandId,
@@ -129,19 +129,19 @@ export default function Step7PANReadOnly() {
         isAadhaarLinked: verifyData.aadhaarLinked ?? undefined,
         addressDetails:
           verifyData.addressDetails &&
-          Object.values(verifyData.addressDetails).some(
-            (v) => v && v.trim() !== "",
-          )
+            Object.values(verifyData.addressDetails).some(
+              (v) => v && v.trim() !== "",
+            )
             ? {
-                buildingName:
-                  verifyData.addressDetails.building_name || undefined,
-                locality: verifyData.addressDetails.locality || undefined,
-                streetName: verifyData.addressDetails.street_name || undefined,
-                pincode: verifyData.addressDetails.pincode || undefined,
-                city: verifyData.addressDetails.city || undefined,
-                state: verifyData.addressDetails.state || undefined,
-                country: verifyData.addressDetails.country || undefined,
-              }
+              buildingName:
+                verifyData.addressDetails.building_name || undefined,
+              locality: verifyData.addressDetails.locality || undefined,
+              streetName: verifyData.addressDetails.street_name || undefined,
+              pincode: verifyData.addressDetails.pincode || undefined,
+              city: verifyData.addressDetails.city || undefined,
+              state: verifyData.addressDetails.state || undefined,
+              country: verifyData.addressDetails.country || undefined,
+            }
             : undefined,
         verificationProvider: "CGPEY",
         currentScreen: "GST_VERIFICATION",
@@ -164,13 +164,18 @@ export default function Step7PANReadOnly() {
           (errMsg.includes("already exists") ||
             errMsg.includes("already in use"))
         ) {
-          setSubStep(BIZ_SUB.GST_VERIFICATION);
-          return;
+          setSuccessMsg(
+            `PAN ${payload.pan} already verified · ${payload.fullName}`
+          );
+          return; // setSubStep onDismiss mein chalega
         }
         throw new Error(err?.message || `Server error ${res.status}`);
       }
 
-      setSubStep(BIZ_SUB.GST_VERIFICATION);
+      // Ab yeh karo:
+      setSuccessMsg(
+        `PAN ${payload.pan} saved · ${payload.fullName} · ${payload.panType}`
+      );
     } catch (err) {
       setPostError({
         humanMessage:
@@ -186,12 +191,11 @@ export default function Step7PANReadOnly() {
     <>
       {/* ── Success Toast ── */}
       <SuccessToast
-        message={
-          successMsg && isSuccess
-            ? `PAN ${d.pan} verified successfully`
-            : null
-        }
-        onDismiss={() => setSuccessMsg(false)}
+        message={successMsg}
+        onDismiss={() => {
+          setSuccessMsg(null);
+          setSubStep(BIZ_SUB.GST_VERIFICATION);
+        }}
         duration={3500}
       />
 
@@ -394,15 +398,15 @@ export default function Step7PANReadOnly() {
         </div>
       </div>
 
-    
-{showConfirm && (
-  <ConfirmModal
-    title="Change PAN details?"
-    description="Are you sure you want to go back and change your PAN? Your current verified information will be cleared."
-    onCancel={() => setShowConfirm(false)}
-    onConfirm={() => { setShowConfirm(false); setSubStep(BIZ_SUB.PAN_VERIFICATION); }}
-  />
-)}
+
+      {showConfirm && (
+        <ConfirmModal
+          title="Change PAN details?"
+          description="Are you sure you want to go back and change your PAN? Your current verified information will be cleared."
+          onCancel={() => setShowConfirm(false)}
+          onConfirm={() => { setShowConfirm(false); setSubStep(BIZ_SUB.PAN_VERIFICATION); }}
+        />
+      )}
 
     </>
   );

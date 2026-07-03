@@ -4,7 +4,7 @@ import logo from "@/assets/Logo1.jpg";
 
 const NAV_TABS = [
   { label: "Analysis Report", to: "/analysis-report" },
-  { label: "Transactions",    to: "/dashboard"        },
+  { label: "Transactions",    to: "/transactions"        },
   { label: "Settlements",     to: "/settlements"      },
   { label: "Voucher",         to: "/voucher"          },
   { label: "Deal Pack",       to: "/deal-pack"        },

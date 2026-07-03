@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState ,useEffect} from "react";
 import { useNavigate } from "react-router-dom";
-import { useOnboardingStore } from "@/features/onboarding/store/onboardingStore";
+import { useBrand } from "../../hooks/useBrand";
 
 const PLAN_DATA = {
   name: "Basic Plan",
@@ -17,7 +17,7 @@ const INITIAL_BILLING = {
   brandName: "Yoga Education And Research Pvt Ltd",
   address:
     "New No. 9 (Old No. 23), Plot No. 4363, 4th Floor, X Block, 5th Street, Annanagar West, Chennai – 600040",
-  cin: "U47912TN2023PTC163139",
+  // cin: "U47912TN2023PTC163139",
   gstin: "09AAKFF2211N2ZA",
   pan: "ABCDE1234F",
 };
@@ -115,7 +115,7 @@ function PlanInfo({ plan }) {
 const BILLING_FIELDS = [
   { key: "brandName", label: "Brand name", type: "text" },
   { key: "address", label: "Address", type: "textarea" },
-  { key: "cin", label: "CIN", type: "text" },
+
   { key: "gstin", label: "GSTIN", type: "text" },
   { key: "pan", label: "Pan", type: "text" },
 ];
@@ -123,6 +123,7 @@ const BILLING_FIELDS = [
 function BillingDetailsCard({ details, onSave }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(details);
+
 
   const handleEdit = () => {
     setDraft(details);
@@ -143,29 +144,9 @@ function BillingDetailsCard({ details, onSave }) {
     <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
       <div className="bg-gray-50 px-6 py-3 border-b border-gray-200 flex items-center justify-between">
         <h3 className="text-sm font-bold text-gray-800">Billing Details</h3>
-        {!editing ? (
-          <button
-            onClick={handleEdit}
-            className="text-sm font-semibold text-teal-600 hover:text-teal-700 transition-colors"
-          >
-            Edit
-          </button>
-        ) : (
-          <div className="flex gap-3">
-            <button
-              onClick={handleCancel}
-              className="text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSave}
-              className="text-sm font-semibold text-teal-600 hover:text-teal-700 transition-colors"
-            >
-              Save
-            </button>
-          </div>
-        )}
+        
+          
+      
       </div>
 
       <div className="divide-y divide-gray-100">
@@ -451,41 +432,66 @@ function OrderSummary({ plan }) {
   );
 }
 
+
+
 export default function SubscriptionCheckout() {
+  const { brand, loading } = useBrand();
 
-  const { formData } = useOnboardingStore();
+  const [billing, setBilling] = useState({
+    brandName: "",
+    address: "",
+    cin: "",
+    gstin: "",
+    pan: "",
+  });
 
-  // Map onboarding store data to billing details
-  const billingFromStore = {
-    brandName: formData.gstDetails?.legalName || formData.businessName || "",
-    address: formData.gstDetails?.address
-      ? [
-          formData.gstDetails.address.floor_number,
-          formData.gstDetails.address.city,
-          formData.gstDetails.address.district,
-          formData.gstDetails.address.state,
-          formData.gstDetails.address.pin,
-        ]
-          .filter(Boolean)
-          .join(", ")
-      : "",
-    cin: "" || "U47912TN2023PTC163139",  // Not in store — fetch from API or leave blank
-    gstin: formData.gstDetails?.gstNumber || formData.gstin || "",
-    pan: formData.pan || "",
-  };
+useEffect(() => {
+  if (!brand) return;
 
-  const [billing, setBilling] = useState(billingFromStore);
+  setBilling({
+    brandName:
+      brand.legalBusinessName ||
+      brand.brandName ||
+      "",
 
+    address:
+      brand.gst?.address?.location ||
+      [
+        brand.address?.floorNumber,
+        brand.address?.street,
+        brand.address?.city,
+        brand.address?.district,
+        brand.address?.state,
+        brand.address?.pinCode,
+      ]
+        .filter(Boolean)
+        .join(", "),
+
+    gstin: brand.gst?.gstNumber || brand.gstin || "",
+
+    pan: brand.pan?.pan || (typeof brand.pan === "string" ? brand.pan : ""),
+  });
+}, [brand]);
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <div className="min-h-screen bg-gray-100 p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
         <TrustBar badges={TRUST_BADGES} />
+
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-5">
           <div className="flex flex-col gap-4">
             <PlanInfo plan={PLAN_DATA} />
-            <BillingDetailsCard details={billing} onSave={setBilling} />
+
+            <BillingDetailsCard
+              details={billing}
+              onSave={setBilling}
+            />
           </div>
+
           <OrderSummary plan={PLAN_DATA} />
         </div>
       </div>

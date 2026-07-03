@@ -51,8 +51,8 @@ function ShortNameBadge({ value }) {
 }
 
 function CharRing({ value, max }) {
-  const pct  = Math.min(value / max, 1);
-  const r    = 10;
+  const pct = Math.min(value / max, 1);
+  const r = 10;
   const circ = 2 * Math.PI * r;
   const dash = circ * pct;
   const color = value > max ? "#ef4444" : value > max * 0.8 ? "#f59e0b" : "#10b981";
@@ -130,24 +130,24 @@ function CharRing({ value, max }) {
 // ── Main component ────────────────────────────────────────────────
 
 export default function Step3BusinessName() {
-  const savedName      = useOnboardingStore((s) => s.formData.businessName);
+  const savedName = useOnboardingStore((s) => s.formData.businessName);
   const savedShortName = useOnboardingStore((s) => s.formData.shortName);
-  const currentStep    = useOnboardingStore((s) => s.currentStep);
+  const currentStep = useOnboardingStore((s) => s.currentStep);
   const currentSubStep = useOnboardingStore((s) => s.currentSubStep);
   const { setSubStep, setField, markComplete } = useOnboardingStore();
 
-  const NAME_MAX  = 60;
+  const NAME_MAX = 60;
   const SHORT_MAX = 10;
 
-  const [name,         setName]         = useState(savedName      ?? "");
-  const [nameError,    setNameError]    = useState(null);
-  const [nameTouched,  setNameTouched]  = useState(false);
-  const [shortName,    setShortName]    = useState(savedShortName ?? "");
-  const [shortError,   setShortError]   = useState(null);
+  const [name, setName] = useState(savedName ?? "");
+  const [nameError, setNameError] = useState(null);
+  const [nameTouched, setNameTouched] = useState(false);
+  const [shortName, setShortName] = useState(savedShortName ?? "");
+  const [shortError, setShortError] = useState(null);
   const [shortTouched, setShortTouched] = useState(false);
-  const [successMsg,   setSuccessMsg]   = useState(null);
-  const [loading,      setLoading]      = useState(false);
-  const [apiError,     setApiError]     = useState(null);
+  const [successMsg, setSuccessMsg] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [apiError, setApiError] = useState(null);
 
   const handleNameChange = (e) => {
     setName(e.target.value);
@@ -196,9 +196,9 @@ export default function Step3BusinessName() {
   };
 
   const handleKeyDown = (e) => { if (e.key === "Enter") handleContinue(); };
-  const nameValid     = !validateBusinessName(name) && name.trim().length > 0;
-  const shortValid    = !validateShortName(shortName) && shortName.trim().length > 0;
-  const canContinue   = name.trim().length > 0 && !loading;
+  const nameValid = !validateBusinessName(name) && name.trim().length > 0;
+  const shortValid = !validateShortName(shortName) && shortName.trim().length > 0;
+  const canContinue = name.trim().length > 0 && !loading;
 
   return (
     <div className="relative w-full max-w-4xl mx-auto " style={{ minHeight: 480 }}>
@@ -266,7 +266,7 @@ export default function Step3BusinessName() {
                 validNode={<ShortNameBadge value={shortName} />}
               /> */}
 
-               {/* import Input from "@/components/common/Input";
+              {/* import Input from "@/components/common/Input";
 
               // Legal Business Name — pura purana InputField hata do: */}
               <Input
@@ -303,7 +303,7 @@ export default function Step3BusinessName() {
                 errorMsg={shortError}
               />
 
-{/* // {shortValid && <ShortNameBadge value={shortName} />} */}
+              {/* // {shortValid && <ShortNameBadge value={shortName} />} */}
             </div>
 
             {/* Tips panel */}
@@ -389,7 +389,14 @@ export default function Step3BusinessName() {
         </div>
       </div>
 
-      <SuccessToast message={successMsg} onDismiss={() => setSuccessMsg(null)} />
+     {/* // SuccessToast mein navigate karo: */}
+      <SuccessToast
+        message={successMsg}
+        onDismiss={() => {
+          setSuccessMsg(null);
+          setSubStep(BASIC_SUB.REGISTRATION_STATUS);
+        }}
+      />
       <ErrorToast error={apiError} onDismiss={() => setApiError(null)} />
 
     </div>

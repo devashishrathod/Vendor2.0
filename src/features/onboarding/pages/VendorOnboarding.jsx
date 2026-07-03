@@ -191,7 +191,7 @@ export default function OnboardingPage() {
   const partnerContractDone = isCompleted(STEPS.PARTNER_CONTRACT, 1);
   const isFirst = currentStep === STEPS.BASIC_DETAILS && currentSubStep === 1;
 
-  // ✅ CHANGED: partner contract done ho to browser back button block karo
+  // partner contract done ho to browser back button block karo
   useEffect(() => {
     if (!partnerContractDone) return;
 
@@ -220,8 +220,13 @@ export default function OnboardingPage() {
   }
 
   function resolveComponent(step, subStep) {
-    // ✅ CHANGED: PARTNER_CONTRACT ko bhi lock karo
+    // ✅ FIX: Partner Contract ka lock sirf uske apne completion status pe depend karega,
+    // "systemVerifyDone" global shortcut par nahi — warna checkbox page pe aate hi
+    // pehle se locked dikhta tha, chahe user ne abhi accept hi na kiya ho.
     const locked = (() => {
+      if (step === STEPS.PARTNER_CONTRACT) {
+        return isCompleted(step, subStep);
+      }
       if (systemVerifyDone) return true;
       return isCompleted(step, subStep);
     })();
