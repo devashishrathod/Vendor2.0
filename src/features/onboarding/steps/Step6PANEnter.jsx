@@ -69,7 +69,7 @@ function RuleRow({ label, passed, touched }) {
 }
 
 // ── Main Component ───────────────────────────────────────────────────
-export default function Step6PANEnter({ onFetchSuccess ,onComplete}) {
+export default function Step6PANEnter({ onFetchSuccess, onComplete }) {
   const { goToStep } = useOnboardingStore();
 
   const [pan, setPan] = useState("");
@@ -121,10 +121,7 @@ export default function Step6PANEnter({ onFetchSuccess ,onComplete}) {
       setFetchDone(true);
       setSuccessMsg(true);
 
-      setTimeout(() => {
-        goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_READONLY);
 
-      }, 3000);
     } catch (err) {
       // err = plain Error object, sirf .message string hai
       setApiError({
@@ -230,7 +227,7 @@ export default function Step6PANEnter({ onFetchSuccess ,onComplete}) {
                 errorMsg="Enter a valid 10-digit PAN (e.g. ABCDE1234F)"
                 successMsg="Valid PAN format"
               />
-  
+
               {touched && (
                 <div className="absolute right-3 top-1/2 -translate-y-1/2">
                   {isValid ? (
@@ -431,10 +428,9 @@ export default function Step6PANEnter({ onFetchSuccess ,onComplete}) {
           disabled={!isValid || fetching}
           className={`flex items-center gap-2 px-7 py-3 rounded-xl font-bold text-sm
             tracking-wide transition-all duration-200 flex-shrink-0
-            ${
-              isValid && !fetching
-                ? "bg-emerald-500 hover:bg-emerald-600 active:scale-[0.97] text-white shadow-sm shadow-emerald-100"
-                : "bg-gray-100 text-gray-300 cursor-not-allowed"
+            ${isValid && !fetching
+              ? "bg-emerald-500 hover:bg-emerald-600 active:scale-[0.97] text-white shadow-sm shadow-emerald-100"
+              : "bg-gray-100 text-gray-300 cursor-not-allowed"
             }`}
         >
           {fetching ? (
@@ -501,7 +497,10 @@ export default function Step6PANEnter({ onFetchSuccess ,onComplete}) {
       {/* ── Success Toast — 200 ── */}
       <SuccessToast
         message={successMsg ? `PAN ${upper} verified successfully` : null}
-        onDismiss={() => setSuccessMsg(false)}
+        onDismiss={() => {
+          setSuccessMsg(false);
+          goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_READONLY);
+        }}
         duration={3500}
       />
 

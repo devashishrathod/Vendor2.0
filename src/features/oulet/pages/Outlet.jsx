@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { useOnboardingStore } from "@/features/onboarding/store/onboardingStore";
+import { useBrand } from "../../../hooks/useBrand";
 
 const PLAN_DATA = {
   name: "Basic Plan",
@@ -54,9 +54,9 @@ function PlanSummaryCard({ plan }) {
 
       {/* Rows */}
       <div className="px-5 py-4 space-y-3">
-        <p className="text-sm font-semibold text-gray-700 mb-3">
+        {/* <p className="text-sm font-semibold text-gray-700 mb-3">
           Plan Name : {plan.name}
-        </p>
+        </p> */}
         {rows.map((row) => (
           <div key={row.label} className="flex items-center justify-between">
             <span className="text-sm text-gray-600">{row.label}</span>
@@ -75,14 +75,18 @@ function PlanSummaryCard({ plan }) {
 }
 
 export default function TrydoodOutlet() {
-  const { formData } = useOnboardingStore();
-  const navigate     = useNavigate();
+  const { brand, loading } = useBrand();
+  const navigate = useNavigate();
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
   const brandData = {
-    companyName:   formData.gstDetails?.legalName   || formData.businessName || "—",
-    merchantToken: formData.brandId                  || "—",
-    gstNo:         formData.gstDetails?.gstNumber    || formData.gstin        || "—",
-    panNo:         formData.pan                      || "—",
+    companyName:   brand?.legalBusinessName || brand?.brandName || "—",
+    merchantToken: brand?.merchantId || "—",
+    gstNo:         brand?.gst?.gstNumber || "—",
+    panNo:         brand?.pan?.pan || "—",
   };
 
   const handleAddListing = () => navigate("/brand-outlet");
