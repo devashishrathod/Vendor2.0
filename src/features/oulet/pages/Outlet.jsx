@@ -54,9 +54,9 @@ function PlanSummaryCard({ plan }) {
 
       {/* Rows */}
       <div className="px-5 py-4 space-y-3">
-        <p className="text-sm font-semibold text-gray-700 mb-3">
+        {/* <p className="text-sm font-semibold text-gray-700 mb-3">
           Plan Name : {plan.name}
-        </p>
+        </p> */}
         {rows.map((row) => (
           <div key={row.label} className="flex items-center justify-between">
             <span className="text-sm text-gray-600">{row.label}</span>
