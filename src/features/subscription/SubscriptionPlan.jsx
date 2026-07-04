@@ -6,6 +6,7 @@ import PlanComparisonTable from "./PlanComparisonTable";
 import { useNavigate } from "react-router-dom";
 import { useBlockBack } from "@/hooks/useBlockBack";
 import { useLogout } from "@/hooks/useLogout"; // ← path apne project ke hisaab se adjust karo
+import { useBrand } from "../../hooks/useBrand";
 
 export default function SubscriptionPlan({
   businessName: propBusinessName = "Yoga Education and Research Pvt Ltd",
@@ -15,28 +16,28 @@ export default function SubscriptionPlan({
   const { handleLogout } = useLogout(); // ← hook se lo
 
   const [selectedPlan, setSelectedPlan] = useState("advanced");
-  const [businessName, setBusinessName] = useState(propBusinessName);
 
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem("onboarding-store");
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        const name =
-          parsed?.state?.formData?.businessName ||
-          parsed?.formData?.businessName ||
-          parsed?.businessName;
-        if (name) setBusinessName(name);
-      }
-    } catch (e) {
-      console.error("localStorage parse error:", e);
-    }
-  }, []);
+  const { brand, loading } = useBrand();
+
+
+
+
+ 
+
 
   const handlePurchase = (plan) => {
     console.log("Purchase:", plan);
     navigate("/subscription/checkout");
   };
+  const businessName =
+  brand?.gst?.legalName ||
+  brand?.brandName ||
+  propBusinessName;
+
+     console.log("Brand details:", brand);
+if (loading) {
+  return <div>Loading...</div>;
+}
 
   return (
     <div className="min-h-screen bg-white relative overflow-hidden">

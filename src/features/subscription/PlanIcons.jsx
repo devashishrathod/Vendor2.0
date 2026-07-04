@@ -1,14 +1,19 @@
-// ── Pie-style plan tab icons (matches original UI) ────────────────────────────
-export const PieIcon = ({ fill = 0.5, size = 28 }) => {
+export const PieIcon = ({ fill = 0.5, size = 28, active = false }) => {
   // fill: 0.25 = quarter, 0.5 = half, 0.75 = three-quarter, 1 = full
   const r = 10;
   const cx = 14;
   const cy = 14;
 
+  const activeColor = "#16A34A"; // green when tab is active
+  const fullColor = active ? activeColor : "#1f1b5c";
+  const halfColor = active ? activeColor : "#000000";
+  const otherColor = active ? activeColor : "#1e1b4b";
+  const strokeColor = active ? activeColor : "#d1d5db";
+
   if (fill >= 1) {
     return (
       <svg width={size} height={size} viewBox="0 0 28 28">
-        <circle cx={cx} cy={cy} r={r} fill="#1e1b4b" />
+        <circle cx={cx} cy={cy} r={r} fill={fullColor} />
       </svg>
     );
   }
@@ -32,10 +37,10 @@ export const PieIcon = ({ fill = 0.5, size = 28 }) => {
         cy={cy}
         r={r}
         fill="none"
-        stroke="#d1d5db"
+        stroke={strokeColor}
         strokeWidth="1.5"
       />
-      <path d={d} fill={fill === 0.5 ? "#10b981" : "#1e1b4b"} />
+      <path d={d} fill={fill === 0.5 ? halfColor : otherColor} />
     </svg>
   );
 };
