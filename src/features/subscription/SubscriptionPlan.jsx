@@ -5,36 +5,39 @@ import PlanPriceCard from "./PlanPriceCard";
 import PlanComparisonTable from "./PlanComparisonTable";
 import { useNavigate } from "react-router-dom";
 import { useBlockBack } from "@/hooks/useBlockBack";
+import { useLogout } from "@/hooks/useLogout"; // ← path apne project ke hisaab se adjust karo
+import { useBrand } from "../../hooks/useBrand";
 
 export default function SubscriptionPlan({
   businessName: propBusinessName = "Yoga Education and Research Pvt Ltd",
 }) {
-   useBlockBack(); // ✅ bas itna — back block ho jayega hamesha
+  useBlockBack();
   const navigate = useNavigate();
-  const [selectedPlan, setSelectedPlan] = useState("advanced");
-  const [businessName, setBusinessName] = useState(propBusinessName);
+  const { handleLogout } = useLogout(); // ← hook se lo
 
-  // ── Local storage se businessName lo ──
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem("onboarding-store");
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        const name =
-          parsed?.state?.formData?.businessName ||
-          parsed?.formData?.businessName ||
-          parsed?.businessName;
-        if (name) setBusinessName(name);
-      }
-    } catch (e) {
-      console.error("localStorage parse error:", e);
-    }
-  }, []);
+  const [selectedPlan, setSelectedPlan] = useState("advanced");
+
+  const { brand, loading } = useBrand();
+
+
+
+
+ 
+
 
   const handlePurchase = (plan) => {
     console.log("Purchase:", plan);
     navigate("/subscription/checkout");
   };
+  const businessName =
+  brand?.gst?.legalName ||
+  brand?.brandName ||
+  propBusinessName;
+
+     console.log("Brand details:", brand);
+if (loading) {
+  return <div>Loading...</div>;
+}
 
   return (
     <div className="min-h-screen bg-white relative overflow-hidden">
@@ -69,6 +72,33 @@ export default function SubscriptionPlan({
             "radial-gradient(ellipse at bottom left, rgba(16,185,129,0.15) 0%, transparent 70%)",
         }}
       />
+
+      {/* ── Top-right logout button ── */}
+      <div className="absolute top-4 right-5 z-20">
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-red-500 transition-colors duration-150 px-3 py-1.5 rounded-lg hover:bg-red-50 border border-transparent hover:border-red-100"
+        >
+          {/* simple power icon — no extra package needed */}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="15"
+            height="15"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+          Logout
+        </button>
+      </div>
 
       <div className="relative z-10 max-w-5xl mx-auto px-6 py-6">
         <div

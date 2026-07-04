@@ -78,7 +78,7 @@ const LockCircle = () => (
 
 const PendingCircle = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="flex-shrink-0">
-    <circle cx="12" cy="12" r="10" fill="#f3f4f6" stroke="#e5e7eb" strokeWidth="1.5" />
+    <circle cx="12" cy="12" r="10" fill="#f3f7ff" stroke="#e5e7eb" strokeWidth="1.5" />
     <circle cx="12" cy="12" r="3" fill="#d1d5db" />
   </svg>
 );
@@ -225,7 +225,7 @@ export default function Sidebar({
                     ${isActive      ? "text-emerald-800"
                     : isDoneLocked  ? "text-gray-500"
                     : isHardLocked  ? "text-gray-800"
-                                    : "text-gray-400"}`}>
+                                    : "text-gray-700"}`}>
                     {step.label}
                   </span>
                 </div>

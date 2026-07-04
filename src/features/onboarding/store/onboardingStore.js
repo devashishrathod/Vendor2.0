@@ -242,6 +242,22 @@ export const useOnboardingStore = create(
     {
       name:    "onboarding-store",
       storage: createJSONStorage(() => localStorage),
+
+      // ✅ FIX: version bump + migrate — purane browsers me stale/galat
+      // completedKeys (jaise pehle wale bug se PARTNER_CONTRACT ka "5:1"
+      // permanently lock ho jaana) automatically saaf ho jayenge,
+      // kisi ko manually localStorage clear karne ki zaroorat nahi.
+      version: 1,
+      migrate: (persistedState, persistedVersion) => {
+        if (persistedVersion < 1) {
+          return {
+            ...persistedState,
+            completedKeys: [],
+          };
+        }
+        return persistedState;
+      },
+
       partialize: (state) => ({
         currentStep:              state.currentStep,
         currentSubStep:           state.currentSubStep,

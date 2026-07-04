@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 
 export default function ErrorModal({ error, onDismiss, onRetry, duration = 10000 }) {
-  const { humanMessage, txnId } = error || {};
+  const { humanMessage, txnId, title } = error || {};
 
   useEffect(() => {
     if (!error) return;
@@ -48,7 +48,7 @@ export default function ErrorModal({ error, onDismiss, onRetry, duration = 10000
 
         <div className="flex-1 min-w-0">
           <p className="text-[13px] font-semibold text-red-800 m-0">
-            Verification failed
+            {/* {title || "Something went wrong"} */}
           </p>
           <p className="text-[12px] text-gray-500 mt-0.5 leading-snug break-words">
             {humanMessage || "Something went wrong. Please try again."}
@@ -59,27 +59,6 @@ export default function ErrorModal({ error, onDismiss, onRetry, duration = 10000
               ID: {txnId}
             </p>
           )}
-
-          {/* {onRetry && (
-            <button
-              onClick={() => {
-                onDismiss();
-                onRetry();
-              }}
-              className="mt-2 text-[12px] font-semibold text-red-600 hover:text-red-700
-                         flex items-center gap-1 transition-colors"
-            >
-              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2.5}
-                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                />
-              </svg>
-              Try again
-            </button>
-          )} */}
         </div>
 
         <button

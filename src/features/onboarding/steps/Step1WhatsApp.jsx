@@ -49,7 +49,8 @@ export default function Step1WhatsApp() {
   };
 
   return (
-    <div className="min-h-screen flex flex-row relative overflow-hidden bg-white">
+    <div className="min-h-screen flex flex-col md:flex-row relative overflow-hidden bg-white">
+      {/* ── Glow ── */}
       <div
         className="absolute bottom-0 left-0 w-[500px] h-[500px] pointer-events-none"
         style={{
@@ -65,15 +66,15 @@ export default function Step1WhatsApp() {
         }
       `}</style>
 
-      {/* ── Left ── */}
-      <div className="w-1/2 flex flex-col items-center justify-center pl-10 pr-6 relative z-10 gap-6">
+      {/* ── Left Panel ── */}
+      <div className="w-full md:w-1/2 flex flex-col items-center justify-center px-6 pt-10 pb-4 md:pt-0 md:pb-0 md:pl-10 md:pr-6 relative z-10 gap-4 md:gap-6">
         <img
           src={Image1}
           alt="Business Growth Illustration"
-          className="w-full max-w-md h-auto object-contain drop-shadow-sm"
+          className="w-48 sm:w-64 md:w-full md:max-w-md h-auto object-contain drop-shadow-sm"
         />
         <div className="text-center max-w-xs px-4">
-          <p className="text-gray-700 text-md font-medium leading-relaxed">
+          <p className="text-gray-700 text-sm md:text-md font-medium leading-relaxed">
             Grow your business with ease on <br />
             <span className="text-emerald-500 font-bold">Trydood.</span>
           </p>
@@ -85,33 +86,34 @@ export default function Step1WhatsApp() {
         </div>
       </div>
 
-      {/* ── Right ── */}
-      <div className="w-1/2 flex items-center justify-center relative z-10">
-        <div className="w-full max-w-sm px-8 py-10 flex flex-col">
+      {/* ── Divider (mobile only) ── */}
+      <div className="block md:hidden w-full px-8">
+        <div className="border-t border-gray-100" />
+      </div>
+
+      {/* ── Right Panel ── */}
+      <div className="w-full md:w-1/2 flex items-center justify-center relative z-10 px-4 py-8 md:py-0">
+        <div className="w-full max-w-sm px-6 sm:px-8 py-8 md:py-10 flex flex-col">
+          {/* Logo */}
           <div className="flex justify-center mb-4">
             <img
               src={Image2}
               alt="Trydood"
-              className="w-36 h-24 object-contain"
+              className="w-28 h-20 md:w-36 md:h-24 object-contain"
             />
           </div>
 
+          {/* Heading */}
           <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-1">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">
               Welcome <span className="text-emerald-500">Back!</span>
             </h2>
             <p className="text-sm text-gray-400">
               Enter your WhatsApp number to continue
             </p>
-            {/* <span className="inline-flex items-center gap-1.5 mt-2 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-50 border border-emerald-200 text-emerald-600">
-              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-              </svg>
-              Vendor Onboarding
-            </span> */}
           </div>
 
+          {/* Form */}
           <div className="flex flex-col gap-3">
             <div className="relative">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-gray-500 select-none">
@@ -196,6 +198,7 @@ export default function Step1WhatsApp() {
             </p>
           </div>
 
+          {/* Footer */}
           <div className="mt-8 pt-5 border-t border-gray-100 flex items-center justify-center gap-3">
             <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0">
               <svg

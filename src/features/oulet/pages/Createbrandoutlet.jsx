@@ -1,17 +1,10 @@
 import { useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import logo from "@/assets/Logo1.jpg"; 
+import logo from "@/assets/Logo1.jpg";
+import { useBrand } from "../../../hooks/useBrand";
+import { useLogout } from "@/hooks/useLogout"; // ← path apne project ke hisaab se adjust karo
 
 // ─── Static Data ───────────────────────────────────────────────────────────────
-const MERCHANT_DATA = {
-  token: "A4FG1WJOIUN20",
-  address:
-    "New No. 9 (Old No. 23), Plot No. 4363, 4th Floor, X Block 5th Street, Annanagar West, Chennai - 600040",
-  mapsLink: "https://maps.app.goo.gl/PgwWnUXuiNy5XuVg7",
-  latitude: "13.0827",
-  longitude: "80.2707",
-};
-
 const CATEGORIES = [
   "Food & Drinks","Health & Wellness","Beauty & Spa",
   "Education","Entertainment","Fitness",
@@ -25,7 +18,6 @@ const SUB_CATEGORIES = {
   Fitness:            ["Gym","Crossfit","Zumba","Swimming"],
 };
 
-// Description guidelines content
 const GUIDELINES = {
   logo: {
     title: "Brand Logo Guidelines",
@@ -62,6 +54,7 @@ const GUIDELINES = {
     sections: [
       { heading: "Pixel Size Rules", body: "Minimum 900×1200 px (portrait). Upload in 3:4 aspect ratio for best display." },
       { heading: "File Size Limit", body: "Maximum 1.5 MB per image. Use JPG or PNG format." },
+      { heading: "How Many", body: "Upload up to 5 photos. Add different angles — entrance, seating, décor, and signature spots." },
       { heading: "What to Capture", body: "Show your outlet's interior, seating, décor, lighting, and overall ambience. Natural light photos perform best." },
       { heading: "Do's", body: "✅ Bright, well-lit, high-resolution shots\n✅ Show the actual outlet space\n✅ Multiple angles encouraged" },
       { heading: "Don'ts", body: "❌ No stock photos or images from the internet\n❌ No blurry or dark images\n❌ No photos with people's faces without consent" },
@@ -73,6 +66,7 @@ const GUIDELINES = {
       { heading: "Size & Format", body: "Resolution: 900×1200 px (portrait, 3:4). Format: .mp4 or .gif only." },
       { heading: "Duration", body: "10 to 60 seconds. Videos under 30s typically get better engagement." },
       { heading: "File Size Limit", body: "Maximum 5 MB. Compress before uploading if needed." },
+      { heading: "How Many", body: "Upload up to 3 videos maximum." },
       { heading: "What to Record", body: "Capture the atmosphere — entrance walk-through, seating areas, signature dishes/services, or staff in action." },
       { heading: "Do's", body: "✅ Stable shots or smooth gimbal movement\n✅ Good ambient sound or background music\n✅ Show what makes your outlet unique" },
       { heading: "Don'ts", body: "❌ No shaky handheld footage\n❌ No copyright music\n❌ No promotional overlays or watermarks" },
@@ -208,115 +202,165 @@ function SectionHeader({ title, subtitle, guidelineKey, onGuidelineClick }) {
   );
 }
 
-// ─── Upload Box with Preview ───────────────────────────────────────────────────
-function UploadBox({ accept = "image/*", mediaType = "image", sizeRule, sizeLimit, extraCols = [] }) {
-  const [file, setFile]       = useState(null);
-  const [preview, setPreview] = useState(null);
-  const [showPreview, setShowPreview] = useState(false);
+// ─── Multi-file Upload Box with Preview (supports maxFiles) ───────────────────
+let mediaIdCounter = 0;
+
+function UploadBox({ accept = "image/*", mediaType = "image", sizeRule, sizeLimit, extraCols = [], maxFiles = 1 }) {
+  const [items, setItems] = useState([]); // [{id, file, preview}]
+  const [previewItem, setPreviewItem] = useState(null);
   const inputRef = useRef();
 
+  const remainingSlots = maxFiles - items.length;
+
   const handleFile = (e) => {
-    const f = e.target.files[0];
-    if (!f) return;
-    setFile(f);
-    setPreview(URL.createObjectURL(f));
+    const picked = Array.from(e.target.files || []);
+    if (!picked.length) return;
+
+    const allowed = picked.slice(0, remainingSlots);
+    const newItems = allowed.map((f) => ({
+      id: `m${mediaIdCounter++}`,
+      file: f,
+      preview: URL.createObjectURL(f),
+    }));
+
+    setItems((prev) => [...prev, ...newItems]);
+    e.target.value = ""; // allow re-selecting same file later
+  };
+
+  const removeItem = (id) => {
+    setItems((prev) => prev.filter((it) => it.id !== id));
   };
 
   return (
     <>
-      <div className="bg-[#f3f6fb] rounded-xl p-4 flex flex-wrap items-center gap-4">
-        {/* Info cols */}
-        <div className="grid gap-1 text-sm min-w-[120px]">
-          <span className="font-semibold text-gray-700">Pixel Size Rules</span>
-          <span className="text-gray-500">{sizeRule || "3:4 ratio (50×50 px)"}</span>
-        </div>
-        <div className="grid gap-1 text-sm min-w-[100px]">
-          <span className="font-semibold text-gray-700">Upload Size Limit</span>
-          <span className="text-gray-500">{sizeLimit || "1.5 MB"}</span>
-        </div>
-        {extraCols.map((col, i) => (
-          <div key={i} className="grid gap-1 text-sm min-w-[80px]">
-            <span className="font-semibold text-gray-700">{col.label}</span>
-            <span className="text-gray-500">{col.value}</span>
+      <div className="bg-[#f3f6fb] rounded-xl p-4">
+        <div className="flex flex-wrap items-center gap-4 mb-3">
+          {/* Info cols */}
+          <div className="grid gap-1 text-sm min-w-[120px]">
+            <span className="font-semibold text-gray-700">Pixel Size Rules</span>
+            <span className="text-gray-500">{sizeRule || "3:4 ratio (50×50 px)"}</span>
           </div>
-        ))}
-
-        {/* Thumbnail if uploaded */}
-        {preview && mediaType === "image" && (
-          <div className="w-12 h-12 rounded-lg overflow-hidden border border-gray-200 shrink-0">
-            <img src={preview} alt="thumb" className="w-full h-full object-cover" />
+          <div className="grid gap-1 text-sm min-w-[100px]">
+            <span className="font-semibold text-gray-700">Upload Size Limit</span>
+            <span className="text-gray-500">{sizeLimit || "1.5 MB"}</span>
           </div>
-        )}
-        {preview && mediaType === "video" && (
-          <div className="w-12 h-12 rounded-lg overflow-hidden border border-gray-200 shrink-0 bg-gray-800 flex items-center justify-center">
-            <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M6.3 2.841A1.5 1.5 0 004 4.11v11.78a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
-            </svg>
-          </div>
-        )}
-
-        {file && (
-          <span className="text-xs text-gray-500 max-w-[120px] truncate">{file.name}</span>
-        )}
-
-        <div className="flex items-center gap-2 ml-auto shrink-0">
-          {/* Eye icon — only when file is uploaded */}
-          {preview && (
-            <button
-              onClick={() => setShowPreview(true)}
-              title="Preview"
-              className="bg-indigo-600 text-white p-2.5 rounded-xl hover:bg-indigo-700 transition-colors"
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              </svg>
-            </button>
+          {extraCols.map((col, i) => (
+            <div key={i} className="grid gap-1 text-sm min-w-[80px]">
+              <span className="font-semibold text-gray-700">{col.label}</span>
+              <span className="text-gray-500">{col.value}</span>
+            </div>
+          ))}
+          {maxFiles > 1 && (
+            <div className="grid gap-1 text-sm min-w-[80px]">
+              <span className="font-semibold text-gray-700">Max Files</span>
+              <span className="text-gray-500">{items.length} / {maxFiles}</span>
+            </div>
           )}
 
-          {/* Upload button */}
-          <button
-            onClick={() => inputRef.current.click()}
-            className="flex items-center gap-2 bg-[#1a1a2e] text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-[#2d2d5e] transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-            </svg>
-            {file ? "Re-upload" : "Upload"}
-          </button>
-          <input ref={inputRef} type="file" accept={accept} className="hidden" onChange={handleFile} />
+          <div className="ml-auto shrink-0">
+            <button
+              onClick={() => inputRef.current.click()}
+              disabled={remainingSlots <= 0}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+                remainingSlots > 0
+                  ? "bg-[#1a1a2e] text-white hover:bg-[#2d2d5e]"
+                  : "bg-gray-200 text-gray-400 cursor-not-allowed"
+              }`}
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+              {items.length > 0 ? "Add More" : "Upload"}
+            </button>
+            <input
+              ref={inputRef}
+              type="file"
+              accept={accept}
+              multiple={maxFiles > 1}
+              className="hidden"
+              onChange={handleFile}
+            />
+          </div>
         </div>
+
+        {/* Thumbnails grid */}
+        {items.length > 0 && (
+          <div className="flex flex-wrap gap-3">
+            {items.map((it) => (
+              <div key={it.id} className="relative w-16 h-16 rounded-lg overflow-hidden border border-gray-200 group">
+                {mediaType === "video" ? (
+                  <div className="w-full h-full bg-gray-800 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M6.3 2.841A1.5 1.5 0 004 4.11v11.78a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
+                    </svg>
+                  </div>
+                ) : (
+                  <img src={it.preview} alt="thumb" className="w-full h-full object-cover" />
+                )}
+
+                <button
+                  onClick={() => setPreviewItem(it)}
+                  title="Preview"
+                  className="absolute inset-0 bg-black/0 hover:bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
+                >
+                  <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                </button>
+
+                <button
+                  onClick={() => removeItem(it.id)}
+                  title="Remove"
+                  className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs leading-none hover:bg-red-600"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Preview modal */}
-      {showPreview && preview && (
-        <MediaPreviewModal src={preview} type={mediaType} onClose={() => setShowPreview(false)} />
+      {previewItem && (
+        <MediaPreviewModal src={previewItem.preview} type={mediaType} onClose={() => setPreviewItem(null)} />
       )}
     </>
   );
 }
 
-// ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function CreateBrandOutlet() {
+  const { brand, loading } = useBrand();
   const [brandName,      setBrandName]      = useState("");
   const [category,       setCategory]       = useState("");
   const [subCategory,    setSubCategory]    = useState("");
   const [gstSameAsOutlet,setGstSameAsOutlet]= useState(false);
-  const [mapsLink,       setMapsLink]       = useState(MERCHANT_DATA.mapsLink);
+  const [mapsLink,       setMapsLink]       = useState("");
   const [latitude,       setLatitude]       = useState("");
   const [longitude,      setLongitude]      = useState("");
   const [saving,         setSaving]         = useState(false);
-  const [guidelineType,  setGuidelineType]  = useState(null); // modal type
+  const [guidelineType,  setGuidelineType]  = useState(null);
   const [showMap,        setShowMap]        = useState(false);
   const navigate = useNavigate();
+   const { handleLogout } = useLogout(); // ← hook se lo
+
+  // ✅ All hooks (including useCallback) declared BEFORE any early return
+  const openGuideline = useCallback((type) => setGuidelineType(type), []);
+  const closeGuideline = useCallback(() => setGuidelineType(null), []);
+
+  // ✅ Early return comes AFTER every hook call — never before
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center text-sm text-gray-500">Loading...</div>;
+  }
+
+  const merchantToken = brand?.merchantId || "—";
+  const gstAddress = brand?.gst?.address?.location || "";
+  const outletAddress = gstSameAsOutlet ? gstAddress : gstAddress;
 
   const handleSave = () => {
     setSaving(true);
     setTimeout(() => { setSaving(false); navigate("/under-review"); }, 2000);
   };
-
-  const openGuideline = useCallback((type) => setGuidelineType(type), []);
-  const closeGuideline = useCallback(() => setGuidelineType(null), []);
 
   const canShowMap = latitude.trim() !== "" && longitude.trim() !== "";
 
@@ -330,9 +374,9 @@ export default function CreateBrandOutlet() {
       )}
 
       {/* Navbar */}
-          <nav className="bg-white border-b border-gray-100 px-6 h-14 flex items-center justify-between sticky top-0 z-10">
+      <nav className="bg-white border-b border-gray-100 px-6 h-14 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-2">
-          <div className="w-12 h-12  flex items-center justify-center overflow-hidden">
+          <div className="w-12 h-12 flex items-center justify-center overflow-hidden">
             <img
               src={logo}
               alt="Trydood"
@@ -346,21 +390,37 @@ export default function CreateBrandOutlet() {
           </div>
         </div>
 
-        <div className="w-[34px] h-[34px] bg-purple-900 rounded-lg flex items-center justify-center cursor-pointer">
-          <svg
-            className="w-4 h-4 text-white"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-            />
+        {/* <div className="w-[34px] h-[34px] bg-purple-900 rounded-lg flex items-center justify-center cursor-pointer">
+          <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
           </svg>
-        </div>
+        </div> */}
+
+         <div className="absolute top-4 right-5 z-20">
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-red-500 transition-colors duration-150 px-3 py-1.5 rounded-lg hover:bg-red-50 border border-transparent hover:border-red-100"
+        >
+          {/* simple power icon — no extra package needed */}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="15"
+            height="15"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+          Logout
+        </button>
+      </div>
       </nav>
 
       <div className="max-w-4xl mx-auto px-4 py-8">
@@ -371,7 +431,7 @@ export default function CreateBrandOutlet() {
             <p className="text-sm text-gray-500 mt-1">You are just a few steps away from listing your event on Trydood!</p>
           </div>
           <div className="border-2 border-dashed border-blue-300 rounded-xl px-6 py-3 bg-blue-50 text-sm font-semibold text-gray-700 whitespace-nowrap">
-            Merchant Token : <span className="text-gray-900">{MERCHANT_DATA.token}</span>
+            Merchant Token : <span className="text-gray-900">{merchantToken}</span>
           </div>
         </div>
 
@@ -390,6 +450,7 @@ export default function CreateBrandOutlet() {
             mediaType="image"
             sizeRule="1:1 ratio (min 500×500 px)"
             sizeLimit="1.5 MB"
+            maxFiles={1}
           />
         </SectionCard>
 
@@ -485,9 +546,20 @@ export default function CreateBrandOutlet() {
               </div>
             </div>
 
+            {/* GST Registered Address (from API) */}
+            {/* <div className="mb-4 bg-[#f3f6fb] rounded-xl p-3">
+              <p className="text-sm font-semibold text-gray-700 mb-1 flex items-center gap-1.5">
+                <svg className="w-3.5 h-3.5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                GST Registered Address
+              </p>
+              <p className="text-sm text-gray-800">{gstAddress || "No GST address found on file."}</p>
+            </div> */}
+
             <div className="mb-3">
-              <p className="text-sm font-semibold text-gray-700 mb-1">Address</p>
-              <p className="text-sm text-gray-800">{MERCHANT_DATA.address}</p>
+              <p className="text-sm font-semibold text-gray-700 mb-1"> Address</p>
+              <p className="text-sm text-gray-800">{outletAddress || "Enter your outlet address"}</p>
             </div>
 
             <div>
@@ -496,6 +568,7 @@ export default function CreateBrandOutlet() {
                 type="text"
                 value={mapsLink}
                 onChange={(e) => setMapsLink(e.target.value)}
+                placeholder="https://maps.app.goo.gl/..."
                 className="w-full border border-gray-100 bg-[#f3f6fb] rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-400 text-gray-700"
               />
             </div>
@@ -518,7 +591,7 @@ export default function CreateBrandOutlet() {
                   type="text"
                   value={latitude}
                   onChange={(e) => setLatitude(e.target.value)}
-                  placeholder={`eg : ${MERCHANT_DATA.latitude}`}
+                  placeholder="eg : 13.0827"
                   className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-400 bg-white text-gray-700"
                 />
               </div>
@@ -528,7 +601,7 @@ export default function CreateBrandOutlet() {
                   type="text"
                   value={longitude}
                   onChange={(e) => setLongitude(e.target.value)}
-                  placeholder={`eg : ${MERCHANT_DATA.longitude}`}
+                  placeholder="eg : 80.2707"
                   className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-400 bg-white text-gray-700"
                 />
               </div>
@@ -561,11 +634,11 @@ export default function CreateBrandOutlet() {
           <h2 className="text-base font-bold text-gray-900 mb-4 px-1">Showcase Collection</h2>
         </div>
 
-        {/* Ambience Photos */}
+        {/* Ambience Photos — up to 5 */}
         <SectionCard>
           <SectionHeader
             title="Ambience Photo's"
-            subtitle="Ensure images follow our event card guidelines and are provided in both formats."
+            subtitle="Ensure images follow our event card guidelines. Upload up to 5 photos."
             guidelineKey="ambiencePhoto"
             onGuidelineClick={openGuideline}
           />
@@ -574,14 +647,15 @@ export default function CreateBrandOutlet() {
             mediaType="image"
             sizeRule="3:4 ratio (900×1200 px)"
             sizeLimit="1.5 MB"
+            maxFiles={5}
           />
         </SectionCard>
 
-        {/* Ambience Videos */}
+        {/* Ambience Videos — up to 3 */}
         <SectionCard>
           <SectionHeader
             title="Ambience Video's"
-            subtitle="Ensure videos follow our event card guidelines and are provided in both formats."
+            subtitle="Ensure videos follow our event card guidelines. Upload up to 3 videos."
             guidelineKey="ambienceVideo"
             onGuidelineClick={openGuideline}
           />
@@ -590,6 +664,7 @@ export default function CreateBrandOutlet() {
             mediaType="video"
             sizeRule="3:4 ratio (900×1200 px)"
             sizeLimit="5 MB"
+            maxFiles={3}
             extraCols={[
               { label: "Format",   value: "GIF or .mp4" },
               { label: "Duration", value: "10 to 60 secs" },

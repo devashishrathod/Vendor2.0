@@ -6,85 +6,11 @@ import {
 } from "@/features/onboarding/store/onboardingStore";
 import { STEPS } from "@/features/onboarding/constants/steps";
 import { verifyGST } from "@/features/onboarding/services/api/verify.api";
-import ErrorToast from "@/components/common/ErrorToast";
 import ErrorModal from "@/components/common/ErrorModal";
-import { parseApiError } from "@/hooks/useApiError";
+import Input from "@/components/common/Input";
+import SuccessToast from "@/components/common/SuccessToast";
 
-// ── Success Toast ────────────────────────────────────────────────────
-function SuccessToast({ show, gstin, onDismiss }) {
-  useEffect(() => {
-    if (!show) return;
-    const t = setTimeout(onDismiss, 3500);
-    return () => clearTimeout(t);
-  }, [show, onDismiss]);
 
-  if (!show) return null;
-  return (
-    <div
-      role="status"
-      className="fixed bottom-6 right-6 z-[9999] flex items-start gap-3 px-4 py-3 rounded-xl
-        max-w-sm w-[calc(100vw-3rem)]"
-      style={{
-        background: "#f0fdf4",
-        border: "0.5px solid #86efac",
-        borderLeft: "3px solid #22c55e",
-        animation: "slideInToast 0.22s cubic-bezier(0.34,1.4,0.64,1) both",
-      }}
-    >
-      <style>{`
-        @keyframes slideInToast {
-          from { opacity:0; transform:translateY(14px) scale(0.97); }
-          to   { opacity:1; transform:translateY(0) scale(1); }
-        }
-      `}</style>
-      <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0">
-        <svg
-          className="w-4 h-4 text-white"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={3}
-            d="M5 13l4 4L19 7"
-          />
-        </svg>
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-xs font-semibold text-emerald-800">
-          GST verified successfully
-        </p>
-        <p className="text-[11px] text-emerald-600 mt-0.5 font-mono tracking-widest truncate">
-          {gstin}
-        </p>
-        <p className="text-[10px] text-emerald-500 mt-1">
-          Redirecting to review screen…
-        </p>
-      </div>
-      <button
-        onClick={onDismiss}
-        aria-label="Dismiss"
-        className="text-emerald-400 hover:text-emerald-600 transition-colors flex-shrink-0"
-      >
-        <svg
-          className="w-4 h-4"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M6 18L18 6M6 6l12 12"
-          />
-        </svg>
-      </button>
-    </div>
-  );
-}
 
 // ── RuleRow ──────────────────────────────────────────────────────────
 function RuleRow({ label, passed, touched }) {
@@ -249,14 +175,26 @@ export default function Step8GSTEnter({ pan: panProp = "" }) {
 
       setTimeout(() => {
         goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.GST_READONLY);
-      }, 1500);
+      }, 3000);
     } catch (err) {
-      setApiError({
-        humanMessage: err.message ?? 'GST verification failed. Please try again.',
-        txnId: null,
-      });
+      const raw = err?.message ?? "";
+
+      const humanMessage =
+        raw === "Invalid ID number or combination of inputs" ||
+          raw === "vender api error"
+          ? "We couldn't find any GST record for the entered GST number. Please verify the GST number and try again."
+          : raw === "Insufficient wallet balance" ||
+            raw === "Forbidden: IP not allowed"
+            ? "GST verification is temporarily unavailable due to a service issue. Please try again after some time."
+            : raw || "Something went wrong while verifying the GST number. Please try again later.";
+
+      setApiError({ humanMessage, txnId: null });
       setShowModal(true);
-      setTimeout(() => { setShowModal(false); setApiError(null); }, 3500);
+
+      setTimeout(() => {
+        setShowModal(false);
+        setApiError(null);
+      }, 6000);
     } finally {
       setFetching(false);
     }
@@ -343,12 +281,12 @@ export default function Step8GSTEnter({ pan: panProp = "" }) {
         {/* LEFT — Input */}
         <div className="flex flex-col gap-4">
           <div className="flex flex-col">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+            {/* <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
               GSTIN
               <span className="text-red-400">*</span>
-            </label>
+            </label> */}
             <div className="relative">
-              <input
+              {/* <input
                 type="text"
                 placeholder="27ABCDE1234F1Z5"
                 value={upper}
@@ -366,7 +304,32 @@ export default function Step8GSTEnter({ pan: panProp = "" }) {
                         ? "border-orange-300 bg-orange-50/30 focus:border-orange-300 focus:ring-2 focus:ring-orange-50"
                         : "border-red-200 bg-red-50/30 focus:border-red-300 focus:ring-2 focus:ring-red-50"
                   }`}
+              /> */}
+
+              {/* // GSTIN input — pura purana div hata do: */}
+              <Input
+                label="GSTIN"
+                required
+                placeholder="27ABCDE1234F1Z5"
+                value={upper}
+                onChange={handleChange}
+                onBlur={() => gstin && setTouched(true)}
+                touched={touched}
+                isValid={isValid}
+                mono
+                uppercase
+                maxLength={15}
+                minLength={15}
+                errorMsg={
+                  hasPANMismatch
+                    ? undefined  // PANMismatchBanner already handles this
+                    : "Enter a valid 15-digit GSTIN"
+                }
+                successMsg="Valid GSTIN format"
               />
+
+             {/* // PANMismatchBanner alag se raho — uska logic alag hai */}
+              <PANMismatchBanner gstin={upper} pan={pan} />
               {touched && (
                 <div className="absolute right-3 top-1/2 -translate-y-1/2">
                   {isValid ? (
@@ -416,7 +379,7 @@ export default function Step8GSTEnter({ pan: panProp = "" }) {
           </div>
 
           {/* Status banner */}
-          {touched && !hasPANMismatch && (
+          {/* {touched && !hasPANMismatch && (
             <div
               className={`flex items-start gap-3 p-3 rounded-xl border transition-all duration-200
               ${isValid ? "bg-emerald-50 border-emerald-100" : "bg-red-50/60 border-red-100"}`}
@@ -470,7 +433,7 @@ export default function Step8GSTEnter({ pan: panProp = "" }) {
                 </p>
               </div>
             </div>
-          )}
+          )} */}
         </div>
 
         {/* RIGHT — Validation checklist */}
@@ -652,10 +615,8 @@ export default function Step8GSTEnter({ pan: panProp = "" }) {
         </button>
       </div>
 
-      {/* Toasts & Modal */}
       <SuccessToast
-        show={successMsg}
-        gstin={upper}
+        message={successMsg ? `GST verified: ${upper}` : null}
         onDismiss={() => setSuccessMsg(false)}
       />
       <ErrorModal
@@ -670,7 +631,7 @@ export default function Step8GSTEnter({ pan: panProp = "" }) {
           handleFetch();
         }}
       />
-     
+
     </div>
   );
 }

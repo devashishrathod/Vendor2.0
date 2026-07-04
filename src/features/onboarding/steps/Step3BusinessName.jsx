@@ -7,6 +7,7 @@ import {
 import { updateBusinessName } from "@/features/onboarding/services/api/brand.api";
 import SuccessToast from "@/components/common/SuccessToast";
 import ErrorToast from "@/components/common/ErrorToast";
+import Input from "@/components/common/Input";
 
 // ── UI-only helpers ──────────────────────────────────────────────
 
@@ -50,8 +51,8 @@ function ShortNameBadge({ value }) {
 }
 
 function CharRing({ value, max }) {
-  const pct  = Math.min(value / max, 1);
-  const r    = 10;
+  const pct = Math.min(value / max, 1);
+  const r = 10;
   const circ = 2 * Math.PI * r;
   const dash = circ * pct;
   const color = value > max ? "#ef4444" : value > max * 0.8 ? "#f59e0b" : "#10b981";
@@ -69,84 +70,84 @@ function CharRing({ value, max }) {
   );
 }
 
-function InputField({
-  label, optional, placeholder, value, onChange, onBlur, onKeyDown,
-  maxLength, error, valid, charMax, uppercase, validMessage, validNode,
-}) {
-  const [focused, setFocused] = useState(false);
-  return (
-    <div className="flex flex-col">
-      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
-        {label}
-        {!optional && <span className="text-red-400">*</span>}
-        {optional && (
-          <span className="bg-gray-100 text-gray-400 text-[9px] font-semibold px-1.5 py-0.5 rounded normal-case tracking-normal">
-            Optional
-          </span>
-        )}
-      </label>
-      <div className={`relative rounded-xl transition-all duration-200 ${focused ? "shadow-sm" : ""}`}>
-        <input
-          type="text"
-          placeholder={placeholder}
-          value={value}
-          onChange={onChange}
-          onBlur={() => { setFocused(false); onBlur?.(); }}
-          onFocus={() => setFocused(true)}
-          onKeyDown={onKeyDown}
-          maxLength={maxLength}
-          className={`w-full px-4 py-3 pr-12 bg-white border rounded-xl text-sm text-gray-800
-            placeholder:text-gray-300 outline-none transition-all duration-200
-            ${uppercase ? "font-bold tracking-widest uppercase" : "font-normal"}
-            ${error
-              ? "border-red-200 bg-red-50/30 focus:border-red-300 focus:ring-2 focus:ring-red-50"
-              : valid
-                ? "border-emerald-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50"
-                : "border-gray-200 focus:border-emerald-300 focus:ring-2 focus:ring-emerald-50"
-            }`}
-        />
-        <div className="absolute right-3 top-1/2 -translate-y-1/2">
-          {value.length > 0 ? (
-            <CharRing value={value.length} max={charMax} />
-          ) : (
-            <span className="text-gray-300 text-[10px] font-medium">{charMax}</span>
-          )}
-        </div>
-      </div>
-      <div className="min-h-[22px]">
-        {error ? (
-          <ErrorMessage message={error} />
-        ) : valid && validNode ? (
-          validNode
-        ) : valid && validMessage ? (
-          <SuccessNote text={validMessage} />
-        ) : null}
-      </div>
-    </div>
-  );
-}
+// function InputField({
+//   label, optional, placeholder, value, onChange, onBlur, onKeyDown,
+//   maxLength, error, valid, charMax, uppercase, validMessage, validNode,
+// }) {
+//   const [focused, setFocused] = useState(false);
+//   return (
+//     <div className="flex flex-col">
+//       <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+//         {label}
+//         {!optional && <span className="text-red-400">*</span>}
+//         {optional && (
+//           <span className="bg-gray-100 text-gray-400 text-[9px] font-semibold px-1.5 py-0.5 rounded normal-case tracking-normal">
+//             Optional
+//           </span>
+//         )}
+//       </label>
+//       <div className={`relative rounded-xl transition-all duration-200 ${focused ? "shadow-sm" : ""}`}>
+//         <input
+//           type="text"
+//           placeholder={placeholder}
+//           value={value}
+//           onChange={onChange}
+//           onBlur={() => { setFocused(false); onBlur?.(); }}
+//           onFocus={() => setFocused(true)}
+//           onKeyDown={onKeyDown}
+//           maxLength={maxLength}
+//           className={`w-full px-4 py-3 pr-12 bg-white border rounded-xl text-sm text-gray-800
+//             placeholder:text-gray-300 outline-none transition-all duration-200
+//             ${uppercase ? "font-bold tracking-widest uppercase" : "font-normal"}
+//             ${error
+//               ? "border-red-200 bg-red-50/30 focus:border-red-300 focus:ring-2 focus:ring-red-50"
+//               : valid
+//                 ? "border-emerald-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50"
+//                 : "border-gray-200 focus:border-emerald-300 focus:ring-2 focus:ring-emerald-50"
+//             }`}
+//         />
+//         <div className="absolute right-3 top-1/2 -translate-y-1/2">
+//           {value.length > 0 ? (
+//             <CharRing value={value.length} max={charMax} />
+//           ) : (
+//             <span className="text-gray-300 text-[10px] font-medium">{charMax}</span>
+//           )}
+//         </div>
+//       </div>
+//       <div className="min-h-[22px]">
+//         {error ? (
+//           <ErrorMessage message={error} />
+//         ) : valid && validNode ? (
+//           validNode
+//         ) : valid && validMessage ? (
+//           <SuccessNote text={validMessage} />
+//         ) : null}
+//       </div>
+//     </div>
+//   );
+// }
 
 // ── Main component ────────────────────────────────────────────────
 
 export default function Step3BusinessName() {
-  const savedName      = useOnboardingStore((s) => s.formData.businessName);
+  const savedName = useOnboardingStore((s) => s.formData.businessName);
   const savedShortName = useOnboardingStore((s) => s.formData.shortName);
-  const currentStep    = useOnboardingStore((s) => s.currentStep);
+  const currentStep = useOnboardingStore((s) => s.currentStep);
   const currentSubStep = useOnboardingStore((s) => s.currentSubStep);
   const { setSubStep, setField, markComplete } = useOnboardingStore();
 
-  const NAME_MAX  = 60;
+  const NAME_MAX = 60;
   const SHORT_MAX = 10;
 
-  const [name,         setName]         = useState(savedName      ?? "");
-  const [nameError,    setNameError]    = useState(null);
-  const [nameTouched,  setNameTouched]  = useState(false);
-  const [shortName,    setShortName]    = useState(savedShortName ?? "");
-  const [shortError,   setShortError]   = useState(null);
+  const [name, setName] = useState(savedName ?? "");
+  const [nameError, setNameError] = useState(null);
+  const [nameTouched, setNameTouched] = useState(false);
+  const [shortName, setShortName] = useState(savedShortName ?? "");
+  const [shortError, setShortError] = useState(null);
   const [shortTouched, setShortTouched] = useState(false);
-  const [successMsg,   setSuccessMsg]   = useState(null);
-  const [loading,      setLoading]      = useState(false);
-  const [apiError,     setApiError]     = useState(null);
+  const [successMsg, setSuccessMsg] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [apiError, setApiError] = useState(null);
 
   const handleNameChange = (e) => {
     setName(e.target.value);
@@ -195,9 +196,9 @@ export default function Step3BusinessName() {
   };
 
   const handleKeyDown = (e) => { if (e.key === "Enter") handleContinue(); };
-  const nameValid     = !validateBusinessName(name) && name.trim().length > 0;
-  const shortValid    = !validateShortName(shortName) && shortName.trim().length > 0;
-  const canContinue   = name.trim().length > 0 && !loading;
+  const nameValid = !validateBusinessName(name) && name.trim().length > 0;
+  const shortValid = !validateShortName(shortName) && shortName.trim().length > 0;
+  const canContinue = name.trim().length > 0 && !loading;
 
   return (
     <div className="relative w-full max-w-4xl mx-auto " style={{ minHeight: 480 }}>
@@ -236,7 +237,7 @@ export default function Step3BusinessName() {
 
             {/* Inputs */}
             <div className="grid grid-cols-2 gap-4 mb-4 step-in" style={{ animationDelay: "0.05s" }}>
-              <InputField
+              {/* <InputField
                 label="Legal Business Name"
                 placeholder="e.g. Kentucky Fried Chicken"
                 value={name}
@@ -263,7 +264,46 @@ export default function Step3BusinessName() {
                 valid={shortValid}
                 uppercase
                 validNode={<ShortNameBadge value={shortName} />}
+              /> */}
+
+              {/* import Input from "@/components/common/Input";
+
+              // Legal Business Name — pura purana InputField hata do: */}
+              <Input
+                label="Legal Business Name"
+                required
+                placeholder="e.g. Kentucky Fried Chicken"
+                value={name}
+                onChange={handleNameChange}
+                onBlur={() => { setNameTouched(true); setNameError(validateBusinessName(name)); }}
+                onKeyDown={handleKeyDown}
+                touched={nameTouched}
+                isValid={nameValid}
+                maxLength={60}
+                minLength={3}
+                errorMsg={nameError}
+                successMsg="Looks good!"
               />
+
+
+              <Input
+                label="Short Name"
+                optional
+                placeholder="KFC"
+                value={shortName}
+                onChange={handleShortChange}
+                onBlur={() => { setShortTouched(true); setShortError(validateShortName(shortName)); }}
+                onKeyDown={handleKeyDown}
+                touched={shortTouched}
+                isValid={shortValid}
+                mono
+                uppercase
+                maxLength={10}
+                minLength={2}
+                errorMsg={shortError}
+              />
+
+              {/* // {shortValid && <ShortNameBadge value={shortName} />} */}
             </div>
 
             {/* Tips panel */}
@@ -349,7 +389,14 @@ export default function Step3BusinessName() {
         </div>
       </div>
 
-      <SuccessToast message={successMsg} onDismiss={() => setSuccessMsg(null)} />
+     {/* // SuccessToast mein navigate karo: */}
+      <SuccessToast
+        message={successMsg}
+        onDismiss={() => {
+          setSuccessMsg(null);
+          setSubStep(BASIC_SUB.REGISTRATION_STATUS);
+        }}
+      />
       <ErrorToast error={apiError} onDismiss={() => setApiError(null)} />
 
     </div>

@@ -84,7 +84,7 @@ function MobileHeader({ title, sub, onMenuOpen, pct, displayIndex, totalSteps, i
         <button
           onClick={onMenuOpen}
           className="w-9 h-9 flex items-center justify-center rounded-xl
-            bg-gray-50 border border-gray-200 text-gray-500 hover:bg-emerald-50
+            bg-gray-50 border border-gray-200 text-gray-800 hover:bg-emerald-50
             hover:border-emerald-200 hover:text-emerald-600 transition-all cursor-pointer"
           aria-label="Open menu"
         >
@@ -191,7 +191,7 @@ export default function OnboardingPage() {
   const partnerContractDone = isCompleted(STEPS.PARTNER_CONTRACT, 1);
   const isFirst = currentStep === STEPS.BASIC_DETAILS && currentSubStep === 1;
 
-  // ✅ CHANGED: partner contract done ho to browser back button block karo
+  // partner contract done ho to browser back button block karo
   useEffect(() => {
     if (!partnerContractDone) return;
 
@@ -220,8 +220,13 @@ export default function OnboardingPage() {
   }
 
   function resolveComponent(step, subStep) {
-    // ✅ CHANGED: PARTNER_CONTRACT ko bhi lock karo
+    // ✅ FIX: Partner Contract ka lock sirf uske apne completion status pe depend karega,
+    // "systemVerifyDone" global shortcut par nahi — warna checkbox page pe aate hi
+    // pehle se locked dikhta tha, chahe user ne abhi accept hi na kiya ho.
     const locked = (() => {
+      if (step === STEPS.PARTNER_CONTRACT) {
+        return isCompleted(step, subStep);
+      }
       if (systemVerifyDone) return true;
       return isCompleted(step, subStep);
     })();
@@ -384,9 +389,9 @@ export default function OnboardingPage() {
         </header>
 
         <div className="flex-1 flex flex-col min-h-0 py-4 px-4 sm:py-6 sm:px-6 lg:px-8">
-          {hasSubDots && (
+          {/* {hasSubDots && (
             <SubStepDots total={SUB_TOTALS[currentStep]} current={currentSubStep} />
-          )}
+          )} */}
 
           <div
             key={`${currentStep}-${currentSubStep}`}
