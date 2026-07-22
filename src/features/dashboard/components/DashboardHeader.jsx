@@ -6,7 +6,7 @@ const NAV_TABS = [
   { label: "Analysis Report", to: "/analysis-report" },
   { label: "Transactions",    to: "/transactions"        },
   { label: "Settlements",     to: "/settlements"      },
-  { label: "Voucher",         to: "/voucher"          },
+  { label: "Voucher",         to: "/vouchers"          },
   { label: "Deal Pack",       to: "/deal-pack"        },
   { label: "Membership",      to: "/membership"       },
   { label: "More",            to: "/more"             },
