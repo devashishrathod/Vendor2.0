@@ -1,8 +1,98 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import logo from "@/assets/Logo1.jpg";
 import { useBrand } from "../../../hooks/useBrand";
 import { useLogout } from "@/hooks/useLogout"; // ← path apne project ke hisaab se adjust karo
+
+// ─── Google Maps config ─────────────────────────────────────────────────────
+// NOTE: This key is visible to anyone who opens devtools since it ships in the
+// frontend bundle. Restrict it in Google Cloud Console (HTTP referrer
+// restriction to your domain + limit to Maps JS/Places/Geocoding APIs) before
+// shipping.
+const GOOGLE_MAPS_API_KEY = "AIzaSyBmg8zWrXA_taDUSrpWRN2sbd7csdPgKLM";
+
+let googleMapsLoadingPromise = null;
+function loadGoogleMapsScript() {
+  if (window.google?.maps?.places) return Promise.resolve(window.google);
+  if (googleMapsLoadingPromise) return googleMapsLoadingPromise;
+
+  googleMapsLoadingPromise = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`;
+    script.async = true;
+    script.defer = true;
+    script.onload = () => resolve(window.google);
+    script.onerror = () => reject(new Error("Failed to load Google Maps script"));
+    document.head.appendChild(script);
+  });
+
+  return googleMapsLoadingPromise;
+}
+
+// The Places "Text Search" REST endpoint (the one in the Postman request)
+// does not allow direct browser calls (CORS-blocked). PlacesService.textSearch
+// on the JS SDK hits the same data and works fine client-side.
+function textSearchPlaces(query) {
+  return loadGoogleMapsScript().then(
+    (google) =>
+      new Promise((resolve, reject) => {
+        const service = new google.maps.places.PlacesService(document.createElement("div"));
+        service.textSearch({ query }, (results, status) => {
+          if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+            resolve(results);
+          } else if (status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
+            resolve([]);
+          } else {
+            reject(new Error(`Places search failed: ${status}`));
+          }
+        });
+      })
+  );
+}
+
+// Once a result is picked from the text-search list we fetch the full
+// "Place Details" record (same fields as the Postman /place/details/json
+// call: name, formatted_address, geometry, address_component) so we get
+// accurate lat/lng + a clean address to store. Uses the JS SDK's
+// PlacesService.getDetails so there's no CORS issue.
+function getPlaceDetails(placeId) {
+  return loadGoogleMapsScript().then(
+    (google) =>
+      new Promise((resolve, reject) => {
+        const service = new google.maps.places.PlacesService(document.createElement("div"));
+        service.getDetails(
+          { placeId, fields: ["name", "formatted_address", "geometry", "address_component"] },
+          (place, status) => {
+            if (status === google.maps.places.PlacesServiceStatus.OK && place) {
+              resolve(place);
+            } else {
+              reject(new Error(`Place details fetch failed: ${status}`));
+            }
+          }
+        );
+      })
+  );
+}
+
+// For the "use my live location" flow we get lat/lng from the browser's
+// geolocation API, then Reverse Geocode it (same idea as the Postman
+// /maps/api/geocode/json?latlng=...&key=... request) to turn coordinates
+// into a readable address. Using the JS SDK's Geocoder avoids CORS issues.
+function reverseGeocode(lat, lng) {
+  return loadGoogleMapsScript().then(
+    (google) =>
+      new Promise((resolve, reject) => {
+        const geocoder = new google.maps.Geocoder();
+        geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+          if (status === "OK" && results && results[0]) {
+            resolve(results[0]);
+          } else {
+            reject(new Error(`Reverse geocoding failed: ${status}`));
+          }
+        });
+      })
+  );
+}
 
 // ─── Static Data ───────────────────────────────────────────────────────────────
 const CATEGORIES = [
@@ -43,10 +133,11 @@ const GUIDELINES = {
     title: "Map & Location Guidelines",
     sections: [
       { heading: "Why Location Matters", body: "Accurate location helps customers find you on the map and improves your discoverability in nearby searches." },
-      { heading: "Google Maps Link", body: "Paste the exact share link from Google Maps (starts with https://maps.app.goo.gl/ or https://www.google.com/maps/)." },
-      { heading: "Latitude & Longitude", body: "Enter decimal degree format. Example: Latitude 13.0827, Longitude 80.2707. Avoid using ° N/E notation in the fields." },
-      { heading: "Do's", body: "✅ Pin the exact entrance of your outlet\n✅ Verify pin on the map preview before saving\n✅ Keep coordinates to at least 4 decimal places" },
-      { heading: "Don'ts", body: "❌ Do not use approximate area coordinates\n❌ Do not leave coordinates blank if maps link is added\n❌ Do not use DMS format (e.g. 13°04'57\"N)" },
+      { heading: "Search Your Outlet", body: "Type your outlet name and city (e.g. \"Toni & Guy Ahmedabad\") and pick the matching result from the list." },
+      { heading: "Use Live Location", body: "Alternatively, allow browser location access to auto-detect your current position and address — handy when you're standing at the outlet." },
+      { heading: "Google Maps Link", body: "Paste the exact share link from Google Maps (starts with https://maps.app.goo.gl/ or https://www.google.com/maps/) as a backup if search doesn't find your outlet." },
+      { heading: "Do's", body: "✅ Search using your outlet's exact name and area\n✅ Verify the pin on the map preview before saving\n✅ Pick the listing that matches your entrance, not a nearby landmark" },
+      { heading: "Don'ts", body: "❌ Do not select an approximate area instead of your outlet\n❌ Do not leave the location unselected\n❌ Do not pick a duplicate or unrelated listing" },
     ],
   },
   ambiencePhoto: {
@@ -135,14 +226,14 @@ function MediaPreviewModal({ src, type, onClose }) {
 }
 
 // ─── Map Preview Modal ─────────────────────────────────────────────────────────
-function MapModal({ lat, lng, onClose }) {
-  const mapSrc = `https://maps.google.com/maps?q=${lat},${lng}&z=15&output=embed`;
+function MapModal({ lat, lng, label, onClose }) {
+  const mapSrc = `https://maps.google.com/maps?q=${lat},${lng}&z=16&output=embed`;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
           <div>
-            <p className="text-sm font-bold text-gray-900">Map Preview</p>
+            <p className="text-sm font-bold text-gray-900">{label || "Map Preview"}</p>
             <p className="text-xs text-gray-500">Lat: {lat} · Lng: {lng}</p>
           </div>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
@@ -329,6 +420,277 @@ function UploadBox({ accept = "image/*", mediaType = "image", sizeRule, sizeLimi
   );
 }
 
+// ─── Outlet Location Search (Google Places Text Search + Place Details) ───────
+function OutletLocationSearch({ selectedPlace, onSelectPlace, onShowMap }) {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [hasSearched, setHasSearched] = useState(false);
+
+  // Preload the Maps script as soon as this section mounts so the first
+  // search doesn't have to wait for the script tag to load.
+  useEffect(() => {
+    loadGoogleMapsScript().catch(() => {
+      // silently ignore here — surfaced properly when the user actually searches
+    });
+  }, []);
+
+  const runSearch = async () => {
+    const trimmed = query.trim();
+    if (!trimmed) return;
+
+    setSearching(true);
+    setError("");
+    setHasSearched(true);
+    try {
+      const places = await textSearchPlaces(trimmed);
+      setResults(places);
+    } catch (err) {
+      setError("Couldn't fetch results. Check your connection and try again.");
+      setResults([]);
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      runSearch();
+    }
+  };
+
+  // User picked a row from the search list → fetch full Place Details
+  // (name, formatted_address, geometry, address_component) using the
+  // place_id, mirroring the Postman /place/details/json request.
+  const pickPlace = async (place) => {
+    if (!place.place_id) return;
+    setDetailsLoading(true);
+    setError("");
+    try {
+      const details = await getPlaceDetails(place.place_id);
+      const loc = details.geometry?.location;
+      if (!loc) {
+        setError("This place has no location data. Try another result.");
+        return;
+      }
+      onSelectPlace({
+        name: details.name,
+        address: details.formatted_address,
+        lat: typeof loc.lat === "function" ? loc.lat() : loc.lat,
+        lng: typeof loc.lng === "function" ? loc.lng() : loc.lng,
+        placeId: place.place_id,
+        addressComponents: details.address_components || [],
+        source: "search",
+      });
+      setResults([]);
+      setQuery("");
+      setHasSearched(false);
+    } catch (err) {
+      setError("Couldn't fetch details for that place. Try again.");
+    } finally {
+      setDetailsLoading(false);
+    }
+  };
+
+  return (
+    <div className="border border-gray-200 rounded-xl p-4">
+      <div className="flex items-start gap-3 mb-4">
+        <svg className="w-4 h-4 text-indigo-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+        <div>
+          <p className="text-sm font-bold text-gray-800">Find Your Outlet Location Using Google Maps.</p>
+          <p className="text-sm text-gray-500 mt-0.5">Search your outlet name and city, then pick it from the results.</p>
+        </div>
+      </div>
+
+      <div className="flex gap-2 mb-3">
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="eg : Toni & Guy Ahmedabad"
+          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-400 bg-white text-gray-700"
+        />
+        <button
+          onClick={runSearch}
+          disabled={searching || !query.trim()}
+          className={`shrink-0 px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+            searching || !query.trim()
+              ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+              : "bg-indigo-600 text-white hover:bg-indigo-700"
+          }`}
+        >
+          {searching ? "Searching…" : "Search"}
+        </button>
+      </div>
+
+      {error && <p className="text-xs text-red-500 mb-3">{error}</p>}
+
+      {results.length > 0 && (
+        <div className="mb-4 max-h-64 overflow-y-auto rounded-xl border border-gray-100 divide-y divide-gray-100">
+          {results.map((place) => (
+            <button
+              key={place.place_id}
+              onClick={() => pickPlace(place)}
+              disabled={detailsLoading}
+              className="w-full text-left px-4 py-3 hover:bg-[#f3f6fb] transition-colors flex items-start gap-3 disabled:opacity-60"
+            >
+              <svg className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <span>
+                <span className="block text-sm font-semibold text-gray-800">{place.name}</span>
+                <span className="block text-xs text-gray-500 mt-0.5">{place.formatted_address}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {detailsLoading && <p className="text-xs text-gray-400 mb-4">Fetching place details…</p>}
+
+      {hasSearched && !searching && results.length === 0 && !error && (
+        <p className="text-xs text-gray-400 mb-4">No matches found. Try a different search term.</p>
+      )}
+
+      {selectedPlace ? (
+        <div className="bg-[#f3f6fb] rounded-xl p-4">
+          <p className="text-xs font-semibold text-gray-500 mb-1">Selected Outlet Location</p>
+          <p className="text-sm font-bold text-gray-900">{selectedPlace.name}</p>
+          <p className="text-sm text-gray-600 mt-0.5">{selectedPlace.address}</p>
+          <div className="flex gap-2 mt-3">
+            <button
+              onClick={onShowMap}
+              className="flex-1 bg-indigo-600 text-white font-semibold py-2.5 rounded-xl text-sm hover:bg-indigo-700 transition-colors"
+            >
+              Show on Google Map
+            </button>
+            <button
+              onClick={() => onSelectPlace(null)}
+              className="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-500 hover:bg-gray-100 transition-colors"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+      ) : (
+        <p className="text-xs text-gray-400 text-center">Search above and select your outlet to pin its location</p>
+      )}
+    </div>
+  );
+}
+
+// ─── Live Location Picker (Geolocation + Reverse Geocoding) ───────────────────
+function LiveLocationPicker({ selectedPlace, onSelectPlace, onShowMap }) {
+  const [fetching, setFetching] = useState(false);
+  const [error, setError] = useState("");
+
+  const useMyLocation = () => {
+    if (!("geolocation" in navigator)) {
+      setError("Geolocation isn't supported by this browser.");
+      return;
+    }
+
+    setFetching(true);
+    setError("");
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        try {
+          const result = await reverseGeocode(latitude, longitude);
+          onSelectPlace({
+            name: "Current Location",
+            address: result.formatted_address,
+            lat: latitude,
+            lng: longitude,
+            placeId: result.place_id,
+            addressComponents: result.address_components || [],
+            source: "live",
+          });
+        } catch (err) {
+          setError("Got your location, but couldn't resolve an address. Try again.");
+        } finally {
+          setFetching(false);
+        }
+      },
+      (err) => {
+        setFetching(false);
+        if (err.code === err.PERMISSION_DENIED) {
+          setError("Location permission was denied. Allow location access in your browser to use this.");
+        } else if (err.code === err.TIMEOUT) {
+          setError("Timed out getting your location. Try again.");
+        } else {
+          setError("Couldn't get your location. Try again.");
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  };
+
+  return (
+    <div className="border border-gray-200 rounded-xl p-4">
+      <div className="flex items-start gap-3 mb-4">
+        <svg className="w-4 h-4 text-indigo-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+        <div>
+          <p className="text-sm font-bold text-gray-800">Use Your Live Location</p>
+          <p className="text-sm text-gray-500 mt-0.5">Allow location access from your browser and we'll auto-detect your outlet's address.</p>
+        </div>
+      </div>
+
+      <button
+        onClick={useMyLocation}
+        disabled={fetching}
+        className={`w-full flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+          fetching
+            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+            : "bg-indigo-600 text-white hover:bg-indigo-700"
+        }`}
+      >
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        {fetching ? "Fetching your location…" : "Use My Current Location"}
+      </button>
+
+      {error && <p className="text-xs text-red-500 mt-3">{error}</p>}
+
+      {selectedPlace?.source === "live" ? (
+        <div className="bg-[#f3f6fb] rounded-xl p-4 mt-3">
+          <p className="text-xs font-semibold text-gray-500 mb-1">Detected Address</p>
+          <p className="text-sm text-gray-800">{selectedPlace.address}</p>
+          <div className="flex gap-2 mt-3">
+            <button
+              onClick={onShowMap}
+              className="flex-1 bg-indigo-600 text-white font-semibold py-2.5 rounded-xl text-sm hover:bg-indigo-700 transition-colors"
+            >
+              Show on Google Map
+            </button>
+            <button
+              onClick={() => onSelectPlace(null)}
+              className="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-500 hover:bg-gray-100 transition-colors"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+      ) : (
+        !fetching && <p className="text-xs text-gray-400 text-center mt-3">Tap the button above and allow location access when prompted</p>
+      )}
+    </div>
+  );
+}
+
 export default function CreateBrandOutlet() {
   const { brand, loading } = useBrand();
   const [brandName,      setBrandName]      = useState("");
@@ -336,8 +698,8 @@ export default function CreateBrandOutlet() {
   const [subCategory,    setSubCategory]    = useState("");
   const [gstSameAsOutlet,setGstSameAsOutlet]= useState(false);
   const [mapsLink,       setMapsLink]       = useState("");
-  const [latitude,       setLatitude]       = useState("");
-  const [longitude,      setLongitude]      = useState("");
+  const [locationMode,   setLocationMode]   = useState("search"); // "search" | "live"
+  const [selectedPlace,  setSelectedPlace]  = useState(null); // { name, address, lat, lng, placeId, addressComponents, source }
   const [saving,         setSaving]         = useState(false);
   const [guidelineType,  setGuidelineType]  = useState(null);
   const [showMap,        setShowMap]        = useState(false);
@@ -347,6 +709,13 @@ export default function CreateBrandOutlet() {
   // ✅ All hooks (including useCallback) declared BEFORE any early return
   const openGuideline = useCallback((type) => setGuidelineType(type), []);
   const closeGuideline = useCallback(() => setGuidelineType(null), []);
+
+  // Switching mode clears whatever was picked in the other mode so we never
+  // submit a stale location that doesn't match the selected checkbox.
+  const switchLocationMode = useCallback((mode) => {
+    setLocationMode(mode);
+    setSelectedPlace(null);
+  }, []);
 
   // ✅ Early return comes AFTER every hook call — never before
   if (loading) {
@@ -359,18 +728,37 @@ export default function CreateBrandOutlet() {
 
   const handleSave = () => {
     setSaving(true);
+
+    // Final payload to send to the backend — includes whichever location
+    // source (search vs live) the vendor picked via the checkboxes.
+    const payload = {
+      brandName,
+      category,
+      subCategory,
+      gstSameAsOutlet,
+      mapsLink,
+      locationMode,
+      location: selectedPlace, // { name, address, lat, lng, placeId, addressComponents, source }
+    };
+    // TODO: replace with your actual API call, e.g.
+    // await api.post("/brand-outlets", payload);
+    console.log("Submitting outlet payload:", payload);
+
     setTimeout(() => { setSaving(false); navigate("/under-review"); }, 2000);
   };
-
-  const canShowMap = latitude.trim() !== "" && longitude.trim() !== "";
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
 
       {/* Modals */}
       {guidelineType && <GuidelinesModal type={guidelineType} onClose={closeGuideline} />}
-      {showMap && canShowMap && (
-        <MapModal lat={latitude} lng={longitude} onClose={() => setShowMap(false)} />
+      {showMap && selectedPlace && (
+        <MapModal
+          lat={selectedPlace.lat}
+          lng={selectedPlace.lng}
+          label={selectedPlace.name}
+          onClose={() => setShowMap(false)}
+        />
       )}
 
       {/* Navbar */}
@@ -389,12 +777,6 @@ export default function CreateBrandOutlet() {
             <span className="text-emerald-400 text-xs font-bold hidden">T</span>
           </div>
         </div>
-
-        {/* <div className="w-[34px] h-[34px] bg-purple-900 rounded-lg flex items-center justify-center cursor-pointer">
-          <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-          </svg>
-        </div> */}
 
          <div className="absolute top-4 right-5 z-20">
         <button
@@ -546,17 +928,6 @@ export default function CreateBrandOutlet() {
               </div>
             </div>
 
-            {/* GST Registered Address (from API) */}
-            {/* <div className="mb-4 bg-[#f3f6fb] rounded-xl p-3">
-              <p className="text-sm font-semibold text-gray-700 mb-1 flex items-center gap-1.5">
-                <svg className="w-3.5 h-3.5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                GST Registered Address
-              </p>
-              <p className="text-sm text-gray-800">{gstAddress || "No GST address found on file."}</p>
-            </div> */}
-
             <div className="mb-3">
               <p className="text-sm font-semibold text-gray-700 mb-1"> Address</p>
               <p className="text-sm text-gray-800">{outletAddress || "Enter your outlet address"}</p>
@@ -574,59 +945,42 @@ export default function CreateBrandOutlet() {
             </div>
           </div>
 
-          {/* Coordinates + Map */}
-          <div className="border border-gray-200 rounded-xl p-4">
-            <div className="flex items-start gap-3 mb-5">
-              <input type="checkbox" className="mt-0.5 w-4 h-4 accent-indigo-600" />
-              <div>
-                <p className="text-sm font-bold text-gray-800">Find Your Outlet Location Using Google Maps.</p>
-                <p className="text-sm text-gray-500 mt-0.5">Enter coordinates to pin your outlet precisely on the map.</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Latitude *</label>
-                <input
-                  type="text"
-                  value={latitude}
-                  onChange={(e) => setLatitude(e.target.value)}
-                  placeholder="eg : 13.0827"
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-400 bg-white text-gray-700"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Longitude *</label>
-                <input
-                  type="text"
-                  value={longitude}
-                  onChange={(e) => setLongitude(e.target.value)}
-                  placeholder="eg : 80.2707"
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-400 bg-white text-gray-700"
-                />
-              </div>
-            </div>
-
-            <button
-              onClick={() => { if (canShowMap) setShowMap(true); }}
-              disabled={!canShowMap}
-              className={`w-full font-semibold py-3 rounded-xl text-sm transition-colors flex items-center justify-center gap-2 ${
-                canShowMap
-                  ? "bg-indigo-600 text-white hover:bg-indigo-700"
-                  : "bg-gray-100 text-gray-400 cursor-not-allowed"
-              }`}
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              {canShowMap ? "Show on Google Map" : "Enter coordinates to preview map"}
-            </button>
-
-            {!canShowMap && (
-              <p className="text-xs text-gray-400 text-center mt-2">Fill in both Latitude and Longitude to enable map preview</p>
-            )}
+          {/* Location source: search vs live — pick one, only that one gets submitted */}
+          <div className="flex flex-wrap items-center gap-6 mb-4 px-1">
+            <label className="flex items-center gap-2 text-sm font-bold text-gray-800 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={locationMode === "search"}
+                onChange={() => switchLocationMode("search")}
+                className="w-4 h-4 accent-indigo-600 cursor-pointer"
+              />
+              Search My Outlet Location
+            </label>
+            <label className="flex items-center gap-2 text-sm font-bold text-gray-800 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={locationMode === "live"}
+                onChange={() => switchLocationMode("live")}
+                className="w-4 h-4 accent-indigo-600 cursor-pointer"
+              />
+              Use My Live Location
+            </label>
           </div>
+
+          {/* Search + Map, or Live Location + Reverse Geocoding, based on the checkbox above */}
+          {locationMode === "search" ? (
+            <OutletLocationSearch
+              selectedPlace={selectedPlace}
+              onSelectPlace={setSelectedPlace}
+              onShowMap={() => setShowMap(true)}
+            />
+          ) : (
+            <LiveLocationPicker
+              selectedPlace={selectedPlace}
+              onSelectPlace={setSelectedPlace}
+              onShowMap={() => setShowMap(true)}
+            />
+          )}
         </SectionCard>
 
         {/* ── Showcase Collection ── */}

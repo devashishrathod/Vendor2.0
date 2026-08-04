@@ -2,25 +2,31 @@
 import React from "react";
 
 const formatCurrency = (value) =>
-  `₹${Number(value ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
+  `₹ ${Number(value ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
 
-const USE_LABELS = {
-  android_ios_membership: "Valid on Android & iOS - Membership Users",
-  android_only: "Exclusive for Android Users",
-  ios_only: "Inclusive coupon code for iOS users",
-  membership_only: "Membership Users Only",
-};
-
-const CLAIM_LABELS = {
-  all_users: "Applicable across all users",
-  membership_only: "Membership Users Only",
-};
-
-function Row({ label, value }) {
+function SectionHeading({ children }) {
   return (
-    <div className="flex items-center justify-between border-b border-gray-100 py-3 last:border-b-0">
-      <span className="text-xs text-gray-500">{label}</span>
-      <span className="text-sm font-medium text-gray-900">{value}</span>
+    <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-800">
+      {children}
+    </h2>
+  );
+}
+
+function Field({ label, value, link, linkColor = "text-indigo-600" }) {
+  return (
+    <div>
+      <p className="text-xs text-gray-400">{label}</p>
+      <p className="mt-1 text-sm font-medium text-gray-900">
+        {value}
+        {link && (
+          <>
+            {" "}
+            <button type="button" className={`text-xs font-medium hover:underline ${linkColor}`}>
+              {link}
+            </button>
+          </>
+        )}
+      </p>
     </div>
   );
 }
@@ -29,63 +35,124 @@ export default function VoucherDetailsInfo({ voucher }) {
   if (!voucher) return null;
 
   return (
-    <div className="space-y-6">
-      <section className="rounded-xl border border-gray-200 bg-white p-5">
-        <h2 className="mb-2 text-sm font-semibold text-gray-900">Validity & Discount</h2>
-        <Row label="Voucher Name" value={voucher.title} />
-        <Row label="Start Date" value={`${voucher.startDate} ${voucher.startTime || ""}`} />
-        <Row label="End Date" value={`${voucher.endDate} ${voucher.endTime || ""}`} />
-        <Row label="Short Title" value={voucher.shortTitle} />
-        <Row label="Value Of Amount" value={formatCurrency(voucher.valueOfAmount)} />
-        <Row label="Percentage Of Discount" value={`${voucher.percentageOfDiscount || 0} %`} />
-        <Row
-          label="Single Use Per User"
-          value={voucher.singleUsePerUser ? "Enabled" : "Disabled"}
-        />
-        <Row
-          label="Multiple Use Until Expiry"
-          value={voucher.multipleUseUntilExpiry ? "Enabled" : "Disabled"}
-        />
-      </section>
+    <div className="divide-y divide-gray-100  bg-white">
+      {/* Voucher Information */}
+      <section className="p-6">
+        <SectionHeading>Voucher Information</SectionHeading>
+        <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-4">
+          <Field label="Voucher Id" value={`#${voucher.id}`} link="Edit Voucher" />
+          <Field
+            label="Voucher Name"
+            value={
+              <>
+                {voucher.title}
+                <span className="block text-xs font-normal text-gray-400">
+                  Discount &amp; Offer
+                </span>
+              </>
+            }
+          />
+          <Field label="Published Date" value={voucher.publishedDate} />
+          <Field label="Expired" value={voucher.expiredDate} />
 
-      <section className="rounded-xl border border-gray-200 bg-white p-5">
-        <h2 className="mb-2 text-sm font-semibold text-gray-900">Applicable Outlets</h2>
-        <Row
-          label="Selected Brand - Outlet / Sub-Brand"
-          value={`Count - ${voucher.applicableOutlets?.selectedBrandOutletCount ?? 0}`}
-        />
-        <Row
-          label="Total Outlet's"
-          value={`Count - ${voucher.applicableOutlets?.totalOutletsCount ?? 0}`}
-        />
-        <Row
-          label="Sub - Brand"
-          value={`Count - ${voucher.applicableOutlets?.subBrandCount ?? 0}`}
-        />
-        <Row
-          label="Franchise"
-          value={`Count - ${String(voucher.applicableOutlets?.franchiseCount ?? 0).padStart(2, "0")}`}
-        />
-      </section>
-
-      <section className="rounded-xl border border-gray-200 bg-white p-5">
-        <h2 className="mb-2 text-sm font-semibold text-gray-900">Search Tags</h2>
-        <div className="flex flex-wrap gap-2">
-          {(voucher.searchTags || []).map((tag) => (
-            <span
-              key={tag}
-              className="rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-700"
-            >
-              {tag}
-            </span>
-          ))}
+          <Field label="Tag Line" value={voucher.shortTitle} />
+          <Field label="Best Value" value={formatCurrency(voucher.valueOfAmount)} />
+          <Field label="Percentage" value={`${voucher.percentageOfDiscount || 0} %`} />
+          <Field
+            label="Voucher Status"
+            value={<span className="text-indigo-600">{voucher.status}</span>}
+          />
         </div>
       </section>
 
-      <section className="rounded-xl border border-gray-200 bg-white p-5">
-        <h2 className="mb-2 text-sm font-semibold text-gray-900">Eligibility</h2>
-        <Row label="Who Can Use" value={USE_LABELS[voucher.whoCanUse] || "—"} />
-        <Row label="Who Can Claim" value={CLAIM_LABELS[voucher.whoCanClaim] || "—"} />
+      {/* Which outlet applied this voucher */}
+      <section className="p-6">
+        <SectionHeading>Which Outlet Applied This Voucher?</SectionHeading>
+        <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-4">
+          <Field
+            label="Selected Brand - Outlet's / Sub - Brand"
+            value={`Count - ${voucher.applicableOutlets?.selectedBrandOutletCount ?? 0}`}
+            link="Increase - Decrease"
+            linkColor="text-rose-500"
+          />
+          <Field
+            label="Total Outlet's"
+            value={`Count - ${voucher.applicableOutlets?.totalOutletsCount ?? 0}`}
+          />
+          <Field
+            label="Sub - Brand"
+            value={`Count - ${voucher.applicableOutlets?.subBrandCount ?? 0}`}
+          />
+          <Field
+            label="Franchise"
+            value={`Count - ${String(voucher.applicableOutlets?.franchiseCount ?? 0).padStart(2, "0")}`}
+          />
+        </div>
+      </section>
+
+      {/* Search tag */}
+      <section className="p-6">
+        <SectionHeading>Search Tag</SectionHeading>
+        <p className="mt-1 text-xs text-gray-500">
+          Keywords that help users quickly find this item. Add keywords to improve
+          search visibility.
+        </p>
+        <div className="mt-4">
+          <Field
+            label="Selected Brand - Outlet's / Sub - Brand"
+            value={`Count - ${String(voucher.searchTags?.length ?? 0).padStart(2, "0")}`}
+            link="+ Add Tag Line"
+          />
+        </div>
+      </section>
+
+      {/* Configuration */}
+      <section className="p-6">
+        <SectionHeading>Configuration</SectionHeading>
+        <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-4">
+          <Field label="Voucher Status" value="Pan Active" link="Active" />
+          <div>
+            <Field label="Voucher Action" value="Submission" link="Deleted Submission" linkColor="text-rose-500" />
+            <p className="mt-2 text-[11px] leading-relaxed text-rose-500">
+              Important Note: If you delete this action button, it will automatically
+              change status. After that, this voucher will not be published on your
+              next page.
+            </p>
+          </div>
+          <Field label="Create On" value={voucher.createdDate} />
+          <Field label="Create Ticket" value="Issue Reported" />
+        </div>
+      </section>
+
+      {/* Information details */}
+      <section className="p-6">
+        <SectionHeading>Information Details</SectionHeading>
+        <div className="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-3">
+          <div>
+            <p className="text-xs font-semibold text-gray-700">
+              Exclusive For Prime Users
+            </p>
+            <p className="mt-1 text-xs leading-relaxed text-gray-500">
+              The TryDood team identifies which users ("Prime" or "Ordinary") can use
+              this voucher.
+            </p>
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-gray-700">TryDood Wallet</p>
+            <p className="mt-1 text-xs leading-relaxed text-gray-500">
+              Any user can make a payment using this wallet, and the amount will be
+              credited directly to your bank account through TryDood settlement.
+            </p>
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-gray-700">TryDood (T) Coin's</p>
+            <p className="mt-1 text-xs leading-relaxed text-gray-500">
+              Payment amounts converted to TryDood (T) Coin's, use them for discounts
+              like membership, or TryDood Prime. These points do not affect your real
+              money.
+            </p>
+          </div>
+        </div>
       </section>
     </div>
   );

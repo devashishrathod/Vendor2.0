@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { TicketForm } from "../../components/settlement";
 import useSettlementDetails from "../../hooks/useSettlementDetails";
+import DashboardHeader from "@/features/dashboard/components/DashboardHeader";
 
 const currency = (n) =>
   `₹${Number(n || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
@@ -73,7 +74,9 @@ export default function SettlementDetails() {
   const { breakup, transactionInfo, tickets } = detail;
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-16">
+   <div>
+    <DashboardHeader/>
+     <div className="min-h-screen bg-slate-50 pb-16">
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
@@ -222,5 +225,6 @@ export default function SettlementDetails() {
         </div>
       </div>
     </div>
+   </div>
   );
 }

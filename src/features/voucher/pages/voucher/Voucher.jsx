@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useVoucher from "../../hooks/voucher/useVoucher";
 import { VoucherOverview, VoucherTable } from "../../components/voucher";
+import DashboardHeader from "@/features/dashboard/components/DashboardHeader";
 
 export default function Voucher() {
   const navigate = useNavigate();
@@ -24,7 +25,9 @@ export default function Voucher() {
   } = useVoucher();
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-6">
+  <div>
+    <DashboardHeader/>
+      <div className="mx-auto max-w-6xl px-4 py-6">
       {/* Header */}
       <div className="mb-6 text-center">
         <h1 className="text-xl font-semibold text-gray-900">
@@ -57,5 +60,6 @@ export default function Voucher() {
         />
       )}
     </div>
+  </div>
   );
 }

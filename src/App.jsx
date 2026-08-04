@@ -5,8 +5,7 @@ import PublicRoute from './routes/PublicRoute';
 
 import Step1WhatsApp from './features/onboarding/steps/Step1WhatsApp';
 import OnboardingPage from './features/onboarding/pages/VendorOnboarding';
-import SubscriptionPlan from './features/subscription/SubscriptionPlan';
-import SubscriptionCheckout from './features/checkout/Subscriptioncheckout';
+
 import CreateBrandOutlet from './features/oulet/pages/Createbrandoutlet';
 import YourOutlet from './features/oulet/pages/Youroutlet';
 import TrydoodOutlet from './features/oulet/pages/Outlet';
@@ -17,6 +16,14 @@ import OrderDetail from './features/dashboard/pages/OrderDetail';
 import { Voucher, VoucherDetails } from './features/voucher/pages/voucher';
 import { Settlement, SettlementDetails } from './features/Settlement/pages/settlement';
 import VoucherFormPage from './features/voucher/pages/voucher/VoucherFormPage';
+import More from './features/more/More';
+import SubscriptionPlan from './features/subscriptions/pages/SubscriptionPlan';
+import SubscriptionCheckout from './features/subscriptions/pages/SubscriptionCheckout';
+import BrandPage from './features/brand';
+import { OutletDetailsPage, OutletsPage } from './features/outlets';
+import { MusicPage } from './features/music';
+import { SubscriptionPage } from './features/subscription';
+
 
 function App() {
   return (
@@ -46,15 +53,27 @@ function App() {
 
 
         {/* ─── VOUCHERS ─── */}
-        {/* <Route path="/vouchers" element={<ProtectedRoute><Voucher /></ProtectedRoute>} />
+        <Route path="/vouchers" element={<ProtectedRoute><Voucher /></ProtectedRoute>} />
         <Route path="/vouchers/new" element={<ProtectedRoute><VoucherFormPage /></ProtectedRoute>} />
         <Route path="/vouchers/:voucherId/edit" element={<ProtectedRoute><VoucherFormPage /></ProtectedRoute>} />
-        <Route path="/vouchers/:voucherId" element={<ProtectedRoute><VoucherDetails /></ProtectedRoute>} /> */}
+        <Route path="/vouchers/:voucherId" element={<ProtectedRoute><VoucherDetails /></ProtectedRoute>} />
 
         {/* Settlements */}
         <Route path="/settlements" element={<ProtectedRoute><Settlement /></ProtectedRoute>} />
         <Route path="/settlement/:settlementId" element={<ProtectedRoute><SettlementDetails /></ProtectedRoute>} />
 
+        {/* More */}
+        <Route path="/more" element={<ProtectedRoute><More /></ProtectedRoute>} />
+
+        <Route path="/account-information" element={<ProtectedRoute><BrandPage /></ProtectedRoute>} />
+        <Route path="/outlets" element={<ProtectedRoute><OutletsPage /></ProtectedRoute>} />
+        <Route path="/outlets/:id" element={<ProtectedRoute><OutletDetailsPage /></ProtectedRoute>} />
+
+        {/* Music */}
+        <Route path="/music" element={<ProtectedRoute><MusicPage /></ProtectedRoute>} />
+
+        {/* Subscription Page */}
+                <Route path="/subscription-plan" element={<ProtectedRoute><SubscriptionPage /></ProtectedRoute>} />
 
         {/* ─── Fallback ─── */}
         <Route path="*" element={<Navigate to="/" replace />} />

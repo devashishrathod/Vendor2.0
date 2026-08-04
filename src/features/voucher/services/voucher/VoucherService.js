@@ -97,6 +97,111 @@ const DEFAULT_DETAILS = {
       status: "Failed",
     },
   ],
+  transactionSummary: {
+    overallEarnings: 252899.0,
+    overallBillAmount: 157729.0,
+    discountAmount: 52899.0,
+    paidAmount: 152899.0,
+    totalUserCount: 858,
+  },
+  orderTransactions: [
+    {
+      orderId: "VC086324",
+      customerName: "Chitra Yalp",
+      customerId: "#xxx41721",
+      outletName: "Anna Nagar, Chennai",
+      storeId: "#1245829",
+      storeType: "Sub-Brand",
+      date: "17/02/2026",
+      time: "10:30 am",
+      status: "Success",
+      amount: 675.0,
+    },
+    {
+      orderId: "VC086324",
+      customerName: "Manami Suda",
+      customerId: "#xxx77770",
+      outletName: "Sadipet, Chennai",
+      storeId: "#1245830",
+      storeType: "Franchise",
+      date: "17/02/2026",
+      time: "10:30 am",
+      status: "Success",
+      amount: 675.0,
+    },
+    {
+      orderId: "VC086324",
+      customerName: "Christina Yalp",
+      customerId: "#xxx52521",
+      outletName: "Anna Nagar, Chennai 39",
+      storeId: "#1245879",
+      storeType: "Sub-Brand",
+      date: "17/02/2026",
+      time: "10:23 am",
+      status: "Success",
+      amount: 1099.0,
+    },
+    {
+      orderId: "VC086324",
+      customerName: "Kyjiseal Neitorn",
+      customerId: "#xxx63212",
+      outletName: "Goring Nagar, Trivpini",
+      storeId: "#1245879",
+      storeType: "Sub-Brand",
+      date: "17/02/2026",
+      time: "10:23 am",
+      status: "Success",
+      amount: 675.0,
+    },
+    {
+      orderId: "VC086324",
+      customerName: "Nanami Kanto",
+      customerId: "#xxx98212",
+      outletName: "Ayanavaram, Chennai",
+      storeId: "#1245880",
+      storeType: "Sub-Brand",
+      date: "17/02/2026",
+      time: "10:12 am",
+      status: "Success",
+      amount: 675.0,
+    },
+    {
+      orderId: "VC086324",
+      customerName: "Tsykhqurs Meguml",
+      customerId: "#xxx43212",
+      outletName: "West Anna Nagar, Chennai",
+      storeId: "#1245879",
+      storeType: "Franchise",
+      date: "17/02/2026",
+      time: "10:05 am",
+      status: "Failed",
+      amount: 675.0,
+    },
+    {
+      orderId: "VC086324",
+      customerName: "Nrtsi Akani",
+      customerId: "#xxx11212",
+      outletName: "Girei, Chennai",
+      storeId: "#1245881",
+      storeType: "Franchise",
+      date: "17/02/2026",
+      time: "09:58 am",
+      status: "Success",
+      amount: 675.0,
+    },
+    {
+      orderId: "VC086324",
+      customerName: "Inumesli Tegai",
+      customerId: "#xxx22212",
+      outletName: "Eci, Chennai",
+      storeId: "#1245882",
+      storeType: "Franchise",
+      date: "17/02/2026",
+      time: "09:50 am",
+      status: "Success",
+      amount: 675.0,
+    },
+  ],
 };
 
 const MOCK_VOUCHERS = [
@@ -190,10 +295,10 @@ export async function fetchVouchers({ page = 1, rowsPerPage = 10, search = "" } 
 
   const filtered = search
     ? MOCK_VOUCHERS.filter(
-        (v) =>
-          v.id.toLowerCase().includes(search.toLowerCase()) ||
-          v.title.toLowerCase().includes(search.toLowerCase())
-      )
+      (v) =>
+        v.id.toLowerCase().includes(search.toLowerCase()) ||
+        v.title.toLowerCase().includes(search.toLowerCase())
+    )
     : MOCK_VOUCHERS;
 
   const start = (page - 1) * rowsPerPage;

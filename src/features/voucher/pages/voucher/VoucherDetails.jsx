@@ -14,6 +14,7 @@ import {
   VoucherDetailsInfo,
   VoucherTransactionInfo,
 } from "../../components/voucher";
+import DashboardHeader from "@/features/dashboard/components/DashboardHeader";
 
 const STATUS_BADGE = {
   Active: "bg-emerald-50 text-emerald-600",
@@ -36,59 +37,63 @@ export default function VoucherDetails() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-6">
-      {/* Header */}
-      <div className="mb-4 flex items-start justify-between gap-3">
-        <div className="flex items-start gap-3">
-          <button
-            onClick={() => navigate(-1)}
-            className="mt-1 rounded-md p-1 text-gray-500 hover:bg-gray-100"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </button>
-          <div>
-            <h1 className="text-lg font-semibold text-gray-900">{voucher.title}</h1>
-            <p className="text-xs text-gray-400">Created Date: {voucher.createdDate}</p>
+    <div>
+      <DashboardHeader />
+      <div className="mx-auto max-w-6xl px-4 py-6">
+        {/* Header */}
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <button
+              onClick={() => navigate(-1)}
+              className="mt-1 rounded-md p-1 text-gray-500 hover:bg-gray-100"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+            <div>
+              <h1 className="text-lg font-semibold text-gray-900">{voucher.title}</h1>
+              <p className="text-xs text-gray-400">Created Date: {voucher.createdDate}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span
+              className={`rounded-full px-3 py-1 text-xs font-medium ${STATUS_BADGE[voucher.status] || "bg-gray-100 text-gray-500"
+                }`}
+            >
+              {voucher.status}
+            </span>
+            <button
+              onClick={() => navigate(`/vouchers/${voucher.id}/edit`)}
+              className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
+            >
+              Edit Voucher
+            </button>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <span
-            className={`rounded-full px-3 py-1 text-xs font-medium ${
-              STATUS_BADGE[voucher.status] || "bg-gray-100 text-gray-500"
-            }`}
-          >
-            {voucher.status}
-          </span>
-          <button
-            onClick={() => navigate(`/vouchers/${voucher.id}/edit`)}
-            className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
-          >
-            Edit Voucher
-          </button>
+
+        <div className="mb-4 flex items-center  gap-3">
+          <p className="text-xs text-black">Voucher Id #{voucher.id}</p>
+
+          <VoucherTabs activeTab={activeTab} onChange={setActiveTab} />
         </div>
-      </div>
 
-      <p className="mb-4 text-xs text-gray-400">Voucher Id #{voucher.id}</p>
+        <div className="mt-5 space-y-6">
+          {activeTab === "Analysis Report" && (
+            <>
+              <VoucherKeySummary keySummary={voucher.keySummary} />
+              <VoucherAnalysisStats analysis={voucher.analysis} />
+              <VoucherOutletUsageTable title={voucher.title} outletUsage={voucher.outletUsage} />
+              <VoucherRevenueChart revenueWeekly={voucher.revenueWeekly} />
+              <VoucherCustomerFlowChart customerFlowWeekly={voucher.customerFlowWeekly} />
+              <VoucherStorePerformance storePerformance={voucher.storePerformance} />
+            </>
+          )}
 
-      <VoucherTabs activeTab={activeTab} onChange={setActiveTab} />
+          {activeTab === "Voucher Details" && <VoucherDetailsInfo voucher={voucher} />}
 
-      <div className="mt-5 space-y-6">
-        {activeTab === "Analysis Report" && (
-          <>
-            <VoucherKeySummary keySummary={voucher.keySummary} />
-            <VoucherAnalysisStats analysis={voucher.analysis} />
-            <VoucherOutletUsageTable title={voucher.title} outletUsage={voucher.outletUsage} />
-            <VoucherRevenueChart revenueWeekly={voucher.revenueWeekly} />
-            <VoucherCustomerFlowChart customerFlowWeekly={voucher.customerFlowWeekly} />
-            <VoucherStorePerformance storePerformance={voucher.storePerformance} />
-          </>
-        )}
-
-        {activeTab === "Voucher Details" && <VoucherDetailsInfo voucher={voucher} />}
-
-        {activeTab === "Transaction Information" && (
-          <VoucherTransactionInfo transactions={voucher.transactions} />
-        )}
+          {activeTab === "Transaction Information" && (
+            <VoucherTransactionInfo transactions={voucher.transactions} />
+          )}
+        </div>
       </div>
     </div>
   );

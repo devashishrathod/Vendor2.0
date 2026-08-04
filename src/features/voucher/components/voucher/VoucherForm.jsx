@@ -6,6 +6,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, X } from "lucide-react";
+import DashboardHeader from "@/features/dashboard/components/DashboardHeader";
 
 function SectionLabel({ children }) {
   return (
@@ -115,7 +116,9 @@ export default function VoucherForm({
   const isEdit = mode === "edit";
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6">
+   <div>
+    <DashboardHeader/>
+    <div className="mx-auto max-w-5xl px-4 py-6">
       {/* Header */}
       <div className="mb-6 flex items-start gap-3">
         <button
@@ -368,7 +371,7 @@ export default function VoucherForm({
         </section>
 
         {/* Who can claim */}
-        <section className="rounded-xl border border-gray-200 bg-white p-5">
+        {/* <section className="rounded-xl border border-gray-200 bg-white p-5">
           <SectionLabel>Select Who Can Claimed This Voucher.</SectionLabel>
           <p className="mt-1 text-xs text-gray-500">
             Choose the eligible customers who are allowed to use this coupon code. Only
@@ -381,7 +384,7 @@ export default function VoucherForm({
               onSelect={(value) => setField("whoCanClaim", value)}
             />
           </div>
-        </section>
+        </section> */}
 
         {error && <p className="text-sm text-rose-500">{error}</p>}
 
@@ -394,5 +397,6 @@ export default function VoucherForm({
         </button>
       </form>
     </div>
+   </div> 
   );
 }
