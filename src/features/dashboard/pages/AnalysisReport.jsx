@@ -301,8 +301,7 @@ const max = Math.max(...MONTHLY.map((m) => m.value));
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
-      <DashboardHeader />
-
+  
       <div className="max-w-6xl mx-auto px-6 py-6">
 
         {/* Heading */}

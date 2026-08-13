@@ -1,6 +1,14 @@
 import OutletCard from "./OutletCard";
+import { MOCK_OUTLETS } from "../constants/mockOutlets";
 
-export default function OutletGrid({ outlets, selectedIds, onSelect, onToggleStatus, onExploreDetails, loading }) {
+export default function OutletGrid({
+  outlets = MOCK_OUTLETS, // ← dummy data used until a parent passes real outlets
+  selectedIds = [],
+  onSelect,
+  onToggleStatus,
+  onExploreDetails,
+  loading,
+}) {
   if (loading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">

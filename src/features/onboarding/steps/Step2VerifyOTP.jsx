@@ -21,6 +21,7 @@ const SCREEN_TO_STEP = {
   SYSTEM_VERIFICATION:      { step: STEPS.SYSTEM_VERIFY,         subStep: 1 },
   PARTNERSHIP_DEED:         { step: STEPS.PARTNER_CONTRACT,      subStep: 1 },
   SUBSCRIBE_PLAN:           { redirect: "/subscription" },
+  OUTLET_PAGE:              { redirect: "/brand-outlet" },
   UNDER_REVIEW:             { redirect: "/under-review" },
   DASHBOARD:                { redirect: "/oulet" },
 };

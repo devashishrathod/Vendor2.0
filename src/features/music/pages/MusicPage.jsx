@@ -35,7 +35,7 @@ export default function MusicPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans pb-28">
-      <DashboardHeader />
+
 
       <div className="max-w-6xl mx-auto px-6 py-6">
         {/* Heading + actions */}

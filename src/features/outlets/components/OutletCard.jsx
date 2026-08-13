@@ -1,9 +1,25 @@
 import StatusBadge from "./StatusBadge";
 import ActiveToggle from "./ActiveToggle";
-import { REGISTRATION_TYPE_LABELS } from "../constants/outletConstants";
+import { OUTLET_TYPE_LABELS } from "../constants/outletConstants";
 import { formatJoinedDate, maskStoreId } from "../utils/outletUtils";
 
+// A single "Label   Value" row — used for every field in the card body so
+// they all line up consistently instead of each field getting its own
+// heading + paragraph.
+function InfoRow({ label, value }) {
+  return (
+    <div className="flex items-start justify-between gap-4 py-2.5 border-b border-gray-50 last:border-0">
+      <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide shrink-0">{label}</span>
+      <span className="text-sm font-semibold text-gray-800 text-right break-words">{value}</span>
+    </div>
+  );
+}
+
 export default function OutletCard({ outlet, selected, onSelect, onToggleStatus, onExploreDetails }) {
+  // outletName / outletAddress no longer exist on the outlet record, and
+  // aren't shown on this card — see note below on why.
+  const whatsapp = outlet.whatsapp || {};
+
   return (
     <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden flex flex-col">
       <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
@@ -19,33 +35,25 @@ export default function OutletCard({ outlet, selected, onSelect, onToggleStatus,
         <StatusBadge status={outlet.status} />
       </div>
 
-      <div className="px-5 py-4 flex-1 space-y-4">
-        <div>
-          <p className="text-sm font-bold text-gray-900">Outlet Name</p>
-          <p className="text-sm text-gray-600 mt-0.5">{outlet.outletName}</p>
-        </div>
-        <div>
-          <p className="text-sm font-bold text-gray-900">Outlet Address</p>
-          <p className="text-sm text-gray-600 mt-0.5 leading-relaxed">{outlet.outletAddress}</p>
-        </div>
-        <div>
-          <p className="text-sm font-bold text-gray-900">
-            Outlet Register With ({REGISTRATION_TYPE_LABELS[outlet.registrationType]})
-          </p>
-          <p className="text-sm text-gray-600 mt-0.5">{outlet.registeredWith}</p>
-        </div>
+      <div className="px-5 py-1 flex-1">
+        <InfoRow
+          label="WhatsApp"
+          value={
+            <span className="inline-flex items-center gap-1.5 justify-end">
+              {whatsapp.number || "—"}
+              {whatsapp.verified && (
+                <svg className="w-3.5 h-3.5 text-emerald-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+            </span>
+          }
+        />
+        <InfoRow label="Outlet Type" value={OUTLET_TYPE_LABELS[outlet.outletType] || "—"} />
+        <InfoRow label="Joined" value={formatJoinedDate(outlet.joinedDate)} />
       </div>
 
-      <div className="flex items-center gap-2 px-5 py-3 border-t border-gray-100">
-        <span className="text-xs font-semibold text-gray-500 bg-gray-50 border border-gray-100 rounded-lg px-3 py-1.5">
-          Joined {formatJoinedDate(outlet.joinedDate)}
-        </span>
-        <span className="text-xs font-semibold text-gray-500 bg-gray-50 border border-gray-100 rounded-lg px-3 py-1.5">
-          {REGISTRATION_TYPE_LABELS[outlet.registrationType]}
-        </span>
-      </div>
-
-      <div className="flex items-center justify-between gap-3 px-5 py-4 border-t border-gray-100">
+      <div className="flex items-center justify-between gap-3 px-5 py-4 border-t border-gray-100 mt-2">
         <ActiveToggle status={outlet.status} onToggle={() => onToggleStatus(outlet.id)} />
         <button
           onClick={() => onExploreDetails(outlet)}

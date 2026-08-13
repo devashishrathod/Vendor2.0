@@ -130,7 +130,7 @@ const cards = [
 const More = () => {
   return (
    <div>
-    <DashboardHeader/>
+
      <div className="min-h-screen bg-gray-50 px-6 py-8 md:px-10">
       <div className="mx-auto max-w-6xl">
         <h1 className="text-2xl font-bold text-gray-900">More Settings</h1>

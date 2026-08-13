@@ -104,17 +104,23 @@ import ComingSoonPage from "./pages/ComingSoonPage";
 import Branddata from "./data/Branddata";
 import useBrandData from "./hooks/useBrandData";
 import { BRAND_TABS } from "./utils/BrandHelpers";
-import DashboardHeader from "../dashboard/components/DashboardHeader";
+import BusinessHours from "./components/BusinessHours";
+import BrandDescription from "./components/BrandDescription";
+import ScanQrCodePage from "./pages/ScanQrCodePage";
+
 
 // Maps each tab id to the page component that renders its content.
 // Add an entry here whenever a new tab gets a real UI.
 const TAB_PAGES = {
   "brand-profile": BrandProfilePage,
+  "description":BrandDescription,
   "showcase-details": ShowcasePage,
   "bank-account-details": BankAccountPage,
   "listing-features": ListingFeaturesPage,
   "gst-pan-information": GstPanPage,
+  "business-hours":BusinessHours,
   "outlet-location": OutletLocationPage,
+  "scan-qr-code":ScanQrCodePage
 };
 
 /**
@@ -137,7 +143,7 @@ const BrandPage = ({ merchantToken = Branddata.merchantToken }) => {
 
   return (
  <div>
-  <DashboardHeader/>
+ 
      <div className="min-h-screen bg-white px-6 py-8 md:px-10">
       <div className="mx-auto max-w-6xl">
         <BrandHeader

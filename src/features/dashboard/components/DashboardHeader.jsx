@@ -7,8 +7,8 @@ const NAV_TABS = [
   { label: "Transactions",    to: "/transactions"        },
   { label: "Settlements",     to: "/settlements"      },
   { label: "Voucher",         to: "/vouchers"          },
-  { label: "Deal Pack",       to: "/deal-pack"        },
-  { label: "Membership",      to: "/membership"       },
+  { label: "Sub Brand ",       to: "/deal-pack"        },
+  { label: "BRand Info",      to: "/membership"       },
    { label: "Playlist Music",      to: "/music"       },
   { label: "More",            to: "/more"             },
 ];

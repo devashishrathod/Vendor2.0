@@ -2,7 +2,7 @@
 import React from "react";
 import { SettlementOverview, SettlementTable } from "../../components/settlement";
 import useSettlement from "../../hooks/useSettlement";
-import DashboardHeader from "@/features/dashboard/components/DashboardHeader";
+
 
 export default function Settlement() {
   const {
@@ -33,7 +33,7 @@ export default function Settlement() {
 
   return (
    <div>
-    <DashboardHeader/>
+
      <div className="min-h-screen bg-slate-50 pb-16">
       <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="mb-6 text-center">

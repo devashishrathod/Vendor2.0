@@ -1,7 +1,7 @@
 import React from "react";
 import ShowcaseGroup from "./ShowcaseGroup";
 
-const ShowcaseSection = ({ showcase, onUpload, onAddMore }) => {
+const ShowcaseSection = ({ showcase, onAddMore }) => {
   return (
     <section>
       <h2 className="text-xs font-bold uppercase tracking-wide text-gray-700">
@@ -15,7 +15,6 @@ const ShowcaseSection = ({ showcase, onUpload, onAddMore }) => {
             key={group.id}
             group={group}
             guidelinesLink={showcase.guidelinesLink}
-            onUpload={onUpload}
           />
         ))}
       </div>

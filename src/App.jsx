@@ -2,13 +2,14 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
 import ProtectedRoute from './routes/ProtectedRoute';
 import PublicRoute from './routes/PublicRoute';
+import DashboardLayout from './features/dashboard/layouts/DashboardLayout';
 
 import Step1WhatsApp from './features/onboarding/steps/Step1WhatsApp';
 import OnboardingPage from './features/onboarding/pages/VendorOnboarding';
 
-import CreateBrandOutlet from './features/oulet/pages/Createbrandoutlet';
-import YourOutlet from './features/oulet/pages/Youroutlet';
-import TrydoodOutlet from './features/oulet/pages/Outlet';
+
+
+
 import Dashboard from './features/dashboard/pages/Dashboard';
 import AnalysisReport from './features/dashboard/pages/AnalysisReport';
 import Transactions from './features/dashboard/pages/Transactions';
@@ -19,10 +20,13 @@ import VoucherFormPage from './features/voucher/pages/voucher/VoucherFormPage';
 import More from './features/more/More';
 import SubscriptionPlan from './features/subscriptions/pages/SubscriptionPlan';
 import SubscriptionCheckout from './features/subscriptions/pages/SubscriptionCheckout';
-import BrandPage from './features/brand';
+
 import { OutletDetailsPage, OutletsPage } from './features/outlets';
 import { MusicPage } from './features/music';
 import { SubscriptionPage } from './features/subscription';
+import BrandPage from './features/brand';
+import CreateBrandOutlet from './features/oulet/New folder/pages/CreateBrandOutlet';
+import UnderReview from './features/oulet/New folder/pages/Youroutlet';
 
 
 function App() {
@@ -33,47 +37,48 @@ function App() {
         {/* ─── PUBLIC ─── */}
         <Route path="/" element={<PublicRoute><Step1WhatsApp /></PublicRoute>} />
 
-        {/* ─── PROTECTED: onboarding ─── */}
+        {/* ─── ONBOARDING / OUTLET-SETUP FLOW: header/footer NAHI ─── */}
         <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
-
-        {/* ─── PROTECTED: post-onboarding ─── */}
         <Route path="/subscription" element={<ProtectedRoute><SubscriptionPlan /></ProtectedRoute>} />
         <Route path="/subscription/checkout" element={<ProtectedRoute><SubscriptionCheckout /></ProtectedRoute>} />
-        <Route path="/oulet" element={<ProtectedRoute><TrydoodOutlet /></ProtectedRoute>} />
+        {/* <Route path="/oulet" element={<ProtectedRoute><TrydoodOutlet /></ProtectedRoute>} /> */}
         <Route path="/brand-outlet" element={<ProtectedRoute><CreateBrandOutlet /></ProtectedRoute>} />
-        <Route path="/under-review" element={<ProtectedRoute><YourOutlet /></ProtectedRoute>} />
+        <Route path="/under-review" element={<ProtectedRoute><UnderReview /></ProtectedRoute>} />
 
-        {/* ─── DASHBOARD ─── */}
-        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-        <Route path="/analysis-report" element={<ProtectedRoute><AnalysisReport /></ProtectedRoute>} />
+        {/* ─── DASHBOARD GROUP: header/footer YAHAN chahiye ─── */}
+        <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
 
-        {/* ─── TRANSACTIONS ─── */}
-        <Route path="/transactions" element={<ProtectedRoute><Transactions /></ProtectedRoute>} />
-        <Route path="/transactions/order/:orderId" element={<ProtectedRoute><OrderDetail /></ProtectedRoute>} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/analysis-report" element={<AnalysisReport />} />
 
+          {/* Transactions */}
+          <Route path="/transactions" element={<Transactions />} />
+          <Route path="/transactions/order/:orderId" element={<OrderDetail />} />
 
-        {/* ─── VOUCHERS ─── */}
-        <Route path="/vouchers" element={<ProtectedRoute><Voucher /></ProtectedRoute>} />
-        <Route path="/vouchers/new" element={<ProtectedRoute><VoucherFormPage /></ProtectedRoute>} />
-        <Route path="/vouchers/:voucherId/edit" element={<ProtectedRoute><VoucherFormPage /></ProtectedRoute>} />
-        <Route path="/vouchers/:voucherId" element={<ProtectedRoute><VoucherDetails /></ProtectedRoute>} />
+          {/* Vouchers */}
+          <Route path="/vouchers" element={<Voucher />} />
+          <Route path="/vouchers/new" element={<VoucherFormPage />} />
+          <Route path="/vouchers/:voucherId/edit" element={<VoucherFormPage />} />
+          <Route path="/vouchers/:voucherId" element={<VoucherDetails />} />
 
-        {/* Settlements */}
-        <Route path="/settlements" element={<ProtectedRoute><Settlement /></ProtectedRoute>} />
-        <Route path="/settlement/:settlementId" element={<ProtectedRoute><SettlementDetails /></ProtectedRoute>} />
+          {/* Settlements */}
+          <Route path="/settlements" element={<Settlement />} />
+          <Route path="/settlement/:settlementId" element={<SettlementDetails />} />
 
-        {/* More */}
-        <Route path="/more" element={<ProtectedRoute><More /></ProtectedRoute>} />
+          {/* More */}
+          <Route path="/more" element={<More />} />
 
-        <Route path="/account-information" element={<ProtectedRoute><BrandPage /></ProtectedRoute>} />
-        <Route path="/outlets" element={<ProtectedRoute><OutletsPage /></ProtectedRoute>} />
-        <Route path="/outlets/:id" element={<ProtectedRoute><OutletDetailsPage /></ProtectedRoute>} />
+          <Route path="/account-information" element={<BrandPage />} />
+          <Route path="/outlets" element={<OutletsPage />} />
+          <Route path="/outlets/:id" element={<OutletDetailsPage />} />
 
-        {/* Music */}
-        <Route path="/music" element={<ProtectedRoute><MusicPage /></ProtectedRoute>} />
+          {/* Music */}
+          <Route path="/music" element={<MusicPage />} />
 
-        {/* Subscription Page */}
-                <Route path="/subscription-plan" element={<ProtectedRoute><SubscriptionPage /></ProtectedRoute>} />
+          {/* Subscription Page */}
+          <Route path="/subscription-plan" element={<SubscriptionPage />} />
+
+        </Route>
 
         {/* ─── Fallback ─── */}
         <Route path="*" element={<Navigate to="/" replace />} />

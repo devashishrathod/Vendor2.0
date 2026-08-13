@@ -8,7 +8,7 @@ import { useOutlets } from "../hooks/useOutlets";
 import { useOutletFilters } from "../hooks/useOutletFilters";
 import { exportOutlets } from "../services/outletService";
 import { PAGE_SIZE } from "../constants/outletConstants";
-import DashboardHeader from "@/features/dashboard/components/DashboardHeader";
+
 
 export default function OutletsPage() {
   const { search, setSearch, filters, toggleFilter, clearFilters, activeFilterCount, page, setPage } =
@@ -28,7 +28,7 @@ export default function OutletsPage() {
 
   return (
   <div>
-    <DashboardHeader/>
+   
       <div className="min-h-screen bg-gray-50 font-sans">
       <div className="max-w-7xl mx-auto px-4 py-8">
         <h1 className="text-xl font-bold text-gray-900 mb-6">Own Outlet's &amp; Franchise Outlet's information</h1>

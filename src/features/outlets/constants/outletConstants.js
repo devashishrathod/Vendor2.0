@@ -3,32 +3,38 @@ export const OUTLET_STATUS = {
   NOT_ACTIVE: "not_active",
 };
 
-export const REGISTRATION_TYPES = {
-  SUB_BRAND: "sub_brand",
+// Outlet Type — Outlet vs Franchise. Replaces the old Sub-Brand/Franchise
+// "registration type" concept, which the Add Outlet form no longer collects
+// (outletName / outletAddress / registrationType / registeredWith were
+// dropped — name & address now come from the picked Location instead).
+export const OUTLET_TYPES = {
+  OUTLET: "outlet",
   FRANCHISE: "franchise",
 };
 
-export const REGISTRATION_TYPE_LABELS = {
-  [REGISTRATION_TYPES.SUB_BRAND]: "Sub - Brand",
-  [REGISTRATION_TYPES.FRANCHISE]: "Franchise",
+export const OUTLET_TYPE_LABELS = {
+  [OUTLET_TYPES.OUTLET]: "Outlet",
+  [OUTLET_TYPES.FRANCHISE]: "Franchise",
 };
+
+export const OUTLET_TYPE_OPTIONS = [
+  { value: OUTLET_TYPES.OUTLET, label: OUTLET_TYPE_LABELS[OUTLET_TYPES.OUTLET] },
+  { value: OUTLET_TYPES.FRANCHISE, label: OUTLET_TYPE_LABELS[OUTLET_TYPES.FRANCHISE] },
+];
+
+// ─── Backward-compat aliases ────────────────────────────────────────────────
+// A few files (e.g. outletService.js) still import REGISTRATION_TYPES /
+// REGISTRATION_TYPE_LABELS under the old name. Keep these pointing at the
+// same values as OUTLET_TYPES so those imports don't crash. Once every
+// remaining usage is migrated to OUTLET_TYPES, delete this block.
+export const REGISTRATION_TYPES = OUTLET_TYPES;
+export const REGISTRATION_TYPE_LABELS = OUTLET_TYPE_LABELS;
 
 export const FILTER_OPTIONS = [
   { id: "status_active", group: "status", value: OUTLET_STATUS.ACTIVE, label: "Active" },
   { id: "status_not_active", group: "status", value: OUTLET_STATUS.NOT_ACTIVE, label: "Not Active" },
-  { id: "type_sub_brand", group: "type", value: REGISTRATION_TYPES.SUB_BRAND, label: "Sub - Brand" },
-  { id: "type_franchise", group: "type", value: REGISTRATION_TYPES.FRANCHISE, label: "Franchise" },
-];
-
-// Swap these for real lookups (e.g. from a Sub-Brand / Franchise API) when wiring this up.
-export const MOCK_SUB_BRANDS = [
-  { id: "sb_1", name: "Yoga Education And Research Pvt Ltd" },
-  { id: "sb_2", name: "Trydood Wellness Pvt Ltd" },
-];
-
-export const MOCK_FRANCHISES = [
-  { id: "fr_1", name: "SaraFood Retail Pvt Ltd" },
-  { id: "fr_2", name: "Urban Bites Franchise LLP" },
+  { id: "type_outlet", group: "type", value: OUTLET_TYPES.OUTLET, label: "Outlet" },
+  { id: "type_franchise", group: "type", value: OUTLET_TYPES.FRANCHISE, label: "Franchise" },
 ];
 
 export const ANALYTICS_REPORTS = [

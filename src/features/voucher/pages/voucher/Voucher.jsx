@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useVoucher from "../../hooks/voucher/useVoucher";
 import { VoucherOverview, VoucherTable } from "../../components/voucher";
-import DashboardHeader from "@/features/dashboard/components/DashboardHeader";
+
 
 export default function Voucher() {
   const navigate = useNavigate();
@@ -26,7 +26,7 @@ export default function Voucher() {
 
   return (
   <div>
-    <DashboardHeader/>
+
       <div className="mx-auto max-w-6xl px-4 py-6">
       {/* Header */}
       <div className="mb-6 text-center">

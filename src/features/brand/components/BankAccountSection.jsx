@@ -27,14 +27,14 @@ const BankAccountSection = ({
               {bankAccountDetails.activeAccountSubtitle}
             </p>
           </div>
-          <button
+          {/* <button
             type="button"
             onClick={onAddBankAccount}
             className="flex shrink-0 items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
           >
             <CreditCard size={15} />
             Add bank Account
-          </button>
+          </button> */}
         </div>
 
         <div className="mt-5 space-y-4">

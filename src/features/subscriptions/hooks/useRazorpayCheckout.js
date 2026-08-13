@@ -1,23 +1,18 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // hooks/useRazorpayCheckout.js
-// Drives the full client-side Razorpay flow:
-//   1. load checkout.js (once, cached)
-//   2. ask our backend to create a Razorpay order
-//   3. open the Razorpay modal
-//   4. on success, ask our backend to verify the signature
+// Orchestrates the full subscription payment flow:
+//   1. createOrder()      -> our backend creates a Razorpay order
+//      -> stored locally immediately (state + sessionStorage) so it's
+//         available to WelcomePage even before payment finishes
+//   2. open Razorpay widget with that order
+//   3. on success, verifyPayment() -> our backend verifies the signature
+//      -> result is MERGED into the stored order (not replacing it), since
+//         verify-transaction only confirms status/paidAmount-type fields —
+//         amount, invoiceId, contact, etc. all come from step 1
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useCallback } from "react";
 import razorpayAPI from "@/features/subscriptions/services/razorpay.api";
-// ─────────────────────────────────────────────────────────────────────────────
-// hooks/useRazorpayCheckout.js
-// Orchestrates the full subscription payment flow:
-//   1. createOrder()      -> our backend creates a Razorpay order
-//   2. open Razorpay widget with that order
-//   3. on success, verifyPayment() -> our backend verifies the signature
-// ─────────────────────────────────────────────────────────────────────────────
-
-
 
 // Loads the Razorpay checkout script once and caches the promise.
 let razorpayScriptPromise = null;
@@ -37,16 +32,31 @@ function loadRazorpayScript() {
   return razorpayScriptPromise;
 }
 
+const STORAGE_KEY = "trydood_pending_order";
+
+function persistOrder(order) {
+  try {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(order));
+  } catch {
+    // sessionStorage can throw in some private/incognito modes — not fatal,
+    // React state below is still the source of truth for the current tab.
+  }
+}
+
 export function useRazorpayCheckout() {
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState("");
+  // The live order object — set the instant createOrder() resolves, then
+  // updated (merged, not replaced) once verifyPayment() confirms. This is
+  // what WelcomePage should render from.
+  const [orderData, setOrderData] = useState(null);
 
   /**
    * @param {{
    *   brandId: string,
    *   subscriptionId: string,          // plan._id
    *   businessDetails?: { brandName?: string, email?: string, phone?: string },
-   *   onSuccess?: (verifyResult: any) => void,
+   *   onSuccess?: (order: object) => void,   // receives the MERGED order object
    *   onFailure?: (err: Error) => void,
    * }} args
    */
@@ -71,6 +81,11 @@ export function useRazorpayCheckout() {
       }
       console.log("Order Data:", order);
 
+      // Store it locally right away — before the Razorpay widget even opens.
+      // WelcomePage can use this from the very first render if needed.
+      setOrderData(order);
+      persistOrder(order);
+
       // 2. Open the Razorpay checkout widget
       return await new Promise((resolve, reject) => {
         const rzp = new window.Razorpay({
@@ -94,9 +109,19 @@ export function useRazorpayCheckout() {
                 razorpaySignature: response.razorpay_signature,
                 transactionId: order._id,
               });
+              console.log("Verify Payment Response:", verifyRes);
+
+              // Merge, don't replace: keep every field from the original
+              // create-order object (amount, invoiceId, contact, ...) and
+              // layer in whatever verify-transaction confirms changed
+              // (status, paidAmount, verified, etc.).
+              const merged = { ...order, ...(verifyRes?.data || {}) };
+
+              setOrderData(merged);
+              persistOrder(merged);
               setProcessing(false);
-              onSuccess?.(verifyRes);
-              resolve(verifyRes);
+              onSuccess?.(merged);
+              resolve(merged);
             } catch (verifyErr) {
               setProcessing(false);
               setError(verifyErr.message || "Payment verification failed.");
@@ -131,5 +156,24 @@ export function useRazorpayCheckout() {
     }
   }, []);
 
-  return { pay, processing, error };
+  // Recover the last known order — e.g. if the page refreshed mid-flow.
+  const getStoredOrder = useCallback(() => {
+    try {
+      const raw = sessionStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const clearStoredOrder = useCallback(() => {
+    try {
+      sessionStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // ignore
+    }
+    setOrderData(null);
+  }, []);
+
+  return { pay, processing, error, orderData, getStoredOrder, clearStoredOrder };
 }

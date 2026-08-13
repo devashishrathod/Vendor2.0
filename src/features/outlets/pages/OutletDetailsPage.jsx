@@ -2,7 +2,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import OutletDetailsHeader from "../components/OutletDetailsHeader";
 import TransactionSummaryPanel from "../components/TransactionSummaryPanel";
 import { useOutletDetails } from "../hooks/useOutletDetails";
-import DashboardHeader from "@/features/dashboard/components/DashboardHeader";
+
 
 export default function OutletDetailsPage() {
   const { id } = useParams();
@@ -40,7 +40,7 @@ export default function OutletDetailsPage() {
 
   return (
   <div>
-    <DashboardHeader/>
+
       <div className="min-h-screen bg-gray-50 font-sans">
       <div className="max-w-6xl mx-auto px-4 py-8">
         <OutletDetailsHeader outlet={outlet} onBack={handleBack} />

@@ -4,7 +4,6 @@ import { RefreshCcw, Trash2 } from "lucide-react";
 const ListingFeaturesSection = ({
   listingFeatures,
   onAdd,
-  onView,
   onRefresh,
   onDelete,
 }) => {
@@ -47,14 +46,11 @@ const ListingFeaturesSection = ({
               >
                 <td className="px-5 py-4 text-gray-800">{feature.sNo}</td>
                 <td className="px-5 py-4">
-                  <span className="text-gray-800">{feature.iconFileName}</span>{" "}
-                  <button
-                    type="button"
-                    onClick={() => onView(feature.id)}
-                    className="text-blue-600 hover:underline"
-                  >
-                    · View
-                  </button>
+                  <img
+                    src={feature.iconUrl}
+                    alt={feature.lfName}
+                    className="h-8 w-8 rounded object-contain"
+                  />
                 </td>
                 <td className="px-5 py-4 text-gray-800">{feature.lfName}</td>
                 <td className="px-5 py-4 text-gray-500">

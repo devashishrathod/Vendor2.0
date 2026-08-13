@@ -38,7 +38,7 @@ export default function VoucherDetails() {
 
   return (
     <div>
-      <DashboardHeader />
+ 
       <div className="mx-auto max-w-6xl px-4 py-6">
         {/* Header */}
         <div className="mb-4 flex items-start justify-between gap-3">

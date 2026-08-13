@@ -157,18 +157,74 @@ const Branddata = {
     ],
   },
 
-  listingFeatures: {
-    subtitle: "Improve reach and engagement with better presentation.",
-    features: [
-      { id: "1", sNo: "01", iconFileName: "Air.PNG", lfName: "Air Conditioned", createdOn: "02 Month Ago" },
-      { id: "2", sNo: "02", iconFileName: "Lift.PNG", lfName: "Elevator in building", createdOn: "02 Month Ago" },
-      { id: "3", sNo: "03", iconFileName: "Air.PNG", lfName: "Waiting Room", createdOn: "One Week Ago" },
-      { id: "4", sNo: "04", iconFileName: "Lift.PNG", lfName: "Wheelchair - Access", createdOn: "6Hrs Ago" },
-      { id: "5", sNo: "05", iconFileName: "Lift.PNG", lfName: "Accessible washrooms", createdOn: "01 Day Ago" },
-      { id: "6", sNo: "06", iconFileName: "Air.PNG", lfName: "Free Wi Fi", createdOn: "Six Month Ago" },
-      { id: "7", sNo: "07", iconFileName: "Lift.PNG", lfName: "Free Valet Parking", createdOn: "One Year Ago" },
-    ],
-  },
+listingFeatures: {
+  subtitle: "Improve reach and engagement with better presentation.",
+  features: [
+    {
+      id: "1",
+      sNo: "01",
+      iconFileName: "Air.PNG",
+      iconUrl:
+        "https://images.unsplash.com/photo-1631545806609-b83e6cb03f5a?w=64&h=64&fit=crop",
+      lfName: "Air Conditioned",
+      createdOn: "02 Month Ago",
+    },
+    {
+      id: "2",
+      sNo: "02",
+      iconFileName: "Lift.PNG",
+      iconUrl:
+        "https://images.unsplash.com/photo-1587293852726-70cdb56c2866?w=64&h=64&fit=crop",
+      lfName: "Elevator in building",
+      createdOn: "02 Month Ago",
+    },
+    {
+      id: "3",
+      sNo: "03",
+      iconFileName: "Chair.PNG",
+      iconUrl:
+        "https://images.unsplash.com/photo-1567016376408-0226e4d0c1ea?w=64&h=64&fit=crop",
+      lfName: "Waiting Room",
+      createdOn: "One Week Ago",
+    },
+    {
+      id: "4",
+      sNo: "04",
+      iconFileName: "Wheelchair.PNG",
+      iconUrl:
+        "https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=64&h=64&fit=crop",
+      lfName: "Wheelchair - Access",
+      createdOn: "6Hrs Ago",
+    },
+    {
+      id: "5",
+      sNo: "05",
+      iconFileName: "Washroom.PNG",
+      iconUrl:
+        "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=64&h=64&fit=crop",
+      lfName: "Accessible washrooms",
+      createdOn: "01 Day Ago",
+    },
+    {
+      id: "6",
+      sNo: "06",
+      iconFileName: "Wifi.PNG",
+      iconUrl:
+        "https://images.unsplash.com/photo-1606904825846-647eb07f5be2?w=64&h=64&fit=crop",
+      lfName: "Free Wi Fi",
+      createdOn: "Six Month Ago",
+    },
+    {
+      id: "7",
+      sNo: "07",
+      iconFileName: "Parking.PNG",
+      iconUrl:
+        "https://images.unsplash.com/photo-1573348722427-f1d6819fdf98?w=64&h=64&fit=crop",
+      lfName: "Free Valet Parking",
+      createdOn: "One Year Ago",
+    },
+  ],
+},
 
   gstPanInformation: {
     subtitle: "GST & PAN Verification Helps Your Business Grow",

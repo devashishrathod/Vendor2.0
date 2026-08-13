@@ -1,19 +1,7 @@
 import React from "react";
 import ShowcaseMediaRow from "./ShowcaseMediaRow";
 
-const ShowcaseGroup = ({ group, guidelinesLink, onUpload }) => {
-  const imageFields = [
-    { label: "Images Details", value: group.imageDetails.aspectRatio },
-    { label: "Upload size limits", value: group.imageDetails.uploadSizeLimit },
-  ];
-
-  const videoFields = [
-    { label: "Video Details", value: group.videoDetails.size },
-    { label: "Upload size limits", value: group.videoDetails.uploadSizeLimit },
-    { label: "Format", value: group.videoDetails.format },
-    { label: "Duration", value: group.videoDetails.duration },
-  ];
-
+const ShowcaseGroup = ({ group, guidelinesLink }) => {
   return (
     <div className="rounded-xl border border-gray-100 p-5 shadow-sm">
       <div className="flex items-start justify-between gap-4">
@@ -32,14 +20,8 @@ const ShowcaseGroup = ({ group, guidelinesLink, onUpload }) => {
       </div>
 
       <div className="mt-4 space-y-3">
-        <ShowcaseMediaRow
-          fields={imageFields}
-          onUpload={() => onUpload(group.id, "image")}
-        />
-        <ShowcaseMediaRow
-          fields={videoFields}
-          onUpload={() => onUpload(group.id, "video")}
-        />
+        <ShowcaseMediaRow images={group.images} type="image" />
+        <ShowcaseMediaRow images={group.videos} type="video" />
       </div>
     </div>
   );

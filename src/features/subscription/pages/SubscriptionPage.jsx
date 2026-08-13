@@ -8,7 +8,8 @@ import InvoiceInfo from '../components/InvoiceInfo';
 import BillingInfo from '../components/BillingInfo';
 import PlanBenefits from '../components/PlanBenefits';
 import '../components/subscription.css';
-import DashboardHeader from '@/features/dashboard/components/DashboardHeader';
+import '../components/invoice.css'; // needed for the Plan Benefits modal styles
+
 
 export default function SubscriptionPage() {
   const { subscription, isLoading, error, refetch, goToPlans } = useSubscription();
@@ -39,8 +40,8 @@ export default function SubscriptionPage() {
   if (!subscription) return null;
 
   return (
-<div>
-  <DashboardHeader />
+  <div>
+  
       <div className="sub-page">
       <PageHeader />
 
@@ -51,21 +52,13 @@ export default function SubscriptionPage() {
       <SubscriptionInfo subscription={subscription} />
       <hr className="sub-divider" />
 
-      <InvoiceInfo
-        subscription={subscription}
-        onRaiseQuery={() => console.log('Raise query clicked')}
-        onViewHistory={() => console.log('View history clicked')}
-      />
+      <InvoiceInfo subscription={subscription} />
 
       <BillingInfo subscription={subscription} />
       <hr className="sub-divider" />
 
-      <PlanBenefits
-        subscription={subscription}
-        onViewDetails={() => console.log('View plan benefit details clicked')}
-        onUpgrade={goToPlans}
-      />
+      <PlanBenefits subscription={subscription} onUpgrade={goToPlans} />
     </div>
-</div>
+  </div>
   );
 }
