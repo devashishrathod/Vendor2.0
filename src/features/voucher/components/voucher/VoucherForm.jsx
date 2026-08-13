@@ -6,7 +6,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, X } from "lucide-react";
-import DashboardHeader from "@/features/dashboard/components/DashboardHeader";
+
 
 function SectionLabel({ children }) {
   return (
@@ -117,7 +117,7 @@ export default function VoucherForm({
 
   return (
    <div>
-    <DashboardHeader/>
+    
     <div className="mx-auto max-w-5xl px-4 py-6">
       {/* Header */}
       <div className="mb-6 flex items-start gap-3">

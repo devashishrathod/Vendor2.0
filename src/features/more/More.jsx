@@ -117,14 +117,14 @@ const cards = [
       "Users must provide accurate information while using the platform.",
     to: "/settings/terms-and-conditions",
   },
-  {
-    icon: <BookOpen size={20} />,
-    iconBg: "bg-gradient-to-br from-amber-500 to-orange-600",
-    heading: "About Your Brand",
-    title: "Clear & Simple",
-    description: "Use easy words everyone understands.",
-    to: "/settings/about-your-brand",
-  },
+  // {
+  //   icon: <BookOpen size={20} />,
+  //   iconBg: "bg-gradient-to-br from-amber-500 to-orange-600",
+  //   heading: "About Your Brand",
+  //   title: "Clear & Simple",
+  //   description: "Use easy words everyone understands.",
+  //   to: "/settings/about-your-brand",
+  // },
 ];
 
 const More = () => {

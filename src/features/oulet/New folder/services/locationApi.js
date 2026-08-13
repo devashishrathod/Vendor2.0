@@ -42,22 +42,23 @@ export const ADDRESS_TYPES = { HOME: 'HOME', WORK: 'WORK', OTHER: 'OTHER' };
 //
 // Confirmed live schema (per Postman collection docs):
 //   {
-//     userId?,            // only if admin creates on behalf of a user
-//     brandId?,            // only if this is a brand/subBrand address
-//     addressLine1,        // REQUIRED
+//     userId?,              // only if admin creates on behalf of a user
+//     brandId?,              // only if this is a Brand-level address
+//     subBrandId?,            // only if this is a subBrand/outlet-level address — ⚠️ REQUIRED for outlet flow
+//     addressLine1,          // REQUIRED
 //     addressLine2?,
 //     landmark?,
-//     city,                // REQUIRED
+//     city,                  // REQUIRED
 //     district?,
-//     state,               // REQUIRED
-//     zipcode,             // REQUIRED
+//     state,                 // REQUIRED
+//     zipcode,               // REQUIRED
 //     country?,
-//     formattedAddress?,   // priority field, send whenever available
+//     formattedAddress?,     // priority field, send whenever available
 //     coordinates: [lng, lat], // REQUIRED
-//     addressType,         // "HOME" | "WORK" | "OTHER" — brand/subBrand always send "WORK"
-//     isBrandAddress,      // true when this address belongs to a particular Brand
-//     isSubBrandAddress,   // true when it belongs to a subBrand
-//     isDefault,           // usually true
+//     addressType,           // "HOME" | "WORK" | "OTHER" — brand/subBrand always send "WORK"
+//     isBrandAddress,        // true when this address belongs to a particular Brand
+//     isSubBrandAddress,     // true when it belongs to a subBrand
+//     isDefault,             // usually true
 //   }
 //
 // NOTE: what comes BACK from the server (see getAllLocations) nests the
@@ -114,7 +115,7 @@ export async function getLocation(id) {
 }
 
 // ── Get All Locations (paginated + filterable) ──────────────────
-// GET {{TryDood2.0BaseUrl}}/locations?page=&limit=&brandId=&userId=
+// GET {{TryDood2.0BaseUrl}}/locations?page=&limit=&brandId=&userId=&subBrandId=
 //
 // CONFIRMED response shape (real payload):
 // {
@@ -176,53 +177,18 @@ export async function deleteLocation(id) {
 }
 
 // ══════════════════════════════════════════════════════════════
-// PREFILL HELPERS — hydrate CreateBrandOutlet from an already-saved
-// location instead of making the merchant search/pin it again.
-// ══════════════════════════════════════════════════════════════
-
-// ── Get Brand's Saved Outlet Location ─────────────────────────────
-// Convenience wrapper over getAllLocations — fetches this brand's WORK
-// address so CreateBrandOutlet can pre-fill selectedPlace/savedLocationId
-// on mount.
+// PREFILL HELPER — converts a saved location doc (now sourced from
+// brands/get?brandId= → data.firstSubBrand.location, NOT a separate
+// locations/getAll call) back into the `{ name, address, lat, lng,
+// placeId, addressComponents, source }` shape OutletLocationSearch /
+// MapModal / persistSelectedPlace expect — the inverse of
+// buildLocationPayloadFromPlace.
 //
-// Real docs can come back with isBrandAddress:false / isSubBrandAddress:true
-// (e.g. an address created for a specific outlet, not the parent brand) —
-// so this does NOT filter on isBrandAddress. It just takes the most
-// recently updated WORK-type doc for this brandId, which covers both the
-// "brand-level" and "sub-brand/outlet-level" address cases.
-export async function getBrandLocation(brandId) {
-    console.log('[locationApi] getBrandLocation → brandId:', brandId);
-    if (!brandId) return null;
-    try {
-        const res = await getAllLocations({ brandId, limit: 20 });
-        const list = res?.data?.data || [];
-        const candidates = (Array.isArray(list) ? list : []).filter(
-            (loc) => loc.addressType === ADDRESS_TYPES.WORK && !loc.isDeleted
-        );
-        const pool = candidates.length ? candidates : list;
-        // Most recently updated first, so a later edit wins over an older save.
-        const sorted = [...pool].sort(
-            (a, b) => new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0)
-        );
-        const picked = sorted[0] || null;
-        console.log('[locationApi] getBrandLocation ← picked:', picked);
-        return picked;
-    } catch (error) {
-        console.error('[locationApi] getBrandLocation ✗ FAILED', error?.response?.data || error);
-        handleError(error);
-    }
-}
-
-/**
- * Converts a saved location document (from getBrandLocation /
- * getAllLocations) back into the `{ name, address, lat, lng, placeId,
- * addressComponents, source }` shape OutletLocationSearch / MapModal /
- * persistSelectedPlace expect — the inverse of buildLocationPayloadFromPlace.
- *
- * Reads coordinates from `loc.geo.coordinates` (confirmed shape), with a
- * fallback to a flat `loc.coordinates` in case an older/different endpoint
- * ever returns that instead.
- */
+// Reads coordinates from `loc.geo.coordinates` (confirmed shape — matches
+// firstSubBrand.location.geo.coordinates in the brands/get response), with
+// a fallback to a flat `loc.coordinates` in case some other source ever
+// returns that instead.
+// ══════════════════════════════════════════════════════════════
 export function mapLocationToSelectedPlace(loc) {
     if (!loc) return null;
     const [lng, lat] = loc.geo?.coordinates || loc.coordinates || [];
@@ -333,13 +299,20 @@ function extractAddressLine2(comps) {
  * isBrandAddress/isSubBrandAddress/isDefault are all real fields, not
  * dropped.
  *
+ * ⚠️ FIXED: now accepts `overrides.subBrandId`. Per the confirmed Postman
+ * schema, the Brand Outlet flow creates a SUBBRAND-level address, so:
+ *   - subBrandId gets sent in the body (was missing entirely before)
+ *   - isBrandAddress / isSubBrandAddress now default off of whether a
+ *     subBrandId was passed, instead of hardcoding isBrandAddress: true.
+ *
  * @param {object} place
  * @param {object} [overrides]
  * @param {string} [overrides.userId]
- * @param {string} [overrides.brandId]
+ * @param {string} [overrides.brandId]         only pass this for a pure brand-level address
+ * @param {string} [overrides.subBrandId]      pass this for the outlet flow — REQUIRED per backend schema
  * @param {string} [overrides.addressType]        default: ADDRESS_TYPES.WORK
- * @param {boolean} [overrides.isBrandAddress]     default: true (brand outlet flow)
- * @param {boolean} [overrides.isSubBrandAddress]  default: false
+ * @param {boolean} [overrides.isBrandAddress]     default: true only if no subBrandId given
+ * @param {boolean} [overrides.isSubBrandAddress]  default: true if subBrandId given
  * @param {boolean} [overrides.isDefault]          default: true
  * @param {string} [overrides.landmark]            manual landmark input, if you add one to the UI
  * @param {string} [overrides.manualZipcode]        user-typed pincode fallback, used when Google gives none
@@ -347,13 +320,16 @@ function extractAddressLine2(comps) {
 export function buildLocationPayloadFromPlace(place, overrides = {}) {
     console.log('[locationApi] buildLocationPayloadFromPlace ← raw place object:', place);
     console.log('[locationApi] buildLocationPayloadFromPlace ← addressComponents:', place?.addressComponents);
+    console.log('[locationApi] buildLocationPayloadFromPlace ← overrides:', overrides);
 
     const comps = place?.addressComponents || [];
     const formattedAddress = place?.address || '';
+    const hasSubBrand = !!overrides.subBrandId;
 
     const result = {
         ...(overrides.userId ? { userId: overrides.userId } : {}),
         ...(overrides.brandId ? { brandId: overrides.brandId } : {}),
+        ...(overrides.subBrandId ? { subBrandId: overrides.subBrandId } : {}), // ⚠️ NEW
         addressLine1: extractAddressLine1(comps, place?.name, formattedAddress),
         addressLine2: extractAddressLine2(comps),
         ...(overrides.landmark ? { landmark: overrides.landmark } : {}),
@@ -365,8 +341,10 @@ export function buildLocationPayloadFromPlace(place, overrides = {}) {
         formattedAddress,
         coordinates: [place?.lng, place?.lat], // [lng, lat]
         addressType: overrides.addressType || ADDRESS_TYPES.WORK,
-        isBrandAddress: overrides.isBrandAddress ?? true,
-        isSubBrandAddress: overrides.isSubBrandAddress ?? false,
+        // ⚠️ FIXED: was hardcoded isBrandAddress: true always — now flips
+        // based on whether this is actually a subBrand/outlet address.
+        isBrandAddress: overrides.isBrandAddress ?? !hasSubBrand,
+        isSubBrandAddress: overrides.isSubBrandAddress ?? hasSubBrand,
         isDefault: overrides.isDefault ?? true,
     };
 
@@ -381,6 +359,9 @@ export function buildLocationPayloadFromPlace(place, overrides = {}) {
  *
  * Only sends fields the backend currently accepts — see note above.
  *
+ * ⚠️ FIXED: same subBrandId / isBrandAddress / isSubBrandAddress fix as
+ * buildLocationPayloadFromPlace above.
+ *
  * ⚠️ ADJUST: the exact shape of `brand.gst.address` wasn't fully visible in
  * the original code (only `.location` — a formatted string — was read from
  * it), so this reads a handful of likely field names defensively and falls
@@ -388,16 +369,19 @@ export function buildLocationPayloadFromPlace(place, overrides = {}) {
  * and tighten this once known.
  *
  * @param {object} gstAddress - e.g. brand?.gst?.address
- * @param {object} [overrides] - userId, brandId, manualZipcode currently forwarded.
+ * @param {object} [overrides] - userId, brandId, subBrandId, manualZipcode currently forwarded.
  */
 export function buildLocationPayloadFromGstAddress(gstAddress = {}, overrides = {}) {
     console.log('[locationApi] buildLocationPayloadFromGstAddress ← raw gstAddress:', gstAddress);
+    console.log('[locationApi] buildLocationPayloadFromGstAddress ← overrides:', overrides);
 
     const [lng, lat] = gstAddress.coordinates || [gstAddress.lng, gstAddress.lat];
     const formattedAddress = gstAddress.formattedAddress || gstAddress.location || '';
+    const hasSubBrand = !!overrides.subBrandId;
 
     const result = {
         ...(overrides.brandId ? { brandId: overrides.brandId } : {}),
+        ...(overrides.subBrandId ? { subBrandId: overrides.subBrandId } : {}), // ⚠️ NEW
         addressLine1: gstAddress.addressLine1 || gstAddress.line1 || formattedAddress?.split(',')[0]?.trim() || '',
         addressLine2: gstAddress.addressLine2 || gstAddress.line2 || '',
         city: gstAddress.city || '',
@@ -408,8 +392,9 @@ export function buildLocationPayloadFromGstAddress(gstAddress = {}, overrides = 
         formattedAddress,
         coordinates: [lng, lat],
         addressType: overrides.addressType || ADDRESS_TYPES.WORK,
-        isBrandAddress: overrides.isBrandAddress ?? true,
-        isSubBrandAddress: overrides.isSubBrandAddress ?? false,
+        // ⚠️ FIXED: same flip as buildLocationPayloadFromPlace
+        isBrandAddress: overrides.isBrandAddress ?? !hasSubBrand,
+        isSubBrandAddress: overrides.isSubBrandAddress ?? hasSubBrand,
         isDefault: overrides.isDefault ?? true,
         ...(overrides.userId ? { userId: overrides.userId } : {}),
     };
@@ -471,17 +456,37 @@ export function hasValidCityAndState(payload) {
 }
 
 /**
+ * subBrandId is required for the Brand Outlet flow per the confirmed
+ * backend schema — a location with neither brandId nor subBrandId is a
+ * dangling/customer-style address, not an outlet address. Use this
+ * alongside the other hasValid* checks before persistLocationPayload in
+ * the outlet creation flow specifically.
+ */
+export function hasValidSubBrandId(payload) {
+    const valid = typeof payload?.subBrandId === 'string' && payload.subBrandId.trim().length > 0;
+    console.log('[locationApi] hasValidSubBrandId:', valid, '(subBrandId:', JSON.stringify(payload?.subBrandId), ')');
+    return valid;
+}
+
+/**
  * Runs every required-field check at once and returns a list of problems
  * (empty array = payload is postable). Use this right before
  * persistLocationPayload for a single, complete validation pass instead of
  * calling each hasValid* function separately.
+ *
+ * @param {object} payload
+ * @param {object} [opts]
+ * @param {boolean} [opts.requireSubBrandId] pass true in the outlet flow so a
+ *   missing subBrandId is caught here instead of silently posting a
+ *   brand-level address by mistake.
  */
-export function validateLocationPayload(payload) {
+export function validateLocationPayload(payload, opts = {}) {
     const errors = [];
     if (!hasValidCoordinates(payload)) errors.push('coordinates');
     if (!hasValidAddressLine1(payload)) errors.push('addressLine1');
     if (!hasValidCityAndState(payload)) errors.push('city/state');
     if (!hasValidZipcode(payload)) errors.push('zipcode');
+    if (opts.requireSubBrandId && !hasValidSubBrandId(payload)) errors.push('subBrandId');
     console.log('[locationApi] validateLocationPayload → errors:', errors.length ? errors : 'NONE (valid)');
     return errors;
 }

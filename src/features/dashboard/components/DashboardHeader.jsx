@@ -7,10 +7,11 @@ const NAV_TABS = [
   { label: "Transactions",    to: "/transactions"        },
   { label: "Settlements",     to: "/settlements"      },
   { label: "Voucher",         to: "/vouchers"          },
-  { label: "Sub Brand ",       to: "/deal-pack"        },
-  { label: "BRand Info",      to: "/membership"       },
-   { label: "Playlist Music",      to: "/music"       },
-  { label: "More",            to: "/more"             },
+  { label: "Account Information ",       to: "/account-information"        },
+  { label: "Sub Outlets & Franchise",      to: "/outlets"       },
+  { label: "Subscription Plan",      to: "/subscription-plan"       },
+  // { label: "Playlist Music",      to: "/music"       },
+  // { label: "More",            to: "/more"             },
 ];
 
 export default function DashboardHeader() {

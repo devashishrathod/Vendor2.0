@@ -1,430 +1,315 @@
+import { useState, useMemo } from "react";
+import {
+  Download,
+  Search,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
+  TrendingUp,
+  TrendingDown,
+} from "lucide-react";
 
+// ══════════════════════════════════════════════════════════════
+// DATA GENERATION
+// Deterministic (not random) so switching date range gives a
+// consistent, explainable trend instead of jumping around.
+// ══════════════════════════════════════════════════════════════
 
-
-
-
-import { useState, useEffect, useRef } from "react";
-import DashboardHeader from "../components/DashboardHeader";
-import { Heart, Volume2, VolumeX, Play, Pause, Plus, X, ChevronRight } from "lucide-react";
-
-// ─── Mock Data ────────────────────────────────────────────────────────────────
-const SONGS = [
-  {
-    id: 1,
-    name: "Weekend Special",
-    artist: "The Voucher Sessions",
-    album: "Happy Hours",
-    plays: "12,480",
-    src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
-  },
-  {
-    id: 2,
-    name: "Family Combo",
-    artist: "Deal Pack",
-    album: "Solo Saver",
-    plays: "9,210",
-    src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
-  },
-  {
-    id: 3,
-    name: "Gold Membership",
-    artist: "Loyalty Club",
-    album: "Rewards Vol. 1",
-    plays: "6,540",
-    src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
-  },
+const RANGE_OPTIONS = [
+  { key: "7d", label: "7 Days", days: 7 },
+  { key: "30d", label: "30 Days", days: 30 },
+  { key: "90d", label: "90 Days", days: 90 },
 ];
 
-// ─── Neon Wave (matches reference: glowing blue/purple/pink flowing lines) ──
-function NeonWave({ isPlaying }) {
-  return (
-    <div className="relative w-full h-28 rounded-xl bg-[#0a0a14] overflow-hidden">
-      <style>{`
-        @keyframes waveScroll {
-          from { transform: translateX(0); }
-          to   { transform: translateX(-50%); }
-        }
-        .wave-track {
-          width: 200%;
-          animation: waveScroll 6s linear infinite;
-        }
-        .wave-track.paused { animation-play-state: paused; opacity: 0.45; }
-        .wave-track.slow { animation-duration: 9s; }
-        .wave-track.slower { animation-duration: 13s; }
-      `}</style>
-
-      <svg
-        className={`wave-track absolute inset-y-0 left-0 h-full slower ${!isPlaying ? "paused" : ""}`}
-        viewBox="0 0 600 120"
-        preserveAspectRatio="none"
-      >
-        <path
-          d="M0,60 Q25,20 50,60 T100,60 T150,60 T200,60 T250,60 T300,60 T350,60 T400,60 T450,60 T500,60 T550,60 T600,60
-             M600,60 Q625,20 650,60 T700,60 T750,60 T800,60 T850,60 T900,60 T950,60 T1000,60 T1050,60 T1100,60 T1150,60 T1200,60"
-          fill="none"
-          stroke="#7c3aed"
-          strokeWidth="1.5"
-          opacity="0.5"
-          style={{ filter: "drop-shadow(0 0 6px #7c3aed)" }}
-        />
-      </svg>
-
-      <svg
-        className={`wave-track absolute inset-y-0 left-0 h-full slow ${!isPlaying ? "paused" : ""}`}
-        viewBox="0 0 600 120"
-        preserveAspectRatio="none"
-      >
-        <path
-          d="M0,60 C15,25 35,95 55,60 C75,25 95,95 115,60 C135,25 155,95 175,60
-             C195,25 215,95 235,60 C255,25 275,95 295,60 C315,25 335,95 355,60
-             C375,25 395,95 415,60 C435,25 455,95 475,60 C495,25 515,95 535,60
-             C555,25 575,95 595,60
-             M600,60 C615,25 635,95 655,60 C675,25 695,95 715,60 C735,25 755,95 775,60
-             C795,25 815,95 835,60 C855,25 875,95 895,60 C915,25 935,95 955,60
-             C975,25 995,95 1015,60 C1035,25 1055,95 1075,60 C1095,25 1115,95 1135,60
-             C1155,25 1175,95 1195,60"
-          fill="none"
-          stroke="#3b82f6"
-          strokeWidth="2"
-          opacity="0.7"
-          style={{ filter: "drop-shadow(0 0 8px #3b82f6)" }}
-        />
-      </svg>
-
-      <svg
-        className={`wave-track absolute inset-y-0 left-0 h-full ${!isPlaying ? "paused" : ""}`}
-        viewBox="0 0 600 120"
-        preserveAspectRatio="none"
-      >
-        <path
-          d="M0,60 C10,50 20,10 30,60 C40,110 50,50 60,60 C70,70 80,15 90,60
-             C100,105 110,55 120,60 C130,65 140,20 150,60 C160,100 170,55 180,60
-             C190,65 200,15 210,60 C220,105 230,50 240,60 C250,70 260,10 270,60
-             C280,110 290,55 300,60 C310,65 320,15 330,60 C340,105 350,50 360,60
-             C370,70 380,10 390,60 C400,110 410,55 420,60 C430,65 440,15 450,60
-             C460,105 470,50 480,60 C490,70 500,10 510,60 C520,110 530,55 540,60
-             C550,65 560,15 570,60 C580,105 590,55 600,60
-             M600,60 C610,50 620,10 630,60 C640,110 650,50 660,60 C670,70 680,15 690,60
-             C700,105 710,55 720,60 C730,65 740,20 750,60 C760,100 770,55 780,60
-             C790,65 800,15 810,60 C820,105 830,50 840,60 C850,70 860,10 870,60
-             C880,110 890,55 900,60 C910,65 920,15 930,60 C940,105 950,50 960,60
-             C970,70 980,10 990,60 C1000,110 1010,55 1020,60 C1030,65 1040,15 1050,60
-             C1060,105 1070,50 1080,60 C1090,70 1100,10 1110,60 C1120,110 1130,55 1140,60
-             C1150,65 1160,15 1170,60 C1180,105 1190,55 1200,60"
-          fill="none"
-          stroke="#ec4899"
-          strokeWidth="1.5"
-          opacity="0.8"
-          style={{ filter: "drop-shadow(0 0 6px #ec4899)" }}
-        />
-      </svg>
-    </div>
-  );
+function generateSeries(days) {
+  const today = new Date();
+  const arr = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const idx = days - 1 - i;
+    const wave = Math.sin(idx / 3) * 14 + Math.sin(idx / 9) * 7;
+    const trend = idx * (18 / days); // gentle upward trend across the range
+    const spike = idx % 9 === 0 ? 12 : 0; // weekend-ish spikes
+    const value = Math.max(8, Math.round(46 + wave + trend + spike));
+    const date = new Date(today);
+    date.setDate(date.getDate() - i);
+    arr.push({
+      date,
+      label: date.toLocaleDateString("en-IN", { day: "2-digit", month: "short" }),
+      revenue: value * 1000, // ₹ thousands/day
+      orders: Math.round(value * 1.35),
+    });
+  }
+  return arr;
 }
 
-// ─── Progress bar (mm:ss, fills as song plays) ──────────────────────────────
-function formatTime(sec) {
-  if (!sec || !isFinite(sec)) return "0:00";
-  const m = Math.floor(sec / 60);
-  const s = Math.floor(sec % 60);
-  return `${m}:${s.toString().padStart(2, "0")}`;
+const RAW_PRODUCTS = [
+  { name: "Voucher — Weekend Special", revenue: 28400, orders: 312 },
+  { name: "Deal Pack — Family Combo", revenue: 19600, orders: 210 },
+  { name: "Membership — Gold", revenue: 15200, orders: 98 },
+  { name: "Voucher — Happy Hours", revenue: 11800, orders: 187 },
+  { name: "Deal Pack — Solo Saver", revenue: 9320, orders: 143 },
+];
+const maxProductRevenue = Math.max(...RAW_PRODUCTS.map((p) => p.revenue));
+const PRODUCTS = RAW_PRODUCTS.map((p) => ({
+  ...p,
+  share: Math.round((p.revenue / maxProductRevenue) * 100),
+}));
+
+const TRANSACTIONS = [
+  { id: "TXN48213", customer: "Rohan Mehta", product: "Weekend Special", amount: 649, status: "Success", time: "12 min ago" },
+  { id: "TXN48212", customer: "Priya Nair", product: "Gold Membership", amount: 1299, status: "Pending", time: "38 min ago" },
+  { id: "TXN48211", customer: "Aditya Rao", product: "Family Combo", amount: 899, status: "Success", time: "1 hr ago" },
+  { id: "TXN48210", customer: "Sneha Kapoor", product: "Happy Hours", amount: 449, status: "Refunded", time: "2 hr ago" },
+  { id: "TXN48209", customer: "Vikram Singh", product: "Solo Saver", amount: 299, status: "Success", time: "3 hr ago" },
+  { id: "TXN48208", customer: "Ananya Iyer", product: "Weekend Special", amount: 649, status: "Success", time: "5 hr ago" },
+];
+
+const STATUS_STYLES = {
+  Success: "bg-emerald-50 text-emerald-700",
+  Pending: "bg-amber-50 text-amber-700",
+  Refunded: "bg-red-50 text-red-600",
+};
+
+function formatINR(n) {
+  return `₹ ${Math.round(n).toLocaleString("en-IN")}`;
 }
 
-function ProgressBar({ progress, currentTime, duration, onSeek }) {
-  return (
-    <div className="mt-3">
-      <div
-        className="h-1.5 bg-gray-100 rounded-full overflow-hidden cursor-pointer"
-        onClick={(e) => {
-          const rect = e.currentTarget.getBoundingClientRect();
-          const pct = ((e.clientX - rect.left) / rect.width) * 100;
-          onSeek(Math.min(100, Math.max(0, pct)));
-        }}
-      >
-        <div
-          className="h-full rounded-full bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 transition-all duration-200"
-          style={{ width: `${progress}%` }}
-        />
-      </div>
-      <div className="flex justify-between mt-1.5">
-        <span className="text-[11px] text-gray-400">{formatTime(currentTime)}</span>
-        <span className="text-[11px] text-gray-400">{formatTime(duration)}</span>
-      </div>
-    </div>
-  );
+// % change comparing the second half of the series vs the first half —
+// a simple, honest trend signal instead of a hardcoded number.
+function computeChange(series, key) {
+  const half = Math.floor(series.length / 2);
+  const first = series.slice(0, half).reduce((s, d) => s + d[key], 0) / (half || 1);
+  const second = series.slice(half).reduce((s, d) => s + d[key], 0) / (series.length - half || 1);
+  if (!first) return 0;
+  return ((second - first) / first) * 100;
 }
 
-// ─── Song Details Popup ─────────────────────────────────────────────────────
-function SongDetailsPopup({ song, duration, onClose }) {
-  return (
-    <div
-      className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white rounded-2xl w-full max-w-sm p-6 relative shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
-        >
-          <X size={18} />
-        </button>
+// ══════════════════════════════════════════════════════════════
+// PAGE
+// ══════════════════════════════════════════════════════════════
 
-        <div className="w-16 h-16 rounded-xl bg-emerald-100 flex items-center justify-center mb-4">
-          <Play size={24} className="text-emerald-500" fill="currentColor" />
-        </div>
-
-        <h3 className="text-lg font-bold text-gray-900">{song.name}</h3>
-        <p className="text-sm text-gray-400 mb-4">{song.artist}</p>
-
-        <div className="flex flex-col gap-2 text-sm">
-          <div className="flex justify-between">
-            <span className="text-gray-400">Album</span>
-            <span className="text-gray-700 font-medium">{song.album}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-400">Duration</span>
-            <span className="text-gray-700 font-medium">{duration}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-400">Plays</span>
-            <span className="text-gray-700 font-medium">{song.plays}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Page ────────────────────────────────────────────────────────────────────
 export default function AnalysisReport() {
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const [favorites, setFavorites] = useState({});
-  const [showPopup, setShowPopup] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const audioRef = useRef(null);
+  const [rangeKey, setRangeKey] = useState("30d");
+  const [hoveredDay, setHoveredDay] = useState(null);
+  const [productSearch, setProductSearch] = useState("");
+  const [sortKey, setSortKey] = useState("revenue");
+  const [sortDir, setSortDir] = useState("desc");
 
-  const activeSong = SONGS[activeIndex];
+  const range = RANGE_OPTIONS.find((r) => r.key === rangeKey);
+  const series = useMemo(() => generateSeries(range.days), [range.days]);
+  const maxRevenue = Math.max(...series.map((d) => d.revenue));
 
-  // keep <audio> in sync with state, and track real playback progress
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
+  // ── Derived KPIs (recompute whenever the date range changes) ──
+  const totalRevenue = series.reduce((s, d) => s + d.revenue, 0);
+  const totalOrders = series.reduce((s, d) => s + d.orders, 0);
+  const avgOrderValue = totalOrders ? totalRevenue / totalOrders : 0;
+  const refundRate = 0.025 + (range.days % 7) * 0.0015;
+  const refundsIssued = totalRevenue * refundRate;
 
-    const handleTimeUpdate = () => {
-      setCurrentTime(audio.currentTime);
-      if (audio.duration) setProgress((audio.currentTime / audio.duration) * 100);
-    };
-    const handleLoadedMetadata = () => setDuration(audio.duration);
-    const handleEnded = () => {
-      setIsPlaying(false);
-      setProgress(0);
-      setCurrentTime(0);
-    };
+  const revenueChange = computeChange(series, "revenue");
+  const ordersChange = computeChange(series, "orders");
 
-    audio.addEventListener("timeupdate", handleTimeUpdate);
-    audio.addEventListener("loadedmetadata", handleLoadedMetadata);
-    audio.addEventListener("ended", handleEnded);
-    return () => {
-      audio.removeEventListener("timeupdate", handleTimeUpdate);
-      audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
-      audio.removeEventListener("ended", handleEnded);
-    };
-  }, [activeIndex]);
+  const STATS = [
+    {
+      label: "Total Revenue",
+      value: formatINR(totalRevenue),
+      change: revenueChange,
+    },
+    {
+      label: "Total Orders",
+      value: totalOrders.toLocaleString("en-IN"),
+      change: ordersChange,
+    },
+    {
+      label: "Avg Order Value",
+      value: formatINR(avgOrderValue),
+      change: revenueChange - ordersChange, // AOV drifts with the gap between the two
+    },
+    {
+      label: "Refunds Issued",
+      value: formatINR(refundsIssued),
+      change: -(revenueChange * 0.4), // refunds trend opposite-ish to revenue health
+    },
+  ];
 
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    if (isPlaying) audio.play().catch(() => setIsPlaying(false));
-    else audio.pause();
-  }, [isPlaying, activeIndex]);
+  // ── Order status split, derived from totalOrders ──
+  const statusSplit = [
+    { label: "Success", pct: 84, color: "#34d399" },
+    { label: "Pending", pct: 7, color: "#fbbf24" },
+    { label: "Refunded", pct: 6, color: "#f87171" },
+    { label: "Cancelled", pct: 3, color: "#9ca3af" },
+  ];
+  let acc = 0;
+  const conicStops = statusSplit
+    .map((s) => {
+      const from = acc;
+      acc += s.pct;
+      return `${s.color} ${from}% ${acc}%`;
+    })
+    .join(", ");
 
-  useEffect(() => {
-    if (audioRef.current) audioRef.current.muted = isMuted;
-  }, [isMuted]);
+  // ── Top products: search + sort ──
+  const filteredProducts = PRODUCTS.filter((p) =>
+    p.name.toLowerCase().includes(productSearch.trim().toLowerCase())
+  );
+  const sortedProducts = [...filteredProducts].sort((a, b) => {
+    const dir = sortDir === "asc" ? 1 : -1;
+    return (a[sortKey] - b[sortKey]) * dir;
+  });
 
-  const toggleFavorite = (id) =>
-    setFavorites((f) => ({ ...f, [id]: !f[id] }));
-
-  const addSong = () => {
-    setActiveIndex((i) => (i + 1) % SONGS.length);
-    setProgress(0);
-    setCurrentTime(0);
-    setIsPlaying(true);
-  };
-
-  const handleSeek = (pct) => {
-    const audio = audioRef.current;
-    if (audio && audio.duration) {
-      audio.currentTime = (pct / 100) * audio.duration;
-      setProgress(pct);
-      setCurrentTime(audio.currentTime);
+  const toggleSort = (key) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("desc");
     }
   };
 
+  const SortIcon = ({ colKey }) => {
+    if (sortKey !== colKey) return <ArrowUpDown size={12} className="text-gray-300" />;
+    return sortDir === "asc" ? <ArrowUp size={12} className="text-emerald-600" /> : <ArrowDown size={12} className="text-emerald-600" />;
+  };
 
-  
-
-// ─── Mock Data ────────────────────────────────────────────────────────────────
-const STATS = [
-  { label: "Total Revenue",    value: "₹ 84,320.00", change: "+12.4%", positive: true  },
-  { label: "Total Orders",     value: "1,248",        change: "+8.2%",  positive: true  },
-  { label: "Avg Order Value",  value: "₹ 675.00",    change: "-3.1%",  positive: false },
-  { label: "Refunds Issued",   value: "₹ 2,140.00",  change: "-18.5%", positive: false },
-];
-
-const TOP_PRODUCTS = [
-  { name: "Voucher — Weekend Special",  revenue: "₹ 28,400",  orders: 312, share: 72 },
-  { name: "Deal Pack — Family Combo",   revenue: "₹ 19,600",  orders: 210, share: 54 },
-  { name: "Membership — Gold",          revenue: "₹ 15,200",  orders: 98,  share: 38 },
-  { name: "Voucher — Happy Hours",      revenue: "₹ 11,800",  orders: 187, share: 29 },
-  { name: "Deal Pack — Solo Saver",     revenue: "₹ 9,320",   orders: 143, share: 22 },
-];
-
-const MONTHLY = [
-  { month: "Jan", value: 42 },
-  { month: "Feb", value: 58 },
-  { month: "Mar", value: 51 },
-  { month: "Apr", value: 73 },
-  { month: "May", value: 65 },
-  { month: "Jun", value: 88 },
-  { month: "Jul", value: 79 },
-];
-
-const max = Math.max(...MONTHLY.map((m) => m.value));
+  const exportCSV = () => {
+    const header = "Product,Revenue,Orders,Share %\n";
+    const rows = sortedProducts
+      .map((p) => `"${p.name}",${p.revenue},${p.orders},${p.share}`)
+      .join("\n");
+    const blob = new Blob([header + rows], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `top-products-${rangeKey}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
-  
       <div className="max-w-6xl mx-auto px-6 py-6">
 
-        {/* Heading */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Analysis Report</h1>
-          <p className="text-xs text-gray-400 mt-1">
-            Business performance overview · Updated daily
-          </p>
+        {/* ── Heading + controls ── */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Analysis Report</h1>
+            <p className="text-xs text-gray-400 mt-1">
+              Business performance overview · {range.label.toLowerCase()} view
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <div className="flex bg-white border border-gray-100 rounded-xl p-1">
+              {RANGE_OPTIONS.map((r) => (
+                <button
+                  key={r.key}
+                  onClick={() => setRangeKey(r.key)}
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                    rangeKey === r.key
+                      ? "bg-[#1a1a2e] text-white"
+                      : "text-gray-500 hover:text-gray-800"
+                  }`}
+                >
+                  {r.label}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={exportCSV}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border border-gray-100 bg-white text-gray-600 hover:text-emerald-700 hover:border-emerald-200 transition-colors"
+            >
+              <Download size={14} />
+              Export CSV
+            </button>
+          </div>
         </div>
 
-
-        {/* ── Full-length playlist card ── */}
-        {/* <div className="bg-white border border-gray-100 rounded-xl p-6 w-full">
-
-          <div className="flex items-center justify-between mb-6">
-            <a
-              href="/playlist"
-              className="inline-flex items-center gap-1 text-sm font-semibold text-gray-700 hover:text-emerald-600 transition-colors"
-            >
-              Playlist
-              <ChevronRight size={14} />
-            </a>
-
-            <button
-              onClick={() => setShowPopup(true)}
-              className="text-sm font-medium text-gray-500 hover:text-gray-800 transition-colors"
-            >
-              {activeSong.name} <span className="text-gray-300">·</span> {activeSong.artist}
-            </button>
-          </div>
-
-
-          <div className="mb-6">
-            <audio ref={audioRef} src={activeSong.src} preload="metadata" />
-            <NeonWave isPlaying={isPlaying} />
-            <div className="mt-3">
-              <p className="text-sm font-semibold text-gray-900">{activeSong.name}</p>
-              <p className="text-xs text-gray-400">{activeSong.artist}</p>
-            </div>
-            <ProgressBar
-              progress={progress}
-              currentTime={currentTime}
-              duration={duration}
-              onSeek={handleSeek}
-            />
-          </div>
-
-   
-          <div className="flex items-center justify-center gap-4">
-            <button
-              onClick={() => toggleFavorite(activeSong.id)}
-              className={`p-2.5 rounded-full border transition-colors ${
-                favorites[activeSong.id]
-                  ? "bg-red-50 border-red-100 text-red-500"
-                  : "bg-white border-gray-100 text-gray-400 hover:text-red-400"
-              }`}
-              aria-label="Toggle favorite"
-            >
-              <Heart size={18} fill={favorites[activeSong.id] ? "currentColor" : "none"} />
-            </button>
-
-            <button
-              onClick={() => setIsPlaying((p) => !p)}
-              className="p-4 rounded-full bg-emerald-400 text-white hover:bg-emerald-500 transition-colors shadow-sm"
-              aria-label="Play or pause"
-            >
-              {isPlaying ? <Pause size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" />}
-            </button>
-
-            <button
-              onClick={() => setIsMuted((m) => !m)}
-              className="p-2.5 rounded-full border border-gray-100 text-gray-400 hover:text-gray-700 transition-colors"
-              aria-label="Toggle mute"
-            >
-              {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
-            </button>
-
-            <button
-              onClick={addSong}
-              className="p-2.5 rounded-full border border-gray-100 text-gray-400 hover:text-emerald-600 hover:border-emerald-200 transition-colors"
-              aria-label="Add next song"
-            >
-              <Plus size={18} />
-            </button>
-          </div>
-
-        </div> */}
-
-
-        
-      <div className="max-w-6xl mx-auto px-6 py-6">
-
-       
         {/* ── Stat cards ── */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-          {STATS.map((s) => (
-            <div key={s.label} className="bg-white border border-gray-100 rounded-xl px-4 py-3 flex flex-col gap-2">
-              <p className="text-xs text-gray-400 font-medium">{s.label}</p>
-              <p className="text-lg font-bold text-gray-900">{s.value}</p>
-              <span className={`self-start text-[11px] font-semibold px-2 py-0.5 rounded-full
-                ${s.positive ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"}`}>
-                {s.change} vs last month
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+          {STATS.map((s) => {
+            const positive = s.change >= 0;
+            return (
+              <div key={s.label} className="bg-white border border-gray-100 rounded-xl px-4 py-3 flex flex-col gap-2">
+                <p className="text-xs text-gray-400 font-medium">{s.label}</p>
+                <p className="text-lg font-bold text-gray-900">{s.value}</p>
+                <span
+                  className={`self-start flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                    positive ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"
+                  }`}
+                >
+                  {positive ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
+                  {Math.abs(s.change).toFixed(1)}% vs prev. period
+                </span>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* ── Revenue trend (hoverable) ── */}
+        <div className="bg-white border border-gray-100 rounded-xl p-5 mb-4">
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-sm font-semibold text-gray-700">Revenue Trend</p>
+            {hoveredDay !== null && (
+              <span className="text-xs text-gray-500">
+                <span className="font-semibold text-gray-800">{series[hoveredDay].label}</span>
+                {"  ·  "}
+                {formatINR(series[hoveredDay].revenue)}
+                {"  ·  "}
+                {series[hoveredDay].orders} orders
               </span>
-            </div>
-          ))}
+            )}
+          </div>
+          <div className="flex items-end gap-[3px] h-40" onMouseLeave={() => setHoveredDay(null)}>
+            {series.map((d, i) => (
+              <div
+                key={i}
+                className="flex-1 h-full flex items-end cursor-pointer group"
+                onMouseEnter={() => setHoveredDay(i)}
+              >
+                <div
+                  className={`w-full rounded-t-sm transition-colors ${
+                    hoveredDay === i ? "bg-emerald-500" : "bg-emerald-300 group-hover:bg-emerald-400"
+                  }`}
+                  style={{ height: `${(d.revenue / maxRevenue) * 100}%` }}
+                />
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-between mt-2 text-[10px] text-gray-400">
+            <span>{series[0]?.label}</span>
+            <span>{series[series.length - 1]?.label}</span>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
 
-          {/* ── Bar chart ── */}
+          {/* ── Order status donut ── */}
           <div className="bg-white border border-gray-100 rounded-xl p-5">
-            <p className="text-sm font-semibold text-gray-700 mb-4">Monthly Revenue</p>
-            <div className="flex items-end gap-2 h-40">
-              {MONTHLY.map((m) => (
-                <div key={m.month} className="flex-1 flex flex-col items-center gap-1">
-                  <span className="text-[10px] text-gray-400">{m.value}k</span>
-                  <div
-                    className="w-full rounded-t-md bg-emerald-400 transition-all duration-300"
-                    style={{ height: `${(m.value / max) * 100}%` }}
-                  />
-                  <span className="text-[10px] text-gray-400">{m.month}</span>
+            <p className="text-sm font-semibold text-gray-700 mb-4">Order Status</p>
+            <div className="flex items-center gap-6">
+              <div
+                className="w-28 h-28 rounded-full shrink-0 relative"
+                style={{ background: `conic-gradient(${conicStops})` }}
+              >
+                <div className="absolute inset-[10px] bg-white rounded-full flex flex-col items-center justify-center">
+                  <span className="text-sm font-bold text-gray-900">{totalOrders.toLocaleString("en-IN")}</span>
+                  <span className="text-[9px] text-gray-400">orders</span>
                 </div>
-              ))}
+              </div>
+              <div className="flex flex-col gap-2">
+                {statusSplit.map((s) => (
+                  <div key={s.label} className="flex items-center gap-2 text-xs">
+                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
+                    <span className="text-gray-600 w-16">{s.label}</span>
+                    <span className="font-semibold text-gray-800">
+                      {Math.round((totalOrders * s.pct) / 100).toLocaleString("en-IN")}
+                    </span>
+                    <span className="text-gray-400">({s.pct}%)</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -433,14 +318,16 @@ const max = Math.max(...MONTHLY.map((m) => m.value));
             <p className="text-sm font-semibold text-gray-700 mb-4">Revenue by Category</p>
             <div className="flex flex-col gap-3">
               {[
-                { label: "Voucher",    pct: 46, color: "bg-emerald-400" },
-                { label: "Deal Pack",  pct: 31, color: "bg-purple-400"  },
-                { label: "Membership", pct: 23, color: "bg-amber-400"   },
+                { label: "Voucher", pct: 46, color: "bg-emerald-400" },
+                { label: "Deal Pack", pct: 31, color: "bg-purple-400" },
+                { label: "Membership", pct: 23, color: "bg-amber-400" },
               ].map((c) => (
                 <div key={c.label}>
                   <div className="flex justify-between text-xs text-gray-500 mb-1">
                     <span>{c.label}</span>
-                    <span className="font-semibold text-gray-700">{c.pct}%</span>
+                    <span className="font-semibold text-gray-700">
+                      {formatINR((totalRevenue * c.pct) / 100)} · {c.pct}%
+                    </span>
                   </div>
                   <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                     <div className={`h-full rounded-full ${c.color}`} style={{ width: `${c.pct}%` }} />
@@ -452,34 +339,99 @@ const max = Math.max(...MONTHLY.map((m) => m.value));
 
         </div>
 
-        {/* ── Top products table ── */}
-        <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
-          <div className="px-5 py-3.5 border-b border-gray-100">
-            <p className="text-sm font-semibold text-gray-700">Top Performing Products</p>
+        {/* ── Top products: searchable + sortable ── */}
+        <div className="bg-white border border-gray-100 rounded-xl overflow-hidden mb-4">
+          <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 gap-3">
+            <p className="text-sm font-semibold text-gray-700 whitespace-nowrap">Top Performing Products</p>
+            <div className="relative w-full max-w-[220px]">
+              <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-300" />
+              <input
+                value={productSearch}
+                onChange={(e) => setProductSearch(e.target.value)}
+                placeholder="Search products…"
+                className="w-full text-xs border border-gray-200 rounded-lg pl-7 pr-3 py-1.5 outline-none focus:border-emerald-400 bg-gray-50 text-gray-700"
+              />
+            </div>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-gray-50">
-                  {["Product", "Revenue", "Orders", "Share"].map((h) => (
+                  <th className="text-left px-5 py-3 text-gray-400 font-medium">Product</th>
+                  {[
+                    { key: "revenue", label: "Revenue" },
+                    { key: "orders", label: "Orders" },
+                    { key: "share", label: "Share" },
+                  ].map((col) => (
+                    <th
+                      key={col.key}
+                      onClick={() => toggleSort(col.key)}
+                      className="text-left px-5 py-3 text-gray-400 font-medium cursor-pointer select-none hover:text-gray-600"
+                    >
+                      <span className="flex items-center gap-1">
+                        {col.label}
+                        <SortIcon colKey={col.key} />
+                      </span>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {sortedProducts.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="px-5 py-8 text-center text-gray-400">
+                      No products match "{productSearch}". Try a different search term.
+                    </td>
+                  </tr>
+                ) : (
+                  sortedProducts.map((row) => (
+                    <tr key={row.name} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                      <td className="px-5 py-3.5 text-gray-700 font-medium">{row.name}</td>
+                      <td className="px-5 py-3.5 text-gray-700">{formatINR(row.revenue)}</td>
+                      <td className="px-5 py-3.5 text-gray-500">{row.orders}</td>
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden max-w-[80px]">
+                            <div className="h-full bg-emerald-400 rounded-full" style={{ width: `${row.share}%` }} />
+                          </div>
+                          <span className="text-gray-500 w-8 text-right">{row.share}%</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* ── Recent transactions ── */}
+        <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
+          <div className="px-5 py-3.5 border-b border-gray-100">
+            <p className="text-sm font-semibold text-gray-700">Recent Transactions</p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-gray-50">
+                  {["Txn ID", "Customer", "Product", "Amount", "Status", "Time"].map((h) => (
                     <th key={h} className="text-left px-5 py-3 text-gray-400 font-medium">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {TOP_PRODUCTS.map((row, i) => (
-                  <tr key={i} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                    <td className="px-5 py-3.5 text-gray-700 font-medium">{row.name}</td>
-                    <td className="px-5 py-3.5 text-gray-700">{row.revenue}</td>
-                    <td className="px-5 py-3.5 text-gray-500">{row.orders}</td>
+                {TRANSACTIONS.map((t) => (
+                  <tr key={t.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                    <td className="px-5 py-3.5 text-gray-400 font-mono">{t.id}</td>
+                    <td className="px-5 py-3.5 text-gray-700 font-medium">{t.customer}</td>
+                    <td className="px-5 py-3.5 text-gray-500">{t.product}</td>
+                    <td className="px-5 py-3.5 text-gray-700">{formatINR(t.amount)}</td>
                     <td className="px-5 py-3.5">
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                          <div className="h-full bg-emerald-400 rounded-full" style={{ width: `${row.share}%` }} />
-                        </div>
-                        <span className="text-gray-500 w-6 text-right">{row.share}%</span>
-                      </div>
+                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${STATUS_STYLES[t.status]}`}>
+                        {t.status}
+                      </span>
                     </td>
+                    <td className="px-5 py-3.5 text-gray-400">{t.time}</td>
                   </tr>
                 ))}
               </tbody>
@@ -488,12 +440,6 @@ const max = Math.max(...MONTHLY.map((m) => m.value));
         </div>
 
       </div>
-
-      </div>
-
-      {showPopup && (
-        <SongDetailsPopup song={activeSong} duration={formatTime(duration)} onClose={() => setShowPopup(false)} />
-      )}
     </div>
   );
 }
