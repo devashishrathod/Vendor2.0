@@ -2,7 +2,7 @@
 // Add/Edit form logic now lives in useVoucherForm.js — this hook only
 // handles the list view: stats, pagination, and search.
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { fetchVoucherStats, fetchVouchers } from "../../services/voucher/voucherService";
+import { fetchVoucherStats, fetchVouchers } from "../../services/voucher/VoucherService";
 
 export default function useVoucher() {
   const [stats, setStats] = useState(null);

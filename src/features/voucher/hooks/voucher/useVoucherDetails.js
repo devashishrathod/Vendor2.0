@@ -1,6 +1,6 @@
 // src/hooks/voucher/useVoucherDetails.js
 import { useEffect, useState, useCallback } from "react";
-import { fetchVoucherById } from "../../services/voucher/voucherService";
+import { fetchVoucherById } from "../../services/voucher/VoucherService";
 
 export default function useVoucherDetails(voucherId) {
   const [voucher, setVoucher] = useState(null);

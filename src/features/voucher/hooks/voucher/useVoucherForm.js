@@ -5,7 +5,7 @@ import {
   fetchVoucherById,
   createDiscountVoucher,
   updateDiscountVoucher,
-} from "../../services/voucher/voucherService";
+} from "../../services/voucher/VoucherService";
 
 const EMPTY_FORM = {
   voucherName: "",
