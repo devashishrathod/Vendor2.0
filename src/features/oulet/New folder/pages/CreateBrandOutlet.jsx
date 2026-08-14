@@ -119,7 +119,22 @@ export default function CreateBrandOutlet() {
     confirmOtp,
     closeOtpModal,
     hydrateVerified,
+    hydrateUnverifiedShell,
   } = useWhatsappOtp({ brandId: brand?._id, brandWhatsappNumber, isFirstOutlet: true });
+
+  // ── Verify button: Case-aware — if a subBrand shell already exists
+  // (subBrandId is already known, from either hydrateVerified or
+  // hydrateUnverifiedShell on mount), just RESEND via
+  // auth/loginOrSignUp-with-whatsapp (resetOtp). Only call sendOtp — which
+  // creates a brand-new shell via subBrands/signUp-with-whatsapp — when no
+  // shell exists yet (a genuinely new outlet, Case 3).
+  const handleVerifyClick = useCallback(() => {
+    if (subBrandId) {
+      resetOtp();
+    } else {
+      sendOtp();
+    }
+  }, [subBrandId, resetOtp, sendOtp]);
 
   const openGuideline = useCallback((type) => setGuidelineType(type), []);
   const closeGuideline = useCallback(() => setGuidelineType(null), []);
@@ -275,56 +290,76 @@ export default function CreateBrandOutlet() {
         if (data.logo) setExistingLogoUrl(data.logo);
 
         const fsb = data.firstSubBrand;
-        if (fsb) {
-          // ── Outlet type ──
-          // ⚠️ CONFIRM: OUTLET_TYPE_OPTIONS values assumed to be the
-          // lowercase "outlet"/"franchise" strings, matching the existing
-          // handleSave mapping (outletType === "franchise" ? FRANCHISE : OUTLET).
-          if (fsb.outletType) {
-            setOutletType(fsb.outletType === OUTLET_TYPES.FRANCHISE ? "franchise" : "outlet");
-          }
 
-          // ── WhatsApp number + verification ──
-          // fsb.user.isMobileVerified is the real "is this outlet's
-          // WhatsApp number verified" flag returned by brands/get.
-          const isNumberVerified = !!fsb.user?.isMobileVerified;
-          if (isNumberVerified && fsb._id) {
-            // Already verified — skip OTP entirely. Verify button
-            // disappears, "Already verified for this outlet" shows instead.
-            hydrateVerified({
-              subBrandId: fsb._id,
-              whatsappNumber: fsb.whatsappNumber,
-            });
-          } else if (fsb.whatsappNumber) {
-            // Number exists but isn't verified yet — prefill the input so
-            // the vendor doesn't have to retype it, but leave the Verify
-            // button enabled/active since it still needs an OTP.
-            handleOutletWhatsappChange(fsb.whatsappNumber);
-            if (fsb.whatsappNumber === brandWhatsappNumber) setUseBrandNumber(true);
-          }
+        // ── Case 3: no firstSubBrand at all → brand-new outlet. Nothing
+        // to hydrate here; the first "Verify" click will call sendOtp,
+        // which creates the subBrand shell (subBrands/signUp-with-whatsapp)
+        // AND sends the first OTP. Location/working-hours stay blocked
+        // until that shell exists (locationBlockedByWhatsapp = !subBrandId).
+        if (!fsb) return;
 
-          // ── Location ──
-          if (fsb.location) {
-            const place = mapLocationToSelectedPlace(fsb.location);
-            setSelectedPlace(place);
-            setSavedLocationId(fsb.location._id || fsb.location.id || null);
-          }
+        // ── Outlet type ──
+        // ⚠️ CONFIRM: OUTLET_TYPE_OPTIONS values assumed to be the
+        // lowercase "outlet"/"franchise" strings, matching the existing
+        // handleSave mapping (outletType === "franchise" ? FRANCHISE : OUTLET).
+        if (fsb.outletType) {
+          setOutletType(fsb.outletType === OUTLET_TYPES.FRANCHISE ? "franchise" : "outlet");
+        }
 
-          // ── Working hours ──
-          if (fsb.workHours) {
-            const wh = { ...DEFAULT_WORKING_HOURS };
-            WEEK_DAYS.forEach((d) => {
-              if (fsb.workHours[d]) {
-                wh[d] = {
-                  start: fsb.workHours[d].start,
-                  end: fsb.workHours[d].end,
-                  isOpen: fsb.workHours[d].isOpen,
-                };
-              }
-            });
-            setWorkingHours(wh);
-            setWorkingHoursSaved(true); // already saved on the backend
-          }
+        // ── WhatsApp number + verification ──
+        // fsb.user.isMobileVerified is the real "is this outlet's
+        // WhatsApp number verified" flag returned by brands/get.
+        const isNumberVerified = !!fsb.user?.isMobileVerified;
+
+        if (isNumberVerified && fsb._id) {
+          // ── Case 1: shell exists AND already verified ──
+          // Skip OTP entirely. Verify button disappears, "Already
+          // verified for this outlet" shows instead.
+          hydrateVerified({
+            subBrandId: fsb._id,
+            whatsappNumber: fsb.whatsappNumber,
+          });
+        } else if (fsb._id) {
+          // ── Case 2: shell exists but NOT verified yet ──
+          // Prefill subBrandId + number, but leave whatsappVerified false.
+          // The Verify button (handleVerifyClick above) will see
+          // subBrandId already set and call resetOtp (just resends via
+          // auth/loginOrSignUp-with-whatsapp) instead of sendOtp — so we
+          // never try to recreate a shell that's already there.
+          hydrateUnverifiedShell({
+            subBrandId: fsb._id,
+            whatsappNumber: fsb.whatsappNumber,
+          });
+        }
+
+        // ── Location ──
+        // The subBrand doc carries its saved location regardless of
+        // whatsapp-verification status, so prefill it whenever present
+        // (covers both Case 1 and Case 2). If absent, the section stays
+        // blank and the vendor has to add one.
+        if (fsb.location) {
+          const place = mapLocationToSelectedPlace(fsb.location);
+          setSelectedPlace(place);
+          setSavedLocationId(fsb.location._id || fsb.location.id || null);
+        }
+
+        // ── Working hours ──
+        // Same idea — prefill whenever the subBrand doc already has them
+        // saved, regardless of verification status; otherwise stays at
+        // DEFAULT_WORKING_HOURS and needs a fresh save.
+        if (fsb.workHours) {
+          const wh = { ...DEFAULT_WORKING_HOURS };
+          WEEK_DAYS.forEach((d) => {
+            if (fsb.workHours[d]) {
+              wh[d] = {
+                start: fsb.workHours[d].start,
+                end: fsb.workHours[d].end,
+                isOpen: fsb.workHours[d].isOpen,
+              };
+            }
+          });
+          setWorkingHours(wh);
+          setWorkingHoursSaved(true); // already saved on the backend
         }
       } catch (err) {
         console.error("Couldn't load existing brand/outlet details:", err.message);
@@ -596,7 +631,7 @@ export default function CreateBrandOutlet() {
                 disabled={!brandWhatsappNumber}
                 className="w-4 h-4 accent-indigo-600 cursor-pointer disabled:opacity-40"
               />
-             Same as Brand Business WhatsApp Number
+              Use my Brand's WhatsApp number
               {brandWhatsappNumber ? ` (${brandWhatsappNumber})` : " (not available on your brand profile)"}
             </label>
             <div className="flex gap-2 max-w-sm">
@@ -610,7 +645,7 @@ export default function CreateBrandOutlet() {
               />
               {!whatsappVerified && (
                 <button
-                  onClick={sendOtp}
+                  onClick={handleVerifyClick}
                   disabled={!isValidPhone(outletWhatsapp) || otpSending}
                   className={`shrink-0 px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
                     isValidPhone(outletWhatsapp) && !otpSending ? "bg-indigo-600 text-white hover:bg-indigo-700" : "bg-gray-100 text-gray-400 cursor-not-allowed"

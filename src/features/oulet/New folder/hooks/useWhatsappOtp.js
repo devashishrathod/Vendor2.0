@@ -9,10 +9,31 @@ export const isValidPhone = (v) => /^[0-9]{10}$/.test((v || "").replace(/\D/g, "
 
 /**
  * Encapsulates the "outlet WhatsApp number + OTP verification" flow,
- * including the "same as brand number" shortcut. A fresh OTP is required
- * the first time this outlet's number is set — UNLESS the outlet is
- * already verified (see hydrateVerified below), in which case we skip
- * straight to the verified state instead of re-sending an OTP.
+ * including the "same as brand number" shortcut.
+ *
+ * Three flows this hook supports (mirrors the three brands/get outcomes):
+ *
+ *   Case 1 — firstSubBrand exists AND is already verified
+ *     → call hydrateVerified() on mount. No network call, no OTP needed.
+ *
+ *   Case 2 — firstSubBrand exists but is NOT verified yet
+ *     → call hydrateUnverifiedShell() on mount. This sets subBrandId
+ *       (the shell already exists on the backend) WITHOUT marking
+ *       whatsappVerified. The caller's "Verify" button must then call
+ *       resetOtp() (NOT sendOtp()) the first time, since re-running
+ *       subBrands/signUp-with-whatsapp would try to recreate a shell
+ *       that's already there. resetOtp() only hits
+ *       auth/loginOrSignUp-with-whatsapp to (re)send the OTP.
+ *
+ *   Case 3 — no firstSubBrand at all (brand-new outlet)
+ *     → nothing to hydrate. The first "Verify" click calls sendOtp(),
+ *       which creates the subBrand shell (subBrands/signUp-with-whatsapp)
+ *       AND sends the first OTP (auth/loginOrSignUp-with-whatsapp).
+ *
+ * The caller is expected to decide sendOtp vs resetOtp for the "Verify"
+ * button based on whether subBrandId is already truthy (see
+ * CreateBrandOutlet.jsx's handleVerifyClick) — this hook just exposes
+ * both primitives plus the hydrate helpers for cases 1 and 2.
  *
  * @param {object} opts
  * @param {string} opts.brandId
@@ -25,9 +46,10 @@ export function useWhatsappOtp({ brandId, brandWhatsappNumber, isFirstOutlet } =
   const [whatsappVerified, setWhatsappVerified] = useState(false);
 
   // Set once sendOtp's signUp-with-whatsapp call succeeds, OR once
-  // hydrateVerified confirms an already-verified subBrand on mount.
-  // finalizeOutlet / upsertWorkHours downstream both need this — and it
-  // MUST be the outlet's subBrandId, never the user/login _id.
+  // hydrateVerified / hydrateUnverifiedShell confirms an existing
+  // subBrand on mount (verified or not). finalizeOutlet / upsertWorkHours
+  // downstream both need this — and it MUST be the outlet's subBrandId,
+  // never the user/login _id.
   const [subBrandId, setSubBrandId] = useState(null);
 
   const [otpStage, setOtpStage] = useState(false);
@@ -42,8 +64,10 @@ export function useWhatsappOtp({ brandId, brandWhatsappNumber, isFirstOutlet } =
   const [devOtpHint, setDevOtpHint] = useState(null);
 
   // True only when the current verified state came from hydrateVerified
-  // (an existing outlet on mount) rather than a fresh OTP confirm in this
-  // session. Lets the UI show "already verified" copy if you want it.
+  // (an existing, already-verified outlet on mount) rather than a fresh
+  // OTP confirm in this session. Lets the UI show "already verified" copy
+  // if you want it. NOT set by hydrateUnverifiedShell, since that case
+  // still needs a live OTP confirm before it's actually verified.
   const [hydrated, setHydrated] = useState(false);
 
   const resetOtpUiState = () => {
@@ -72,7 +96,8 @@ export function useWhatsappOtp({ brandId, brandWhatsappNumber, isFirstOutlet } =
     resetOtpUiState();
   };
 
-  // ── First send: create the subBrand shell + trigger the OTP ────────
+  // ── First send (Case 3 — no shell exists yet): create the subBrand
+  // shell + trigger the OTP. ─────────────────────────────────────────
   const sendOtp = async () => {
     if (!isValidPhone(outletWhatsapp)) return;
     setOtpSending(true);
@@ -97,8 +122,10 @@ export function useWhatsappOtp({ brandId, brandWhatsappNumber, isFirstOutlet } =
     }
   };
 
-  // ── Resend / reset: subBrand shell already exists, just re-fire the
-  // OTP via loginOrSignUp-with-whatsapp. Doesn't touch subBrandId. ──
+  // ── Resend / reset (Case 2 — shell already exists, OR mid-flow resend
+  // in Case 3 after sendOtp already ran once): subBrand shell already
+  // exists, just re-fire the OTP via loginOrSignUp-with-whatsapp. Doesn't
+  // touch subBrandId, doesn't call signUp-with-whatsapp again. ─────────
   const resetOtp = async () => {
     if (!isValidPhone(outletWhatsapp)) return;
     setOtpSending(true);
@@ -133,11 +160,11 @@ export function useWhatsappOtp({ brandId, brandWhatsappNumber, isFirstOutlet } =
     resetOtpUiState();
   };
 
-  // ── Hydrate from an already-verified outlet (call on mount) ────────
+  // ── Case 1: hydrate from an already-verified outlet (call on mount) ──
   // Skips OTP entirely: sets outletWhatsapp/subBrandId/whatsappVerified
   // directly from a prior sendOutletWhatsappOtp result found via
-  // getBrandWithSubBrand(). Does NOT call sendOtp / loginOrSignUpWithWhatsapp
-  // / verifyOtpWhatsapp — no network request, no new OTP token generated.
+  // getBrandById()'s firstSubBrand. Does NOT call sendOtp / resetOtp /
+  // confirmOtp — no network request, no new OTP token generated.
   //
   // @param {object} info
   // @param {string} info.subBrandId  - MUST be the real subBrandId, not _id
@@ -152,6 +179,32 @@ export function useWhatsappOtp({ brandId, brandWhatsappNumber, isFirstOutlet } =
       setOutletWhatsapp(whatsappNumber);
       // If the hydrated number matches the brand's number, keep the
       // "use brand number" checkbox in sync so the UI doesn't look off.
+      if (whatsappNumber === brandWhatsappNumber) setUseBrandNumber(true);
+    }
+  };
+
+  // ── Case 2: hydrate from an EXISTING-but-UNVERIFIED outlet (call on
+  // mount). The subBrand shell already exists on the backend (so we must
+  // NOT call sendOtp / signUp-with-whatsapp again — that would try to
+  // recreate it) but its WhatsApp number was never confirmed with an OTP.
+  //
+  // This only sets subBrandId + outletWhatsapp; whatsappVerified stays
+  // false and hydrated stays false, so the UI still shows the "Verify"
+  // button and still requires an OTP confirm. The caller's "Verify"
+  // click, however, should route to resetOtp() instead of sendOtp() once
+  // subBrandId is already known — see CreateBrandOutlet.jsx.
+  //
+  // @param {object} info
+  // @param {string} info.subBrandId  - MUST be the real subBrandId, not _id
+  // @param {string} [info.whatsappNumber]
+  const hydrateUnverifiedShell = ({ subBrandId: id, whatsappNumber } = {}) => {
+    if (!id) return;
+    resetOtpUiState();
+    setSubBrandId(id);
+    setWhatsappVerified(false);
+    setHydrated(false);
+    if (whatsappNumber) {
+      setOutletWhatsapp(whatsappNumber);
       if (whatsappNumber === brandWhatsappNumber) setUseBrandNumber(true);
     }
   };
@@ -175,5 +228,6 @@ export function useWhatsappOtp({ brandId, brandWhatsappNumber, isFirstOutlet } =
     confirmOtp,
     closeOtpModal,
     hydrateVerified,
+    hydrateUnverifiedShell,
   };
 }
