@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import logo from "@/assets/Logo1.jpg";
 import { useBrand } from "../../../../hooks/useBrand";
 import { useLogout } from "@/hooks/useLogout";
+import ErrorToast from "../../../../components/common/ErrorToast";
+import SuccessToast from "../../../../components/common/SuccessToast";
 
 import { useCategories } from "../hooks/useCategories";
 import { useWhatsappOtp, isValidPhone } from "../hooks/useWhatsappOtp";
@@ -16,7 +18,6 @@ import {
   createLocation,
   mapLocationToSelectedPlace,
   buildLocationPayloadFromPlace,
-  buildLocationPayloadFromGstAddress,
   hasValidCoordinates,
   ADDRESS_TYPES,
 } from "../services/locationApi";
@@ -139,6 +140,62 @@ export default function CreateBrandOutlet() {
   const openGuideline = useCallback((type) => setGuidelineType(type), []);
   const closeGuideline = useCallback(() => setGuidelineType(null), []);
 
+  // ── Toast notifications ──
+  // Global, transient pop-up notifications layered on top of the
+  // page — used for every error/success moment (WhatsApp OTP, location
+  // save, working hours save, final submit) AND for the "this section is
+  // locked" warnings below. The section-level inline red/amber/green text
+  // stays as-is too, since that still drives button-gating and persistent
+  // "is this saved / why is this locked?" context; these toasts are just
+  // the attention-grabbing notification on top.
+  const [toastError, setToastError] = useState(null); // { status, message, txnId } | null
+  const [toastSuccess, setToastSuccess] = useState("");
+
+  const showError = useCallback((message, status, txnId) => {
+    if (!message) return;
+    setToastError({ status, message, txnId });
+  }, []);
+
+  const showSuccess = useCallback((message) => {
+    if (!message) return;
+    setToastSuccess(message);
+  }, []);
+
+  // Any OTP error surfaced by the hook (send/resend/verify failures)
+  // also pops a toast, in addition to the inline message already shown
+  // inside OtpVerifyModal.
+  useEffect(() => {
+    if (otpError) showError(otpError);
+  }, [otpError, showError]);
+
+  // Gates Location, Working Hours, AND Outlet Type — all three are
+  // meaningless/unpostable until the outlet's WhatsApp number is verified
+  // (subBrandId only exists after that point, and upsertWorkHours /
+  // finalizeOutlet both need it). Surface that in the UI by disabling all
+  // three sections instead of letting the vendor fill them in and then
+  // silently fail (or worse, lose the input) later.
+  //
+  // ⚠️ FIXED: this (and notifyBlocked below) used to be declared AFTER the
+  // `if (loading) return ...` early-return further down. That's a Rules-of-
+  // Hooks violation — `notifyBlocked` is a useCallback, and hooks can never
+  // be skipped by an early return. On the first render (loading === true)
+  // that useCallback call was never reached at all, so once loading flips
+  // to false the render suddenly calls "one more hook than before",
+  // triggering "Rendered more hooks than during the previous render."
+  // Both are plain derived values/callbacks off state we already have, so
+  // they're safe to compute unconditionally up here, before any return.
+  const outletSectionsBlocked = !subBrandId;
+
+  // Fired when the vendor clicks anywhere inside one of the three blocked
+  // sections. Because the actual controls sit inside a
+  // "pointer-events-none" wrapper, clicks on them fall through to this
+  // handler on the enclosing (non-pointer-events-none) container instead
+  // — so this only fires while genuinely blocked, and pops the same
+  // message as a toast in addition to the inline amber note.
+  const notifyBlocked = useCallback((message) => {
+    if (outletSectionsBlocked) showError(message);
+  }, [outletSectionsBlocked, showError]);
+
   // ⚠️ FIXED: guards against posting a location before subBrandId exists.
   // subBrandId is set inside useWhatsappOtp's sendOtp() (fires as soon as
   // "Verify" is clicked, before OTP confirmation) — or by hydrateVerified
@@ -149,7 +206,9 @@ export default function CreateBrandOutlet() {
   const persistLocationPayload = useCallback(async (payload) => {
     if (!payload?.subBrandId) {
       setSavedLocationId(null);
-      setLocationSaveError("Please verify your outlet's WhatsApp number first — we need that before saving a location.");
+      const msg = "Please verify your outlet's WhatsApp number first — we need that before saving a location.";
+      setLocationSaveError(msg);
+      showError(msg);
       return;
     }
     setLocationSaving(true);
@@ -158,14 +217,17 @@ export default function CreateBrandOutlet() {
       const res = await createLocation(payload);
       const saved = res?.data ?? res;
       setSavedLocationId(saved?._id || saved?.id || null);
+      showSuccess("Outlet location saved.");
       return saved;
     } catch (err) {
       setSavedLocationId(null);
-      setLocationSaveError(err.message || "Couldn't save this location. Try again.");
+      const msg = err.message || "Couldn't save this location. Try again.";
+      setLocationSaveError(msg);
+      showError(msg);
     } finally {
       setLocationSaving(false);
     }
-  }, []);
+  }, [showError, showSuccess]);
 
   // ⚠️ FIXED: now passes subBrandId (not brandId) into the payload builder,
   // per the confirmed backend schema — a Brand Outlet's location is a
@@ -182,40 +244,49 @@ export default function CreateBrandOutlet() {
     });
     if (!hasValidCoordinates(payload)) {
       setSavedLocationId(null);
-      setLocationSaveError("This location is missing map coordinates — try picking it again.");
+      const msg = "This location is missing map coordinates — try picking it again.";
+      setLocationSaveError(msg);
+      showError(msg);
       return;
     }
     persistLocationPayload(payload);
-  }, [subBrandId, persistLocationPayload]);
+  }, [subBrandId, persistLocationPayload, showError]);
 
-  // GST checked → build the payload from brand.gst.address AND surface it
-  // as `selectedPlace` too, so OutletLocationSearch's input shows the
-  // resolved address and its "show map" button works off the same data.
-  // ⚠️ FIXED: subBrandId now forwarded here too.
-  const persistGstAddress = useCallback(() => {
+  // ⚠️ CHANGED: the GST checkbox no longer auto-geocodes or auto-saves
+  // anything. It used to forward-geocode the raw GST address text and
+  // save that straight away — but geocoding free text doesn't reliably
+  // return a full address_components breakdown, so fields like `district`
+  // frequently came back empty and the backend rejected the save with
+  // "Body.district is not allowed to be empty".
+  //
+  // New behaviour: checking the box just PREFILLS the search input with
+  // the GST address text (as-is, no lookup) so the vendor doesn't have to
+  // retype it. Nothing is saved yet — the vendor still has to pick the
+  // matching result from the search dropdown themselves. That dropdown
+  // pick is what gives us a real Google place with full
+  // address_components, which is the only reliable source for
+  // city/district/state/zipcode — and is what actually gets saved via
+  // handleSelectPlace → persistSelectedPlace below.
+  const prefillGstAddress = useCallback(() => {
     const gstAddr = brand?.gst?.address || {};
-    const payload = buildLocationPayloadFromGstAddress(gstAddr, {
-      subBrandId,
-      addressType: ADDRESS_TYPES.WORK,
-    });
+    const addressText = gstAddr.formattedAddress || gstAddr.location || gstAddr.address || "";
 
     setSelectedPlace({
       name: gstAddr.name || "GST Address",
-      address: gstAddr.location || gstAddr.address || "",
-      lat: payload.lat ?? payload.latitude ?? null,
-      lng: payload.lng ?? payload.longitude ?? null,
-      placeId: gstAddr.placeId || null,
-      addressComponents: gstAddr.addressComponents || null,
+      address: addressText,
+      lat: null,
+      lng: null,
+      placeId: null,
+      addressComponents: null,
       source: "gst",
     });
 
-    if (!hasValidCoordinates(payload)) {
-      setSavedLocationId(null);
-      setLocationSaveError("Your GST address doesn't have map coordinates on file — search or pin the outlet location manually instead.");
-      return;
-    }
-    persistLocationPayload(payload);
-  }, [brand, subBrandId, persistLocationPayload]);
+    // Nothing is saved yet — this is a text prefill only. Clear any
+    // previous saved-location state so the UI doesn't claim a location is
+    // saved until the vendor actually confirms one via search.
+    setSavedLocationId(null);
+    setLocationSaveError("");
+  }, [brand]);
 
   const handleSelectPlace = useCallback((place) => {
     setSelectedPlace(place);
@@ -226,14 +297,15 @@ export default function CreateBrandOutlet() {
     setGstSameAsOutlet(checked);
     if (checked) {
       setLocationMode("search");
-      persistGstAddress();
-    } else if (selectedPlace) {
-      persistSelectedPlace(selectedPlace);
+      prefillGstAddress();
     } else {
+      // Start fresh — don't carry over the GST text prefill (which never
+      // has coordinates) as if it were a real selected place.
+      setSelectedPlace(null);
       setSavedLocationId(null);
       setLocationSaveError("");
     }
-  }, [persistGstAddress, persistSelectedPlace, selectedPlace]);
+  }, [prefillGstAddress]);
 
   const switchLocationMode = useCallback((mode) => {
     setLocationMode(mode);
@@ -251,12 +323,15 @@ export default function CreateBrandOutlet() {
     try {
       await upsertWorkHours({ subBrandId, hours: workingHours });
       setWorkingHoursSaved(true);
+      showSuccess("Working hours saved.");
     } catch (err) {
-      setWorkingHoursSaveError(err.message || "Couldn't save working hours. Try again.");
+      const msg = err.message || "Couldn't save working hours. Try again.";
+      setWorkingHoursSaveError(msg);
+      showError(msg);
     } finally {
       setWorkingHoursSaving(false);
     }
-  }, [subBrandId, workingHours]);
+  }, [subBrandId, workingHours, showError, showSuccess]);
 
   // Hours changed after a save → that save is now stale, require re-save
   // before the final "Save & Process" button unlocks again.
@@ -294,8 +369,8 @@ export default function CreateBrandOutlet() {
         // ── Case 3: no firstSubBrand at all → brand-new outlet. Nothing
         // to hydrate here; the first "Verify" click will call sendOtp,
         // which creates the subBrand shell (subBrands/signUp-with-whatsapp)
-        // AND sends the first OTP. Location/working-hours stay blocked
-        // until that shell exists (locationBlockedByWhatsapp = !subBrandId).
+        // AND sends the first OTP. Location/working-hours/outlet-type stay
+        // blocked until that shell exists (outletSectionsBlocked = !subBrandId).
         if (!fsb) return;
 
         // ── Outlet type ──
@@ -374,6 +449,9 @@ export default function CreateBrandOutlet() {
     if (!loading && !brand?._id) setLocationLoading(false);
   }, [loading, brand?._id]);
 
+  // ⚠️ FIXED: this early return now happens AFTER every hook has been
+  // called, on every single render (loading true or false). Nothing below
+  // this line may declare a new hook — only plain derived consts and JSX.
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center text-sm text-gray-500">Loading...</div>;
   }
@@ -412,9 +490,11 @@ export default function CreateBrandOutlet() {
       // independently via handleSaveWorkingHours, and this button is gated
       // behind workingHoursSaved being true, so they're guaranteed saved.
       await finalizeOutlet(subBrandId, subBrandPatch, brand._id, brandPayload, logoFile);
+      showSuccess("Outlet saved! Redirecting…");
       navigate("/under-review");
     } catch (err) {
       console.error("Failed to save brand outlet:", err);
+      showError(err.message || "Couldn't save your outlet. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -422,13 +502,12 @@ export default function CreateBrandOutlet() {
 
   const canFinalSave = whatsappVerified && !!subBrandId && !!savedLocationId && workingHoursSaved;
 
-  // ⚠️ NEW: Location section is unusable until subBrandId exists (see
-  // persistLocationPayload guard above) — surface that in the UI instead
-  // of letting the user pick a place and silently fail.
-  const locationBlockedByWhatsapp = !subBrandId;
-
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
+      {/* Toasts */}
+      <ErrorToast error={toastError} onDismiss={() => setToastError(null)} />
+      <SuccessToast message={toastSuccess} onDismiss={() => setToastSuccess("")} />
+
       {/* Modals */}
       {guidelineType && <GuidelinesModal type={guidelineType} onClose={closeGuideline} />}
       {otpStage && !whatsappVerified && (
@@ -682,103 +761,140 @@ export default function CreateBrandOutlet() {
               <p className="text-xs text-gray-400 mb-3">Loading your saved outlet location…</p>
             )}
 
-            {/* ⚠️ NEW: block this whole section until subBrandId exists,
-                so the user can't pick a place that will silently fail to
-                save (see persistLocationPayload guard above). */}
-            {locationBlockedByWhatsapp && !locationLoading && (
+            {/* Location section is blocked until the outlet's WhatsApp
+                number is verified (see outletSectionsBlocked above), so
+                the vendor can't pick a place that will silently fail to
+                save. The outer div (no pointer-events-none) catches
+                clicks that "fall through" the disabled inner content and
+                pops the same message as a toast. */}
+            {outletSectionsBlocked && !locationLoading && (
               <p className="text-xs text-amber-600 mb-3">
                 Verify your outlet's WhatsApp number above before setting a location.
               </p>
             )}
 
-            <div className={locationBlockedByWhatsapp ? "opacity-50 pointer-events-none" : ""}>
-              <div className="border border-gray-200 rounded-xl p-4 mb-5">
-                <div className="flex items-start gap-3 mb-4">
-                  <input
-                    type="checkbox"
-                    id="gstSame"
-                    checked={gstSameAsOutlet}
-                    onChange={(e) => handleGstSameToggle(e.target.checked)}
-                    disabled={locationBlockedByWhatsapp}
-                    className="mt-0.5 w-4 h-4 accent-indigo-600 cursor-pointer"
-                  />
-                  <div>
-                    <label htmlFor="gstSame" className="text-sm font-bold text-gray-800 cursor-pointer">
-                      GST Address Is The Same As The Outlet Location.
-                    </label>
-                    <p className="text-sm text-gray-500 mt-0.5">Search and select your Outlet address</p>
+            <div onClick={() => notifyBlocked("Verify your outlet's WhatsApp number above before setting a location.")}>
+              <div className={outletSectionsBlocked ? "opacity-50 pointer-events-none" : ""}>
+                <div className="border border-gray-200 rounded-xl p-4 mb-5">
+                  <div className="flex items-start gap-3 mb-4">
+                    <input
+                      type="checkbox"
+                      id="gstSame"
+                      checked={gstSameAsOutlet}
+                      onChange={(e) => handleGstSameToggle(e.target.checked)}
+                      disabled={outletSectionsBlocked}
+                      className="mt-0.5 w-4 h-4 accent-indigo-600 cursor-pointer"
+                    />
+                    <div>
+                      <label htmlFor="gstSame" className="text-sm font-bold text-gray-800 cursor-pointer">
+                        GST Address Is The Same As The Outlet Location.
+                      </label>
+                      <p className="text-sm text-gray-500 mt-0.5">Search and select your Outlet address</p>
+                    </div>
                   </div>
+
+                  {/* {gstSameAsOutlet && !savedLocationId && !locationSaving && !locationSaveError && (
+                    <p className="text-xs text-amber-600 mt-3">
+                      We've filled in your GST address below — pick the matching result from the dropdown to confirm and save it.
+                    </p>
+                  )} */}
+
+                  {(locationSaving || locationSaveError || (savedLocationId && gstSameAsOutlet)) && (
+                    <p className={`text-xs mt-3 ${locationSaveError ? "text-red-500" : "text-emerald-600"}`}>
+                      {locationSaving ? "Saving this address…" : locationSaveError ? locationSaveError : "✓ GST address saved as your outlet location."}
+                    </p>
+                  )}
                 </div>
 
-                {(locationSaving || locationSaveError || (savedLocationId && gstSameAsOutlet)) && (
-                  <p className={`text-xs mt-3 ${locationSaveError ? "text-red-500" : "text-emerald-600"}`}>
-                    {locationSaving ? "Saving this address…" : locationSaveError ? locationSaveError : "✓ GST address saved as your outlet location."}
+                <div className="flex flex-wrap items-center gap-6 mb-4 px-1">
+                  <label className="flex items-center gap-2 text-sm font-bold text-gray-800 cursor-pointer">
+                    <input type="checkbox" checked={locationMode === "search"} onChange={() => switchLocationMode("search")} disabled={outletSectionsBlocked} className="w-4 h-4 accent-indigo-600 cursor-pointer" />
+                    Search My Outlet Location
+                  </label>
+                  <label className="flex items-center gap-2 text-sm font-bold text-gray-800 cursor-pointer">
+                    <input type="checkbox" checked={locationMode === "live"} onChange={() => switchLocationMode("live")} disabled={outletSectionsBlocked} className="w-4 h-4 accent-indigo-600 cursor-pointer" />
+                    Use My Live Location
+                  </label>
+                </div>
+
+                {locationMode === "search" ? (
+                  <OutletLocationSearch selectedPlace={selectedPlace} onSelectPlace={handleSelectPlace} onShowMap={() => setShowMap(true)} />
+                ) : (
+                  <LiveLocationPicker selectedPlace={selectedPlace} onSelectPlace={handleSelectPlace} onShowMap={() => setShowMap(true)} />
+                )}
+
+                {!gstSameAsOutlet && (locationSaving || locationSaveError || savedLocationId) && (
+                  <p className={`text-xs mt-3 px-1 ${locationSaveError ? "text-red-500" : "text-emerald-600"}`}>
+                    {locationSaving ? "Saving this location…" : locationSaveError ? locationSaveError : "✓ Location saved."}
                   </p>
                 )}
               </div>
-
-              <div className="flex flex-wrap items-center gap-6 mb-4 px-1">
-                <label className="flex items-center gap-2 text-sm font-bold text-gray-800 cursor-pointer">
-                  <input type="checkbox" checked={locationMode === "search"} onChange={() => switchLocationMode("search")} disabled={locationBlockedByWhatsapp} className="w-4 h-4 accent-indigo-600 cursor-pointer" />
-                  Search My Outlet Location
-                </label>
-                <label className="flex items-center gap-2 text-sm font-bold text-gray-800 cursor-pointer">
-                  <input type="checkbox" checked={locationMode === "live"} onChange={() => switchLocationMode("live")} disabled={locationBlockedByWhatsapp} className="w-4 h-4 accent-indigo-600 cursor-pointer" />
-                  Use My Live Location
-                </label>
-              </div>
-
-              {locationMode === "search" ? (
-                <OutletLocationSearch selectedPlace={selectedPlace} onSelectPlace={handleSelectPlace} onShowMap={() => setShowMap(true)} />
-              ) : (
-                <LiveLocationPicker selectedPlace={selectedPlace} onSelectPlace={handleSelectPlace} onShowMap={() => setShowMap(true)} />
-              )}
-
-              {!gstSameAsOutlet && (locationSaving || locationSaveError || savedLocationId) && (
-                <p className={`text-xs mt-3 px-1 ${locationSaveError ? "text-red-500" : "text-emerald-600"}`}>
-                  {locationSaving ? "Saving this location…" : locationSaveError ? locationSaveError : "✓ Location saved."}
-                </p>
-              )}
             </div>
           </SectionCard>
 
           {/* ── 3. Working Hours ── */}
           <SectionCard>
             <SectionHeader title="Working Hours" subtitle="Set your open hours for each day of the week." guidelineKey="workingHours" onGuidelineClick={openGuideline} />
-            <WorkingHoursEditor
-              hours={workingHours}
-              onChange={handleWorkingHoursChange}
-              onSave={subBrandId ? handleSaveWorkingHours : undefined}
-              saving={workingHoursSaving}
-            />
-            {workingHoursSaveError && <p className="text-xs text-red-500 mt-2">{workingHoursSaveError}</p>}
-            {workingHoursSaved && !workingHoursSaveError && (
-              <p className="text-xs font-semibold text-emerald-600 mt-2 flex items-center gap-1">
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-                Working hours saved.
+
+            {/* Blocked until the outlet's WhatsApp number is verified —
+                upsertWorkHours needs subBrandId, which doesn't exist yet. */}
+            {outletSectionsBlocked && (
+              <p className="text-xs text-amber-600 mb-3">
+                Verify your outlet's WhatsApp number above before setting working hours.
               </p>
             )}
+
+            <div onClick={() => notifyBlocked("Verify your outlet's WhatsApp number above before setting working hours.")}>
+              <div className={outletSectionsBlocked ? "opacity-50 pointer-events-none" : ""}>
+                <WorkingHoursEditor
+                  hours={workingHours}
+                  onChange={handleWorkingHoursChange}
+                  onSave={subBrandId ? handleSaveWorkingHours : undefined}
+                  saving={workingHoursSaving}
+                />
+                {workingHoursSaveError && <p className="text-xs text-red-500 mt-2">{workingHoursSaveError}</p>}
+                {workingHoursSaved && !workingHoursSaveError && (
+                  <p className="text-xs font-semibold text-emerald-600 mt-2 flex items-center gap-1">
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    Working hours saved.
+                  </p>
+                )}
+              </div>
+            </div>
           </SectionCard>
 
           {/* ── 4. Outlet Type ── */}
           <SectionCard>
             <SectionHeader title="Outlet Type" subtitle="Is this a standalone outlet, or part of a franchise network?" />
-            <div className="max-w-xs">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Outlet Type *</label>
-              <div className="relative">
-                <select
-                  value={outletType}
-                  onChange={(e) => setOutletType(e.target.value)}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-indigo-400 appearance-none bg-white text-gray-700"
-                >
-                  <option value="">eg : Outlet</option>
-                  {OUTLET_TYPE_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
-                </select>
-                <svg className="absolute right-3 top-3.5 w-4 h-4 text-gray-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                </svg>
+
+            {/* Blocked until the outlet's WhatsApp number is verified —
+                outletType is only ever posted as part of finalizeOutlet's
+                subBrandPatch, which needs subBrandId. */}
+            {outletSectionsBlocked && (
+              <p className="text-xs text-amber-600 mb-3">
+                Verify your outlet's WhatsApp number above before choosing an outlet type.
+              </p>
+            )}
+
+            <div onClick={() => notifyBlocked("Verify your outlet's WhatsApp number above before choosing an outlet type.")}>
+              <div className={`max-w-xs ${outletSectionsBlocked ? "opacity-50 pointer-events-none" : ""}`}>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Outlet Type *</label>
+                <div className="relative">
+                  <select
+                    value={outletType}
+                    onChange={(e) => setOutletType(e.target.value)}
+                    disabled={outletSectionsBlocked}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-indigo-400 appearance-none bg-white text-gray-700 disabled:opacity-50"
+                  >
+                    <option value="">eg : Outlet</option>
+                    {OUTLET_TYPE_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
+                  </select>
+                  <svg className="absolute right-3 top-3.5 w-4 h-4 text-gray-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
               </div>
             </div>
           </SectionCard>

@@ -360,6 +360,75 @@ export async function getPlaceDetails(
 }
 
 // ─────────────────────────────────────────────
+// FORWARD GEOCODE (address text → lat/lng)
+// ─────────────────────────────────────────────
+// Same google.maps.Geocoder as reverseGeocode below, just run the other
+// direction: geocoder.geocode({ address }) instead of
+// geocoder.geocode({ location }). Used to resolve an address STRING (e.g.
+// the brand's GST address, which carries city/state/pin but no lat/lng)
+// into real coordinates, instead of failing outright and forcing the
+// vendor to search/pin manually.
+//
+// Resolves to the raw Google GeocoderResult — same shape as
+// reverseGeocode's results[0]:
+//   { formatted_address, geometry: { location }, address_components,
+//     place_id, ... }
+// NOTE: geometry.location.lat()/lng() are FUNCTIONS, not plain numbers —
+// callers must invoke them (see CreateBrandOutlet.jsx's persistGstAddress).
+export async function geocodeAddress(address) {
+  console.log(
+    "📍 [GoogleMaps] Forward geocode:",
+    address
+  );
+
+  if (!address || !address.trim()) {
+    throw new Error(
+      "Address is required for geocoding"
+    );
+  }
+
+  const google =
+    await loadGoogleMapsScript();
+
+  return new Promise(
+    (resolve, reject) => {
+      const geocoder =
+        new google.maps.Geocoder();
+
+      geocoder.geocode(
+        {
+          address: address.trim(),
+        },
+        (results, status) => {
+          console.log(
+            "📡 [GoogleMaps] Forward geocode status:",
+            status
+          );
+
+          console.log(
+            "📦 [GoogleMaps] Forward geocode results:",
+            results
+          );
+
+          if (
+            status === "OK" &&
+            results?.[0]
+          ) {
+            resolve(results[0]);
+          } else {
+            reject(
+              new Error(
+                `Geocoding failed: ${status}`
+              )
+            );
+          }
+        }
+      );
+    }
+  );
+}
+
+// ─────────────────────────────────────────────
 // REVERSE GEOCODE
 // ─────────────────────────────────────────────
 

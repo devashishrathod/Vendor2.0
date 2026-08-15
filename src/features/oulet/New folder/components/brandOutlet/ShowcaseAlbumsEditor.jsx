@@ -39,12 +39,15 @@ import {
 // `persisted: true` so rename/delete/upload flows work off their real
 // server ids without needing the raw file again.
 //
-// NOTE: the exact response shape (top-level key for the sections array,
-// and the field names on each section/media object) wasn't confirmed
-// against a real payload — the mapping below tries the most likely key
-// names (`sections`/`showcaseSections`, `title`/`name`,
-// `medias`/`media`, `url`/`mediaUrl`). Adjust once you've checked an
-// actual response from get-brand-showcase.
+// CONFIRMED response shape (get-brand-showcase): data.sections[], each with
+// medias[]. Each media item's `type` field comes back UPPERCASE
+// ("PHOTO" / "VIDEO"), while the rest of this component compares against
+// lowercase "video"/"image" everywhere (video icon, MAX_VIDEOS_PER_ALBUM
+// counting, MediaPreviewModal's video-vs-image branch). That casing
+// mismatch was the bug: `m.type || (...)` used the truthy uppercase value
+// as-is instead of falling through, so every prefilled video item ended up
+// with type "VIDEO" and silently failed every `=== "video"` check below.
+// Fixed by lowercasing `m.type` when it exists.
 let albumIdCounter = 0;
 let showcaseMediaIdCounter = 0;
 
@@ -78,16 +81,30 @@ export default function ShowcaseAlbumsEditor({ albums, onChange, brandId }) {
           status: "idle",
           error: "",
           persisted: true,
-          media: (s.medias || s.media || []).map((m) => ({
-            id: m._id || `sm${showcaseMediaIdCounter++}`,
-            type: m.type || (/\.(mp4|mov|webm)(\?|$)/i.test(m.url || m.mediaUrl || "") ? "video" : "image"),
-            file: null,
-            preview: m.url || m.mediaUrl || m.path || "",
-            month: m.month || "",
-            status: "idle",
-            error: "",
-            persisted: true,
-          })),
+          media: (s.medias || s.media || []).map((m) => {
+            const rawUrl = m.url || m.mediaUrl || m.path || "";
+            return {
+              id: m._id || `sm${showcaseMediaIdCounter++}`,
+              // FIX: server sends "PHOTO"/"VIDEO" (uppercase). Lowercase it
+              // so it matches the "video"/"image" checks used everywhere
+              // else in this component. Only fall back to sniffing the
+              // file extension if the server didn't send a type at all.
+              type: m.type
+                ? String(m.type).toLowerCase() === "photo"
+                  ? "image"
+                  : String(m.type).toLowerCase()
+                : /\.(mp4|mov|webm)(\?|$)/i.test(rawUrl)
+                ? "video"
+                : "image",
+              file: null,
+              preview: rawUrl,
+              thumbnail: m.thumbnail || rawUrl,
+              month: m.month || "",
+              status: "idle",
+              error: "",
+              persisted: true,
+            };
+          }),
         }));
 
         if (mapped.length) onChange(mapped);
@@ -235,16 +252,12 @@ export default function ShowcaseAlbumsEditor({ albums, onChange, brandId }) {
         newMedia.map((m) => m.file),
         { isShowInVideoClips: false }
       );
-      // The exact shape of a successful add-media response wasn't captured
-      // in the Postman screenshot (only the request body was shown), so we
-      // can't reliably map each returned media item back to the temp item
-      // that produced it. If the response DOES include an updated
-      // `data.medias` array, we try to line it up by position; otherwise we
-      // just mark the optimistic items as persisted using the local temp id
-      // — media delete/edit calls below will simply no-op safely if that id
-      // turns out not to match a real server id, so nothing breaks, but you
-      // should confirm the response shape with the backend and tighten this
-      // mapping once known.
+      // The response for add-media follows the same shape as the showcase
+      // fetch: `data.medias[]` with UPPERCASE `type` ("PHOTO"/"VIDEO"). We
+      // line the returned items up by position (server appends new media to
+      // the end of the section's medias array) and lowercase `type` the
+      // same way as the prefill mapping so newly uploaded items behave
+      // identically to prefilled ones.
       const updatedSection = res?.data ?? res;
       const serverMedias = Array.isArray(updatedSection?.medias) ? updatedSection.medias : null;
 
@@ -264,6 +277,11 @@ export default function ShowcaseAlbumsEditor({ albums, onChange, brandId }) {
                 status: "idle",
                 persisted: true,
                 id: serverMatch?._id || m.id,
+                type: serverMatch?.type
+                  ? String(serverMatch.type).toLowerCase() === "photo"
+                    ? "image"
+                    : String(serverMatch.type).toLowerCase()
+                  : m.type,
               };
             }),
           };
@@ -501,8 +519,15 @@ export default function ShowcaseAlbumsEditor({ albums, onChange, brandId }) {
                     <div key={m.id} className="relative w-20 rounded-lg overflow-hidden border border-gray-200 group">
                       <button onClick={() => setPreviewItem(m)} className="w-20 h-20 block" title="Preview">
                         {m.type === "video" ? (
-                          <div className="w-full h-full bg-gray-800 flex items-center justify-center">
-                            <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <div className="relative w-full h-full bg-gray-800 flex items-center justify-center">
+                            {m.thumbnail && (
+                              <img
+                                src={m.thumbnail}
+                                alt="thumb"
+                                className="absolute inset-0 w-full h-full object-cover opacity-70"
+                              />
+                            )}
+                            <svg className="relative z-10 w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
                               <path d="M6.3 2.841A1.5 1.5 0 004 4.11v11.78a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
                             </svg>
                           </div>

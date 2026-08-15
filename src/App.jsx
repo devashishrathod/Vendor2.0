@@ -27,11 +27,13 @@ import { SubscriptionPage } from './features/subscription';
 import BrandPage from './features/brand';
 import CreateBrandOutlet from './features/oulet/New folder/pages/CreateBrandOutlet';
 import UnderReview from './features/oulet/New folder/pages/Youroutlet';
+import PostAuthRouteGuard from './routes/PostAuthRouteGuard';
 
 
 function App() {
   return (
     <BrowserRouter>
+     <PostAuthRouteGuard>   {/* ✅ yahan wrap karo — Routes ke bahar, Router ke andar */}
       <Routes>
 
         {/* ─── PUBLIC ─── */}
@@ -84,6 +86,7 @@ function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
 
       </Routes>
+         </PostAuthRouteGuard>  
     </BrowserRouter>
   );
 }

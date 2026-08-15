@@ -49,7 +49,7 @@ export const ADDRESS_TYPES = { HOME: 'HOME', WORK: 'WORK', OTHER: 'OTHER' };
 //     addressLine2?,
 //     landmark?,
 //     city,                  // REQUIRED
-//     district?,
+//     district,              // REQUIRED — ⚠️ backend 422s with "Body.district is not allowed to be empty" if missing
 //     state,                 // REQUIRED
 //     zipcode,               // REQUIRED
 //     country?,
@@ -148,12 +148,16 @@ export async function getAllLocations({ page = 1, limit = 10, brandId, userId, s
 }
 
 // ── Update Location ──────────────────────────────────────────────
-// PUT {{TryDood2.0BaseUrl}}/locations/:id
+// PUT {{TryDood2.0BaseUrl}}/locations/update/:id
 // body: any subset of the createLocation fields.
+//
+// ⚠️ FIXED: was calling PUT /locations/:id — confirmed via Postman that
+// the real route is PUT /locations/update/:id (same pattern as
+// /locations/create, not a bare REST /locations/:id).
 export async function updateLocation(id, patch = {}) {
     console.log('[locationApi] updateLocation → id:', id, 'patch:', patch);
     try {
-        const { data } = await api.put(`/locations/${id}`, patch);
+        const { data } = await api.put(`/locations/update/${id}`, patch);
         console.log('[locationApi] updateLocation ← response:', data);
         return data;
     } catch (error) {
@@ -243,6 +247,45 @@ function extractZipcode(comps, formattedAddress) {
     return '';
 }
 
+// city is REQUIRED by the backend. `locality` is Google's normal match,
+// but some results (a specific building, a POI deep inside a small town)
+// omit it — fall back down through progressively broader components
+// before giving up.
+function extractCity(comps) {
+    const city =
+        extractAddressComponent(comps, 'locality') ||
+        extractAddressComponent(comps, 'postal_town') ||
+        extractAddressComponent(comps, 'sublocality_level_1') ||
+        extractAddressComponent(comps, 'sublocality') ||
+        extractAddressComponent(comps, 'administrative_area_level_2') ||
+        extractAddressComponent(comps, 'administrative_area_level_3') ||
+        '';
+    console.log('[locationApi] extractCity →', city || '(empty)');
+    return city;
+}
+
+// ⚠️ FIXED — this is the actual cause of "Body.district is not allowed to
+// be empty". `district` used to be sent as a bare
+// `administrative_area_level_2` read straight off the components with no
+// fallback at all. Google frequently doesn't return that component
+// (common for a plain locality pick, or when administrative_area_level_2
+// isn't meaningful for that region), so district silently came through as
+// '' and the backend rejected the whole save.
+//
+// Now falls back through: admin_area_level_2 → admin_area_level_3 →
+// the resolved city → the resolved state → a hardcoded non-empty
+// placeholder as an absolute last resort, so this can never be ''.
+function extractDistrict(comps, cityFallback, stateFallback) {
+    const district =
+        extractAddressComponent(comps, 'administrative_area_level_2') ||
+        extractAddressComponent(comps, 'administrative_area_level_3') ||
+        cityFallback ||
+        stateFallback ||
+        'NA';
+    console.log('[locationApi] extractDistrict →', district, '(cityFallback:', cityFallback, 'stateFallback:', stateFallback, ')');
+    return district;
+}
+
 // addressLine1 is REQUIRED by the backend. Google doesn't have a single
 // "line 1" component, so build it from street_number + route (the closest
 // equivalent). Falls back to premise, then the place's own name (e.g. a
@@ -305,6 +348,10 @@ function extractAddressLine2(comps) {
  *   - isBrandAddress / isSubBrandAddress now default off of whether a
  *     subBrandId was passed, instead of hardcoding isBrandAddress: true.
  *
+ * ⚠️ FIXED: `district` now goes through extractDistrict's fallback chain
+ * instead of a bare, unguarded administrative_area_level_2 read — fixes
+ * the "Body.district is not allowed to be empty" 422.
+ *
  * @param {object} place
  * @param {object} [overrides]
  * @param {string} [overrides.userId]
@@ -326,6 +373,10 @@ export function buildLocationPayloadFromPlace(place, overrides = {}) {
     const formattedAddress = place?.address || '';
     const hasSubBrand = !!overrides.subBrandId;
 
+    const city = extractCity(comps);
+    const state = extractAddressComponent(comps, 'administrative_area_level_1');
+    const district = extractDistrict(comps, city, state);
+
     const result = {
         ...(overrides.userId ? { userId: overrides.userId } : {}),
         ...(overrides.brandId ? { brandId: overrides.brandId } : {}),
@@ -333,9 +384,9 @@ export function buildLocationPayloadFromPlace(place, overrides = {}) {
         addressLine1: extractAddressLine1(comps, place?.name, formattedAddress),
         addressLine2: extractAddressLine2(comps),
         ...(overrides.landmark ? { landmark: overrides.landmark } : {}),
-        city: extractAddressComponent(comps, 'locality') || extractAddressComponent(comps, 'administrative_area_level_2'),
-        district: extractAddressComponent(comps, 'administrative_area_level_2'),
-        state: extractAddressComponent(comps, 'administrative_area_level_1'),
+        city,
+        district, // ⚠️ FIXED — was a bare administrative_area_level_2 read with no fallback
+        state,
         zipcode: overrides.manualZipcode || extractZipcode(comps, formattedAddress),
         country: extractAddressComponent(comps, 'country') || 'India',
         formattedAddress,
@@ -359,8 +410,21 @@ export function buildLocationPayloadFromPlace(place, overrides = {}) {
  *
  * Only sends fields the backend currently accepts — see note above.
  *
+ * ⚠️ NOTE: this builder is no longer called automatically by the Brand
+ * Outlet page — the GST checkbox now only prefills the search input's text
+ * (see prefillGstAddress in CreateBrandOutlet.jsx) and requires the vendor
+ * to confirm the address via the search dropdown, which routes through
+ * buildLocationPayloadFromPlace instead (that's the one with real
+ * address_components to build district/city/state/zipcode from). This
+ * function is kept for any other caller that still wants to build a
+ * payload directly off gst.address, but note that gst.address data alone
+ * still won't reliably have a district — same underlying problem, just
+ * with GST-sourced fields instead of Google's.
+ *
  * ⚠️ FIXED: same subBrandId / isBrandAddress / isSubBrandAddress fix as
- * buildLocationPayloadFromPlace above.
+ * buildLocationPayloadFromPlace above, plus the same district fallback
+ * (gst.district → city → state → 'NA') so this can't post an empty
+ * district either.
  *
  * ⚠️ ADJUST: the exact shape of `brand.gst.address` wasn't fully visible in
  * the original code (only `.location` — a formatted string — was read from
@@ -379,14 +443,19 @@ export function buildLocationPayloadFromGstAddress(gstAddress = {}, overrides = 
     const formattedAddress = gstAddress.formattedAddress || gstAddress.location || '';
     const hasSubBrand = !!overrides.subBrandId;
 
+    const city = gstAddress.city || '';
+    const state = gstAddress.state || '';
+    // ⚠️ FIXED — was `gstAddress.district || ''` with no further fallback.
+    const district = gstAddress.district || city || state || 'NA';
+
     const result = {
         ...(overrides.brandId ? { brandId: overrides.brandId } : {}),
         ...(overrides.subBrandId ? { subBrandId: overrides.subBrandId } : {}), // ⚠️ NEW
         addressLine1: gstAddress.addressLine1 || gstAddress.line1 || formattedAddress?.split(',')[0]?.trim() || '',
         addressLine2: gstAddress.addressLine2 || gstAddress.line2 || '',
-        city: gstAddress.city || '',
-        district: gstAddress.district || '',
-        state: gstAddress.state || '',
+        city,
+        district,
+        state,
         zipcode: overrides.manualZipcode || gstAddress.zipcode || gstAddress.pincode || extractZipcode([], formattedAddress),
         country: gstAddress.country || 'India',
         formattedAddress,
@@ -456,6 +525,21 @@ export function hasValidCityAndState(payload) {
 }
 
 /**
+ * ⚠️ NEW — `district` is REQUIRED by the backend ("Body.district is not
+ * allowed to be empty"), same as city/state, but there was previously no
+ * corresponding check for it here. Both payload builders now guarantee a
+ * non-empty district via their fallback chains, but this exists so
+ * validateLocationPayload can still catch the (very unlikely) case where
+ * it somehow comes through blank, instead of only discovering it via a
+ * backend 422.
+ */
+export function hasValidDistrict(payload) {
+    const valid = typeof payload?.district === 'string' && payload.district.trim().length > 0;
+    console.log('[locationApi] hasValidDistrict:', valid, '(district:', JSON.stringify(payload?.district), ')');
+    return valid;
+}
+
+/**
  * subBrandId is required for the Brand Outlet flow per the confirmed
  * backend schema — a location with neither brandId nor subBrandId is a
  * dangling/customer-style address, not an outlet address. Use this
@@ -485,6 +569,7 @@ export function validateLocationPayload(payload, opts = {}) {
     if (!hasValidCoordinates(payload)) errors.push('coordinates');
     if (!hasValidAddressLine1(payload)) errors.push('addressLine1');
     if (!hasValidCityAndState(payload)) errors.push('city/state');
+    if (!hasValidDistrict(payload)) errors.push('district'); // ⚠️ NEW
     if (!hasValidZipcode(payload)) errors.push('zipcode');
     if (opts.requireSubBrandId && !hasValidSubBrandId(payload)) errors.push('subBrandId');
     console.log('[locationApi] validateLocationPayload → errors:', errors.length ? errors : 'NONE (valid)');

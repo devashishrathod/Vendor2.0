@@ -491,6 +491,9 @@ export default function Step5BusinessType() {
       useOnboardingStore.getState().setField("businessType", selected);
       setSuccessMsg("Business type saved successfully!");
 
+ setTimeout(() => {
+     goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_VERIFICATION);
+      }, 3000);
     } catch (err) {
       setApiError(err.message || "Something went wrong. Please try again.");
     } finally {
@@ -507,7 +510,7 @@ export default function Step5BusinessType() {
         message={successMsg}
         onDismiss={() => {
           setSuccessMsg(null);
-          goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_VERIFICATION);
+          // goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_VERIFICATION);
         }}
       />
       <ErrorToast error={apiError} onDismiss={() => setApiError(null)} />

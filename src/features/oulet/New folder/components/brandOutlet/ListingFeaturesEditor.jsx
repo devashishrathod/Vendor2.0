@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { addBrandFeature, getBrandFeatures } from "../../services/brandOutletApi";
 import MediaPreviewModal from "./modals/MediaPreviewModal";
+import ErrorToast from "../../../../../components/common/ErrorToast";
+import SuccessToast from "../../../../../components/common/SuccessToast";
 
 
 const MAX_ACTIVE_FEATURES = 10;
@@ -16,9 +18,24 @@ export default function ListingFeaturesEditor({ features, onChange, brandId }) {
   const [saveError, setSaveError] = useState("");
   const [previewFeature, setPreviewFeature] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState("");
   const iconInputRef = useRef(null);
   const hydratedRef = useRef(false); // guards against re-fetch / overwrite loops
+
+  // ── Toast notifications ──
+  // Pop-up layer on top of the inline states below — errors/success for
+  // every network moment in this editor (load, add, remove).
+  const [toastError, setToastError] = useState(null); // { status, message, txnId } | null
+  const [toastSuccess, setToastSuccess] = useState("");
+
+  const showError = (message, status, txnId) => {
+    if (!message) return;
+    setToastError({ status, message, txnId });
+  };
+
+  const showSuccess = (message) => {
+    if (!message) return;
+    setToastSuccess(message);
+  };
 
   // ── Prefill already-saved features so the merchant doesn't retype ──
   useEffect(() => {
@@ -43,10 +60,12 @@ export default function ListingFeaturesEditor({ features, onChange, brandId }) {
         }));
         if (mapped.length) onChange(mapped);
       } catch (err) {
-        // Silent-ish — worst case the merchant sees an empty list and can
-        // still add features fresh. Surface a small inline note though.
-        setLoadError("Couldn't load your previously saved features.");
+        // Worst case the merchant sees an empty list and can still add
+        // features fresh (see the "No features added yet" empty state
+        // below) — a toast is enough of a heads-up, no need for a
+        // permanent red banner sitting on the page.
         console.error("Couldn't load existing brand features:", err.message);
+        showError("Couldn't load your previously saved features. You can still add new ones below.");
       } finally {
         setLoading(false);
       }
@@ -105,9 +124,12 @@ export default function ListingFeaturesEditor({ features, onChange, brandId }) {
           persisted: true,
         },
       ]);
+      showSuccess(`"${value}" added to your listing features.`);
       resetDraft();
     } catch (err) {
-      setSaveError(err.message || "Couldn't save this feature. Try again.");
+      const msg = err.message || "Couldn't save this feature. Try again.";
+      setSaveError(msg);
+      showError(msg);
     } finally {
       setSaving(false);
     }
@@ -116,7 +138,9 @@ export default function ListingFeaturesEditor({ features, onChange, brandId }) {
   const removeFeature = (id) => {
     // Local removal only — no delete endpoint has been shared yet, so this
     // just hides it from the list on this screen.
+    const removed = features.find((f) => f.id === id);
     onChange(features.filter((f) => f.id !== id));
+    if (removed?.title) showSuccess(`"${removed.title}" removed from this list.`);
   };
 
   const handleKeyDown = (e) => {
@@ -128,6 +152,10 @@ export default function ListingFeaturesEditor({ features, onChange, brandId }) {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Toasts */}
+      <ErrorToast error={toastError} onDismiss={() => setToastError(null)} />
+      <SuccessToast message={toastSuccess} onDismiss={() => setToastSuccess("")} />
+
       {/* ── LEFT: Add feature form ── */}
       <div className="space-y-3">
         <div>
@@ -225,8 +253,6 @@ export default function ListingFeaturesEditor({ features, onChange, brandId }) {
         <p className="text-xs font-semibold text-gray-500 mb-3">
           Added Features {features.length > 0 && `(${features.length})`}
         </p>
-
-        {loadError && <p className="text-xs text-red-500 mb-2">{loadError}</p>}
 
         {loading ? (
           <div className="h-full min-h-[140px] flex items-center justify-center border border-dashed border-gray-200 rounded-xl">
