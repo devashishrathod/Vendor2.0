@@ -122,6 +122,12 @@ export const useOnboardingStore = create(
       verificationFailedChecks: [],
       returnToStepAfterEdit: null,
 
+      // ✅ NEW — global toast state. Rendered once at the OnboardingPage
+      // top level so it survives step/sub-step remounts.
+      toastMessage: null,
+      setToast: (message) => set({ toastMessage: message }),
+      clearToast: () => set({ toastMessage: null }),
+
       markComplete: (step, subStep) =>
         set((s) => {
           const key = `${step}:${subStep}`;
@@ -237,16 +243,13 @@ export const useOnboardingStore = create(
           returnToStepAfterEdit:    null,
           error:                    null,
           loading:                  false,
+          toastMessage:             null,
         }),
     }),
     {
       name:    "onboarding-store",
       storage: createJSONStorage(() => localStorage),
 
-      // ✅ FIX: version bump + migrate — purane browsers me stale/galat
-      // completedKeys (jaise pehle wale bug se PARTNER_CONTRACT ka "5:1"
-      // permanently lock ho jaana) automatically saaf ho jayenge,
-      // kisi ko manually localStorage clear karne ki zaroorat nahi.
       version: 1,
       migrate: (persistedState, persistedVersion) => {
         if (persistedVersion < 1) {
@@ -265,6 +268,7 @@ export const useOnboardingStore = create(
         completedKeys:            state.completedKeys,
         verificationFailedChecks: state.verificationFailedChecks,
         returnToStepAfterEdit:    state.returnToStepAfterEdit,
+        // toastMessage intentionally NOT persisted
       }),
     },
   ),

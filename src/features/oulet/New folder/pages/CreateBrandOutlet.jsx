@@ -710,7 +710,7 @@ export default function CreateBrandOutlet() {
                 disabled={!brandWhatsappNumber}
                 className="w-4 h-4 accent-indigo-600 cursor-pointer disabled:opacity-40"
               />
-              Use my Brand's WhatsApp number
+              Same as Brand Business WhatsApp Number
               {brandWhatsappNumber ? ` (${brandWhatsappNumber})` : " (not available on your brand profile)"}
             </label>
             <div className="flex gap-2 max-w-sm">
@@ -726,11 +726,34 @@ export default function CreateBrandOutlet() {
                 <button
                   onClick={handleVerifyClick}
                   disabled={!isValidPhone(outletWhatsapp) || otpSending}
-                  className={`shrink-0 px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
-                    isValidPhone(outletWhatsapp) && !otpSending ? "bg-indigo-600 text-white hover:bg-indigo-700" : "bg-gray-100 text-gray-400 cursor-not-allowed"
-                  }`}
+                  className={`shrink-0 px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2 ${isValidPhone(outletWhatsapp) && !otpSending
+                      ? "bg-indigo-600 text-white hover:bg-indigo-700"
+                      : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                    }`}
                 >
-                  {otpSending ? "Sending…" : "Verify"}
+                  {otpSending && (
+                    <svg
+                      className="w-4 h-4 animate-spin"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                      />
+                    </svg>
+                  )}
+                  {otpSending ? "Sending…" : otpStage ? "Resend" : "Verify"}
                 </button>
               )}
             </div>
@@ -760,18 +783,11 @@ export default function CreateBrandOutlet() {
             {locationLoading && (
               <p className="text-xs text-gray-400 mb-3">Loading your saved outlet location…</p>
             )}
-
-            {/* Location section is blocked until the outlet's WhatsApp
-                number is verified (see outletSectionsBlocked above), so
-                the vendor can't pick a place that will silently fail to
-                save. The outer div (no pointer-events-none) catches
-                clicks that "fall through" the disabled inner content and
-                pops the same message as a toast. */}
-            {outletSectionsBlocked && !locationLoading && (
+            {/* {outletSectionsBlocked && !locationLoading && (
               <p className="text-xs text-amber-600 mb-3">
                 Verify your outlet's WhatsApp number above before setting a location.
               </p>
-            )}
+            )} */}
 
             <div onClick={() => notifyBlocked("Verify your outlet's WhatsApp number above before setting a location.")}>
               <div className={outletSectionsBlocked ? "opacity-50 pointer-events-none" : ""}>
@@ -838,11 +854,11 @@ export default function CreateBrandOutlet() {
 
             {/* Blocked until the outlet's WhatsApp number is verified —
                 upsertWorkHours needs subBrandId, which doesn't exist yet. */}
-            {outletSectionsBlocked && (
+            {/* {outletSectionsBlocked && (
               <p className="text-xs text-amber-600 mb-3">
                 Verify your outlet's WhatsApp number above before setting working hours.
               </p>
-            )}
+            )} */}
 
             <div onClick={() => notifyBlocked("Verify your outlet's WhatsApp number above before setting working hours.")}>
               <div className={outletSectionsBlocked ? "opacity-50 pointer-events-none" : ""}>
@@ -872,11 +888,11 @@ export default function CreateBrandOutlet() {
             {/* Blocked until the outlet's WhatsApp number is verified —
                 outletType is only ever posted as part of finalizeOutlet's
                 subBrandPatch, which needs subBrandId. */}
-            {outletSectionsBlocked && (
+            {/* {outletSectionsBlocked && (
               <p className="text-xs text-amber-600 mb-3">
                 Verify your outlet's WhatsApp number above before choosing an outlet type.
               </p>
-            )}
+            )} */}
 
             <div onClick={() => notifyBlocked("Verify your outlet's WhatsApp number above before choosing an outlet type.")}>
               <div className={`max-w-xs ${outletSectionsBlocked ? "opacity-50 pointer-events-none" : ""}`}>
@@ -909,12 +925,12 @@ export default function CreateBrandOutlet() {
           {saving
             ? "Saving…"
             : !whatsappVerified
-            ? "Verify WhatsApp Number to Continue"
-            : !savedLocationId
-            ? "Select & Save Your Outlet Location"
-            : !workingHoursSaved
-            ? "Save Working Hours to Continue"
-            : "Save & Process"}
+              ? "Verify WhatsApp Number to Continue"
+              : !savedLocationId
+                ? "Select & Save Your Outlet Location"
+                : !workingHoursSaved
+                  ? "Save Working Hours to Continue"
+                  : "Save & Process"}
         </button>
       </div>
     </div>

@@ -118,8 +118,10 @@ export default function Step6PANEnter({ onFetchSuccess, onComplete }) {
       useOnboardingStore.getState().setPanDetails(pan_data);
       if (onFetchSuccess) onFetchSuccess(pan_data);
 
-      setFetchDone(true);
-      setSuccessMsg(true);
+   setFetchDone(true);
+setSuccessMsg(true);
+ useOnboardingStore.getState().setToast("PAN verification completed successfully.");
+goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_READONLY); // turant
 
 
     } catch (err) {
@@ -499,7 +501,7 @@ export default function Step6PANEnter({ onFetchSuccess, onComplete }) {
         message={successMsg ? `PAN ${upper} verified successfully` : null}
         onDismiss={() => {
           setSuccessMsg(false);
-          goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_READONLY);
+          // goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_READONLY);
         }}
         duration={3500}
       />
