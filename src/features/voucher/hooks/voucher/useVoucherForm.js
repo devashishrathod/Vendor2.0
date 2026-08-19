@@ -1,91 +1,207 @@
 // src/hooks/voucher/useVoucherForm.js
+// Add/Edit form state + submit logic, wired to the real VoucherService.js
+// (createVoucher / updateVoucher / getVoucherById — multipart form-data).
+// Field shape here matches VoucherForm.jsx's repeatable `offers` + `images`
+// UI, which in turn matches the confirmed Postman `offers` array 1:1.
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuthStore } from "../../../onboarding/store/authStore";
+import { useOnboardingStore } from "../../../onboarding/store/onboardingStore";
+import useBrandData from "../../../brand/hooks/useBrandData";
 import {
-  fetchVoucherById,
-  createDiscountVoucher,
-  updateDiscountVoucher,
+  getVoucherById,
+  createVoucher,
+  updateVoucher,
 } from "../../services/voucher/VoucherService";
 
-const EMPTY_FORM = {
-  voucherName: "",
-  startDate: "",
-  startTime: "01:30 AM",
-  endDate: "",
-  endTime: "12:10 PM",
-  shortTitle: "",
-  valueOfAmount: "",
-  percentageOfDiscount: "",
-  singleUsePerUser: false,
-  multipleUseUntilExpiry: true,
-  applicableOutlets: {
-    selectedBrandOutletCount: 0,
-    totalOutletsCount: 0,
-    subBrandCount: 0,
-    franchiseCount: 0,
-  },
-  searchTags: [],
-  whoCanUse: "android_ios_membership",
-  whoCanClaim: "all_users",
-};
-
-function voucherToForm(voucher) {
-  if (!voucher) return EMPTY_FORM;
+function createEmptyOffer() {
   return {
-    voucherName: voucher.title || "",
-    startDate: voucher.startDate || "",
-    startTime: voucher.startTime || "01:30 AM",
-    endDate: voucher.endDate || "",
-    endTime: voucher.endTime || "12:10 PM",
-    shortTitle: voucher.shortTitle || "",
-    valueOfAmount: voucher.valueOfAmount ?? "",
-    percentageOfDiscount: voucher.percentageOfDiscount ?? "",
-    singleUsePerUser: Boolean(voucher.singleUsePerUser),
-    multipleUseUntilExpiry: voucher.multipleUseUntilExpiry ?? true,
-    applicableOutlets: voucher.applicableOutlets || EMPTY_FORM.applicableOutlets,
-    searchTags: voucher.searchTags || [],
-    whoCanUse: voucher.whoCanUse || "android_ios_membership",
-    whoCanClaim: voucher.whoCanClaim || "all_users",
+    title: "",
+    minBillAmount: "",
+    discountType: "PERCENTAGE",
+    discountValue: "",
+    maxDiscountAmount: "",
+    usageType: "MULTIPLE",
+    discountApplicableOn: "SUBTOTAL",
+    isActive: true,
+  };
+}
+
+function createEmptyForm() {
+  return {
+    voucherName: "",
+    brandId: "",
+    description: "",
+    startDate: "",
+    startTime: "",
+    endDate: "",
+    endTime: "",
+    // Real outlet ids applied to `subBrandIds` on submit — the count
+    // fields below are for display only (wire them up once you have an
+    // outlet picker that returns real ids).
+    selectedOutletIds: [],
+    applicableOutlets: {
+      selectedBrandOutletCount: 0,
+      totalOutletsCount: 0,
+      subBrandCount: 0,
+      franchiseCount: 0,
+    },
+    searchTags: [],
+    offers: [createEmptyOffer()],
+    images: [], // newly-picked File objects, pending upload
+    existingImageUrls: [], // already-uploaded urls (edit mode only)
+    isSaveAsDraft: false,
+  };
+}
+
+// Combine a yyyy-mm-dd date input + an HH:mm time input into an ISO
+// datetime string. Parsed as UTC (trailing "Z") so picking 2026-08-20 /
+// 00:00 always sends "2026-08-20T00:00:00.000Z" — without it, `new Date()`
+// parses the string as the browser's local time and `.toISOString()`
+// shifts it by the local UTC offset (e.g. IST would send the previous
+// day's evening instead of midnight).
+function toIsoDateTime(dateStr, timeStr) {
+  if (!dateStr) return undefined;
+  const date = new Date(`${dateStr}T${timeStr || "00:00"}:00.000Z`);
+  if (Number.isNaN(date.getTime())) return undefined;
+  return date.toISOString();
+}
+
+// Split an ISO datetime back into { date: "yyyy-mm-dd", time: "HH:mm" } for
+// prefilling the form inputs in edit mode.
+function fromIsoDateTime(iso) {
+  if (!iso) return { date: "", time: "" };
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return { date: "", time: "" };
+  return {
+    date: date.toISOString().slice(0, 10),
+    time: date.toISOString().slice(11, 16),
+  };
+}
+
+// `version` is one item from GET /vouchers/versions/get-all (see
+// getVoucherById) — the flat fields (name, description, tags, startAt,
+// endAt, images, offers) belong to this version; brandId only exists on
+// the nested `version.voucher`.
+function voucherToForm(version) {
+  const empty = createEmptyForm();
+  if (!version) return empty;
+
+  const start = fromIsoDateTime(version.startAt);
+  const end = fromIsoDateTime(version.endAt);
+
+  // images come back as [{ url, storage, sortOrder, _id }], not bare
+  // strings — the form only tracks the url.
+  const imageUrls = Array.isArray(version.images)
+    ? version.images.map((img) => (typeof img === "string" ? img : img?.url)).filter(Boolean)
+    : [];
+
+  return {
+    ...empty,
+    voucherName: version.name || "",
+    brandId: version.voucher?.brandId || version.brandId || "",
+    description: version.description || "",
+    startDate: start.date,
+    startTime: start.time,
+    endDate: end.date,
+    endTime: end.time,
+    // NOTE: the confirmed versions/get-all response doesn't include
+    // subBrandIds on either the version or its nested voucher — nothing to
+    // prefill here yet. Add it once the backend returns it on read.
+    selectedOutletIds: version.subBrandIds || version.voucher?.subBrandIds || [],
+    searchTags: version.tags || [],
+    isSaveAsDraft: version.status === "DRAFT",
+    existingImageUrls: imageUrls,
+    offers:
+      Array.isArray(version.offers) && version.offers.length > 0
+        ? version.offers.map((offer) => ({
+          ...createEmptyOffer(),
+          ...offer,
+        }))
+        : [createEmptyOffer()],
   };
 }
 
 function formToPayload(form) {
+  const finalSubBrandIDs = Array.isArray(form.selectedOutletIds)
+    ? form.selectedOutletIds
+    : form.selectedOutletIds
+      ? [form.selectedOutletIds]
+      : [];
+
+const FinalSearchTags = Array.isArray(form.searchTags)
+  ? form.searchTags
+  : form.searchTags
+    ? [form.searchTags]
+    : [];
   return {
-    title: form.voucherName,
-    startDate: form.startDate,
-    startTime: form.startTime,
-    endDate: form.endDate,
-    endTime: form.endTime,
-    publishedDate: form.startDate,
-    expiredDate: form.endDate,
-    shortTitle: form.shortTitle,
-    valueOfAmount: Number(form.valueOfAmount) || 0,
-    percentageOfDiscount: Number(form.percentageOfDiscount) || 0,
-    discount: `${Number(form.percentageOfDiscount) || 0} %`,
-    singleUsePerUser: form.singleUsePerUser,
-    multipleUseUntilExpiry: form.multipleUseUntilExpiry,
-    applicableOutlets: form.applicableOutlets,
-    searchTags: form.searchTags,
-    whoCanUse: form.whoCanUse,
-    whoCanClaim: form.whoCanClaim,
+    brandId: form.brandId,
+    name: form.voucherName,
+    description: form.description,
+    tags: FinalSearchTags,
+    startAt: toIsoDateTime(form.startDate, form.startTime),
+    endAt: toIsoDateTime(form.endDate, form.endTime),
+    subBrandIds: finalSubBrandIDs,
+    isSaveAsDraft: form.isSaveAsDraft,
+    offers: form.offers.map((offer, index) => ({
+      title: offer.title,
+      minBillAmount: Number(offer.minBillAmount) || 0,
+      discountType: offer.discountType,
+      discountValue: Number(offer.discountValue) || 0,
+      maxDiscountAmount: Number(offer.maxDiscountAmount) || 0,
+      usageType: offer.usageType,
+      discountApplicableOn: offer.discountApplicableOn,
+      sortOrder: index + 1,
+      isActive: offer.isActive,
+    })),
+    images: form.images,
+    existingImageUrls: form.existingImageUrls,
   };
 }
 
+
+
 export default function useVoucherForm(voucherId) {
   const navigate = useNavigate();
-  const isEditMode = Boolean(voucherId);
+  const isEditMode = Boolean(voucherId) && voucherId !== "new";
+  // brandId is never a visible form field — it's resolved from the
+  // logged-in vendor's session and sent silently in the submit payload.
+  // Prefer onboardingStore.formData.brandId: it's stamped the moment the
+  // brand is created (Step2VerifyOTP / Step1 addBasicDetails) and persists
+  // across reloads. authStore.user.brandId is only a fallback because
+  // authStore.user is captured once at login/verify-OTP and is never
+  // refetched afterwards — a vendor who completed onboarding in the same
+  // session without logging out again would otherwise still read an empty
+  // brandId off `user` and hit "Path brandId is required" on submit.
+  const onboardingBrandId = useOnboardingStore((s) => s.formData.brandId);
+  const authUserBrandId = useAuthStore((s) => s.user?.brandId);
+  const candidateBrandId = onboardingBrandId || authUserBrandId;
+  // Round-trips the candidate id through GET /brands/get — the same
+  // useBrandData hook BrandPage.jsx uses — so we send the backend's own
+  // confirmed brand._id rather than trusting whatever's cached locally.
+  const { data: brand } = useBrandData(candidateBrandId);
+  const sessionBrandId = brand?._id || candidateBrandId;
 
-  const [form, setForm] = useState(EMPTY_FORM);
+  const [form, setForm] = useState(createEmptyForm);
   const [tagInput, setTagInput] = useState("");
   const [isLoading, setIsLoading] = useState(isEditMode);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState("");
 
   useEffect(() => {
     if (!isEditMode) return;
     setIsLoading(true);
-    fetchVoucherById(voucherId)
-      .then((voucher) => setForm(voucherToForm(voucher)))
+    getVoucherById(voucherId)
+      .then((res) => {
+        const version = res?.data?.data?.[0];
+        if (!version) {
+          setError("Voucher not found.");
+          return;
+        }
+        setForm(voucherToForm(version));
+      })
       .catch((err) => setError(err.message))
       .finally(() => setIsLoading(false));
   }, [voucherId, isEditMode]);
@@ -101,6 +217,84 @@ export default function useVoucherForm(voucherId) {
     }));
   }, []);
 
+  // Called from VoucherOutletPickerModal's "Confirm & Submit". It hands
+  // back { ids, subBrandCount, franchiseCount, totalAvailable } — computed
+  // there since that's where the fetched outlets' types live.
+  const setSelectedOutlets = useCallback((selection) => {
+    const ids = Array.isArray(selection) ? selection : selection?.ids || [];
+    setForm((prev) => ({
+      ...prev,
+      selectedOutletIds: ids,
+      applicableOutlets: {
+        ...prev.applicableOutlets,
+        selectedBrandOutletCount: ids.length,
+        totalOutletsCount: selection?.totalAvailable ?? prev.applicableOutlets.totalOutletsCount,
+        subBrandCount: selection?.subBrandCount ?? 0,
+        franchiseCount: selection?.franchiseCount ?? 0,
+      },
+    }));
+  }, []);
+
+  // ── Offers (repeatable) ─────────────────────────────────────
+  const addOffer = useCallback(() => {
+    setForm((prev) => ({ ...prev, offers: [...prev.offers, createEmptyOffer()] }));
+  }, []);
+
+  const removeOffer = useCallback((index) => {
+    setForm((prev) => ({
+      ...prev,
+      offers: prev.offers.length > 1 ? prev.offers.filter((_, i) => i !== index) : prev.offers,
+    }));
+  }, []);
+
+  const setOfferField = useCallback((index, field, value) => {
+    setForm((prev) => ({
+      ...prev,
+      offers: prev.offers.map((offer, i) =>
+        i === index ? { ...offer, [field]: value } : offer
+      ),
+    }));
+  }, []);
+
+  // ── Images ───────────────────────────────────────────────────
+  // Max 5 images total (existing + newly picked); extra picks beyond the
+  // limit are dropped with an inline error.
+  const MAX_IMAGES = 5;
+
+  const addImages = useCallback((fileList) => {
+    const files = Array.from(fileList || []);
+    if (files.length === 0) return;
+    setForm((prev) => {
+      const remaining = MAX_IMAGES - prev.existingImageUrls.length - prev.images.length;
+      if (remaining <= 0) {
+        setError(`You can upload a maximum of ${MAX_IMAGES} images.`);
+        return prev;
+      }
+      if (files.length > remaining) {
+        setError(`You can upload a maximum of ${MAX_IMAGES} images.`);
+      }
+      return { ...prev, images: [...prev.images, ...files.slice(0, remaining)] };
+    });
+  }, []);
+
+  const removeImage = useCallback((index) => {
+    setForm((prev) => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index),
+    }));
+  }, []);
+
+  // Only removes the url from the form's pending payload — if you need to
+  // delete it from the backend immediately, also call
+  // deleteVoucherImage(voucherId, imageId) from VoucherService.js.
+  const removeExistingImage = useCallback((url) => {
+    setForm((prev) => ({
+      ...prev,
+      existingImageUrls: prev.existingImageUrls.filter((u) => u !== url),
+    }));
+  }, []);
+
+  // ── Search tags ──────────────────────────────────────────────
   const addTag = useCallback(() => {
     const value = tagInput.trim();
     if (!value) return;
@@ -129,17 +323,38 @@ export default function useVoucherForm(voucherId) {
     [addTag]
   );
 
+  // ── Submit ───────────────────────────────────────────────────
   const submit = useCallback(
     async (e) => {
       e?.preventDefault?.();
+      if (form.existingImageUrls.length + form.images.length === 0) {
+        setError("Please upload at least one voucher image.");
+        return;
+      }
+      if (form.selectedOutletIds.length === 0) {
+        setError("Please select at least one outlet or franchise this voucher applies to.");
+        return;
+      }
+      const brandId = form.brandId || sessionBrandId;
+      if (!brandId) {
+        setError("No brand is linked to your account yet. Please complete onboarding first.");
+        return;
+      }
       setIsSubmitting(true);
+      setUploadProgress(0);
       setError(null);
       try {
-        const payload = formToPayload(form);
+        const payload = formToPayload({ ...form, brandId });
+        console.log("payload", payload);
         const saved = isEditMode
-          ? await updateDiscountVoucher(voucherId, payload)
-          : await createDiscountVoucher(payload);
-        navigate(`/vouchers/${saved.id}`);
+          ? await updateVoucher(voucherId, payload, setUploadProgress)
+          : await createVoucher(payload, setUploadProgress);
+        const savedId = saved?.id ?? saved?._id ?? voucherId;
+        setSuccessMessage(isEditMode ? "Voucher updated successfully!" : "Voucher created successfully!");
+        // Brief pause so the success toast is actually visible before this
+        // component unmounts on navigation.
+        await new Promise((resolve) => setTimeout(resolve, 900));
+        navigate(`/vouchers`);
         return saved;
       } catch (err) {
         setError(err.message);
@@ -148,13 +363,20 @@ export default function useVoucherForm(voucherId) {
         setIsSubmitting(false);
       }
     },
-    [form, isEditMode, voucherId, navigate]
+    [form, isEditMode, voucherId, navigate, sessionBrandId]
   );
 
   return {
     form,
     setField,
     setOutletField,
+    setSelectedOutlets,
+    addOffer,
+    removeOffer,
+    setOfferField,
+    addImages,
+    removeImage,
+    removeExistingImage,
     tagInput,
     setTagInput,
     addTag,
@@ -163,7 +385,11 @@ export default function useVoucherForm(voucherId) {
     isEditMode,
     isLoading,
     isSubmitting,
+    uploadProgress,
     error,
+    clearError: () => setError(null),
+    successMessage,
+    clearSuccessMessage: () => setSuccessMessage(""),
     submit,
   };
 }

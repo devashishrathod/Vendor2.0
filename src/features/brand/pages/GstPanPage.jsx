@@ -1,17 +1,17 @@
 import React from "react";
 
 import GstPanSection from "../components/GstPanSection";
-import Branddata from "../data/Branddata";
 
 /**
  * GstPanPage
  * "GST & PAN Information" tab — brand's registered address, GSTIN,
  * PAN details, taxpayer type, and current GST status.
+ *
+ * `brand` is the real brand object fetched by BrandPage (via useBrandData)
+ * and passed down as a prop — brand.gst and brand.pan hold the relevant data.
  */
-const GstPanPage = () => {
-  const { gstPanInformation } = Branddata;
-
-  return <GstPanSection gstPanInformation={gstPanInformation} />;
+const GstPanPage = ({ brand }) => {
+  return <GstPanSection gst={brand?.gst} pan={brand?.pan} />;
 };
 
 export default GstPanPage;

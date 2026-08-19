@@ -221,9 +221,11 @@ export async function updateBrandDetails(brandId, brandPayload = {}, logoFile = 
             }
         });
         if (logoFile) formData.append('logo', logoFile);
-        const { data } = await api.put(`/brands/update?brandId=${brandId}`, formData, {
-            headers: { 'Content-Type': 'multipart/form-data' },
-        });
+        // No explicit Content-Type header — the browser must set it itself
+        // for a FormData body so it can attach the multipart boundary;
+        // overriding it with a boundary-less value makes the backend's
+        // multer/busboy parser silently fail to read any fields.
+        const { data } = await api.put(`/brands/update?brandId=${brandId}`, formData);
         return data;
     } catch (error) {
         handleError(error);
@@ -241,9 +243,8 @@ export async function addBrandFeature({ brandId, title, description, isActive, i
         formData.append('description', description ?? '');
         formData.append('isActive', String(!!isActive));
         if (iconFile) formData.append('icon', iconFile);
-        const { data } = await api.post('/brandFeatures/add', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' },
-        });
+        // See updateBrandDetails's comment — no explicit Content-Type header.
+        const { data } = await api.post('/brandFeatures/add', formData);
         return data;
     } catch (error) {
         handleError(error);

@@ -23,23 +23,23 @@ const BusinessHours = ({ hours = {}, onToggleDay, onTimeChange }) => {
               idx !== DAYS.length - 1 ? "border-b border-gray-50" : ""
             }`}
           >
-            <div className="flex w-32 shrink-0 items-center gap-3">
+            <div className="flex w-40 shrink-0 items-center gap-3">
               <button
                 type="button"
                 role="switch"
                 aria-checked={dayData.isOpen}
                 onClick={() => onToggleDay(day.key)}
-                className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
+                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-offset-1 ${
                   dayData.isOpen ? "bg-blue-600" : "bg-gray-200"
                 }`}
               >
                 <span
-                  className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform duration-200 ${
                     dayData.isOpen ? "translate-x-5" : "translate-x-0.5"
                   }`}
                 />
               </button>
-              <span className="text-sm font-medium text-gray-900">
+              <span className="whitespace-nowrap text-sm font-medium text-gray-900">
                 {day.label}
               </span>
             </div>
@@ -52,7 +52,7 @@ const BusinessHours = ({ hours = {}, onToggleDay, onTimeChange }) => {
                   onChange={(e) =>
                     onTimeChange(day.key, "start", e.target.value)
                   }
-                  className="rounded-md border border-gray-200 px-3 py-1.5 text-sm text-gray-800 focus:border-blue-500 focus:outline-none"
+                  className="rounded-md border border-gray-200 px-3 py-1.5 text-sm text-gray-800 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-200"
                 />
                 <span className="text-sm text-gray-400">to</span>
                 <input
@@ -61,11 +61,13 @@ const BusinessHours = ({ hours = {}, onToggleDay, onTimeChange }) => {
                   onChange={(e) =>
                     onTimeChange(day.key, "end", e.target.value)
                   }
-                  className="rounded-md border border-gray-200 px-3 py-1.5 text-sm text-gray-800 focus:border-blue-500 focus:outline-none"
+                  className="rounded-md border border-gray-200 px-3 py-1.5 text-sm text-gray-800 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-200"
                 />
               </div>
             ) : (
-              <span className="flex-1 text-sm text-gray-400">Closed</span>
+              <span className="flex-1 text-sm font-medium text-gray-400">
+                Closed
+              </span>
             )}
           </div>
         );

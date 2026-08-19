@@ -158,8 +158,11 @@ export async function addShowcaseMedia(
             formData.append('files', file);
         });
 
+        // No explicit Content-Type header — the browser must set it itself
+        // for a FormData body so it can attach the multipart boundary;
+        // overriding it with a boundary-less value makes the backend's
+        // multer/busboy parser silently fail to read any fields.
         const { data } = await api.post(`/showcase/section/${sectionId}/add-media`, formData, {
-            headers: { 'Content-Type': 'multipart/form-data' },
             onUploadProgress: onUploadProgress
                 ? (evt) => onUploadProgress(Math.round((evt.loaded * 100) / (evt.total || 1)))
                 : undefined,

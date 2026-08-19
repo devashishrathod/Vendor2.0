@@ -1,8 +1,7 @@
 import OutletCard from "./OutletCard";
-import { MOCK_OUTLETS } from "../constants/mockOutlets";
 
 export default function OutletGrid({
-  outlets = MOCK_OUTLETS, // ← dummy data used until a parent passes real outlets
+  outlets = [],
   selectedIds = [],
   onSelect,
   onToggleStatus,

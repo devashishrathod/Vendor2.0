@@ -1,131 +1,7 @@
-// import { useAddOutletForm } from "../hooks/useAddOutletForm";
-// import { REGISTRATION_TYPES, MOCK_SUB_BRANDS, MOCK_FRANCHISES } from "../constants/outletConstants";
-
-// export default function AddOutletModal({ onClose, onCreated }) {
-//   const { form, update, submit, submitting, error } = useAddOutletForm((created) => {
-//     onCreated?.(created);
-//     onClose();
-//   });
-
-//   const isSubBrand = form.registrationType === REGISTRATION_TYPES.SUB_BRAND;
-//   const entityOptions = isSubBrand ? MOCK_SUB_BRANDS : MOCK_FRANCHISES;
-
-//   const switchType = (type) => {
-//     update("registrationType", type);
-//     update("registeredWith", "");
-//   };
-
-//   return (
-//     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={onClose}>
-//       <div
-//         className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
-//         onClick={(e) => e.stopPropagation()}
-//       >
-//         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white rounded-t-2xl">
-//           <h3 className="text-base font-bold text-gray-900">Add Outlet</h3>
-//           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100">
-//             <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-//               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-//             </svg>
-//           </button>
-//         </div>
-
-//         <div className="px-6 py-5 space-y-5">
-//           <div>
-//             <label className="block text-sm font-semibold text-gray-700 mb-2">Outlet Name *</label>
-//             <input
-//               type="text"
-//               value={form.outletName}
-//               onChange={(e) => update("outletName", e.target.value)}
-//               placeholder="eg : Andiappan Yoga Academy"
-//               className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-400 text-gray-700"
-//             />
-//           </div>
-
-//           <div>
-//             <label className="block text-sm font-semibold text-gray-700 mb-2">Outlet Address *</label>
-//             <textarea
-//               rows={3}
-//               value={form.outletAddress}
-//               onChange={(e) => update("outletAddress", e.target.value)}
-//               placeholder="Full outlet address"
-//               className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-400 text-gray-700 resize-none"
-//             />
-//           </div>
-
-//           <div>
-//             <label className="block text-sm font-semibold text-gray-700 mb-2">Outlet Register With *</label>
-//             <div className="grid grid-cols-2 gap-3">
-//               <button
-//                 type="button"
-//                 onClick={() => switchType(REGISTRATION_TYPES.SUB_BRAND)}
-//                 className={`px-4 py-2.5 rounded-xl text-sm font-semibold border transition-colors ${
-//                   isSubBrand ? "bg-[#1a1a2e] text-white border-[#1a1a2e]" : "border-gray-200 text-gray-600 hover:bg-gray-50"
-//                 }`}
-//               >
-//                 Sub - Brand
-//               </button>
-//               <button
-//                 type="button"
-//                 onClick={() => switchType(REGISTRATION_TYPES.FRANCHISE)}
-//                 className={`px-4 py-2.5 rounded-xl text-sm font-semibold border transition-colors ${
-//                   !isSubBrand ? "bg-[#1a1a2e] text-white border-[#1a1a2e]" : "border-gray-200 text-gray-600 hover:bg-gray-50"
-//                 }`}
-//               >
-//                 Franchise
-//               </button>
-//             </div>
-//           </div>
-
-//           <div>
-//             <label className="block text-sm font-semibold text-gray-700 mb-2">
-//               {isSubBrand ? "Select Sub-Brand *" : "Select Franchise *"}
-//             </label>
-//             <div className="relative">
-//               <select
-//                 value={form.registeredWith}
-//                 onChange={(e) => update("registeredWith", e.target.value)}
-//                 className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-400 appearance-none bg-white text-gray-700"
-//               >
-//                 <option value="">Select an option</option>
-//                 {entityOptions.map((opt) => (
-//                   <option key={opt.id} value={opt.name}>
-//                     {opt.name}
-//                   </option>
-//                 ))}
-//               </select>
-//               <svg className="absolute right-3 top-3.5 w-4 h-4 text-gray-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-//                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-//               </svg>
-//             </div>
-//           </div>
-
-//           {error && <p className="text-xs text-red-500">{error}</p>}
-//         </div>
-
-//         <div className="px-6 py-4 border-t border-gray-100 flex gap-3">
-//           <button
-//             onClick={onClose}
-//             className="flex-1 border border-gray-200 text-gray-600 font-semibold py-2.5 rounded-xl text-sm hover:bg-gray-50"
-//           >
-//             Cancel
-//           </button>
-//           <button
-//             onClick={submit}
-//             disabled={submitting}
-//             className="flex-1 bg-[#1a1a2e] text-white font-semibold py-2.5 rounded-xl text-sm hover:bg-[#2d2d5e] disabled:opacity-70"
-//           >
-//             {submitting ? "Saving…" : "Save Outlet"}
-//           </button>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// }
-
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useAddOutletForm } from "../hooks/useAddOutletForm";
 import { useBrand } from "../../../hooks/useBrand"; // ← path apne project ke hisaab se adjust karo
+import { sendOutletWhatsappOtp, loginOrSignUpWithWhatsapp, verifyOtpWhatsapp } from "../services/subBrandApi"; // ← real API
 
 // ─── Outlet Type options (Outlet vs Franchise) ─────────────────────────────
 // Kept local to this file since it's only used here + in CreateBrandOutlet.
@@ -258,7 +134,7 @@ function MapModal({ lat, lng, label, onClose }) {
 }
 
 // ─── WhatsApp OTP Verify Modal ─────────────────────────────────────────────────
-function OtpVerifyModal({ phone, otpValue, onOtpChange, otpError, onConfirm, onClose, onResend, resending }) {
+function OtpVerifyModal({ phone, otpValue, onOtpChange, otpError, onConfirm, onClose, onResend, resending, confirming }) {
   return (
     <div
       className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
@@ -324,14 +200,14 @@ function OtpVerifyModal({ phone, otpValue, onOtpChange, otpError, onConfirm, onC
           </button>
           <button
             onClick={onConfirm}
-            disabled={otpValue.length < 4}
+            disabled={otpValue.length < 4 || confirming}
             className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
-              otpValue.length >= 4
+              otpValue.length >= 4 && !confirming
                 ? "bg-emerald-600 text-white hover:bg-emerald-700"
                 : "bg-gray-100 text-gray-400 cursor-not-allowed"
             }`}
           >
-            Confirm
+            {confirming ? "Verifying…" : "Confirm"}
           </button>
         </div>
       </div>
@@ -340,7 +216,7 @@ function OtpVerifyModal({ phone, otpValue, onOtpChange, otpError, onConfirm, onC
 }
 
 // ─── Outlet Location Search (Google Places Text Search + Place Details) ───────
-function OutletLocationSearch({ selectedPlace, onSelectPlace, onShowMap }) {
+function OutletLocationSearch({ selectedPlace, onSelectPlace, onShowMap, locationSaving, locationSaved, locationError }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
@@ -479,6 +355,21 @@ function OutletLocationSearch({ selectedPlace, onSelectPlace, onShowMap }) {
           <p className="text-xs font-semibold text-gray-500 mb-1">Selected Outlet Location</p>
           <p className="text-sm font-bold text-gray-900">{selectedPlace.name}</p>
           <p className="text-sm text-gray-600 mt-0.5">{selectedPlace.address}</p>
+
+          {/* ── Location save status — this is its OWN API call, fired the
+              moment the place was picked, independent of the final Save
+              Outlet button. ── */}
+          {locationSaving && <p className="text-xs text-gray-400 mt-2">Saving this location…</p>}
+          {locationSaved && !locationSaving && (
+            <p className="text-xs font-semibold text-emerald-600 mt-2 flex items-center gap-1">
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              Location saved
+            </p>
+          )}
+          {locationError && !locationSaving && <p className="text-xs text-red-500 mt-2">{locationError}</p>}
+
           <div className="flex gap-2 mt-3">
             <button
               onClick={onShowMap}
@@ -502,7 +393,7 @@ function OutletLocationSearch({ selectedPlace, onSelectPlace, onShowMap }) {
 }
 
 // ─── Live Location Picker (Geolocation + Reverse Geocoding) ───────────────────
-function LiveLocationPicker({ selectedPlace, onSelectPlace, onShowMap }) {
+function LiveLocationPicker({ selectedPlace, onSelectPlace, onShowMap, locationSaving, locationSaved, locationError }) {
   const [fetching, setFetching] = useState(false);
   const [error, setError] = useState("");
 
@@ -583,6 +474,18 @@ function LiveLocationPicker({ selectedPlace, onSelectPlace, onShowMap }) {
         <div className="bg-[#f3f6fb] rounded-xl p-4 mt-3">
           <p className="text-xs font-semibold text-gray-500 mb-1">Detected Address</p>
           <p className="text-sm text-gray-800">{selectedPlace.address}</p>
+
+          {locationSaving && <p className="text-xs text-gray-400 mt-2">Saving this location…</p>}
+          {locationSaved && !locationSaving && (
+            <p className="text-xs font-semibold text-emerald-600 mt-2 flex items-center gap-1">
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              Location saved
+            </p>
+          )}
+          {locationError && !locationSaving && <p className="text-xs text-red-500 mt-2">{locationError}</p>}
+
           <div className="flex gap-2 mt-3">
             <button
               onClick={onShowMap}
@@ -606,31 +509,67 @@ function LiveLocationPicker({ selectedPlace, onSelectPlace, onShowMap }) {
 }
 
 export default function AddOutletModal({ onClose, onCreated }) {
-  const { brand } = useBrand();
-  const { form, update, updateWhatsapp, setLocation, submit, submitting, error } = useAddOutletForm((created) => {
+  const { brand, loading: brandLoading } = useBrand();
+  const {
+    form,
+    update,
+    updateWhatsapp,
+    setSubBrandId,
+    setBrandId,
+    setLocation,
+    persistLocation,
+    submit,
+    submitting,
+    error,
+  } = useAddOutletForm((created) => {
     onCreated?.(created);
     onClose();
   });
+
+  const brandId = brand?._id;
+
+  useEffect(() => {
+    if (brandId) setBrandId(brandId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [brandId]);
+
+  // ── Edge case: a location was picked before subBrandId existed (e.g.
+  // merchant somehow selected a place before finishing WhatsApp verify).
+  // persistLocation() no-ops without a subBrandId, so once one shows up,
+  // retry saving whatever pick is still sitting unsaved.
+  useEffect(() => {
+    if (form.subBrandId && form.location && !form.locationSaved && !form.locationSaving) {
+      persistLocation(form.location, form.subBrandId, form.brandId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.subBrandId]);
 
   // ── Outlet WhatsApp Number — same OTP-verify flow as CreateBrandOutlet ──
   const brandWhatsappNumber = brand?.whatsappNumber || brand?.phone || brand?.mobile || "";
   const [otpStage, setOtpStage] = useState(false);
   const [otpValue, setOtpValue] = useState("");
   const [otpSending, setOtpSending] = useState(false);
+  const [otpConfirming, setOtpConfirming] = useState(false);
   const [otpError, setOtpError] = useState("");
+
+  // ── Keep the copied-in number synced once brand data actually arrives ──
+  useEffect(() => {
+    if (form.whatsapp.isBrandNumber && brandWhatsappNumber && form.whatsapp.number !== brandWhatsappNumber) {
+      updateWhatsapp({ number: brandWhatsappNumber });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [brandWhatsappNumber, form.whatsapp.isBrandNumber]);
 
   const handleUseBrandNumberToggle = (checked) => {
     setOtpStage(false);
     setOtpValue("");
     setOtpError("");
-    // Always require a fresh OTP verification for this outlet, even when the
-    // number is copied over from the brand profile — it was verified there,
-    // not here.
     updateWhatsapp({
       isBrandNumber: checked,
       number: checked ? brandWhatsappNumber : "",
       verified: false,
     });
+    setSubBrandId(null);
   };
 
   const handleOutletWhatsappChange = (value) => {
@@ -638,26 +577,67 @@ export default function AddOutletModal({ onClose, onCreated }) {
     setOtpStage(false);
     setOtpValue("");
     setOtpError("");
+    setSubBrandId(null);
   };
 
-  const sendWhatsappOtp = () => {
+  // ── Real API: create the subBrand shell + trigger the WhatsApp OTP ──
+  const sendWhatsappOtp = async () => {
+    if (!isValidPhone(form.whatsapp.number) || !brandId) return;
+    setOtpSending(true);
+    setOtpError("");
+    try {
+      const res = await sendOutletWhatsappOtp({
+        brandId,
+        whatsappNumber: form.whatsapp.number,
+        isFirstOutlet: false,
+      });
+      const subBrandId = res?.data?.subBrandId ?? res?.subBrandId ?? null;
+      if (!subBrandId) {
+        throw new Error("Couldn't create the outlet record. Please try again.");
+      }
+      setSubBrandId(subBrandId);
+      setOtpStage(true);
+    } catch (err) {
+      setOtpError(err?.message || "Couldn't send OTP. Please try again.");
+    } finally {
+      setOtpSending(false);
+    }
+  };
+
+  // ── Real API: resend OTP only — must NOT re-run sendOutletWhatsappOtp,
+  // that would recreate the subBrand shell every time. Resend just
+  // re-triggers the OTP message.
+  const resendWhatsappOtp = async () => {
     if (!isValidPhone(form.whatsapp.number)) return;
     setOtpSending(true);
     setOtpError("");
-    // TODO: replace with real API call, e.g. await api.post("/otp/send", { number: form.whatsapp.number })
-    setTimeout(() => {
+    try {
+      await loginOrSignUpWithWhatsapp({ whatsappNumber: form.whatsapp.number });
+    } catch (err) {
+      setOtpError(err?.message || "Couldn't resend OTP. Please try again.");
+    } finally {
       setOtpSending(false);
-      setOtpStage(true);
-    }, 900);
+    }
   };
 
-  const confirmWhatsappOtp = () => {
+  // ── Real API: verify the OTP the merchant received on WhatsApp ──
+  const confirmWhatsappOtp = async () => {
     if (otpValue.length < 4) return;
-    // TODO: replace with real API call, e.g. await api.post("/otp/verify", { number: form.whatsapp.number, otp: otpValue })
+    setOtpConfirming(true);
     setOtpError("");
-    updateWhatsapp({ verified: true });
-    setOtpStage(false);
-    setOtpValue("");
+    try {
+      await verifyOtpWhatsapp({
+        whatsappNumber: form.whatsapp.number,
+        otp: otpValue,
+      });
+      updateWhatsapp({ verified: true });
+      setOtpStage(false);
+      setOtpValue("");
+    } catch (err) {
+      setOtpError(err?.message || "Invalid OTP. Please try again.");
+    } finally {
+      setOtpConfirming(false);
+    }
   };
 
   const closeOtpModal = () => {
@@ -715,6 +695,29 @@ export default function AddOutletModal({ onClose, onCreated }) {
             </div>
           </div>
 
+          {/* ── Description ── */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Description</label>
+            <textarea
+              value={form.description}
+              onChange={(e) => update("description", e.target.value)}
+              placeholder="eg : Main city outlet of the brand"
+              rows={2}
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-400 bg-white text-gray-700 resize-none"
+            />
+          </div>
+
+          {/* ── Active ── */}
+          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={form.isActive}
+              onChange={(e) => update("isActive", e.target.checked)}
+              className="w-4 h-4 accent-indigo-600 cursor-pointer"
+            />
+            Active
+          </label>
+
           {/* ── Outlet WhatsApp Number ── */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Outlet WhatsApp Number *</label>
@@ -724,11 +727,15 @@ export default function AddOutletModal({ onClose, onCreated }) {
                 type="checkbox"
                 checked={form.whatsapp.isBrandNumber}
                 onChange={(e) => handleUseBrandNumberToggle(e.target.checked)}
-                disabled={!brandWhatsappNumber}
+                disabled={brandLoading || !brandWhatsappNumber}
                 className="w-4 h-4 accent-indigo-600 cursor-pointer disabled:opacity-40"
               />
               Use my Brand's WhatsApp number
-              {brandWhatsappNumber ? ` (${brandWhatsappNumber})` : " (not available on your brand profile)"}
+              {brandLoading
+                ? " (loading…)"
+                : brandWhatsappNumber
+                ? ` (${brandWhatsappNumber})`
+                : " (not available on your brand profile)"}
             </label>
 
             <div className="flex gap-2">
@@ -744,9 +751,9 @@ export default function AddOutletModal({ onClose, onCreated }) {
                 <button
                   type="button"
                   onClick={sendWhatsappOtp}
-                  disabled={!isValidPhone(form.whatsapp.number) || otpSending}
+                  disabled={!isValidPhone(form.whatsapp.number) || otpSending || !brandId}
                   className={`shrink-0 px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
-                    isValidPhone(form.whatsapp.number) && !otpSending
+                    isValidPhone(form.whatsapp.number) && !otpSending && brandId
                       ? "bg-indigo-600 text-white hover:bg-indigo-700"
                       : "bg-gray-100 text-gray-400 cursor-not-allowed"
                   }`}
@@ -774,6 +781,8 @@ export default function AddOutletModal({ onClose, onCreated }) {
             {!form.whatsapp.verified && (
               <p className="text-xs text-gray-400 mt-2">Verify your WhatsApp number to enable Save Outlet.</p>
             )}
+
+            {otpError && !otpStage && <p className="text-xs text-red-500 mt-2">{otpError}</p>}
           </div>
 
           {/* ── Outlet Location ── */}
@@ -801,17 +810,27 @@ export default function AddOutletModal({ onClose, onCreated }) {
               </label>
             </div>
 
+            {!form.subBrandId && (
+              <p className="text-xs text-amber-600 mb-2">Verify your WhatsApp number first — location saves against that outlet record.</p>
+            )}
+
             {form.locationMode === "search" ? (
               <OutletLocationSearch
                 selectedPlace={form.location}
                 onSelectPlace={setLocation}
                 onShowMap={() => setShowMap(true)}
+                locationSaving={form.locationSaving}
+                locationSaved={form.locationSaved}
+                locationError={form.locationError}
               />
             ) : (
               <LiveLocationPicker
                 selectedPlace={form.location}
                 onSelectPlace={setLocation}
                 onShowMap={() => setShowMap(true)}
+                locationSaving={form.locationSaving}
+                locationSaved={form.locationSaved}
+                locationError={form.locationError}
               />
             )}
           </div>
@@ -844,8 +863,9 @@ export default function AddOutletModal({ onClose, onCreated }) {
           otpError={otpError}
           onConfirm={confirmWhatsappOtp}
           onClose={closeOtpModal}
-          onResend={sendWhatsappOtp}
+          onResend={resendWhatsappOtp}
           resending={otpSending}
+          confirming={otpConfirming}
         />
       )}
 

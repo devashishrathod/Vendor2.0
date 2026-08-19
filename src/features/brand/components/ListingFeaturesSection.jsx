@@ -1,5 +1,68 @@
-import React from "react";
-import { RefreshCcw, Trash2 } from "lucide-react";
+import React, { useState, useRef } from "react";
+import { RefreshCcw, Trash2, Play, X } from "lucide-react";
+
+// Detects video vs image by file extension in the URL.
+const isVideoUrl = (url = "") => /\.(mp4|webm|mov|ogg)(\?|$)/i.test(url);
+
+const MediaThumb = ({ src, alt, onPlay }) => {
+  const video = isVideoUrl(src);
+
+  if (!video) {
+    return (
+      <img
+        src={src}
+        alt={alt}
+        className="h-10 w-10 rounded object-contain"
+      />
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onPlay}
+      className="group relative flex h-10 w-10 items-center justify-center overflow-hidden rounded bg-gray-900"
+      aria-label={`Play ${alt}`}
+    >
+      <video src={src} className="h-full w-full object-cover opacity-70" muted />
+      <Play
+        size={16}
+        className="absolute text-white drop-shadow group-hover:scale-110 transition-transform"
+        fill="white"
+      />
+    </button>
+  );
+};
+
+const VideoModal = ({ src, title, onClose }) => (
+  <div
+    className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4"
+    onClick={onClose}
+  >
+    <div
+      className="relative w-full max-w-lg rounded-lg bg-black"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="Close"
+        className="absolute -top-10 right-0 text-white hover:text-gray-300"
+      >
+        <X size={22} />
+      </button>
+      <video
+        src={src}
+        controls
+        autoPlay
+        className="w-full rounded-lg"
+      >
+        Your browser doesn't support video playback.
+      </video>
+      <p className="mt-2 text-center text-xs text-gray-300">{title}</p>
+    </div>
+  </div>
+);
 
 const ListingFeaturesSection = ({
   listingFeatures,
@@ -7,6 +70,8 @@ const ListingFeaturesSection = ({
   onRefresh,
   onDelete,
 }) => {
+  const [playingFeature, setPlayingFeature] = useState(null);
+
   return (
     <section>
       <div className="flex items-start justify-between gap-4">
@@ -32,7 +97,7 @@ const ListingFeaturesSection = ({
           <thead>
             <tr className="border-b border-gray-100 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
               <th className="px-5 py-3">S.NO</th>
-              <th className="px-5 py-3">Icon Png</th>
+              <th className="px-5 py-3">Icon / Video</th>
               <th className="px-5 py-3">LF Name</th>
               <th className="px-5 py-3">CreateOn</th>
               <th className="px-5 py-3 text-right">Actions</th>
@@ -46,10 +111,10 @@ const ListingFeaturesSection = ({
               >
                 <td className="px-5 py-4 text-gray-800">{feature.sNo}</td>
                 <td className="px-5 py-4">
-                  <img
+                  <MediaThumb
                     src={feature.iconUrl}
                     alt={feature.lfName}
-                    className="h-8 w-8 rounded object-contain"
+                    onPlay={() => setPlayingFeature(feature)}
                   />
                 </td>
                 <td className="px-5 py-4 text-gray-800">{feature.lfName}</td>
@@ -81,6 +146,14 @@ const ListingFeaturesSection = ({
           </tbody>
         </table>
       </div>
+
+      {playingFeature && (
+        <VideoModal
+          src={playingFeature.iconUrl}
+          title={playingFeature.lfName}
+          onClose={() => setPlayingFeature(null)}
+        />
+      )}
     </section>
   );
 };

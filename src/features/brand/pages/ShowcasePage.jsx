@@ -1,53 +1,113 @@
-import React from "react";
+import React, { useState } from "react";
 
 import ShowcaseSection from "../components/ShowcaseSection";
+import AddShowcaseSectionModal from "../components/AddShowcaseSectionModal";
+import useBrandShowcase from "../hooks/useBrandShowcase";
+import {
+  createShowcaseSectionWithMedia,
+  addShowcaseMedia,
+  deleteShowcaseMedia,
+  deleteShowcaseSection,
+} from "../services/brandApi";
 
 /**
  * ShowcasePage
- * "Showcase Details" tab — Ambience / Gallery / Menu / Event
- * just displays preview images & videos for each group.
+ * "Showcase Details" tab — live sections + media from
+ * GET /showcase/get-brand-showcase/:brandId, with add-section,
+ * add-media, delete-media, delete-section wired to the real API.
  */
-const IMAGE_PREVIEWS = [
-  "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=100&h=100&fit=crop",
-  "https://images.unsplash.com/photo-1519681393784-d120267933ba?w=100&h=100&fit=crop",
-  "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=100&h=100&fit=crop",
-  "https://images.unsplash.com/photo-1500534623283-312aade485b7?w=100&h=100&fit=crop",
-];
+const ShowcasePage = ({ brandId }) => {
+  const { data, loading, error, reload } = useBrandShowcase(brandId);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [actionError, setActionError] = useState(null);
 
-const VIDEO_PREVIEWS = [
-  "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=100&h=100&fit=crop",
-  "https://images.unsplash.com/photo-1470813740244-df37b8c1edcb?w=100&h=100&fit=crop",
-];
+  if (loading) {
+    return <p className="text-sm text-gray-400">Loading showcase…</p>;
+  }
 
-const showcase = {
-  subtitle: "View and update your profile, settings, and account information.",
-  guidelinesLink: "#",
-  groups: [
-    {
-      id: "ambience",
-      title: "Ambience Images & Video",
-      subtitle:
-        "Ensure images follow our event card guidelines and are provided in both formats.",
-      images: IMAGE_PREVIEWS,
-      videos: VIDEO_PREVIEWS,
-    },
-    {
-      id: "gallery",
-      title: "Gallery Images & Video",
-      subtitle:
-        "Ensure images follow our event card guidelines and are provided in both formats.",
-      images: IMAGE_PREVIEWS,
-      videos: VIDEO_PREVIEWS,
-    },
-  ],
-};
+  const sections = data?.sections || [];
 
-const ShowcasePage = () => {
-  const handleAddMore = () => {
-    console.log("Add More Showcase clicked");
+  const showcase = {
+    subtitle: "View and update the photos & videos shown on your listing.",
+    guidelinesLink: "#",
+    groups: sections.map((s) => ({
+      id: s._id,
+      title: s.title,
+      subtitle: s.description || `${s.photoCount || 0} photos · ${s.videoCount || 0} videos`,
+      medias: s.medias || [],
+    })),
   };
 
-  return <ShowcaseSection showcase={showcase} onAddMore={handleAddMore} />;
+  const handleAddMore = () => setShowAddModal(true);
+const handleCreateSection = async ({ title, description, files, isShowInVideoClips }) => {
+  const { mediaError } = await createShowcaseSectionWithMedia(
+    { title, description },
+    files,
+    { isShowInVideoClips }   // ✅ ye add karo — mediaOptions ke through addShowcaseMedia tak jayega
+  );
+  if (mediaError) {
+    setActionError(mediaError.message);
+  }
+  reload();
+};
+
+  const handleAddMedia = async (sectionId, files) => {
+    setActionError(null);
+    try {
+      await addShowcaseMedia(sectionId, files);
+      reload();
+    } catch (err) {
+      setActionError(err.message);
+    }
+  };
+
+  const handleDeleteMedia = async (sectionId, mediaId) => {
+    setActionError(null);
+    try {
+      await deleteShowcaseMedia(sectionId, mediaId);
+      reload();
+    } catch (err) {
+      setActionError(err.message);
+    }
+  };
+
+  const handleDeleteSection = async (sectionId) => {
+    setActionError(null);
+    try {
+      await deleteShowcaseSection(sectionId);
+      reload();
+    } catch (err) {
+      setActionError(err.message);
+    }
+  };
+
+  return (
+    <div>
+      {error && (
+        <p className="mb-4 text-sm text-red-500">
+          Couldn't load live data ({error}). Showing cached details.
+        </p>
+      )}
+      {actionError && (
+        <p className="mb-4 text-sm text-red-500">{actionError}</p>
+      )}
+
+      <ShowcaseSection
+        showcase={showcase}
+        onAddMore={handleAddMore}
+        onAddMedia={handleAddMedia}
+        onDeleteMedia={handleDeleteMedia}
+        onDeleteSection={handleDeleteSection}
+      />
+
+      {showAddModal && (
+        <AddShowcaseSectionModal
+          onClose={() => setShowAddModal(false)}
+          onSubmit={handleCreateSection}
+        />
+      )}
+    </div>
+  );
 };
 
 export default ShowcasePage;

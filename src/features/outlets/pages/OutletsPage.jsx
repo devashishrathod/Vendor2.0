@@ -6,23 +6,23 @@ import Pagination from "../components/Pagination";
 import AddOutletModal from "../components/AddOutletModal";
 import { useOutlets } from "../hooks/useOutlets";
 import { useOutletFilters } from "../hooks/useOutletFilters";
+import { useBrand } from "../../../hooks/useBrand"; // ← same path as AddOutletModal — adjust if needed
 import { exportOutlets } from "../services/outletService";
 import { PAGE_SIZE } from "../constants/outletConstants";
-import { MOCK_OUTLETS } from "../constants/mockOutlets"; // ← added
 
 export default function OutletsPage() {
+  const { brand } = useBrand();
   const { search, setSearch, filters, toggleFilter, clearFilters, activeFilterCount, page, setPage } =
     useOutletFilters();
-  const { outlets, total, loading, toggleStatus, reload } = useOutlets({ search, filters, page });
+  const { outlets, total, loading, toggleStatus, reload } = useOutlets({
+    search,
+    filters,
+    page,
+    brandId: brand?._id,
+  });
   const [selectedIds, setSelectedIds] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const navigate = useNavigate();
-
-  // 🔧 TEMP: useOutlets abhi galat/duplicate data de raha hai (hook me bug
-  // hai), isliye mock data force kar rahe hain. useOutlets fix hone ke
-  // baad ye line hata ke neeche "outlets" wapas use karna.
-  const displayOutlets = MOCK_OUTLETS;
-  const displayTotal = MOCK_OUTLETS.length;
 
   const toggleSelect = (id) => {
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]));
@@ -50,15 +50,15 @@ export default function OutletsPage() {
           />
 
           <OutletGrid
-            outlets={displayOutlets}
+            outlets={outlets}
             selectedIds={selectedIds}
             onSelect={toggleSelect}
             onToggleStatus={toggleStatus}
             onExploreDetails={handleExploreDetails}
-            loading={false}
+            loading={loading}
           />
 
-          <Pagination page={page} pageSize={PAGE_SIZE} total={displayTotal} onPageChange={setPage} />
+          <Pagination page={page} pageSize={PAGE_SIZE} total={total} onPageChange={setPage} />
         </div>
 
         {showAddModal && <AddOutletModal onClose={() => setShowAddModal(false)} onCreated={() => reload()} />}

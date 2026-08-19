@@ -27,7 +27,84 @@ function handleError(error) {
     throw new Error(message);
 }
 
+export const OUTLET_TYPES = { OUTLET: 'OUTLET', FRANCHISE: 'FRANCHISE' };
 
+// ══════════════════════════════════════════════════════════════
+// AUTH — WhatsApp OTP (send/resend + verify)
+// ══════════════════════════════════════════════════════════════
+
+// ── Send / Resend Outlet WhatsApp OTP ──────────────────────────
+// POST {{TryDood2.0BaseUrl}}/auth/loginOrSignUp-with-whatsapp
+// body: { whatsappNumber, role }
+export async function loginOrSignUpWithWhatsapp({ whatsappNumber, role = 'SUB_VENDOR' } = {}) {
+    try {
+        const { data } = await api.post('/auth/loginOrSignUp-with-whatsapp', { whatsappNumber, role });
+        return data;
+    } catch (error) {
+        handleError(error);
+    }
+}
+
+// ── Verify Outlet WhatsApp OTP ────────────────────────────────────
+// POST {{TryDood2.0BaseUrl}}/auth/verify-otp-whatsapp
+// body: { otp, whatsappNumber, role, currentScreen? }
+export async function verifyOtpWhatsapp({ whatsappNumber, otp, role = 'SUB_VENDOR', currentScreen } = {}) {
+    try {
+        const body = { otp, whatsappNumber, role };
+        if (currentScreen) body.currentScreen = currentScreen;
+        const { data } = await api.post('/auth/verify-otp-whatsapp', body);
+        return data;
+    } catch (error) {
+        handleError(error);
+    }
+}
+
+// ══════════════════════════════════════════════════════════════
+// SUBBRAND (Outlet)
+// ══════════════════════════════════════════════════════════════
+
+// ── Sign Up a SubBrand (Outlet) With WhatsApp ────────────────────
+// POST {{TryDood2.0BaseUrl}}/subBrands/signUp-with-whatsapp
+// body: { brandId, isFirstOutlet?, whatsappNumber }
+//
+// ⚠️ IMPORTANT — response shape has TWO different ids, don't confuse them:
+//   response.data._id         -> the SUB_VENDOR *user/login* account created
+//                                 for this outlet (has password hash,
+//                                 referralCode, uniqueId, walletBalance, etc.
+//                                 — none of that belongs to the outlet itself)
+//   response.data.subBrandId  -> the ACTUAL SubBrand document id.
+//                                 THIS is what updateSubBrand() and
+//                                 upsertWorkHours({ subBrandId, ... }) need.
+//
+// Using response.data._id anywhere a subBrandId is expected (e.g. the
+// Working Hours payload) will silently send the wrong id — the request
+// won't necessarily error, it'll just attach hours to nothing or to the
+// wrong record.
+export async function signUpSubBrandWithWhatsapp({ brandId, whatsappNumber, isFirstOutlet } = {}) {
+    try {
+        const body = { brandId, whatsappNumber };
+        if (isFirstOutlet) body.isFirstOutlet = true;
+        const { data } = await api.post('/subBrands/signUp-with-whatsapp', body);
+        return data;
+    } catch (error) {
+        handleError(error);
+    }
+}
+
+// ── Combined helper: creates the subBrand shell AND sends the OTP ──
+// Creating the shell (signUp-with-whatsapp) and triggering the OTP
+// (loginOrSignUp-with-whatsapp) are two separate backend calls; this
+// wraps both since they always happen together the first time the
+// merchant hits "Verify".
+//
+// Return shape: { success, message, data: { _id /* user id, NOT the outlet */, subBrandId /* the real outlet id */, ... } }
+// Callers must read res.data.subBrandId, never res.data._id, when they
+// need the outlet's id for updateSubBrand / upsertWorkHours.
+export async function sendOutletWhatsappOtp({ brandId, whatsappNumber, isFirstOutlet } = {}) {
+    const subBrandRes = await signUpSubBrandWithWhatsapp({ brandId, whatsappNumber, isFirstOutlet });
+    await loginOrSignUpWithWhatsapp({ whatsappNumber });
+    return subBrandRes;
+}
 
 // ── Update a SubBrand (Outlet) ─────────────────────────────────────
 // PUT {{TryDood2.0BaseUrl}}/subBrands/update/:id
@@ -218,36 +295,20 @@ export async function getBrandFeatures(brandId) {
     }
 }
 
-
-// ── Get Single Location ─────────────────────────────────────────
-// GET {{TryDood2.0BaseUrl}}/locations/:id
-export async function getLocation(id) {
-    console.log('[locationApi] getLocation → id:', id);
-    try {
-        const { data } = await api.get(`/locations/${id}`);
-        console.log('[locationApi] getLocation ← response:', data);
-        return data;
-    } catch (error) {
-        console.error('[locationApi] getLocation ✗ FAILED', error?.response?.data || error);
-        handleError(error);
-    }
-}
-
 // ══════════════════════════════════════════════════════════════
 // BRAND (read)
 // ══════════════════════════════════════════════════════════════
 
 // GET {{TryDood2.0BaseUrl}}/brands/get?brandId=:brandId
 export async function getBrandById(brandId) {
-    console.log('[brandApi] getBrandById → brandId:', brandId);
+    console.log('[subBrandApi] getBrandById → brandId:', brandId);
     if (!brandId) return null;
     try {
         const { data } = await api.get('/brands/get', { params: { brandId } });
-        console.log('[brandApi] getBrandById ← response:', data);
+        console.log('[subBrandApi] getBrandById ← response:', data);
         return data;
     } catch (error) {
-        console.error('[brandApi] getBrandById ✗ FAILED', error?.response?.data || error);
+        console.error('[subBrandApi] getBrandById ✗ FAILED', error?.response?.data || error);
         handleError(error);
     }
 }
-

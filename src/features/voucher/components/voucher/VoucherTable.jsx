@@ -9,28 +9,104 @@ import {
   Calendar,
   Download,
   Plus,
+  Send,
+  Pencil,
+  Rocket,
+  Loader2,
 } from "lucide-react";
 import VoucherStatusBadge from "./VoucherStatusBadge";
 
 const ROWS_PER_PAGE_OPTIONS = [10, 20, 50];
 const TABLE_HEAD = [
-  "Voucher Id",
-  "Voucher Title",
-  "Published Date",
-  "Expired Date",
+  "Voucher",
+  "Version Code",
+  "Validity",
   "Discount",
-  "Value Of Amount",
-  "Earn Amount",
   "Status",
+  "Action",
 ];
 
-const formatCurrency = (value) =>
-  `₹${Number(value ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
+const STATUS_FILTER_OPTIONS = [
+  { value: "", label: "All Statuses" },
+  { value: "DRAFT", label: "Draft" },
+  { value: "UNDER_REVIEW", label: "Under Review" },
+  { value: "APPROVED", label: "Approved" },
+  { value: "REJECTED", label: "Rejected" },
+  { value: "PUBLISHED", label: "Published" },
+  { value: "EXPIRED", label: "Expired" },
+  { value: "ARCHIVED", label: "Archived" },
+];
+
+// Exports the currently-loaded page of vouchers as a CSV file — client
+// side, since there's no confirmed "export" endpoint from Postman.
+function exportVouchersToCsv(vouchers) {
+  const headers = ["Name", "Version Code", "Start Date", "End Date", "Discount", "Status"];
+  const rows = vouchers.map((v) => [
+    v.name,
+    v.versionCode,
+    v.startAt,
+    v.endAt,
+    summarizeDiscount(v.offers),
+    v.status,
+  ]);
+  const csv = [headers, ...rows]
+    .map((row) => row.map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(","))
+    .join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "vouchers.csv";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+function formatDate(iso) {
+  if (!iso) return "—";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function summarizeDiscount(offers) {
+  const offer = offers?.[0];
+  if (!offer) return "—";
+  return offer.title || `${offer.discountValue}${offer.discountType === "PERCENTAGE" ? "%" : "₹"} OFF`;
+}
 
 function buildPageList(page, totalPages) {
   const pages = [];
   for (let i = 1; i <= totalPages; i += 1) pages.push(i);
   return pages;
+}
+
+const ACTION_ICON_STYLES = {
+  amber: "border-amber-200 text-amber-600 hover:bg-amber-50",
+  indigo: "border-indigo-200 text-indigo-600 hover:bg-indigo-50",
+  emerald: "border-emerald-200 text-emerald-600 hover:bg-emerald-50",
+};
+
+// Icon-only action button — the action name only shows on hover (native
+// title tooltip), keeping the Action column compact.
+function ActionIconButton({ icon: Icon, label, tone, isLoading, onClick }) {
+  return (
+    <button
+      type="button"
+      title={label}
+      aria-label={label}
+      disabled={isLoading}
+      onClick={onClick}
+      className={`flex h-8 w-8 items-center justify-center rounded-full border bg-white transition-colors disabled:opacity-50 ${ACTION_ICON_STYLES[tone]}`}
+    >
+      {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Icon className="h-4 w-4" />}
+    </button>
+  );
 }
 
 export default function VoucherTable({
@@ -40,11 +116,18 @@ export default function VoucherTable({
   rowsPerPage,
   totalPages,
   search,
+  dateRange = { from: "", to: "" },
+  statusFilter = "",
   stateSummary,
+  actionLoadingId,
   onSearchChange,
   onRowsPerPageChange,
   onPageChange,
   onOpenAddDiscount,
+  onStatusFilterChange,
+  onDateRangeChange,
+  onSubmitForReview,
+  onPublish,
 }) {
   const navigate = useNavigate();
 
@@ -113,15 +196,53 @@ export default function VoucherTable({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <button className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">
-            <SlidersHorizontal className="h-4 w-4" />
-            Filter
-          </button>
-          <button className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">
-            <Calendar className="h-4 w-4" />
-            Feb 17, 2026, 12:00 – Mar 9, 2026, 23:59
-          </button>
-          <button className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">
+          <div className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600">
+            <SlidersHorizontal className="h-4 w-4 shrink-0" />
+            <select
+              value={statusFilter}
+              onChange={(e) => onStatusFilterChange?.(e.target.value)}
+              className="bg-transparent text-sm text-gray-600 outline-none"
+            >
+              {STATUS_FILTER_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600">
+            <Calendar className="h-4 w-4 shrink-0" />
+            <input
+              type="date"
+              value={dateRange.from}
+              onChange={(e) => onDateRangeChange?.({ ...dateRange, from: e.target.value })}
+              className="bg-transparent text-sm text-gray-600 outline-none"
+            />
+            <span className="text-gray-400">–</span>
+            <input
+              type="date"
+              value={dateRange.to}
+              onChange={(e) => onDateRangeChange?.({ ...dateRange, to: e.target.value })}
+              className="bg-transparent text-sm text-gray-600 outline-none"
+            />
+            {(dateRange.from || dateRange.to) && (
+              <button
+                type="button"
+                onClick={() => onDateRangeChange?.({ from: "", to: "" })}
+                className="text-xs text-gray-400 hover:text-gray-600"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+
+          <button
+            type="button"
+            disabled={vouchers.length === 0}
+            onClick={() => exportVouchersToCsv(vouchers)}
+            className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+          >
             <Download className="h-4 w-4" />
             Export Data
           </button>
@@ -161,36 +282,101 @@ export default function VoucherTable({
                 </td>
               </tr>
             ) : (
-              vouchers.map((voucher, index) => (
-                <tr
-                  key={voucher.id}
-                  className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}
-                >
-                  <td className="px-4 py-3">
-                    <button
-                      onClick={() => navigate(`/vouchers/${voucher.id}`)}
-                      className="font-medium text-indigo-600 hover:underline"
-                    >
-                      #{voucher.id}
-                    </button>
-                  </td>
-                  <td className="max-w-xs truncate px-4 py-3 text-gray-700">
-                    {voucher.title}
-                  </td>
-                  <td className="px-4 py-3 text-gray-600">{voucher.publishedDate}</td>
-                  <td className="px-4 py-3 text-gray-600">{voucher.expiredDate}</td>
-                  <td className="px-4 py-3 text-gray-600">{voucher.discount}</td>
-                  <td className="px-4 py-3 text-gray-600">
-                    {formatCurrency(voucher.valueOfAmount)}
-                  </td>
-                  <td className="px-4 py-3 text-gray-600">
-                    {formatCurrency(voucher.earnAmount)}
-                  </td>
-                  <td className="px-4 py-3">
-                    <VoucherStatusBadge status={voucher.status} />
-                  </td>
-                </tr>
-              ))
+              vouchers.map((version, index) => {
+                // `version.status` drives the whole workflow: DRAFT →
+                // (Submit for Review) → UNDER_REVIEW → APPROVED/REJECTED →
+                // (Publish) → PUBLISHED. Editing a PUBLISHED or REJECTED
+                // version creates/resets it back to DRAFT and the cycle
+                // repeats — the old published version is auto-archived by
+                // the backend once the new one publishes successfully.
+                const status = version.status;
+                const thumbnail = version.images?.[0]?.url;
+                const isSubmitting = actionLoadingId === version.voucherId;
+                const isPublishing = actionLoadingId === version._id;
+                const goToEdit = () => navigate(`/vouchers/${version.voucherId}/edit`);
+
+                return (
+                  <tr
+                    key={version._id}
+                    className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}
+                  >
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        {thumbnail && (
+                          <img
+                            src={thumbnail}
+                            alt=""
+                            className="h-9 w-9 rounded-md object-cover"
+                          />
+                        )}
+                        <button
+                          onClick={() => navigate(`/vouchers/${version.voucherId}`)}
+                          className="max-w-[220px] truncate text-left font-medium text-indigo-600 hover:underline"
+                        >
+                          {version.name}
+                        </button>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-gray-600">{version.versionCode}</td>
+                    <td className="px-4 py-3 text-gray-600">
+                      {formatDate(version.startAt)} – {formatDate(version.endAt)}
+                    </td>
+                    <td className="px-4 py-3 text-gray-600">
+                      {summarizeDiscount(version.offers)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <VoucherStatusBadge
+                        status={status}
+                        tooltip={status === "REJECTED" ? version.rejectionReason : undefined}
+                      />
+                    </td>
+                    <td className="px-4 py-3">
+                      {status === "DRAFT" && (
+                        <div className="flex items-center gap-2">
+                          <ActionIconButton
+                            icon={Send}
+                            label="Submit for Review"
+                            tone="amber"
+                            isLoading={isSubmitting}
+                            onClick={() => onSubmitForReview(version.voucherId)}
+                          />
+                          <ActionIconButton
+                            icon={Pencil}
+                            label="Edit"
+                            tone="indigo"
+                            onClick={goToEdit}
+                          />
+                        </div>
+                      )}
+                      {status === "UNDER_REVIEW" && (
+                        <span className="text-xs font-medium text-amber-600">
+                          Your Voucher is in Under Review
+                        </span>
+                      )}
+                      {status === "APPROVED" && (
+                        <ActionIconButton
+                          icon={Rocket}
+                          label="Publish"
+                          tone="emerald"
+                          isLoading={isPublishing}
+                          onClick={() => onPublish(version._id)}
+                        />
+                      )}
+                      {(status === "PUBLISHED" || status === "REJECTED") && (
+                        <ActionIconButton
+                          icon={Pencil}
+                          label="Edit"
+                          tone="indigo"
+                          onClick={goToEdit}
+                        />
+                      )}
+                      {!["DRAFT", "UNDER_REVIEW", "APPROVED", "PUBLISHED", "REJECTED"].includes(
+                        status
+                      ) && <span className="text-xs text-gray-400">—</span>}
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>

@@ -20,7 +20,7 @@ import {
 
 // Shape produced: [{ id, name, media: [...], status, error, persisted }]
 // where each media item is:
-//   { id, type: 'image'|'video', file, preview, month, status, error, persisted }
+//   { id, type: 'image'|'video', file, preview, month, isShowInVideoClips, status, error, persisted }
 //
 // `id` starts as a local temp id and is swapped for the real server `_id`
 // once the create/upload call succeeds — `persisted: true` marks that swap
@@ -59,6 +59,13 @@ export default function ShowcaseAlbumsEditor({ albums, onChange, brandId }) {
   const [loadError, setLoadError] = useState("");
   const fileInputRefs = useRef({});
   const hydratedRef = useRef(false);
+
+  // ── Per-album "Show in Video Clips" toggle ──
+  // Merchant checks this BEFORE uploading — value goes straight into the
+  // isShowInVideoClips form field on addShowcaseMedia, exactly like the
+  // Postman request (form-data: isShowInVideoClips = "true"/"false").
+  // Keyed by album.id so each album remembers its own choice independently.
+  const [showInClipsMap, setShowInClipsMap] = useState({});
 
   // ── Prefill already-saved albums + their media in one call ──
   useEffect(() => {
@@ -100,6 +107,7 @@ export default function ShowcaseAlbumsEditor({ albums, onChange, brandId }) {
               preview: rawUrl,
               thumbnail: m.thumbnail || rawUrl,
               month: m.month || "",
+              isShowInVideoClips: !!m.isShowInVideoClips,
               status: "idle",
               error: "",
               persisted: true,
@@ -213,6 +221,13 @@ export default function ShowcaseAlbumsEditor({ albums, onChange, brandId }) {
       return;
     }
 
+    // ⚠️ FIXED: was hardcoded `false` regardless of what the merchant
+    // wanted. Now reads the per-album "Show in Video Clips" checkbox state
+    // (defaults to false only if the merchant never touched the toggle),
+    // and this exact value is what gets sent to the API below and stored
+    // on each media item.
+    const isShowInVideoClips = !!showInClipsMap[album.id];
+
     const videoOnly = isVideoOnlyAlbum(album.name);
     const currentVideoCount = album.media.filter((m) => m.type === "video").length;
     const remainingItemSlots = MAX_ITEMS_PER_ALBUM - album.media.length;
@@ -233,6 +248,7 @@ export default function ShowcaseAlbumsEditor({ albums, onChange, brandId }) {
         file,
         preview: URL.createObjectURL(file),
         month: "",
+        isShowInVideoClips,
         status: "uploading",
         error: "",
         persisted: false,
@@ -250,7 +266,7 @@ export default function ShowcaseAlbumsEditor({ albums, onChange, brandId }) {
       const res = await addShowcaseMedia(
         album.id,
         newMedia.map((m) => m.file),
-        { isShowInVideoClips: false }
+        { isShowInVideoClips }
       );
       // The response for add-media follows the same shape as the showcase
       // fetch: `data.medias[]` with UPPERCASE `type` ("PHOTO"/"VIDEO"). We
@@ -282,6 +298,10 @@ export default function ShowcaseAlbumsEditor({ albums, onChange, brandId }) {
                     ? "image"
                     : String(serverMatch.type).toLowerCase()
                   : m.type,
+                isShowInVideoClips:
+                  serverMatch?.isShowInVideoClips !== undefined
+                    ? !!serverMatch.isShowInVideoClips
+                    : m.isShowInVideoClips,
               };
             }),
           };
@@ -504,6 +524,23 @@ export default function ShowcaseAlbumsEditor({ albums, onChange, brandId }) {
                   className="hidden"
                   onChange={(e) => handleFiles(album, e)}
                 />
+
+                {/* Show in Video Clips toggle — read by handleFiles above
+                    and sent as the isShowInVideoClips form field, matching
+                    the Postman request exactly. */}
+                <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-600 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={!!showInClipsMap[album.id]}
+                    onChange={(e) =>
+                      setShowInClipsMap((prev) => ({ ...prev, [album.id]: e.target.checked }))
+                    }
+                    disabled={!canUpload}
+                    className="w-4 h-4 accent-indigo-600 cursor-pointer disabled:opacity-40"
+                  />
+                  Show in Video Clips
+                </label>
+
                 <span className="text-xs text-gray-400">
                   {itemCount}/{MAX_ITEMS_PER_ALBUM} items · {videoCount}/{MAX_VIDEOS_PER_ALBUM} videos
                 </span>
@@ -559,6 +596,11 @@ export default function ShowcaseAlbumsEditor({ albums, onChange, brandId }) {
                       >
                         ×
                       </button>
+                      {m.isShowInVideoClips && (
+                        <span className="absolute bottom-0 left-0 right-0 text-center text-[8px] font-semibold text-white bg-indigo-600/90 py-0.5 truncate">
+                          In Video Clips
+                        </span>
+                      )}
                       {monthly && (
                         <>
                           <select

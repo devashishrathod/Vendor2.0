@@ -13,6 +13,10 @@ const BrandProfilePage = ({ brand, brandLoading, brandError }) => {
     return <p className="text-sm text-gray-400">Loading brand profile…</p>;
   }
 
+  if (!brand) {
+    return <p className="text-sm text-gray-500">No brand data found.</p>;
+  }
+
   return (
     <div className="space-y-10">
       {brandError && (
@@ -25,7 +29,10 @@ const BrandProfilePage = ({ brand, brandLoading, brandError }) => {
 
       <hr className="border-gray-100" />
 
-      <CategoryInfoSection category={brand.category} />
+      <CategoryInfoSection
+        category={brand.category}
+        subCategory={brand.subCategory}
+      />
 
       <CategoryTagSection categoryTagLine={brand.categoryTagLine} />
     </div>

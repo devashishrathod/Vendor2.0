@@ -1,90 +1,95 @@
-import React, { useState } from "react";
-import {
-  Undo2,
-  Redo2,
-  Bold,
-  Underline,
-  AlignLeft,
-  AlignCenter,
-  AlignRight,
-  List,
-  Link2,
-  Paperclip,
-} from "lucide-react";
+import React, { useState, useEffect } from "react";
 
-const TOOLBAR_ICONS = [
-  { icon: Undo2, label: "Undo" },
-  { icon: Redo2, label: "Redo" },
-  { icon: Bold, label: "Bold" },
-  { icon: Underline, label: "Underline" },
-  { icon: AlignLeft, label: "Align left" },
-  { icon: AlignCenter, label: "Align center" },
-  { icon: AlignRight, label: "Align right" },
-  { icon: List, label: "List" },
-  { icon: Link2, label: "Link" },
-  { icon: Paperclip, label: "Attach" },
-];
+/**
+ * BrandDescription
+ * Displays the brand's description with an inline edit mode.
+ * Pure UI component — no data fetching or API calls here.
+ *
+ * Props:
+ *  - description (string): current description text
+ *  - lastUpdate (string|null): formatted "Last update" date, or null
+ *  - onUpdate (fn): called with the new description string on save
+ */
+const BrandDescription = ({ description, lastUpdate, onUpdate }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [draft, setDraft] = useState(description || "");
 
-const BrandDescription = ({
-  subtitle = "Grow your business with better visibility, attractive offers, and customer trust.",
-  description,
-  lastUpdate,
-  onDescriptionChange,
-  onUpdate,
-}) => {
-  const [value, setValue] = useState(description || "");
+  // Keep local draft in sync if the underlying description changes
+  // (e.g. after a fresh fetch/reload).
+  useEffect(() => {
+    setDraft(description || "");
+  }, [description]);
 
-  const handleChange = (e) => {
-    setValue(e.target.value);
-    onDescriptionChange && onDescriptionChange(e.target.value);
+  const handleEditClick = () => {
+    setDraft(description || "");
+    setIsEditing(true);
+  };
+
+  const handleCancel = () => {
+    setDraft(description || "");
+    setIsEditing(false);
+  };
+
+  const handleSave = () => {
+    const trimmed = draft.trim();
+    if (!trimmed) return;
+    onUpdate(trimmed);
+    setIsEditing(false);
   };
 
   return (
-    <section>
-      <h2 className="text-xs font-bold uppercase tracking-wide text-gray-700">
-        Brand Description
-      </h2>
-      <p className="mt-1 text-sm text-gray-500">{subtitle}</p>
-
-      <div className="mt-4 rounded-xl border border-gray-100 shadow-sm">
-        <div className="flex items-center justify-between gap-4 border-b border-gray-100 px-4 py-3">
-          <div className="flex items-center gap-1">
-            {TOOLBAR_ICONS.map(({ icon: Icon, label }) => (
-              <button
-                key={label}
-                type="button"
-                aria-label={label}
-                className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-800"
-              >
-                <Icon size={16} />
-              </button>
-            ))}
-          </div>
-
-          {lastUpdate && (
-            <span className="shrink-0 rounded-md bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700">
-              Last update : {lastUpdate}
-            </span>
-          )}
-        </div>
-
-        <textarea
-          value={value}
-          onChange={handleChange}
-          rows={10}
-          className="w-full resize-none rounded-b-xl px-4 py-4 text-sm leading-relaxed text-gray-700 focus:outline-none"
-          placeholder="Write your brand description..."
-        />
+    <div className="rounded-xl border border-gray-200 p-5">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold text-gray-800">
+          Brand Description
+        </h3>
+        {!isEditing && (
+          <button
+            onClick={handleEditClick}
+            className="text-sm text-emerald-600 font-medium hover:underline"
+          >
+            Edit
+          </button>
+        )}
       </div>
 
-      <button
-        type="button"
-        onClick={() => onUpdate && onUpdate(value)}
-        className="mt-4 w-full rounded-lg bg-blue-50 py-3 text-sm font-semibold text-blue-700 hover:bg-blue-100"
-      >
-        Update Description
-      </button>
-    </section>
+      {isEditing ? (
+        <div>
+          <textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            rows={5}
+            className="w-full rounded-md border border-gray-300 p-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            placeholder="Describe your brand…"
+          />
+          <div className="mt-3 flex gap-3">
+            <button
+              onClick={handleSave}
+              className="rounded-md bg-emerald-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-emerald-700"
+            >
+              Save
+            </button>
+            <button
+              onClick={handleCancel}
+              className="rounded-md border border-gray-300 px-4 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <p className="text-sm text-gray-600 whitespace-pre-wrap">
+            {description || "No description added yet."}
+          </p>
+          {lastUpdate && (
+            <p className="mt-3 text-xs text-gray-400">
+              Last update: {lastUpdate}
+            </p>
+          )}
+        </>
+      )}
+    </div>
   );
 };
 

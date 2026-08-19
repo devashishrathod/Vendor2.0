@@ -17,11 +17,19 @@ export default function Voucher() {
     page,
     rowsPerPage,
     search,
+    dateRange,
+    statusFilter,
     isLoading,
     stateSummary,
+    actionLoadingId,
+    actionError,
     goToPage,
     changeRowsPerPage,
     updateSearch,
+    updateStatusFilter,
+    updateDateRange,
+    submitForReview,
+    publish,
   } = useVoucher();
 
   return (
@@ -43,6 +51,10 @@ export default function Voucher() {
         onToggleExpanded={() => setIsOverviewExpanded((prev) => !prev)}
       />
 
+      {actionError && (
+        <p className="mt-3 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-500">{actionError}</p>
+      )}
+
       {isOverviewExpanded && (
         <VoucherTable
           vouchers={vouchers}
@@ -52,11 +64,18 @@ export default function Voucher() {
           totalPages={totalPages}
           total={total}
           search={search}
+          dateRange={dateRange}
+          statusFilter={statusFilter}
           stateSummary={stateSummary}
+          actionLoadingId={actionLoadingId}
           onSearchChange={updateSearch}
           onRowsPerPageChange={changeRowsPerPage}
           onPageChange={goToPage}
           onOpenAddDiscount={() => navigate("/vouchers/new")}
+          onStatusFilterChange={updateStatusFilter}
+          onDateRangeChange={updateDateRange}
+          onSubmitForReview={submitForReview}
+          onPublish={publish}
         />
       )}
     </div>

@@ -10,6 +10,13 @@ export default function VoucherFormPage() {
     form,
     setField,
     setOutletField,
+    setSelectedOutlets,
+    addOffer,
+    removeOffer,
+    setOfferField,
+    addImages,
+    removeImage,
+    removeExistingImage,
     tagInput,
     setTagInput,
     addTag,
@@ -18,7 +25,11 @@ export default function VoucherFormPage() {
     isEditMode,
     isLoading,
     isSubmitting,
+    uploadProgress,
     error,
+    clearError,
+    successMessage,
+    clearSuccessMessage,
     submit,
   } = useVoucherForm(voucherId);
 
@@ -32,13 +43,24 @@ export default function VoucherFormPage() {
       form={form}
       setField={setField}
       setOutletField={setOutletField}
+      setSelectedOutlets={setSelectedOutlets}
+      addOffer={addOffer}
+      removeOffer={removeOffer}
+      setOfferField={setOfferField}
+      addImages={addImages}
+      removeImage={removeImage}
+      removeExistingImage={removeExistingImage}
       tagInput={tagInput}
       setTagInput={setTagInput}
       addTag={addTag}
       removeTag={removeTag}
       handleTagKeyDown={handleTagKeyDown}
       isSubmitting={isSubmitting}
+      uploadProgress={uploadProgress}
       error={error}
+      clearError={clearError}
+      successMessage={successMessage}
+      clearSuccessMessage={clearSuccessMessage}
       onSubmit={submit}
     />
   );
