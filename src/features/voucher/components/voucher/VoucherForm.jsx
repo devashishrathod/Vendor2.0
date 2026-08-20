@@ -6,17 +6,50 @@
 // pass `mode` + the fields/handlers from useVoucherForm.
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Plus, Trash2, Upload, X } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Calendar,
+  ImagePlus,
+  Percent,
+  Plus,
+  Store,
+  Tag,
+  Ticket,
+  Trash2,
+  Upload,
+  X,
+} from "lucide-react";
 import { useAuthStore } from "../../../onboarding/store/authStore";
 import ErrorToast from "@/components/common/ErrorToast";
 import SuccessToast from "@/components/common/SuccessToast";
 import VoucherOutletPickerModal from "./VoucherOutletPickerModal";
 
-function SectionLabel({ children }) {
+const inputBase =
+  "w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-700 outline-none transition-colors " +
+  "placeholder:text-gray-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100";
+
+// ── UI-only helpers ──────────────────────────────────────────────
+
+function SectionCard({ icon: Icon, title, subtitle, action, children }) {
   return (
-    <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-700">
+    <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div className="flex items-center gap-3">
+          {Icon && (
+            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border border-emerald-100 bg-emerald-50">
+              <Icon className="h-4.5 w-4.5 text-emerald-500" />
+            </div>
+          )}
+          <div>
+            <h3 className="text-sm font-bold text-gray-900 leading-tight">{title}</h3>
+            {subtitle && <p className="mt-0.5 text-xs text-gray-400">{subtitle}</p>}
+          </div>
+        </div>
+        {action}
+      </div>
       {children}
-    </h3>
+    </section>
   );
 }
 
@@ -30,14 +63,16 @@ function FieldLabel({ children }) {
 // discountApplicableOn, sortOrder (auto), isActive.
 function OfferCard({ offer, index, onChange, onRemove, canRemove }) {
   return (
-    <div className="rounded-lg border border-gray-200 p-4">
+    <div className="rounded-xl border border-gray-100 bg-gray-50/60 p-4">
       <div className="mb-3 flex items-center justify-between">
-        <span className="text-xs font-semibold text-gray-500">Offer {index + 1}</span>
+        <span className="inline-flex items-center gap-1.5 rounded-md bg-emerald-50 border border-emerald-100 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-emerald-600">
+          Offer {index + 1}
+        </span>
         {canRemove && (
           <button
             type="button"
             onClick={onRemove}
-            className="flex items-center gap-1 text-xs font-medium text-rose-500 hover:underline"
+            className="flex items-center gap-1 text-xs font-medium text-rose-500 hover:text-rose-600"
           >
             <Trash2 className="h-3.5 w-3.5" />
             Remove
@@ -53,13 +88,13 @@ function OfferCard({ offer, index, onChange, onRemove, canRemove }) {
             value={offer.title}
             onChange={(e) => onChange("title", e.target.value)}
             placeholder="10% OFF"
-            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-indigo-500"
+            className={inputBase}
           />
         </div>
 
         <div>
           <FieldLabel>Min Bill Amount</FieldLabel>
-          <div className="flex items-center rounded-lg border border-gray-200 px-3 py-2">
+          <div className="flex items-center rounded-xl border border-gray-200 bg-white px-3 py-2.5 transition-colors focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-100">
             <span className="mr-1 text-sm text-gray-400">₹</span>
             <input
               required
@@ -67,7 +102,7 @@ function OfferCard({ offer, index, onChange, onRemove, canRemove }) {
               value={offer.minBillAmount}
               onChange={(e) => onChange("minBillAmount", e.target.value)}
               placeholder="500"
-              className="w-full text-sm outline-none"
+              className="w-full text-sm text-gray-700 outline-none placeholder:text-gray-400"
             />
           </div>
         </div>
@@ -77,7 +112,7 @@ function OfferCard({ offer, index, onChange, onRemove, canRemove }) {
           <select
             value={offer.discountType}
             onChange={(e) => onChange("discountType", e.target.value)}
-            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-indigo-500"
+            className={inputBase}
           >
             <option value="PERCENTAGE">Percentage</option>
             <option value="FLAT">Flat</option>
@@ -94,20 +129,20 @@ function OfferCard({ offer, index, onChange, onRemove, canRemove }) {
             value={offer.discountValue}
             onChange={(e) => onChange("discountValue", e.target.value)}
             placeholder={offer.discountType === "PERCENTAGE" ? "10" : "100"}
-            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-indigo-500"
+            className={inputBase}
           />
         </div>
 
         <div>
           <FieldLabel>Max Discount Amount</FieldLabel>
-          <div className="flex items-center rounded-lg border border-gray-200 px-3 py-2">
+          <div className="flex items-center rounded-xl border border-gray-200 bg-white px-3 py-2.5 transition-colors focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-100">
             <span className="mr-1 text-sm text-gray-400">₹</span>
             <input
               type="number"
               value={offer.maxDiscountAmount}
               onChange={(e) => onChange("maxDiscountAmount", e.target.value)}
               placeholder="100"
-              className="w-full text-sm outline-none"
+              className="w-full text-sm text-gray-700 outline-none placeholder:text-gray-400"
             />
           </div>
         </div>
@@ -117,7 +152,7 @@ function OfferCard({ offer, index, onChange, onRemove, canRemove }) {
           <select
             value={offer.usageType}
             onChange={(e) => onChange("usageType", e.target.value)}
-            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-indigo-500"
+            className={inputBase}
           >
             <option value="SINGLE">Single use per user</option>
             <option value="MULTIPLE">Multiple use until expiry</option>
@@ -129,7 +164,7 @@ function OfferCard({ offer, index, onChange, onRemove, canRemove }) {
           <select
             value={offer.discountApplicableOn}
             onChange={(e) => onChange("discountApplicableOn", e.target.value)}
-            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-indigo-500"
+            className={inputBase}
           >
             <option value="SUBTOTAL">Subtotal</option>
             <option value="FINAL_BILL">Final Bill</option>
@@ -142,7 +177,7 @@ function OfferCard({ offer, index, onChange, onRemove, canRemove }) {
               type="checkbox"
               checked={offer.isActive}
               onChange={(e) => onChange("isActive", e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
             />
             Active
           </label>
@@ -186,34 +221,36 @@ export default function VoucherForm({
   return (
     <div className="mx-auto max-w-5xl px-4 py-6">
       {/* Header */}
-      <div className="mb-6 flex items-start gap-3">
+      <div className="mb-6 flex items-center gap-3">
         <button
           onClick={() => navigate(-1)}
-          className="mt-1 rounded-md p-1 text-gray-500 hover:bg-gray-100"
+          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl text-gray-500 hover:bg-gray-100"
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
+        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-emerald-100 bg-emerald-50">
+          <Ticket className="h-5 w-5 text-emerald-500" />
+        </div>
         <div>
-          <h1 className="text-lg font-semibold text-gray-900">
+          <h1 className="text-base font-bold text-gray-900 leading-tight">
             {isEdit ? "Edit Voucher & Discount" : "Add Voucher & Discount"}
           </h1>
-          <p className="text-sm text-gray-500">
+          <p className="text-xs text-gray-400 mt-0.5">
             Add your listings and create attractive discounts to increase visibility,
             customer engagement, and sales growth.
           </p>
         </div>
       </div>
 
-      <form onSubmit={onSubmit} className="space-y-8">
+      <form onSubmit={onSubmit} className="space-y-5">
         {/* Voucher Name */}
-        <section className="rounded-xl border border-gray-200 bg-white p-5">
-          <SectionLabel>Voucher Name</SectionLabel>
+        <SectionCard icon={Ticket} title="Voucher Name" subtitle="How this voucher appears to customers.">
           <input
             required
             value={form.voucherName}
             onChange={(e) => setField("voucherName", e.target.value)}
             placeholder="Enter Your Voucher Name"
-            className="mt-3 w-full border-b border-gray-200 pb-2 text-sm text-gray-700 outline-none placeholder:text-gray-400 focus:border-indigo-500"
+            className={inputBase}
           />
 
           <div className="mt-4">
@@ -223,7 +260,7 @@ export default function VoucherForm({
               onChange={(e) => setField("description", e.target.value)}
               placeholder="Get exciting discounts on summer fashion collection."
               rows={3}
-              className="w-full resize-y rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-indigo-500"
+              className={`${inputBase} resize-y`}
             />
           </div>
 
@@ -231,13 +268,13 @@ export default function VoucherForm({
               (existing + newly picked), at least 1 required. */}
           <div className="mt-4">
             <FieldLabel>Voucher Images</FieldLabel>
-            <p className="mb-2 text-xs text-gray-500">
+            <p className="mb-2 text-xs text-gray-400">
               Upload 1 to 5 images for this voucher. At least one image is required.
             </p>
 
             <div className="flex flex-wrap gap-3">
               {form.existingImageUrls.map((url) => (
-                <div key={url} className="relative h-20 w-20 overflow-hidden rounded-lg border border-gray-200">
+                <div key={url} className="relative h-20 w-20 overflow-hidden rounded-xl border border-gray-100">
                   <img src={url} alt="" className="h-full w-full object-cover" />
                   <button
                     type="button"
@@ -250,7 +287,7 @@ export default function VoucherForm({
               ))}
 
               {form.images.map((file, index) => (
-                <div key={index} className="relative h-20 w-20 overflow-hidden rounded-lg border border-gray-200">
+                <div key={index} className="relative h-20 w-20 overflow-hidden rounded-xl border border-gray-100">
                   <img
                     src={URL.createObjectURL(file)}
                     alt=""
@@ -267,7 +304,7 @@ export default function VoucherForm({
               ))}
 
               {form.existingImageUrls.length + form.images.length < 5 && (
-                <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-gray-300 text-gray-400 hover:border-indigo-400 hover:text-indigo-500">
+                <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-gray-200 text-gray-400 hover:border-emerald-400 hover:text-emerald-500 hover:bg-emerald-50/40">
                   <Upload className="h-4 w-4" />
                   <span className="text-[10px]">Add</span>
                   <input
@@ -289,17 +326,15 @@ export default function VoucherForm({
               <p className="mt-2 text-xs text-gray-400">Uploading… {uploadProgress}%</p>
             )}
           </div>
-        </section>
+        </SectionCard>
 
         {/* Validity Date & Time */}
-        <section className="rounded-xl border border-gray-200 bg-white p-5">
-          <SectionLabel>Voucher Validity Date & Time</SectionLabel>
-          <p className="mt-1 text-xs text-gray-500">
-            Set the start date and time and end date and time. The Voucher will expire
-            automatically after the selected time.
-          </p>
-
-          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <SectionCard
+          icon={Calendar}
+          title="Voucher Validity Date & Time"
+          subtitle="The voucher expires automatically after the selected end time."
+        >
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <FieldLabel>Selected Start Date</FieldLabel>
               <div className="flex gap-2">
@@ -308,13 +343,13 @@ export default function VoucherForm({
                   type="date"
                   value={form.startDate}
                   onChange={(e) => setField("startDate", e.target.value)}
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-indigo-500"
+                  className={inputBase}
                 />
                 <input
                   type="time"
                   value={form.startTime}
                   onChange={(e) => setField("startTime", e.target.value)}
-                  className="w-32 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-indigo-500"
+                  className={`${inputBase} w-32 flex-shrink-0`}
                 />
               </div>
             </div>
@@ -327,40 +362,38 @@ export default function VoucherForm({
                   type="date"
                   value={form.endDate}
                   onChange={(e) => setField("endDate", e.target.value)}
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-indigo-500"
+                  className={inputBase}
                 />
                 <input
                   type="time"
                   value={form.endTime}
                   onChange={(e) => setField("endTime", e.target.value)}
-                  className="w-32 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-indigo-500"
+                  className={`${inputBase} w-32 flex-shrink-0`}
                 />
               </div>
             </div>
           </div>
-        </section>
+        </SectionCard>
 
         {/* Discount & Offer Details — repeatable, matches the confirmed
             Postman `offers` array 1:1. Click "+ Add Offer" to attach
             another discount to the same voucher. */}
-        <section className="rounded-xl border border-gray-200 bg-white p-5">
-          <div className="flex items-center justify-between">
-            <SectionLabel>Voucher Available Discount & Offers Details</SectionLabel>
+        <SectionCard
+          icon={Percent}
+          title="Voucher Available Discount & Offers Details"
+          subtitle="Redeemable at the selected outlet before the expiry date."
+          action={
             <button
               type="button"
               onClick={addOffer}
-              className="flex items-center gap-1 text-xs font-medium text-indigo-600 hover:underline"
+              className="flex flex-shrink-0 items-center gap-1 text-xs font-bold text-emerald-600 hover:text-emerald-700"
             >
               <Plus className="h-3.5 w-3.5" />
               Add Offer
             </button>
-          </div>
-          <p className="mt-1 text-xs text-gray-500">
-            This voucher can be redeemed at the selected outlet before the expiry date.
-            Please present the voucher code at the time of billing to avail the offer.
-          </p>
-
-          <div className="mt-4 space-y-4">
+          }
+        >
+          <div className="space-y-4">
             {form.offers.map((offer, index) => (
               <OfferCard
                 key={index}
@@ -372,41 +405,39 @@ export default function VoucherForm({
               />
             ))}
           </div>
-        </section>
+        </SectionCard>
 
         {/* Applicable outlets — "+ Add More" opens the outlet picker modal */}
-        <section className="rounded-xl border border-gray-200 bg-white p-5">
-          <SectionLabel>Applicable To Specifically Selected Outlet Or Franchise</SectionLabel>
-
-          <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <div>
+        <SectionCard icon={Store} title="Applicable To Specifically Selected Outlet Or Franchise">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div className="rounded-xl border border-gray-100 bg-gray-50/60 p-3">
               <FieldLabel>Selected Brand - Outlet / Sub-Brand</FieldLabel>
-              <p className="text-sm font-medium text-gray-900">
+              <p className="text-sm font-bold text-gray-900">
                 Count - {form.applicableOutlets.selectedBrandOutletCount}
               </p>
               <button
                 type="button"
                 onClick={() => setIsOutletPickerOpen(true)}
-                className="mt-1 text-xs font-medium text-indigo-600 hover:underline"
+                className="mt-1 text-xs font-bold text-emerald-600 hover:text-emerald-700"
               >
                 + Add More
               </button>
             </div>
-            <div>
+            <div className="rounded-xl border border-gray-100 bg-gray-50/60 p-3">
               <FieldLabel>Total Outlet's</FieldLabel>
-              <p className="text-sm font-medium text-gray-900">
+              <p className="text-sm font-bold text-gray-900">
                 Count - {form.applicableOutlets.totalOutletsCount}
               </p>
             </div>
-            <div>
+            <div className="rounded-xl border border-gray-100 bg-gray-50/60 p-3">
               <FieldLabel>Sub - Brand</FieldLabel>
-              <p className="text-sm font-medium text-gray-900">
+              <p className="text-sm font-bold text-gray-900">
                 Count - {form.applicableOutlets.subBrandCount}
               </p>
             </div>
-            <div>
+            <div className="rounded-xl border border-gray-100 bg-gray-50/60 p-3">
               <FieldLabel>Franchise</FieldLabel>
-              <p className="text-sm font-medium text-gray-900">
+              <p className="text-sm font-bold text-gray-900">
                 Count - {String(form.applicableOutlets.franchiseCount).padStart(2, "0")}
               </p>
             </div>
@@ -419,27 +450,25 @@ export default function VoucherForm({
             selectedIds={form.selectedOutletIds}
             onConfirm={setSelectedOutlets}
           />
-        </section>
+        </SectionCard>
 
         {/* Search tags */}
-        <section className="rounded-xl border border-gray-200 bg-white p-5">
-          <SectionLabel>Search Tag</SectionLabel>
-          <p className="mt-1 text-xs text-gray-500">
-            Keywords that help users quickly find this item. Add keywords to improve
-            search visibility.
-          </p>
-
-          <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-gray-200 p-3">
+        <SectionCard
+          icon={Tag}
+          title="Search Tag"
+          subtitle="Keywords that help users quickly find this item."
+        >
+          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-gray-200 p-3 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-100">
             {form.searchTags.map((tag) => (
               <span
                 key={tag}
-                className="flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-700"
+                className="flex items-center gap-1 rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700"
               >
                 {tag}
                 <button
                   type="button"
                   onClick={() => removeTag(tag)}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-emerald-400 hover:text-emerald-600"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -451,30 +480,43 @@ export default function VoucherForm({
               onKeyDown={handleTagKeyDown}
               onBlur={addTag}
               placeholder="Type here..."
-              className="min-w-[120px] flex-1 border-none text-xs outline-none placeholder:text-gray-400"
+              className="min-w-[120px] flex-1 border-none text-xs text-gray-700 outline-none placeholder:text-gray-400"
             />
           </div>
-        </section>
+        </SectionCard>
 
         {/* Save as draft */}
-        <section className="rounded-xl border border-gray-200 bg-white p-5">
+        <SectionCard icon={ImagePlus} title="Publishing">
           <label className="flex items-center gap-2 text-sm text-gray-600">
             <input
               type="checkbox"
               checked={form.isSaveAsDraft}
               onChange={(e) => setField("isSaveAsDraft", e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
             />
             Save as draft instead of publishing immediately.
           </label>
-        </section>
+        </SectionCard>
 
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full rounded-lg bg-emerald-500 hover:bg-emerald-600 py-3 text-sm font-semibold text-white  disabled:opacity-60"
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 py-3.5 text-sm font-bold tracking-wide text-white shadow-sm shadow-emerald-100 transition-all duration-200 hover:bg-emerald-600 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-300 disabled:shadow-none"
         >
-          {isSubmitting ? "Saving…" : "Confirm & Proceed"}
+          {isSubmitting ? (
+            <>
+              <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+              </svg>
+              Saving…
+            </>
+          ) : (
+            <>
+              Confirm &amp; Proceed
+              <ArrowRight className="h-4 w-4" />
+            </>
+          )}
         </button>
       </form>
 
@@ -483,408 +525,3 @@ export default function VoucherForm({
     </div>
   );
 }
-// // src/components/voucher/VoucherForm.jsx
-// // Full "Add / Edit Voucher & Discount" form, matching the multi-section
-// // design: name, validity, discount details, applicable outlets, search
-// // tags, and the two eligibility sections. Works for both add and edit —
-// // pass `mode` + the fields/handlers from useVoucherForm.
-// import React from "react";
-// import { useNavigate } from "react-router-dom";
-// import { ArrowLeft, X } from "lucide-react";
-
-
-// function SectionLabel({ children }) {
-//   return (
-//     <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-700">
-//       {children}
-//     </h3>
-//   );
-// }
-
-// function FieldLabel({ children }) {
-//   return <label className="mb-1.5 block text-xs font-medium text-gray-500">{children}</label>;
-// }
-
-// // const USE_OPTIONS = [
-// //   {
-// //     value: "android_ios_membership",
-// //     title: "Valid on Android & iOS - Membership Users",
-// //     description:
-// //       "This benefit is exclusively available for active membership users on both Android and iOS platforms.",
-// //   },
-// //   {
-// //     value: "android_only",
-// //     title: "Exclusive for Android Users",
-// //     description: "This voucher can be used only on Android devices.",
-// //   },
-// //   {
-// //     value: "ios_only",
-// //     title: "Inclusive coupon code for iOS users",
-// //     description: "This voucher is exclusively available for iOS users.",
-// //   },
-// //   {
-// //     value: "membership_only",
-// //     title: "Membership Users Only",
-// //     description: "This voucher is available only to your Membership users.",
-// //   },
-// // ];
-
-// // const CLAIM_OPTIONS = [
-// //   {
-// //     value: "all_users",
-// //     title: "Applicable across all users",
-// //     description:
-// //       "This benefit is exclusively available for all non-membership users on both Android and iOS platforms.",
-// //   },
-// //   {
-// //     value: "membership_only",
-// //     title: "Membership Users Only",
-// //     description: "This benefit is available only to your Membership users.",
-// //   },
-// // ];
-
-// // function EligibilityRadioGroup({ options, selected, onSelect }) {
-// //   return (
-// //     <div className="space-y-3">
-// //       {options.map((option) => {
-// //         const isSelected = selected === option.value;
-// //         return (
-// //           <button
-// //             type="button"
-// //             key={option.value}
-// //             onClick={() => onSelect(option.value)}
-// //             className={`w-full rounded-lg border px-4 py-3 text-left transition-colors ${
-// //               isSelected
-// //                 ? "border-indigo-500 bg-indigo-50"
-// //                 : "border-gray-200 hover:bg-gray-50"
-// //             }`}
-// //           >
-// //             <div className="flex items-start gap-3">
-// //               <span
-// //                 className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 ${
-// //                   isSelected ? "border-indigo-600" : "border-gray-300"
-// //                 }`}
-// //               >
-// //                 {isSelected && <span className="h-2 w-2 rounded-full bg-indigo-600" />}
-// //               </span>
-// //               <span>
-// //                 <span className="block text-sm font-medium text-gray-900">
-// //                   {option.title}
-// //                 </span>
-// //                 <span className="mt-0.5 block text-xs text-gray-500">
-// //                   {option.description}
-// //                 </span>
-// //               </span>
-// //             </div>
-// //           </button>
-// //         );
-// //       })}
-// //     </div>
-// //   );
-// // }
-
-// export default function VoucherForm({
-//   mode = "add",
-//   form,
-//   setField,
-//   setOutletField,
-//   tagInput,
-//   setTagInput,
-//   addTag,
-//   removeTag,
-//   handleTagKeyDown,
-//   isSubmitting,
-//   error,
-//   onSubmit,
-// }) {
-//   const navigate = useNavigate();
-//   const isEdit = mode === "edit";
-
-//   return (
-//    <div>
-    
-//     <div className="mx-auto max-w-5xl px-4 py-6">
-//       {/* Header */}
-//       <div className="mb-6 flex items-start gap-3">
-//         <button
-//           onClick={() => navigate(-1)}
-//           className="mt-1 rounded-md p-1 text-gray-500 hover:bg-gray-100"
-//         >
-//           <ArrowLeft className="h-5 w-5" />
-//         </button>
-//         <div>
-//           <h1 className="text-lg font-semibold text-gray-900">
-//             {isEdit ? "Edit Voucher & Discount" : "Add Voucher & Discount"}
-//           </h1>
-//           <p className="text-sm text-gray-500">
-//             Add your listings and create attractive discounts to increase visibility,
-//             customer engagement, and sales growth.
-//           </p>
-//         </div>
-//       </div>
-
-//       <form onSubmit={onSubmit} className="space-y-8">
-//         {/* Voucher Name */}
-//         <section className="rounded-xl border border-gray-200 bg-white p-5">
-//           <SectionLabel>Voucher Name</SectionLabel>
-//           <input
-//             required
-//             value={form.voucherName}
-//             onChange={(e) => setField("voucherName", e.target.value)}
-//             placeholder="Enter Your Voucher Name"
-//             className="mt-3 w-full border-b border-gray-200 pb-2 text-sm text-gray-700 outline-none placeholder:text-gray-400 focus:border-indigo-500"
-//           />
-//         </section>
-
-//         {/* Validity Date & Time */}
-//         <section className="rounded-xl border border-gray-200 bg-white p-5">
-//           <SectionLabel>Voucher Validity Date & Time</SectionLabel>
-//           <p className="mt-1 text-xs text-gray-500">
-//             Set the start date and time and end date and time. The Voucher will expire
-//             automatically after the selected time.
-//           </p>
-
-//           <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-//             <div>
-//               <FieldLabel>Selected Start Date</FieldLabel>
-//               <div className="flex gap-2">
-//                 <input
-//                   required
-//                   type="date"
-//                   value={form.startDate}
-//                   onChange={(e) => setField("startDate", e.target.value)}
-//                   className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-indigo-500"
-//                 />
-//                 <input
-//                   type="time"
-//                   value={form.startTime}
-//                   onChange={(e) => setField("startTime", e.target.value)}
-//                   className="w-32 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-indigo-500"
-//                 />
-//               </div>
-//             </div>
-
-//             <div>
-//               <FieldLabel>Selected End Date</FieldLabel>
-//               <div className="flex gap-2">
-//                 <input
-//                   required
-//                   type="date"
-//                   value={form.endDate}
-//                   onChange={(e) => setField("endDate", e.target.value)}
-//                   className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-indigo-500"
-//                 />
-//                 <input
-//                   type="time"
-//                   value={form.endTime}
-//                   onChange={(e) => setField("endTime", e.target.value)}
-//                   className="w-32 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-indigo-500"
-//                 />
-//               </div>
-//             </div>
-//           </div>
-//         </section>
-
-//         {/* Discount & Offer Details */}
-//         <section className="rounded-xl border border-gray-200 bg-white p-5">
-//           <SectionLabel>Voucher Available Discount & Offers Details</SectionLabel>
-//           <p className="mt-1 text-xs text-gray-500">
-//             This voucher can be redeemed at the selected outlet before the expiry date.
-//             Please present the voucher code at the time of billing to avail the offer.
-//           </p>
-
-//           <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
-//             <div>
-//               <FieldLabel>Short Title</FieldLabel>
-//               <input
-//                 required
-//                 value={form.shortTitle}
-//                 onChange={(e) => setField("shortTitle", e.target.value)}
-//                 placeholder="Flat 10% off up to 500"
-//                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-indigo-500"
-//               />
-//             </div>
-
-//             <div>
-//               <FieldLabel>Value Of Amount</FieldLabel>
-//               <div className="flex items-center rounded-lg border border-gray-200 px-3 py-2">
-//                 <span className="mr-1 text-sm text-gray-400">₹</span>
-//                 <input
-//                   required
-//                   type="number"
-//                   value={form.valueOfAmount}
-//                   onChange={(e) => setField("valueOfAmount", e.target.value)}
-//                   placeholder="1600.00"
-//                   className="w-full text-sm outline-none"
-//                 />
-//               </div>
-//             </div>
-
-//             <div>
-//               <FieldLabel>Percentage Of Discount</FieldLabel>
-//               <div className="flex overflow-hidden rounded-lg border border-gray-200">
-//                 <input
-//                   required
-//                   type="number"
-//                   value={form.percentageOfDiscount}
-//                   onChange={(e) => setField("percentageOfDiscount", e.target.value)}
-//                   placeholder="30"
-//                   className="w-full px-3 py-2 text-sm outline-none"
-//                 />
-//                 <span className="flex items-center bg-indigo-600 px-3 text-sm font-medium text-white">
-//                   % OFF
-//                 </span>
-//               </div>
-//             </div>
-//           </div>
-
-//           <div className="mt-4 space-y-3">
-//             <label className="flex items-start gap-2 text-sm text-gray-600">
-//               <input
-//                 type="checkbox"
-//                 checked={form.singleUsePerUser}
-//                 onChange={(e) => setField("singleUsePerUser", e.target.checked)}
-//                 className="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-//               />
-//               Enable this option to allow the Voucher to be used only once per user.
-//             </label>
-//             <label className="flex items-start gap-2 text-sm text-gray-600">
-//               <input
-//                 type="checkbox"
-//                 checked={form.multipleUseUntilExpiry}
-//                 onChange={(e) => setField("multipleUseUntilExpiry", e.target.checked)}
-//                 className="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-//               />
-//               This Voucher can be used multiple times until the end date or expiry date.
-//             </label>
-//           </div>
-//         </section>
-
-//         {/* Applicable outlets */}
-//         <section className="rounded-xl border border-gray-200 bg-white p-5">
-//           <SectionLabel>Applicable To Specifically Selected Outlet Or Franchise</SectionLabel>
-
-//           <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
-//             <div>
-//               <FieldLabel>Selected Brand - Outlet / Sub-Brand</FieldLabel>
-//               <p className="text-sm font-medium text-gray-900">
-//                 Count - {form.applicableOutlets.selectedBrandOutletCount}
-//               </p>
-//               <button
-//                 type="button"
-//                 onClick={() =>
-//                   setOutletField(
-//                     "selectedBrandOutletCount",
-//                     form.applicableOutlets.selectedBrandOutletCount + 1
-//                   )
-//                 }
-//                 className="mt-1 text-xs font-medium text-indigo-600 hover:underline"
-//               >
-//                 + Add More
-//               </button>
-//             </div>
-//             <div>
-//               <FieldLabel>Total Outlet's</FieldLabel>
-//               <p className="text-sm font-medium text-gray-900">
-//                 Count - {form.applicableOutlets.totalOutletsCount}
-//               </p>
-//             </div>
-//             <div>
-//               <FieldLabel>Sub - Brand</FieldLabel>
-//               <p className="text-sm font-medium text-gray-900">
-//                 Count - {form.applicableOutlets.subBrandCount}
-//               </p>
-//             </div>
-//             <div>
-//               <FieldLabel>Franchise</FieldLabel>
-//               <p className="text-sm font-medium text-gray-900">
-//                 Count - {String(form.applicableOutlets.franchiseCount).padStart(2, "0")}
-//               </p>
-//             </div>
-//           </div>
-//         </section>
-
-//         {/* Search tags */}
-//         <section className="rounded-xl border border-gray-200 bg-white p-5">
-//           <SectionLabel>Search Tag</SectionLabel>
-//           <p className="mt-1 text-xs text-gray-500">
-//             Keywords that help users quickly find this item. Add keywords to improve
-//             search visibility.
-//           </p>
-
-//           <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-gray-200 p-3">
-//             {form.searchTags.map((tag) => (
-//               <span
-//                 key={tag}
-//                 className="flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-700"
-//               >
-//                 {tag}
-//                 <button
-//                   type="button"
-//                   onClick={() => removeTag(tag)}
-//                   className="text-gray-400 hover:text-gray-600"
-//                 >
-//                   <X className="h-3 w-3" />
-//                 </button>
-//               </span>
-//             ))}
-//             <input
-//               value={tagInput}
-//               onChange={(e) => setTagInput(e.target.value)}
-//               onKeyDown={handleTagKeyDown}
-//               onBlur={addTag}
-//               placeholder="Type here..."
-//               className="min-w-[120px] flex-1 border-none text-xs outline-none placeholder:text-gray-400"
-//             />
-//           </div>
-//         </section>
-
-//         {/* Who can use */}
-//         {/* <section className="rounded-xl border border-gray-200 bg-white p-5">
-//           <SectionLabel>Select Who Can Use This Voucher.</SectionLabel>
-//           <p className="mt-1 text-xs text-gray-500">
-//             Choose the eligible customers who are allowed to use this voucher. Only
-//             selected users can apply this offer.
-//           </p>
-//           <div className="mt-4">
-//             <EligibilityRadioGroup
-//               options={USE_OPTIONS}
-//               selected={form.whoCanUse}
-//               onSelect={(value) => setField("whoCanUse", value)}
-//             />
-//           </div>
-//         </section> */}
-
-//         {/* Who can claim */}
-//         {/* <section className="rounded-xl border border-gray-200 bg-white p-5">
-//           <SectionLabel>Select Who Can Claimed This Voucher.</SectionLabel>
-//           <p className="mt-1 text-xs text-gray-500">
-//             Choose the eligible customers who are allowed to use this coupon code. Only
-//             selected users can apply this offer.
-//           </p>
-//           <div className="mt-4">
-//             <EligibilityRadioGroup
-//               options={CLAIM_OPTIONS}
-//               selected={form.whoCanClaim}
-//               onSelect={(value) => setField("whoCanClaim", value)}
-//             />
-//           </div>
-//         </section> */}
-
-//         {error && <p className="text-sm text-rose-500">{error}</p>}
-
-//         <button
-//           type="submit"
-//           disabled={isSubmitting}
-//           className="w-full rounded-lg bg-indigo-700 py-3 text-sm font-semibold text-white hover:bg-indigo-800 disabled:opacity-60"
-//         >
-//           {isSubmitting ? "Saving…" : "Confirm & Proceed"}
-//         </button>
-//       </form>
-//     </div>
-//    </div> 
-//   );
-// }
-
-
-

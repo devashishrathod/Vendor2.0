@@ -12,7 +12,7 @@ export default function InvoiceHistoryModal({ open, onClose, onViewInvoice }) {
       <div className="inv-modal__header">
         <h3>Purchase History</h3>
         <button className="inv-modal__close" onClick={onClose} aria-label="Close">
-          <CloseIcon width={16} height={16} stroke="#fff" />
+          <CloseIcon width={16} height={16} />
         </button>
       </div>
 

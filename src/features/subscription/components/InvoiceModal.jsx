@@ -18,7 +18,7 @@ export default function InvoiceModal({ open, onClose, orderId }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           {invoice && <InvoiceActions onPrint={handlePrint} onDownload={handleDownload} />}
           <button className="inv-modal__close" onClick={onClose} aria-label="Close">
-            <CloseIcon width={16} height={16} stroke="#fff" />
+            <CloseIcon width={16} height={16} />
           </button>
         </div>
       </div>

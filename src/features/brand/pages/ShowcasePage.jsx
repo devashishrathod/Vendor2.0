@@ -84,12 +84,12 @@ const handleCreateSection = async ({ title, description, files, isShowInVideoCli
   return (
     <div>
       {error && (
-        <p className="mb-4 text-sm text-red-500">
+        <p className="mb-4 rounded-xl border border-red-100 bg-red-50 px-4 py-2.5 text-sm text-red-500">
           Couldn't load live data ({error}). Showing cached details.
         </p>
       )}
       {actionError && (
-        <p className="mb-4 text-sm text-red-500">{actionError}</p>
+        <p className="mb-4 rounded-xl border border-red-100 bg-red-50 px-4 py-2.5 text-sm text-red-500">{actionError}</p>
       )}
 
       <ShowcaseSection

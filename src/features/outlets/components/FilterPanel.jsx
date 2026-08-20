@@ -15,7 +15,7 @@ export default function FilterPanel({ filters, onToggleFilter, onClear, onClose 
                 type="checkbox"
                 checked={filters.status.includes(opt.value)}
                 onChange={() => onToggleFilter("status", opt.value)}
-                className="w-4 h-4 accent-indigo-600"
+                className="w-4 h-4 accent-emerald-600"
               />
               {opt.label}
             </label>
@@ -32,7 +32,7 @@ export default function FilterPanel({ filters, onToggleFilter, onClear, onClose 
                 type="checkbox"
                 checked={filters.type.includes(opt.value)}
                 onChange={() => onToggleFilter("type", opt.value)}
-                className="w-4 h-4 accent-indigo-600"
+                className="w-4 h-4 accent-emerald-600"
               />
               {opt.label}
             </label>
@@ -44,7 +44,7 @@ export default function FilterPanel({ filters, onToggleFilter, onClear, onClose 
         <button onClick={onClear} className="text-xs font-semibold text-gray-500 hover:text-gray-700">
           Clear all
         </button>
-        <button onClick={onClose} className="text-xs font-semibold text-indigo-600 hover:text-indigo-700">
+        <button onClick={onClose} className="text-xs font-bold text-emerald-600 hover:text-emerald-700">
           Done
         </button>
       </div>

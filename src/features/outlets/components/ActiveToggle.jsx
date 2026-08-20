@@ -5,13 +5,13 @@ export default function ActiveToggle({ status, onToggle }) {
   const isActive = status === OUTLET_STATUS.ACTIVE;
   return (
     <button onClick={onToggle} className="flex items-center gap-2 text-sm font-semibold">
-      <span className={cx(isActive ? "text-indigo-600" : "text-rose-500")}>
+      <span className={cx(isActive ? "text-emerald-600" : "text-rose-500")}>
         {isActive ? "Active Account" : "Deactivate Account"}
       </span>
       <span
         className={cx(
           "relative inline-flex h-5 w-9 items-center rounded-full transition-colors",
-          isActive ? "bg-indigo-600" : "bg-rose-400"
+          isActive ? "bg-emerald-500" : "bg-rose-400"
         )}
       >
         <span

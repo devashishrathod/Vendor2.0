@@ -7,7 +7,7 @@ const VideoModal = ({ src, title, onClose }) => (
     onClick={onClose}
   >
     <div
-      className="relative w-full max-w-lg rounded-lg bg-black"
+      className="relative w-full max-w-lg rounded-2xl bg-black"
       onClick={(e) => e.stopPropagation()}
     >
       <button
@@ -18,7 +18,7 @@ const VideoModal = ({ src, title, onClose }) => (
       >
         <X size={22} />
       </button>
-      <video src={src} controls autoPlay className="w-full rounded-lg">
+      <video src={src} controls autoPlay className="w-full rounded-2xl">
         Your browser doesn't support video playback.
       </video>
       {title && (
@@ -42,14 +42,14 @@ const ShowcaseMediaRow = ({ medias, type, onDelete }) => {
   if (safeMedias.length === 0) return null;
 
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-lg bg-gray-50 px-5 py-4">
+    <div className="flex flex-wrap items-center gap-2 rounded-xl bg-gray-50 px-5 py-4">
       {safeMedias.map((media) => (
         <div key={media._id} className="group relative h-14 w-14 shrink-0">
           {media.type === "VIDEO" ? (
             <button
               type="button"
               onClick={() => setPlaying(media)}
-              className="relative h-14 w-14 overflow-hidden rounded-md bg-gray-900"
+              className="relative h-14 w-14 overflow-hidden rounded-xl border border-gray-100 bg-gray-900"
               aria-label={`Play ${media.title || "video"}`}
             >
               <img
@@ -67,7 +67,7 @@ const ShowcaseMediaRow = ({ medias, type, onDelete }) => {
             <img
               src={media.thumbnail || media.url}
               alt={media.altText || media.title}
-              className="h-14 w-14 rounded-md object-cover"
+              className="h-14 w-14 rounded-xl border border-gray-100 object-cover"
             />
           )}
 
@@ -76,7 +76,7 @@ const ShowcaseMediaRow = ({ medias, type, onDelete }) => {
               type="button"
               onClick={() => onDelete(media._id)}
               aria-label="Delete media"
-              className="absolute -right-1.5 -top-1.5 hidden h-5 w-5 items-center justify-center rounded-full bg-rose-600 text-white group-hover:flex"
+              className="absolute -right-1.5 -top-1.5 hidden h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 group-hover:flex"
             >
               <Trash2 size={11} />
             </button>

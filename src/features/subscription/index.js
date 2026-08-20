@@ -20,7 +20,7 @@ export { useInvoiceHistory } from './hooks/useInvoiceHistory';
 export { usePlanBenefits } from './hooks/usePlanBenefits';
 export { useRaiseQuery } from './hooks/useRaiseQuery';
 
-export { fetchCurrentSubscription } from './services/subscriptionService';
+export { mapBrandToSubscription } from './services/subscriptionService';
 export { fetchInvoiceByOrderId, fetchInvoiceHistory } from './services/invoiceService';
 export { fetchPlanBenefits } from './services/planBenefitsService';
 export { submitQuery } from './services/queryService';

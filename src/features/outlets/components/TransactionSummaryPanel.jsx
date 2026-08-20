@@ -11,7 +11,7 @@ export default function TransactionSummaryPanel({ transactions }) {
   const active = transactions?.[activeType];
 
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl p-6">
+    <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-6">
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6 pb-6 border-b border-gray-100">
         {TRANSACTION_TYPES.map((type) => {
           const isActive = activeType === type.value;

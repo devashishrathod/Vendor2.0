@@ -1,49 +1,66 @@
 // subscriptionService.js
-// This is the ONLY file that should know about network/API details.
-// Swap MOCK_SUBSCRIPTION + the fake delay below for a real `fetch`/axios
-// call to API_ENDPOINTS.GET_SUBSCRIPTION and nothing else in the feature
-// needs to change.
+// There's no separate "get subscription" endpoint — the plan/subscription
+// data lives under `subscribed` in the confirmed brands/get response (the
+// same object useBrand() already fetches for the whole app). This file's
+// only job is mapping that real brand doc into the `subscription` shape
+// every Subscription page component (PlanStatusBanner, SubscriptionInfo,
+// InvoiceInfo, BillingInfo, PlanBenefits) already expects.
 
-import { API_ENDPOINTS, PLAN_STATUS } from '../constants/subscription.constants';
+import { PLAN_STATUS } from '../constants/subscription.constants';
 
-const MOCK_SUBSCRIPTION = {
-  status: PLAN_STATUS.ACTIVE,
-  planName: 'Basic Plane',
-  nextRenewalDate: '2025-03-15',
-  createdOnDate: '2022-02-12',
-  subscriptionTermYears: 1,
-  expirationDate: '2025-03-15',
-  originalPrice: 4000.0,
-  discountedPrice: 1999.0,
-  paidAmount: 2358.0,
-  brandName: 'Yoga Education And Research Pvt Ltd',
-  orderId: 'O11001',
-  billingAddress:
-    'New No. 9 (Old No. 23), Plot No. 4363, 4th Floor, X Block 5th Street, Annanagar West, Chennai - 600040',
-  gstDetails: '09AAKFF2211N2ZA',
-  panDetails: 'ABCDE1234F',
-  invoiceUrl: '/invoices/O11001',
-  ticketStatus: 'Issue Reported',
-  purchasedListLabel: 'Purchased List',
-  currentPlanBenefitsUrl: '/subscription/benefits/current',
-};
-
-/**
- * Fetches the current user's subscription details.
- * Replace the body of this function with a real call, e.g.:
- *
- *   const res = await fetch(API_ENDPOINTS.GET_SUBSCRIPTION);
- *   if (!res.ok) throw new Error('Failed to load subscription');
- *   return res.json();
- */
-export async function fetchCurrentSubscription() {
-  // Simulated network latency so loading states are visible/testable.
-  await new Promise((resolve) => setTimeout(resolve, 400));
-
-  // Simulated failure path — throw if you want to test the error UI:
-  // throw new Error('Network error');
-
-  return MOCK_SUBSCRIPTION;
+// durationInDays has no separate "plan name" field anywhere in the
+// confirmed brands/get response, so derive a readable label from the
+// duration itself rather than showing a raw number of days.
+function planLabelFromDuration(days) {
+  if (!days) return 'Subscription Plan';
+  if (days >= 360 && days <= 370) return 'Annual Plan';
+  if (days >= 28 && days <= 31) return 'Monthly Plan';
+  return `${days}-Day Plan`;
 }
 
-export const subscriptionApiEndpoints = API_ENDPOINTS;
+/**
+ * Maps `useBrand()`'s `brand` (the confirmed brands/get response's `data`
+ * object) into the `subscription` shape the Subscription page renders.
+ * Returns null if the brand hasn't loaded yet or genuinely has no
+ * `subscribed` record.
+ *
+ * @param {object|null} brand
+ */
+export function mapBrandToSubscription(brand) {
+  if (!brand?.subscribed) return null;
+  const sub = brand.subscribed;
+
+  return {
+    status: sub.isExpired
+      ? PLAN_STATUS.EXPIRED
+      : sub.isActive === false
+        ? PLAN_STATUS.CANCELLED
+        : PLAN_STATUS.ACTIVE,
+    planName: planLabelFromDuration(sub.durationInDays),
+    brandName: brand.brandName || brand.legalBusinessName || '—',
+    nextRenewalDate: sub.endDate,
+    createdOnDate: sub.startDate,
+    subscriptionTermYears: sub.durationInDays ? Math.round(sub.durationInDays / 365) : 0,
+    expirationDate: sub.endDate,
+    // The confirmed response only carries a single `price` (what the plan
+    // costs) and `paidAmount` (what was actually paid) — there's no
+    // separate "discounted price" field, so both original/discounted show
+    // the same real price rather than a fabricated discount.
+    originalPrice: sub.price,
+    discountedPrice: sub.price,
+    paidAmount: sub.paidAmount,
+    orderId: sub._id,
+    // Billing address: prefer the brand's verified GST address (real,
+    // government-verified), falling back to the first outlet's saved
+    // location if GST verification hasn't happened.
+    billingAddress:
+      brand.gst?.address?.location || brand.firstSubBrand?.location?.formattedAddress || '—',
+    gstDetails: brand.gst?.gstNumber || '—',
+    panDetails: brand.pan?.pan || '—',
+    // No support-ticket data exists in the brand response — this is
+    // static copy for the "Create Ticket" row, same as purchasedListLabel.
+    ticketStatus: 'No Active Ticket',
+    purchasedListLabel: 'Purchased List',
+    currentPlanBenefitsUrl: '/subscription/benefits/current',
+  };
+}

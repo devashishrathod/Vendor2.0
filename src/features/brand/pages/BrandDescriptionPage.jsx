@@ -41,12 +41,12 @@ const BrandDescriptionPage = ({ brand, brandId, brandLoading, brandError }) => {
   return (
     <div>
       {brandError && (
-        <p className="mb-4 text-sm text-red-500">
+        <p className="mb-4 rounded-xl border border-red-100 bg-red-50 px-4 py-2.5 text-sm text-red-500">
           Couldn't load live data ({brandError}). Showing cached details.
         </p>
       )}
       {saveError && (
-        <p className="mb-4 text-sm text-red-500">{saveError}</p>
+        <p className="mb-4 rounded-xl border border-red-100 bg-red-50 px-4 py-2.5 text-sm text-red-500">{saveError}</p>
       )}
 
       <BrandDescription

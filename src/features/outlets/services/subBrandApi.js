@@ -24,6 +24,25 @@ function handleError(error) {
         error?.response?.data?.error ||
         error?.message ||
         'Something went wrong. Please try again.';
+
+    // ⚠️ Known backend bug in subBrands/signUp-with-whatsapp: when the
+    // WhatsApp number passed in already belongs to an existing user (e.g.
+    // the merchant reuses the brand's own number — already registered to
+    // firstSubBrand — for a second/third outlet via "Use my Brand's
+    // WhatsApp number"), the endpoint is supposed to link that existing
+    // user to the new subBrand record. Instead it appears to save the new
+    // subBrand with userId: null, which then collides with some other
+    // pre-existing null-userId document under what's presumably a unique
+    // index — surfacing as this exact confusing Mongo-style message
+    // instead of a real "number already registered" error. This can only
+    // be fixed on the backend (this repo has no backend code); translate
+    // it into something the merchant can actually act on in the meantime.
+    if (/is already registered for userid/i.test(message)) {
+        throw new Error(
+            'This WhatsApp number is already linked to another account on our end. Please use a different number for this outlet for now — our team is looking into reusing the same number across outlets.'
+        );
+    }
+
     throw new Error(message);
 }
 
@@ -120,15 +139,14 @@ export async function updateSubBrand(subBrandId, patch = {}) {
     }
 }
 
-// ── Get All SubBrands for a Brand ───────────────────────────────
-// GET {{TryDood2.0BaseUrl}}/subBrands/getAll?brandId=:brandId
-// ⚠️ Path/params guessed to mirror locations/getAll's pattern — confirm
-// the real route + response shape against your Postman collection and
-// adjust the parsing in getBrandWithSubBrand below if it differs.
+// ── Get All SubBrands (Outlets) for a Brand ─────────────────────
+// GET {{TryDood2.0ServerUrl}}/subBrands/get-all?brandId=:brandId
+// Confirmed response shape:
+// { success, message, data: { total, totalPages, page, limit, data: [subBrandDoc, ...] } }
 export async function getSubBrandsByBrandId(brandId) {
     if (!brandId) return null;
     try {
-        const { data } = await api.get('/subBrands/getAll', { params: { brandId } });
+        const { data } = await api.get('/subBrands/get-all', { params: { brandId } });
         return data;
     } catch (error) {
         handleError(error);
@@ -149,9 +167,9 @@ export async function getSubBrandsByBrandId(brandId) {
  *   whatsappVerified,  // boolean — true if this outlet's WhatsApp is already verified
  * }
  *
- * ⚠️ `whatsappVerified` reads `subBrand.whatsappVerified` as a placeholder
- * field name — paste one real subBrands/getAll response and confirm the
- * actual field name.
+ * ⚠️ `whatsappVerified` reads `subBrand.whatsappVerified`, but the confirmed
+ * subBrands/get-all response has no such field on the doc — this always
+ * evaluates to false until the backend actually returns one.
  */
 export async function getBrandWithSubBrand(brandId) {
     if (!brandId) return null;

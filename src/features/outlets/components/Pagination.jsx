@@ -16,7 +16,7 @@ export default function Pagination({ page, pageSize, total, onPageChange }) {
           key={i}
           onClick={() => onPageChange(i + 1)}
           className={`w-9 h-9 flex items-center justify-center rounded-lg text-sm font-semibold ${
-            page === i + 1 ? "bg-[#1a1a2e] text-white" : "border border-gray-200 text-gray-600 hover:bg-gray-50"
+            page === i + 1 ? "bg-emerald-500 text-white" : "border border-gray-200 text-gray-600 hover:bg-gray-50"
           }`}
         >
           {i + 1}

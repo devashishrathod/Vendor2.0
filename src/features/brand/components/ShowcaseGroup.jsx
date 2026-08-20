@@ -26,15 +26,15 @@ const ShowcaseGroup = ({
     <div className="rounded-xl border border-gray-100 p-5 shadow-sm">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h3 className="text-sm font-semibold text-gray-900 capitalize">
+          <h3 className="text-sm font-bold text-gray-900 capitalize">
             {group.title}
           </h3>
-          <p className="mt-1 text-xs text-gray-500 capitalize">{group.subtitle}</p>
+          <p className="mt-0.5 text-xs text-gray-400 capitalize">{group.subtitle}</p>
         </div>
         <div className="flex shrink-0 items-center gap-3">
           <a
             href={guidelinesLink}
-            className="text-xs font-medium text-blue-600 hover:underline"
+            className="text-xs font-semibold text-emerald-600 hover:underline"
           >
             Images & Video guidelines
           </a>
@@ -76,7 +76,7 @@ const ShowcaseGroup = ({
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-1.5 rounded-md border border-dashed border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:border-blue-400 hover:text-blue-600"
+              className="flex items-center gap-1.5 rounded-xl border border-dashed border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 transition-colors hover:border-emerald-400 hover:text-emerald-500 hover:bg-emerald-50/40"
             >
               <Plus size={14} /> Add media
             </button>

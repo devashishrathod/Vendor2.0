@@ -30,12 +30,21 @@ const BrandProfileSection = ({ profile, onChangeLogo }) => {
   if (!profile) return null;
 
   return (
-    <section>
-      <h2 className="text-xs font-bold uppercase tracking-wide text-gray-700">
-        Brand Profile
-      </h2>
+    <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+      <div className="flex items-center gap-3 mb-5">
+        <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center flex-shrink-0">
+          <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+          </svg>
+        </div>
+        <div className="flex-1">
+          <h2 className="text-sm font-bold text-gray-900 leading-tight">Brand Profile</h2>
+          <p className="text-xs text-gray-400 mt-0.5">Your brand's core identity and contact details</p>
+        </div>
+      </div>
 
-      <div className="mt-5 grid grid-cols-1 gap-x-10 gap-y-6 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-x-10 gap-y-6 sm:grid-cols-2 lg:grid-cols-4">
         <InfoItem label="Merchant ID" value={profile.merchantId} />
         <InfoItem label="Brand Name" value={profile.brandName} />
         <InfoItem label="Legal Name" value={profile.legalBusinessName} />

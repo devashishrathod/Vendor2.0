@@ -20,7 +20,7 @@ const BrandProfilePage = ({ brand, brandLoading, brandError }) => {
   return (
     <div className="space-y-10">
       {brandError && (
-        <p className="text-sm text-red-500">
+        <p className="rounded-xl border border-red-100 bg-red-50 px-4 py-2.5 text-sm text-red-500">
           Couldn't load live data ({brandError}). Showing cached details.
         </p>
       )}

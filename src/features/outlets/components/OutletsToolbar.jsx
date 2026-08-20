@@ -10,6 +10,7 @@ export default function OutletsToolbar({
   onClearFilters,
   activeFilterCount,
   onExport,
+  exporting,
   onAddOutlet,
 }) {
   const [filterOpen, setFilterOpen] = useState(false);
@@ -54,7 +55,7 @@ export default function OutletsToolbar({
           </svg>
           Filter
           {activeFilterCount > 0 && (
-            <span className="ml-0.5 w-5 h-5 flex items-center justify-center bg-indigo-600 text-white text-xs rounded-full">
+            <span className="ml-0.5 w-5 h-5 flex items-center justify-center bg-emerald-500 text-white text-xs rounded-full">
               {activeFilterCount}
             </span>
           )}
@@ -78,23 +79,31 @@ export default function OutletsToolbar({
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Search Here - Strore Id, Active , Not Active."
-          className="w-full border border-gray-200 rounded-xl pl-10 pr-4 py-2.5 text-sm outline-none focus:border-indigo-400 text-gray-700"
+          className="w-full border border-gray-200 rounded-xl pl-10 pr-4 py-2.5 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 text-gray-700"
         />
       </div>
 
       <button
         onClick={onExport}
-        className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50"
+        disabled={exporting}
+        className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
       >
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2-9H8a2 2 0 00-2 2v14a2 2 0 002 2h8a2 2 0 002-2V9l-6-6z" />
-        </svg>
-        Export Data
+        {exporting ? (
+          <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+          </svg>
+        ) : (
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2-9H8a2 2 0 00-2 2v14a2 2 0 002 2h8a2 2 0 002-2V9l-6-6z" />
+          </svg>
+        )}
+        {exporting ? "Exporting…" : "Export Data"}
       </button>
 
       <button
         onClick={onAddOutlet}
-        className="px-5 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition-colors"
+        className="px-5 py-2.5 bg-emerald-500 text-white text-sm font-bold rounded-xl hover:bg-emerald-600 transition-colors shadow-sm shadow-emerald-100"
       >
         Add Outlet's
       </button>

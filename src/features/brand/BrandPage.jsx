@@ -61,9 +61,11 @@ const BrandPage = ({ brandId: brandIdProp }) => {
     return (
       <div className="min-h-screen bg-white px-6 py-8 md:px-10">
         <div className="mx-auto max-w-6xl">
-          <p className="text-sm text-gray-500">
-            No brand is linked to your account yet. Please complete onboarding first.
-          </p>
+          <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6">
+            <p className="text-sm text-gray-500">
+              No brand is linked to your account yet. Please complete onboarding first.
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -74,7 +76,9 @@ const BrandPage = ({ brandId: brandIdProp }) => {
     return (
       <div className="min-h-screen bg-white px-6 py-8 md:px-10">
         <div className="mx-auto max-w-6xl">
-          <p className="text-sm text-gray-400">Loading brand details…</p>
+          <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6">
+            <p className="text-sm text-gray-400">Loading brand details…</p>
+          </div>
         </div>
       </div>
     );
@@ -85,15 +89,17 @@ const BrandPage = ({ brandId: brandIdProp }) => {
     return (
       <div className="min-h-screen bg-white px-6 py-8 md:px-10">
         <div className="mx-auto max-w-6xl">
-          <p className="text-sm text-red-500">
-            Couldn't load brand data: {error}
-          </p>
-          <button
-            onClick={reload}
-            className="mt-3 text-sm text-emerald-600 font-medium hover:underline"
-          >
-            Try again
-          </button>
+          <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6">
+            <p className="text-sm text-red-500">
+              Couldn't load brand data: {error}
+            </p>
+            <button
+              onClick={reload}
+              className="mt-3 inline-flex items-center rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+            >
+              Try again
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -104,7 +110,9 @@ const BrandPage = ({ brandId: brandIdProp }) => {
     return (
       <div className="min-h-screen bg-white px-6 py-8 md:px-10">
         <div className="mx-auto max-w-6xl">
-          <p className="text-sm text-gray-500">No brand data found.</p>
+          <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6">
+            <p className="text-sm text-gray-500">No brand data found.</p>
+          </div>
         </div>
       </div>
     );

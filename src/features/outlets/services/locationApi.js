@@ -473,6 +473,43 @@ export function buildLocationPayloadFromGstAddress(gstAddress = {}, overrides = 
 }
 
 /**
+ * Builds a locations/create body straight from an EXISTING, already-saved
+ * location doc (as returned by getAllLocations) — used by the "pick a
+ * saved location" shortcut so the merchant can reuse a known-good address
+ * (already validated once, guaranteed to carry a real zipcode/district)
+ * instead of relying on Google Places data that sometimes doesn't have one.
+ *
+ * Unlike buildLocationPayloadFromPlace, there are no addressComponents to
+ * derive fields from — every field is copied straight off the saved doc.
+ *
+ * @param {object} loc - a location doc from getAllLocations
+ * @param {object} [overrides] - subBrandId, brandId, userId, addressType, etc.
+ */
+export function buildLocationPayloadFromSavedLocation(loc = {}, overrides = {}) {
+    const [lng, lat] = loc.geo?.coordinates || loc.coordinates || [];
+    const hasSubBrand = !!overrides.subBrandId;
+
+    return {
+        ...(overrides.userId ? { userId: overrides.userId } : {}),
+        ...(overrides.brandId ? { brandId: overrides.brandId } : {}),
+        ...(overrides.subBrandId ? { subBrandId: overrides.subBrandId } : {}),
+        addressLine1: loc.addressLine1 || '',
+        addressLine2: loc.addressLine2 || '',
+        city: loc.city || '',
+        district: loc.district || '',
+        state: loc.state || '',
+        zipcode: loc.zipcode || '',
+        country: loc.country || 'India',
+        formattedAddress: loc.formattedAddress || '',
+        coordinates: [lng, lat],
+        addressType: overrides.addressType || ADDRESS_TYPES.WORK,
+        isBrandAddress: overrides.isBrandAddress ?? !hasSubBrand,
+        isSubBrandAddress: overrides.isSubBrandAddress ?? hasSubBrand,
+        isDefault: overrides.isDefault ?? true,
+    };
+}
+
+/**
  * A location payload is only postable once it has real coordinates —
  * `coordinates` is a required field on locations/create. Use this before
  * calling createLocation with a GST-sourced payload, since GST addresses

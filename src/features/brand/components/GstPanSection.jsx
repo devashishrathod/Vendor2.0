@@ -23,10 +23,16 @@ const formatGstAddress = (address) => {
 const GstPanSection = ({ gst, pan }) => {
   if (!gst && !pan) {
     return (
-      <section>
-        <h2 className="text-xs font-bold uppercase tracking-wide text-gray-700">
-          GST &amp; PAN Information
-        </h2>
+      <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+        <div className="flex items-center gap-3 mb-1">
+          <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center flex-shrink-0">
+            <svg className="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+          <h2 className="text-sm font-bold text-gray-900">GST &amp; PAN Information</h2>
+        </div>
         <p className="mt-2 text-sm text-gray-400">Not available yet.</p>
       </section>
     );
@@ -37,10 +43,16 @@ const GstPanSection = ({ gst, pan }) => {
   const isActive = gst?.registrationStatus?.toUpperCase() === "SUCCESS";
 
   return (
-    <section>
-      <h2 className="text-xs font-bold uppercase tracking-wide text-gray-700">
-        GST &amp; PAN Information
-      </h2>
+    <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+      <div className="flex items-center gap-3 mb-1">
+        <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center flex-shrink-0">
+          <svg className="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+        </div>
+        <h2 className="text-sm font-bold text-gray-900">GST &amp; PAN Information</h2>
+      </div>
 
       <div className="mt-5 rounded-xl border border-gray-100 p-5">
         <div className="grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-6">
@@ -58,13 +70,18 @@ const GstPanSection = ({ gst, pan }) => {
             <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
               GST status
             </p>
-            <p
-              className={`mt-1 text-sm font-medium ${
-                isActive ? "text-emerald-500" : "text-gray-500"
-              }`}
-            >
-              {gst?.registrationStatus || "—"}
-            </p>
+            {isActive ? (
+              <span className="mt-1 inline-flex items-center gap-1 bg-emerald-50 border border-emerald-100 text-emerald-700 text-xs font-semibold px-2 py-0.5 rounded-full">
+                <svg className="w-3 h-3 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                </svg>
+                {gst?.registrationStatus || "—"}
+              </span>
+            ) : (
+              <p className="mt-1 text-sm font-medium text-gray-500">
+                {gst?.registrationStatus || "—"}
+              </p>
+            )}
           </div>
         </div>
       </div>

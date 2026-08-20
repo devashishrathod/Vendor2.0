@@ -6,6 +6,7 @@ export default function OutletGrid({
   onSelect,
   onToggleStatus,
   onExploreDetails,
+  onEdit,
   loading,
 }) {
   if (loading) {
@@ -32,6 +33,7 @@ export default function OutletGrid({
           onSelect={onSelect}
           onToggleStatus={onToggleStatus}
           onExploreDetails={onExploreDetails}
+          onEdit={onEdit}
         />
       ))}
     </div>

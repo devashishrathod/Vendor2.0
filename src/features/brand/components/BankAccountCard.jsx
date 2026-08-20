@@ -10,11 +10,11 @@ const BankAccountCard = ({ account, isSelected, onSelect }) => {
       >
         <span
           className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 ${
-            isSelected ? "border-blue-600" : "border-gray-300"
+            isSelected ? "border-emerald-600" : "border-gray-300"
           }`}
         >
           {isSelected && (
-            <span className="h-2 w-2 rounded-full bg-blue-600" />
+            <span className="h-2 w-2 rounded-full bg-emerald-600" />
           )}
         </span>
         <div>
@@ -23,7 +23,7 @@ const BankAccountCard = ({ account, isSelected, onSelect }) => {
           </p>
           <p
             className={`text-xs ${
-              isSelected ? "text-blue-600" : "text-gray-400"
+              isSelected ? "text-emerald-600" : "text-gray-400"
             }`}
           >
             {isSelected ? "Primary Account" : "Not Selected"}

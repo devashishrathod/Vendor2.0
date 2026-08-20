@@ -12,7 +12,7 @@ const DAYS = [
 
 const BusinessHours = ({ hours = {}, onToggleDay, onTimeChange }) => {
   return (
-    <div className="rounded-xl border border-gray-100 shadow-sm">
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
       {DAYS.map((day, idx) => {
         const dayData = hours[day.key] || { start: "", end: "", isOpen: false };
 
@@ -29,8 +29,8 @@ const BusinessHours = ({ hours = {}, onToggleDay, onTimeChange }) => {
                 role="switch"
                 aria-checked={dayData.isOpen}
                 onClick={() => onToggleDay(day.key)}
-                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-offset-1 ${
-                  dayData.isOpen ? "bg-blue-600" : "bg-gray-200"
+                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-100 focus:ring-offset-1 ${
+                  dayData.isOpen ? "bg-emerald-500" : "bg-gray-200"
                 }`}
               >
                 <span
@@ -52,7 +52,7 @@ const BusinessHours = ({ hours = {}, onToggleDay, onTimeChange }) => {
                   onChange={(e) =>
                     onTimeChange(day.key, "start", e.target.value)
                   }
-                  className="rounded-md border border-gray-200 px-3 py-1.5 text-sm text-gray-800 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-200"
+                  className="rounded-xl border border-gray-200 px-3.5 py-2 text-sm text-gray-700 outline-none transition-colors focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
                 />
                 <span className="text-sm text-gray-400">to</span>
                 <input
@@ -61,7 +61,7 @@ const BusinessHours = ({ hours = {}, onToggleDay, onTimeChange }) => {
                   onChange={(e) =>
                     onTimeChange(day.key, "end", e.target.value)
                   }
-                  className="rounded-md border border-gray-200 px-3 py-1.5 text-sm text-gray-800 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-200"
+                  className="rounded-xl border border-gray-200 px-3.5 py-2 text-sm text-gray-700 outline-none transition-colors focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
                 />
               </div>
             ) : (

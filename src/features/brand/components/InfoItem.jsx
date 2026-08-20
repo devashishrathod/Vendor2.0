@@ -17,7 +17,7 @@ const InfoItem = ({ label, value, action }) => {
           <button
             type="button"
             onClick={action.onClick}
-            className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline"
+            className="text-sm font-medium text-emerald-600 hover:text-emerald-700 hover:underline"
           >
             {action.label}
           </button>

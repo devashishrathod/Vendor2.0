@@ -87,12 +87,12 @@ const BusinessHoursPage = ({ brand, brandId, brandLoading, brandError }) => {
   return (
     <div>
       {brandError && (
-        <p className="mb-4 text-sm text-red-500">
+        <p className="mb-4 rounded-xl border border-red-100 bg-red-50 px-4 py-2.5 text-sm text-red-500">
           Couldn't load live data ({brandError}). Showing cached details.
         </p>
       )}
       {saveError && (
-        <p className="mb-4 text-sm text-red-500">{saveError}</p>
+        <p className="mb-4 rounded-xl border border-red-100 bg-red-50 px-4 py-2.5 text-sm text-red-500">{saveError}</p>
       )}
 
       <BusinessHours
@@ -106,12 +106,14 @@ const BusinessHoursPage = ({ brand, brandId, brandLoading, brandError }) => {
           type="button"
           onClick={handleSave}
           disabled={saving}
-          className="rounded-md bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
+          className="rounded-xl bg-emerald-500 px-5 py-2.5 text-sm font-bold text-white shadow-sm shadow-emerald-100 transition-all duration-200 hover:bg-emerald-600 active:scale-[0.97] disabled:bg-gray-100 disabled:text-gray-300 disabled:cursor-not-allowed disabled:shadow-none"
         >
           {saving ? "Saving…" : "Save changes"}
         </button>
         {saved && (
-          <span className="text-sm text-emerald-600">Saved successfully.</span>
+          <span className="inline-flex items-center gap-1 rounded-lg border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+            Saved successfully.
+          </span>
         )}
       </div>
     </div>

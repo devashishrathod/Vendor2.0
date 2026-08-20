@@ -25,7 +25,7 @@ export default function PlanBenefitsModal({ open, onClose, planName, benefits, i
         <div className="inv-modal__header">
           <h3>{planName} Benefit's Details</h3>
           <button className="inv-modal__close" onClick={onClose} aria-label="Close">
-            <CloseIcon width={16} height={16} stroke="#fff" />
+            <CloseIcon width={16} height={16} />
           </button>
         </div>
 

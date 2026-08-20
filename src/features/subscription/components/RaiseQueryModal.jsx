@@ -25,7 +25,7 @@ export default function RaiseQueryModal({ open, onClose, orderId }) {
       <div className="inv-modal__header">
         <h3>Raise Query</h3>
         <button className="inv-modal__close" onClick={handleClose} aria-label="Close">
-          <CloseIcon width={16} height={16} stroke="#fff" />
+          <CloseIcon width={16} height={16} />
         </button>
       </div>
 
