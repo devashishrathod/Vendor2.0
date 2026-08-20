@@ -215,7 +215,7 @@ export default function VoucherTable({
           className="flex items-center gap-1.5 rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-bold tracking-wide text-white shadow-sm shadow-emerald-100 transition-colors hover:bg-emerald-600"
         >
           <Plus className="h-4 w-4" />
-          Add Discount
+          Add Voucher/Discount
         </button>
 
         <div className="ml-auto flex items-center gap-1 text-sm text-gray-500">

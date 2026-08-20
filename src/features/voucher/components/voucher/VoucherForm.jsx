@@ -24,6 +24,7 @@ import { useAuthStore } from "../../../onboarding/store/authStore";
 import ErrorToast from "@/components/common/ErrorToast";
 import SuccessToast from "@/components/common/SuccessToast";
 import VoucherOutletPickerModal from "./VoucherOutletPickerModal";
+import TimePickerAmPm from "./TimePickerAmPm";
 
 const inputBase =
   "w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-700 outline-none transition-colors " +
@@ -154,7 +155,7 @@ function OfferCard({ offer, index, onChange, onRemove, canRemove }) {
             onChange={(e) => onChange("usageType", e.target.value)}
             className={inputBase}
           >
-            <option value="SINGLE">Single use per user</option>
+            <option value="ONCE_PER_USER">Single use per user</option>
             <option value="MULTIPLE">Multiple use until expiry</option>
           </select>
         </div>
@@ -223,7 +224,8 @@ export default function VoucherForm({
       {/* Header */}
       <div className="mb-6 flex items-center gap-3">
         <button
-          onClick={() => navigate(-1)}
+          type="button"
+          onClick={() => navigate("/vouchers")}
           className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl text-gray-500 hover:bg-gray-100"
         >
           <ArrowLeft className="h-5 w-5" />
@@ -345,11 +347,10 @@ export default function VoucherForm({
                   onChange={(e) => setField("startDate", e.target.value)}
                   className={inputBase}
                 />
-                <input
-                  type="time"
+                <TimePickerAmPm
                   value={form.startTime}
-                  onChange={(e) => setField("startTime", e.target.value)}
-                  className={`${inputBase} w-32 flex-shrink-0`}
+                  onChange={(value) => setField("startTime", value)}
+                  className="w-32 flex-shrink-0"
                 />
               </div>
             </div>
@@ -364,11 +365,10 @@ export default function VoucherForm({
                   onChange={(e) => setField("endDate", e.target.value)}
                   className={inputBase}
                 />
-                <input
-                  type="time"
+                <TimePickerAmPm
                   value={form.endTime}
-                  onChange={(e) => setField("endTime", e.target.value)}
-                  className={`${inputBase} w-32 flex-shrink-0`}
+                  onChange={(value) => setField("endTime", value)}
+                  className="w-32 flex-shrink-0"
                 />
               </div>
             </div>

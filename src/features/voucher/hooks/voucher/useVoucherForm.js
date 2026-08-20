@@ -3,7 +3,7 @@
 // (createVoucher / updateVoucher / getVoucherById — multipart form-data).
 // Field shape here matches VoucherForm.jsx's repeatable `offers` + `images`
 // UI, which in turn matches the confirmed Postman `offers` array 1:1.
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../../onboarding/store/authStore";
 import { useOnboardingStore } from "../../../onboarding/store/onboardingStore";
@@ -159,7 +159,77 @@ const FinalSearchTags = Array.isArray(form.searchTags)
   };
 }
 
+// Builds the diff-style patch PUT /vouchers/update/:id expects (see
+// VoucherService.js's updateVoucher/buildVoucherUpdateFormData for the
+// confirmed newX/removedX contract) by comparing the current (edited) form
+// against the ORIGINAL version fetched on mount. Edit-mode only —
+// formToPayload/createVoucher above are completely untouched.
+function formToUpdatePatch(form, originalVersion) {
+  const originalTags = originalVersion?.tags || [];
+  const currentTags = Array.isArray(form.searchTags) ? form.searchTags : [];
+  const newTags = currentTags.filter((tag) => !originalTags.includes(tag));
+  const removedTags = originalTags.filter((tag) => !currentTags.includes(tag));
 
+  // Offers loaded from the API keep their real `_id` (voucherToForm spreads
+  // the raw offer over createEmptyOffer()); offers added during this edit
+  // session never get one — that's how "existing" vs. "new" is told apart.
+  const currentOfferIds = form.offers.map((offer) => offer._id).filter(Boolean);
+  const originalOfferIds = (originalVersion?.offers || []).map((offer) => offer._id).filter(Boolean);
+  const removedOfferIds = originalOfferIds.filter((id) => !currentOfferIds.includes(id));
+  const newOffers = form.offers
+    .filter((offer) => !offer._id)
+    .map((offer, index) => ({
+      title: offer.title,
+      minBillAmount: Number(offer.minBillAmount) || 0,
+      discountType: offer.discountType,
+      discountValue: Number(offer.discountValue) || 0,
+      maxDiscountAmount: Number(offer.maxDiscountAmount) || 0,
+      usageType: offer.usageType,
+      discountApplicableOn: offer.discountApplicableOn,
+      sortOrder: index + 1,
+      isActive: offer.isActive,
+    }));
+
+  // form.existingImageUrls only tracks bare URLs (see voucherToForm), so a
+  // removed image is found by url and mapped back to its subdocument _id
+  // via the originally-fetched images array (which does carry `_id`).
+  const originalImages = Array.isArray(originalVersion?.images) ? originalVersion.images : [];
+  const urlToImageId = new Map(
+    originalImages
+      .filter((img) => img && typeof img === "object" && img.url)
+      .map((img) => [img.url, img._id])
+  );
+  const removeImageIds = originalImages
+    .map((img) => (typeof img === "string" ? img : img?.url))
+    .filter((url) => url && !form.existingImageUrls.includes(url))
+    .map((url) => urlToImageId.get(url))
+    .filter(Boolean);
+
+  // NOTE: the confirmed versions/get-all response doesn't return
+  // subBrandIds on the version (see voucherToForm's note above), so there's
+  // nothing real to diff against yet — every currently-selected outlet
+  // comes through as "new" until the backend starts returning the
+  // original list on read.
+  const originalSubBrandIds = originalVersion?.subBrandIds || originalVersion?.voucher?.subBrandIds || [];
+  const currentSubBrandIds = Array.isArray(form.selectedOutletIds) ? form.selectedOutletIds : [];
+  const newSubBrandIds = currentSubBrandIds.filter((id) => !originalSubBrandIds.includes(id));
+  const removeSubBrandIds = originalSubBrandIds.filter((id) => !currentSubBrandIds.includes(id));
+
+  return {
+    name: form.voucherName,
+    description: form.description,
+    startAt: toIsoDateTime(form.startDate, form.startTime),
+    endAt: toIsoDateTime(form.endDate, form.endTime),
+    newTags,
+    removedTags,
+    newOffers,
+    removedOfferIds,
+    newImages: form.images,
+    removeImageIds,
+    newSubBrandIds,
+    removeSubBrandIds,
+  };
+}
 
 export default function useVoucherForm(voucherId) {
   const navigate = useNavigate();
@@ -189,6 +259,9 @@ export default function useVoucherForm(voucherId) {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState("");
+  // Snapshot of the version exactly as loaded — formToUpdatePatch diffs the
+  // current (edited) form against this to build the newX/removedX patch.
+  const originalVersionRef = useRef(null);
 
   useEffect(() => {
     if (!isEditMode) return;
@@ -200,6 +273,7 @@ export default function useVoucherForm(voucherId) {
           setError("Voucher not found.");
           return;
         }
+        originalVersionRef.current = version;
         setForm(voucherToForm(version));
       })
       .catch((err) => setError(err.message))
@@ -344,11 +418,9 @@ export default function useVoucherForm(voucherId) {
       setUploadProgress(0);
       setError(null);
       try {
-        const payload = formToPayload({ ...form, brandId });
-        console.log("payload", payload);
         const saved = isEditMode
-          ? await updateVoucher(voucherId, payload, setUploadProgress)
-          : await createVoucher(payload, setUploadProgress);
+          ? await updateVoucher(voucherId, formToUpdatePatch(form, originalVersionRef.current), setUploadProgress)
+          : await createVoucher(formToPayload({ ...form, brandId }), setUploadProgress);
         const savedId = saved?.id ?? saved?._id ?? voucherId;
         setSuccessMessage(isEditMode ? "Voucher updated successfully!" : "Voucher created successfully!");
         // Brief pause so the success toast is actually visible before this

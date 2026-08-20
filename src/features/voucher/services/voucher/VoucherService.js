@@ -66,7 +66,7 @@ function buildVoucherFormData({
     isSaveAsDraft = false,
     offers = [],
     images = [],
-    existingImageUrls = [], // for update: URLs to keep (see NOTE in updateVoucher)
+    existingImageUrls = [], // NOTE: not confirmed from Postman — createVoucher never sends this today
 } = {}) {
     const formData = new FormData();
 
@@ -244,20 +244,85 @@ export async function getSubBrands({ brandId, page = 1, limit = 50, search } = {
 // UPDATE
 // ══════════════════════════════════════════════════════════════
 
-// ── Update Voucher (full form re-submit, multipart) ─────────────
+// Builds the vouchers/update/:id form-data body. Confirmed from Postman —
+// this is a DIFF-style contract, not a full resend like createVoucher's:
+// add/remove lists for tags, offers, images, and sub-brands, plus a few
+// directly-overwritable fields (name/description/startAt/endAt). It's
+// deliberately its own builder rather than reusing buildVoucherFormData —
+// the field names and shapes genuinely differ (e.g. `newOffers` is ONE
+// JSON-stringified array in a single field here, vs. createVoucher's
+// `offers` which is one repeated field per offer object) — so createVoucher
+// itself is untouched.
+function buildVoucherUpdateFormData({
+    name,
+    description,
+    startAt,
+    endAt,
+    newTags = [],
+    removedTags = [],
+    newOffers = [],
+    removedOfferIds = [],
+    newImages = [],
+    removeImageIds = [],
+    newSubBrandIds = [],
+    removeSubBrandIds = [],
+} = {}) {
+    const formData = new FormData();
+
+    if (name !== undefined) formData.append('name', name);
+    if (description !== undefined) formData.append('description', description);
+    if (startAt) formData.append('startAt', startAt);
+    if (endAt) formData.append('endAt', endAt);
+
+    if (newTags.length) appendArrayField(formData, 'newTags', newTags);
+    if (removedTags.length) appendArrayField(formData, 'removedTags', removedTags);
+
+    // Confirmed shape: a single field holding a JSON-stringified ARRAY of
+    // new offer objects (same object shape as createVoucher's offers) —
+    // unlike createVoucher, which appends one `offers` field per offer.
+    if (newOffers.length) {
+        const offers = newOffers.map((offer) => (typeof offer === 'string' ? JSON.parse(offer) : offer));
+        formData.append('newOffers', JSON.stringify(offers));
+    }
+
+    if (removedOfferIds.length) appendArrayField(formData, 'removedOfferIds', removedOfferIds);
+    if (removeImageIds.length) appendArrayField(formData, 'removeImageIds', removeImageIds);
+    if (newSubBrandIds.length) appendArrayField(formData, 'newSubBrandIds', newSubBrandIds);
+    if (removeSubBrandIds.length) appendArrayField(formData, 'removeSubBrandIds', removeSubBrandIds);
+
+    newImages.forEach((file) => {
+        if (file) formData.append('newImages', file);
+    });
+
+    return formData;
+}
+
+// ── Update Voucher (diff-style patch, multipart) ─────────────────
 // PUT {{TryDood2.0BaseUrl}}/vouchers/update/:id   (multipart/form-data)
-// Confirmed from Postman. Sends the same field shape as createVoucher —
-// use this when the edit form lets the merchant change everything,
-// including images.
+// Confirmed from Postman. Only send what actually changed — e.g. to add a
+// tag and drop an offer: updateVoucher(id, { newTags: ['diwali'],
+// removedOfferIds: ['<offerSubdocId>'] }).
 //
 // @param {string} voucherId
-// @param {object} voucher - same shape as createVoucher's `voucher` param
+// @param {object} patch
+// @param {string} [patch.name]
+// @param {string} [patch.description]
+// @param {string} [patch.startAt] - ISO date string
+// @param {string} [patch.endAt] - ISO date string
+// @param {string[]} [patch.newTags]
+// @param {string[]} [patch.removedTags]
+// @param {object[]} [patch.newOffers] - new offer objects to add (same shape as createVoucher's offers)
+// @param {string[]} [patch.removedOfferIds] - _id of an offer subdocument on the CURRENT version
+// @param {File[]} [patch.newImages]
+// @param {string[]} [patch.removeImageIds] - _id of an image subdocument on the CURRENT version
+// @param {string[]} [patch.newSubBrandIds]
+// @param {string[]} [patch.removeSubBrandIds]
 // @param {(percent:number)=>void} [onUploadProgress]
-export async function updateVoucher(voucherId, voucher, onUploadProgress) {
+export async function updateVoucher(voucherId, patch, onUploadProgress) {
     try {
         if (!voucherId) throw new Error('voucherId is required');
 
-        const formData = buildVoucherFormData(voucher);
+        const formData = buildVoucherUpdateFormData(patch);
 
         // See createVoucher's comment — no explicit Content-Type header,
         // the browser needs to attach its own multipart boundary.
