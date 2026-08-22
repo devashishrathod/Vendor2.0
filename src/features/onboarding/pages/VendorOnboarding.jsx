@@ -10,6 +10,7 @@ import {
 import { useAuthStore } from "@/features/onboarding/store/authStore";
 
 import Sidebar from "@/features/onboarding/components/Sidebar";
+import SuccessToast from "@/components/common/SuccessToast";
 
 import Step3BusinessName     from "@/features/onboarding/steps/Step3BusinessName";
 import Step4IsRegistered     from "@/features/onboarding/steps/Step4IsRegistered";
@@ -181,6 +182,13 @@ export default function OnboardingPage() {
     isCompleted,
   } = useOnboardingStore();
 
+  // ✅ NEW — global toast lives here, at the top level, OUTSIDE the
+  // key={`${currentStep}-${currentSubStep}`} wrapper below. This means
+  // it never unmounts when a step navigates, so it always finishes
+  // its own display duration regardless of navigation timing.
+  const toastMessage = useOnboardingStore((s) => s.toastMessage);
+  const clearToast    = useOnboardingStore((s) => s.clearToast);
+
   const panDetails    = useOnboardingStore((s) => s.formData.panDetails);
   const completedKeys = useOnboardingStore((s) => s.completedKeys);
 
@@ -191,7 +199,6 @@ export default function OnboardingPage() {
   const partnerContractDone = isCompleted(STEPS.PARTNER_CONTRACT, 1);
   const isFirst = currentStep === STEPS.BASIC_DETAILS && currentSubStep === 1;
 
-  // partner contract done ho to browser back button block karo
   useEffect(() => {
     if (!partnerContractDone) return;
 
@@ -220,9 +227,6 @@ export default function OnboardingPage() {
   }
 
   function resolveComponent(step, subStep) {
-    // ✅ FIX: Partner Contract ka lock sirf uske apne completion status pe depend karega,
-    // "systemVerifyDone" global shortcut par nahi — warna checkbox page pe aate hi
-    // pehle se locked dikhta tha, chahe user ne abhi accept hi na kiya ho.
     const locked = (() => {
       if (step === STEPS.PARTNER_CONTRACT) {
         return isCompleted(step, subStep);
@@ -333,6 +337,9 @@ export default function OnboardingPage() {
         }
       `}</style>
 
+      {/* ✅ NEW — global success toast, top-level, never remounts on step change */}
+      <SuccessToast message={toastMessage} onDismiss={clearToast} />
+
       <div className="absolute bottom-0 left-0 w-[500px] h-[500px] pointer-events-none"
         style={{ background: "radial-gradient(ellipse at bottom left,rgba(16,185,129,0.13) 0%,transparent 70%)", zIndex: 0 }} />
       <div className="absolute top-0 right-0 w-[400px] h-[400px] pointer-events-none"
@@ -389,10 +396,6 @@ export default function OnboardingPage() {
         </header>
 
         <div className="flex-1 flex flex-col min-h-0 py-4 px-4 sm:py-6 sm:px-6 lg:px-8">
-          {/* {hasSubDots && (
-            <SubStepDots total={SUB_TOTALS[currentStep]} current={currentSubStep} />
-          )} */}
-
           <div
             key={`${currentStep}-${currentSubStep}`}
             className="flex-1 flex items-start justify-center"

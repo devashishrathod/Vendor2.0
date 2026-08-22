@@ -1,0 +1,302 @@
+/* subscription.css
+   Namespaced with `sub-` so it's safe to drop into an existing app
+   without colliding with other global styles. */
+
+.sub-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 32px 80px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  color: #14171a;
+}
+
+/* ---------- Page header ---------- */
+.sub-page-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.sub-page-header h1 {
+  font-size: 32px;
+  font-weight: 700;
+  margin: 0 0 8px;
+}
+
+.sub-page-header p {
+  font-size: 15px;
+  color: #6b7280;
+  margin: 0;
+}
+
+/* ---------- Section header (Plan & Billing) ---------- */
+.sub-section-header {
+  margin-bottom: 20px;
+}
+
+.sub-section-header h2 {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0 0 4px;
+}
+
+.sub-section-header p {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
+}
+
+/* ---------- Status banner ---------- */
+/* ⚠️ FIXED: was a dark purple/indigo gradient with white text — now a
+   light white card (border + shadow, matching the Step3BusinessName.jsx
+   card language: white bg, gray-100 border, subtle shadow, emerald
+   accents) instead of a dark, off-theme banner. Pure CSS — the JSX
+   (PlanStatusBanner.jsx) needed zero changes since the checkmark icon's
+   white stroke still reads fine against the now-solid emerald badge. */
+.sub-status-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  border-radius: 20px;
+  padding: 28px 36px;
+  background: #ffffff;
+  border: 1px solid #f3f4f6;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+  color: #111827;
+  margin-bottom: 40px;
+}
+
+.sub-status-banner__main {
+  flex: 1;
+  min-width: 0;
+}
+
+.sub-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #059669;
+  background: #ecfdf5;
+  border: 1px solid #d1fae5;
+  padding: 4px 10px 4px 6px;
+  border-radius: 999px;
+  margin-bottom: 14px;
+}
+
+.sub-status-badge__icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: #10b981;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sub-status-banner__title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 8px;
+}
+
+.sub-status-banner__desc {
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0;
+  color: #6b7280;
+}
+
+.sub-status-banner__desc strong {
+  color: #111827;
+}
+
+.sub-status-banner__renewal {
+  text-align: right;
+  flex-shrink: 0;
+  padding-left: 28px;
+  border-left: 1px solid #f3f4f6;
+}
+
+.sub-status-banner__renewal-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #9ca3af;
+  margin-bottom: 6px;
+}
+
+.sub-status-banner__renewal-date {
+  display: block;
+  font-size: 19px;
+  font-weight: 700;
+  color: #059669;
+}
+
+/* ---------- Generic info section ---------- */
+/* ⚠️ FIXED: was borderless/backgroundless (just margin-bottom spacing) —
+   now a white rounded-2xl card with a gray-100 border + shadow-sm, same
+   card language as .sub-status-banner and Step3BusinessName.jsx. Every
+   section built on InfoSection (SubscriptionInfo, BillingInfo, PlanBenefits,
+   InvoiceInfo) picks this up automatically — no JSX changes needed. */
+.sub-info-section {
+  background: #ffffff;
+  border: 1px solid #f3f4f6;
+  border-radius: 20px;
+  padding: 28px 32px;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+  margin-bottom: 24px;
+}
+
+.sub-info-section__title {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  margin: 0 0 20px;
+  color: #111827;
+}
+
+.sub-info-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 28px 24px;
+}
+
+.sub-info-item dt {
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 6px;
+}
+
+.sub-info-item dd {
+  font-size: 14px;
+  color: #4b5563;
+  margin: 0;
+}
+
+.sub-info-item a {
+  color: #059669;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.sub-info-item a:hover {
+  color: #047857;
+  text-decoration: underline;
+}
+
+.sub-info-item .sub-sub-label {
+  font-size: 13px;
+  color: #4b5563;
+  margin-right: 6px;
+}
+
+/* Cards now provide their own visual separation (border + shadow +
+   margin-bottom), so the divider between them would just double up —
+   hidden rather than removed from the JSX, per "logic/markup as-is". */
+.sub-divider {
+  display: none;
+}
+
+/* ---------- Upgrade button ---------- */
+.sub-upgrade-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 16px 24px;
+  border: none;
+  border-radius: 14px;
+  background: #10b981;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.22);
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.sub-upgrade-btn:hover {
+  background: #0ea371;
+}
+
+.sub-upgrade-btn:active {
+  transform: scale(0.98);
+}
+
+.sub-upgrade-btn:focus-visible {
+  outline: 3px solid #a7f3d0;
+  outline-offset: 2px;
+}
+
+.sub-upgrade-btn:disabled {
+  background: #e5e7eb;
+  color: #9ca3af;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* ---------- Loading / error states ---------- */
+.sub-state-message {
+  padding: 60px 20px;
+  text-align: center;
+  color: #6b7280;
+  font-size: 15px;
+}
+
+.sub-state-message--error {
+  color: #b91c1c;
+}
+
+.sub-retry-btn {
+  margin-top: 16px;
+  padding: 10px 18px;
+  border-radius: 12px;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  color: #374151;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.sub-retry-btn:hover {
+  border-color: #10b981;
+  color: #059669;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 900px) {
+  .sub-info-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .sub-status-banner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .sub-status-banner__renewal {
+    text-align: left;
+    border-left: none;
+    padding-left: 0;
+  }
+}
+
+@media (max-width: 520px) {
+  .sub-info-grid {
+    grid-template-columns: 1fr;
+  }
+  .sub-page {
+    padding: 24px 16px 60px;
+  }
+}

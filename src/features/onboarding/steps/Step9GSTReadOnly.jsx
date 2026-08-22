@@ -226,9 +226,11 @@ export default function Step9GSTReadOnly() {
         throw new Error(err?.message || `Server error ${res.status}`);
       }
       setSuccessMsg(true);
-      setTimeout(() => {
-        goToStep(STEPS.BANK_VERIFICATION, BANK_SUB.BANK_VERIFICATION);
-      }, 3000);
+      useOnboardingStore.getState().setToast("GST details saved successfully.");
+      goToStep(STEPS.BANK_VERIFICATION, BANK_SUB.BANK_VERIFICATION); // ✅ turant, setTimeout hataya
+      // setTimeout(() => {
+      //   goToStep(STEPS.BANK_VERIFICATION, BANK_SUB.BANK_VERIFICATION);
+      // }, 3000);
     } catch (err) {
       setPostError({
         humanMessage:

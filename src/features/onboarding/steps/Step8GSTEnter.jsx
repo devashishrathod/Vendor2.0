@@ -172,10 +172,11 @@ export default function Step8GSTEnter({ pan: panProp = "" }) {
 
       setFetchDone(true);
       setSuccessMsg(true);
-
-      setTimeout(() => {
-        goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.GST_READONLY);
-      }, 3000);
+      useOnboardingStore.getState().setToast("GST verification completed successfully.");
+      goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.GST_READONLY); // ✅ turant, setTimeout hataya
+      // setTimeout(() => {
+      //   goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.GST_READONLY);
+      // }, 3000);
     } catch (err) {
       const raw = err?.message ?? "";
 
@@ -328,7 +329,7 @@ export default function Step8GSTEnter({ pan: panProp = "" }) {
                 successMsg="Valid GSTIN format"
               />
 
-             {/* // PANMismatchBanner alag se raho — uska logic alag hai */}
+              {/* // PANMismatchBanner alag se raho — uska logic alag hai */}
               <PANMismatchBanner gstin={upper} pan={pan} />
               {touched && (
                 <div className="absolute right-3 top-1/2 -translate-y-1/2">

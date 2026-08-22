@@ -167,6 +167,8 @@ export default function Step7PANReadOnly() {
           setSuccessMsg(
             `PAN ${payload.pan} already verified · ${payload.fullName}`
           );
+          useOnboardingStore.getState().setToast("PAN details updated successfully.");
+          setSubStep(BIZ_SUB.GST_VERIFICATION); // ✅ turant add karo
           return; // setSubStep onDismiss mein chalega
         }
         throw new Error(err?.message || `Server error ${res.status}`);
@@ -194,7 +196,7 @@ export default function Step7PANReadOnly() {
         message={successMsg}
         onDismiss={() => {
           setSuccessMsg(null);
-          setSubStep(BIZ_SUB.GST_VERIFICATION);
+          // setSubStep(BIZ_SUB.GST_VERIFICATION);
         }}
         duration={3500}
       />
