@@ -88,7 +88,7 @@ function TxnIcon({ type }) {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function Dashboard() {
-  const [activeTab,    setActiveTab]    = useState("Analysis Report");
+ 
   const [activeTxnTab, setActiveTxnTab] = useState("Voucher Transaction");
   const [rowsPerPage,  setRowsPerPage]  = useState(10);
   const [currentPage,  setCurrentPage]  = useState(1);
@@ -102,7 +102,7 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gray-50 font-sans">
 
       {/* ── Header — alag component, kabhi nahi badlega ── */}
-      <DashboardHeader activeTab={activeTab} setActiveTab={setActiveTab} />
+   
 
       {/* ── Page body ── */}
       <div className="max-w-6xl mx-auto px-6 py-6">

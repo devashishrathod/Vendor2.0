@@ -433,10 +433,12 @@ export default function Step11BankEnter({ onFetchSuccess }) {
 
       setFetchDone(true);
       setSuccessMsg(`Bank account ••••${normalised.accountNumber.slice(-4)} verified successfully`);
+      useOnboardingStore.getState().setToast("Bank account verified successfully.");
+      goToStep(STEPS.BANK_VERIFICATION, BANK_SUB.BANK_READONLY); // ✅ turant, setTimeout hataya
 
-      setTimeout(() => {
-        goToStep(STEPS.BANK_VERIFICATION, BANK_SUB.BANK_READONLY);
-      }, NAV_DELAY);
+      // setTimeout(() => {
+      //   goToStep(STEPS.BANK_VERIFICATION, BANK_SUB.BANK_READONLY);
+      // }, NAV_DELAY);
 
     } catch (err) {
       setApiError({

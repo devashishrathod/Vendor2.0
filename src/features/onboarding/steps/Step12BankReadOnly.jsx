@@ -264,9 +264,12 @@ export default function Step12BankReadOnly({ accountType }) {
       }
 
       setSuccessMsg(`Bank account ${d.accountNumber} verified successfully`);
-      setTimeout(() => {
-        goToStep(STEPS.SYSTEM_VERIFY);
-      }, NAV_DELAY);
+      setSuccessMsg(`Bank account ${d.accountNumber} verified successfully`);
+      useOnboardingStore.getState().setToast("Bank account verified successfully.");
+goToStep(STEPS.SYSTEM_VERIFY); // ✅ turant, setTimeout hataya
+      // setTimeout(() => {
+      //   goToStep(STEPS.SYSTEM_VERIFY);
+      // }, NAV_DELAY);
     } catch (err) {
       setPostError({
         humanMessage:

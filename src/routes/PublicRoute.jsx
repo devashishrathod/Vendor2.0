@@ -1,10 +1,10 @@
 import { Navigate } from 'react-router-dom';
 import { useAuthStore } from '@/features/onboarding/store/authStore';
-
 const SCREEN_ROUTES = {
   SUBSCRIBE_PLAN: "/subscription",
+  OUTLET_PAGE:    "/brand-outlet",
   UNDER_REVIEW:   "/under-review",
-  DASHBOARD:      "/oulet",
+  DASHBOARD:      "/dashboard",   // ✅ added
 };
 
 export default function PublicRoute({ children }) {

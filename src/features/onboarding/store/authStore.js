@@ -20,7 +20,9 @@ const SCREEN_MAP = {
   BANK_READONLY:            "BANK_READONLY",
   SYSTEM_VERIFICATION:      "SYSTEM_VERIFICATION",
   PARTNERSHIP_DEED:         "PARTNERSHIP_DEED",
-  SUBSCRIBE_PLAN:           "SUBSCRIBE_PLAN",   // ✅ added
+  SUBSCRIBE_PLAN:           "SUBSCRIBE_PLAN",  
+  // WELCOME_PAGE:             "WELCOME_PAGE", 
+  OUTLET_PAGE:              "OUTLET_PAGE",    // ✅ added
   UNDER_REVIEW:             "UNDER_REVIEW",     // ✅ added
   DASHBOARD:                "DASHBOARD",        // ✅ added
 };
@@ -39,7 +41,8 @@ const SCREEN_ORDER = [
   "BANK_READONLY",
   "SYSTEM_VERIFICATION",
   "PARTNERSHIP_DEED",
-  "SUBSCRIBE_PLAN",   // ✅ added
+  "SUBSCRIBE_PLAN",
+  "OUTLET_PAGE",   // ✅ added
   "UNDER_REVIEW",     // ✅ added
   "DASHBOARD",        // ✅ added
 ];
