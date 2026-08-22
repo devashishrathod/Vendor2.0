@@ -590,6 +590,10 @@ export default function Step4IsRegistered() {
     try {
       await updateRegistrationStatus({ status: "REGISTERED" });
       setSuccessMsg("Registration status updated successfully.");
+
+        useOnboardingStore.getState().setToast("Registration status updated successfully.");
+      setSubStep(BASIC_SUB.REGISTRATION_STATUS);
+      setSubStep(BASIC_SUB.REGISTRATION_ENTITY_TYPE);
     
     } catch (err) {
       setApiError({
@@ -751,7 +755,7 @@ export default function Step4IsRegistered() {
         message={successMsg}
         onDismiss={() => {
           setSuccessMsg(null);
-           setSubStep(BASIC_SUB.REGISTRATION_ENTITY_TYPE);
+          //  setSubStep(BASIC_SUB.REGISTRATION_ENTITY_TYPE);
         }}
       />
       <ErrorToast error={apiError} onDismiss={() => setApiError(null)} />

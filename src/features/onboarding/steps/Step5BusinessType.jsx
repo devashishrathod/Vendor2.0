@@ -489,8 +489,13 @@ export default function Step5BusinessType() {
     try {
       await updateBusinessEntityType({ entityType });
       useOnboardingStore.getState().setField("businessType", selected);
-      setSuccessMsg("Business type saved successfully!");
+     setSuccessMsg("Business type saved successfully!");
+      useOnboardingStore.getState().setToast("Business type saved successfully!");
+goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_VERIFICATION);
 
+//  setTimeout(() => {
+//      goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_VERIFICATION);
+//       }, 3000);
     } catch (err) {
       setApiError(err.message || "Something went wrong. Please try again.");
     } finally {
@@ -507,7 +512,7 @@ export default function Step5BusinessType() {
         message={successMsg}
         onDismiss={() => {
           setSuccessMsg(null);
-          goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_VERIFICATION);
+          // goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_VERIFICATION);
         }}
       />
       <ErrorToast error={apiError} onDismiss={() => setApiError(null)} />
