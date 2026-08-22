@@ -51,6 +51,13 @@ function createEmptyForm() {
     images: [], // newly-picked File objects, pending upload
     existingImageUrls: [], // already-uploaded urls (edit mode only)
     isSaveAsDraft: false,
+    // Banner — add mode only. Changing an existing voucher's banner is a
+    // separate flow (VoucherBannerModal.jsx, opened from VoucherTable),
+    // not part of this form at all.
+    bannerType: "IMAGE",
+    bannerImage: null, // newly-picked File, pending upload
+    bannerVideo: "",
+    bannerGif: "",
   };
 }
 
@@ -156,6 +163,10 @@ const FinalSearchTags = Array.isArray(form.searchTags)
     })),
     images: form.images,
     existingImageUrls: form.existingImageUrls,
+    bannerType: form.bannerType,
+    bannerImage: form.bannerImage,
+    bannerVideo: form.bannerVideo,
+    bannerGif: form.bannerGif,
   };
 }
 

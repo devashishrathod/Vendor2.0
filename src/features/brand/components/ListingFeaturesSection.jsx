@@ -1,5 +1,5 @@
-import React, { useState, useRef } from "react";
-import { RefreshCcw, Trash2, Play, X, ListChecks } from "lucide-react";
+import React, { useState } from "react";
+import { Pencil, Trash2, Play, X, ListChecks } from "lucide-react";
 
 // Detects video vs image by file extension in the URL.
 const isVideoUrl = (url = "") => /\.(mp4|webm|mov|ogg)(\?|$)/i.test(url);
@@ -67,7 +67,7 @@ const VideoModal = ({ src, title, onClose }) => (
 const ListingFeaturesSection = ({
   listingFeatures,
   onAdd,
-  onRefresh,
+  onEdit,
   onDelete,
 }) => {
   const [playingFeature, setPlayingFeature] = useState(null);
@@ -130,11 +130,11 @@ const ListingFeaturesSection = ({
                   <div className="flex items-center justify-end gap-3">
                     <button
                       type="button"
-                      onClick={() => onRefresh(feature.id)}
-                      aria-label="Refresh"
+                      onClick={() => onEdit(feature)}
+                      aria-label="Edit"
                       className="text-emerald-500 hover:text-emerald-600"
                     >
-                      <RefreshCcw size={16} />
+                      <Pencil size={16} />
                     </button>
                     <button
                       type="button"

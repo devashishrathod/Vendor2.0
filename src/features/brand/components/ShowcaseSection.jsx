@@ -1,7 +1,18 @@
 import React from "react";
 import ShowcaseGroup from "./ShowcaseGroup";
 
-const ShowcaseSection = ({ showcase, onAddMore }) => {
+const ShowcaseSection = ({
+  showcase,
+  onAddMore,
+  onAddMedia,
+  onDeleteMedia,
+  onReplaceMedia,
+  onMoveMedia,
+  onEditSection,
+  onDeleteSection,
+  onMoveSectionUp,
+  onMoveSectionDown,
+}) => {
   return (
     <section>
       <div className="flex items-center gap-3">
@@ -20,11 +31,21 @@ const ShowcaseSection = ({ showcase, onAddMore }) => {
       </div>
 
       <div className="mt-5 space-y-5">
-        {showcase.groups.map((group) => (
+        {showcase.groups.map((group, index) => (
           <ShowcaseGroup
             key={group.id}
             group={group}
             guidelinesLink={showcase.guidelinesLink}
+            onAddMedia={onAddMedia}
+            onDeleteMedia={onDeleteMedia}
+            onReplaceMedia={onReplaceMedia}
+            onMoveMedia={onMoveMedia}
+            onEditSection={onEditSection}
+            onDeleteSection={onDeleteSection}
+            onMoveSectionUp={onMoveSectionUp}
+            onMoveSectionDown={onMoveSectionDown}
+            isFirstSection={index === 0}
+            isLastSection={index === showcase.groups.length - 1}
           />
         ))}
       </div>

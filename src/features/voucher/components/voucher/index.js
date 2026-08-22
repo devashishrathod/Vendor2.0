@@ -2,6 +2,7 @@
 export { default as VoucherOverview } from "./VoucherOverview";
 export { default as VoucherTable } from "./VoucherTable";
 export { default as VoucherForm } from "./VoucherForm";
+export { default as VoucherBannerModal } from "./VoucherBannerModal";
 export { default as VoucherStatusBadge } from "./VoucherStatusBadge";
 export { default as VoucherStatCard } from "./VoucherStatCard";
 export { default as VoucherTabs } from "./VoucherTabs";

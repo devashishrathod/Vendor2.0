@@ -1,9 +1,4 @@
-// src/components/voucher/VoucherForm.jsx
-// Full "Add / Edit Voucher & Discount" form, matching the multi-section
-// design: name, validity, discount details (repeatable offers, matching
-// the confirmed Postman `offers` shape), images, applicable outlets
-// (with a picker modal), and search tags. Works for both add and edit —
-// pass `mode` + the fields/handlers from useVoucherForm.
+
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -328,6 +323,68 @@ export default function VoucherForm({
               <p className="mt-2 text-xs text-gray-400">Uploading… {uploadProgress}%</p>
             )}
           </div>
+
+          {/* Banner — add mode only. Changing an existing voucher's banner
+              is handled entirely by VoucherBannerModal.jsx (opened from
+              VoucherTable), not by this form — editing a voucher never
+              shows this section. */}
+          {!isEdit && (
+            <div className="mt-5 border-t border-gray-100 pt-4">
+              <FieldLabel>Voucher Banner</FieldLabel>
+
+              <select
+                value={form.bannerType}
+                onChange={(e) => setField("bannerType", e.target.value)}
+                className={`${inputBase} mb-3 max-w-[160px]`}
+              >
+                <option value="IMAGE">Image</option>
+                <option value="VIDEO">Video</option>
+                <option value="GIF">GIF</option>
+              </select>
+
+              {form.bannerType === "IMAGE" && (
+                <div className="flex items-center gap-3">
+                  {form.bannerImage && (
+                    <div className="relative h-20 w-20 overflow-hidden rounded-xl border border-gray-100">
+                      <img
+                        src={URL.createObjectURL(form.bannerImage)}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                  )}
+                  <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-gray-200 text-gray-400 hover:border-emerald-400 hover:text-emerald-500 hover:bg-emerald-50/40">
+                    <Upload className="h-4 w-4" />
+                    <span className="text-[10px]">{form.bannerImage ? "Change" : "Add"}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => setField("bannerImage", e.target.files?.[0] || null)}
+                    />
+                  </label>
+                </div>
+              )}
+
+              {form.bannerType === "VIDEO" && (
+                <input
+                  value={form.bannerVideo}
+                  onChange={(e) => setField("bannerVideo", e.target.value)}
+                  placeholder="Banner video URL"
+                  className={inputBase}
+                />
+              )}
+
+              {form.bannerType === "GIF" && (
+                <input
+                  value={form.bannerGif}
+                  onChange={(e) => setField("bannerGif", e.target.value)}
+                  placeholder="Banner GIF URL"
+                  className={inputBase}
+                />
+              )}
+            </div>
+          )}
         </SectionCard>
 
         {/* Validity Date & Time */}

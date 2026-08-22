@@ -1,5 +1,5 @@
 // src/components/voucher/VoucherTable.jsx
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ChevronLeft,
@@ -13,13 +13,16 @@ import {
   Pencil,
   Rocket,
   Loader2,
+  Image as ImageIcon,
 } from "lucide-react";
 import VoucherStatusBadge from "./VoucherStatusBadge";
+import VoucherBannerModal from "./VoucherBannerModal";
 
 const ROWS_PER_PAGE_OPTIONS = [10, 20, 50];
 const TABLE_HEAD = [
   "Voucher",
   "Version Code",
+  "Banner",
   "Validity",
   "Discount",
   "Status",
@@ -63,14 +66,18 @@ function exportVouchersToCsv(vouchers) {
   URL.revokeObjectURL(url);
 }
 
-function formatDate(iso) {
+// Validity column shows date + time (unlike formatDate above, which the
+// CSV export still uses on its own raw-date columns).
+function formatDateTime(iso) {
   if (!iso) return "—";
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleDateString("en-GB", {
+  return date.toLocaleString("en-GB", {
     day: "2-digit",
     month: "short",
     year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 }
 
@@ -122,8 +129,10 @@ export default function VoucherTable({
   onDateRangeChange,
   onSubmitForReview,
   onPublish,
+  onBannerUpdated,
 }) {
   const navigate = useNavigate();
+  const [bannerModalVoucher, setBannerModalVoucher] = useState(null);
 
   return (
     <div className="mt-4 rounded-2xl border border-gray-100 bg-white shadow-sm">
@@ -312,8 +321,28 @@ export default function VoucherTable({
                       </div>
                     </td>
                     <td className="px-4 py-3 text-gray-600">{version.versionCode}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        {version.bannerType === "IMAGE" && version.bannerImage ? (
+                          <img
+                            src={version.bannerImage}
+                            alt=""
+                            className="h-9 w-9 rounded-md border border-gray-100 object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-9 w-9 items-center justify-center rounded-md border border-dashed border-gray-200 text-gray-300">
+                            <ImageIcon className="h-4 w-4" />
+                          </div>
+                        )}
+                        <ActionIconButton
+                          icon={Pencil}
+                          label="Voucher Banner"
+                          onClick={() => setBannerModalVoucher(version)}
+                        />
+                      </div>
+                    </td>
                     <td className="px-4 py-3 text-gray-600">
-                      {formatDate(version.startAt)} – {formatDate(version.endAt)}
+                      {formatDateTime(version.startAt)} – {formatDateTime(version.endAt)}
                     </td>
                     <td className="px-4 py-3 text-gray-600">
                       {summarizeDiscount(version.offers)}
@@ -378,6 +407,12 @@ export default function VoucherTable({
           Showing {stateSummary.rangeStart}-{stateSummary.rangeEnd} of {vouchers.length ? stateSummary.rangeEnd : 0}
         </span>
       </div>
+
+      <VoucherBannerModal
+        voucher={bannerModalVoucher}
+        onClose={() => setBannerModalVoucher(null)}
+        onSaved={() => onBannerUpdated?.()}
+      />
     </div>
   );
 }

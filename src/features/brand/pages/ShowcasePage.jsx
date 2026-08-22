@@ -8,17 +8,56 @@ import {
   addShowcaseMedia,
   deleteShowcaseMedia,
   deleteShowcaseSection,
+  updateShowcaseSection,
+  reorderShowcaseSections,
+  replaceShowcaseMedia,
+  reorderShowcaseMedia,
 } from "../services/brandApi";
+
+// Moves `mediaId` one step earlier/later among same-type (PHOTO/PHOTO or
+// VIDEO/VIDEO) neighbors within the section's full (photos+videos combined)
+// media list, preserving the relative order between the two types. Returns
+// the same array reference when there's no same-type neighbor to swap with
+// (already at that end) — callers treat that as a no-op.
+function moveMediaWithinType(mediaList, mediaId, direction) {
+  const idx = mediaList.findIndex((m) => m._id === mediaId);
+  if (idx === -1) return mediaList;
+  const type = mediaList[idx].type;
+
+  let swapWith = -1;
+  if (direction === "up") {
+    for (let i = idx - 1; i >= 0; i -= 1) {
+      if (mediaList[i].type === type) {
+        swapWith = i;
+        break;
+      }
+    }
+  } else {
+    for (let i = idx + 1; i < mediaList.length; i += 1) {
+      if (mediaList[i].type === type) {
+        swapWith = i;
+        break;
+      }
+    }
+  }
+  if (swapWith === -1) return mediaList;
+
+  const next = [...mediaList];
+  [next[idx], next[swapWith]] = [next[swapWith], next[idx]];
+  return next;
+}
 
 /**
  * ShowcasePage
  * "Showcase Details" tab — live sections + media from
- * GET /showcase/get-brand-showcase/:brandId, with add-section,
- * add-media, delete-media, delete-section wired to the real API.
+ * GET /showcase/get-brand-showcase/:brandId, with add/edit/delete/reorder
+ * for sections, and add/replace/delete/reorder for their media, all wired
+ * to the real API.
  */
 const ShowcasePage = ({ brandId }) => {
   const { data, loading, error, reload } = useBrandShowcase(brandId);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingSectionId, setEditingSectionId] = useState(null);
   const [actionError, setActionError] = useState(null);
 
   if (loading) {
@@ -81,6 +120,61 @@ const handleCreateSection = async ({ title, description, files, isShowInVideoCli
     }
   };
 
+  const handleEditSection = (sectionId) => setEditingSectionId(sectionId);
+
+  const handleEditSectionSubmit = async ({ title, description }) => {
+    await updateShowcaseSection(editingSectionId, { title, description });
+    reload();
+  };
+
+  const handleMoveSection = async (sectionId, direction) => {
+    setActionError(null);
+    const idx = sections.findIndex((s) => s._id === sectionId);
+    if (idx === -1) return;
+    const swapWith = direction === "up" ? idx - 1 : idx + 1;
+    if (swapWith < 0 || swapWith >= sections.length) return;
+
+    const reordered = [...sections];
+    [reordered[idx], reordered[swapWith]] = [reordered[swapWith], reordered[idx]];
+
+    try {
+      await reorderShowcaseSections(reordered.map((s, i) => ({ id: s._id, sortOrder: i + 1 })));
+      reload();
+    } catch (err) {
+      setActionError(err.message);
+    }
+  };
+
+  const handleReplaceMedia = async (sectionId, mediaId, file) => {
+    setActionError(null);
+    try {
+      await replaceShowcaseMedia(sectionId, mediaId, file);
+      reload();
+    } catch (err) {
+      setActionError(err.message);
+    }
+  };
+
+  const handleMoveMedia = async (sectionId, mediaId, direction) => {
+    setActionError(null);
+    const section = sections.find((s) => s._id === sectionId);
+    const mediaList = section?.medias || [];
+    const reordered = moveMediaWithinType(mediaList, mediaId, direction);
+    if (reordered === mediaList) return;
+
+    try {
+      await reorderShowcaseMedia(
+        sectionId,
+        reordered.map((m, i) => ({ id: m._id, sortOrder: i + 1 }))
+      );
+      reload();
+    } catch (err) {
+      setActionError(err.message);
+    }
+  };
+
+  const editingSection = sections.find((s) => s._id === editingSectionId) || null;
+
   return (
     <div>
       {error && (
@@ -97,13 +191,27 @@ const handleCreateSection = async ({ title, description, files, isShowInVideoCli
         onAddMore={handleAddMore}
         onAddMedia={handleAddMedia}
         onDeleteMedia={handleDeleteMedia}
+        onReplaceMedia={handleReplaceMedia}
+        onMoveMedia={handleMoveMedia}
+        onEditSection={handleEditSection}
         onDeleteSection={handleDeleteSection}
+        onMoveSectionUp={(sectionId) => handleMoveSection(sectionId, "up")}
+        onMoveSectionDown={(sectionId) => handleMoveSection(sectionId, "down")}
       />
 
       {showAddModal && (
         <AddShowcaseSectionModal
           onClose={() => setShowAddModal(false)}
           onSubmit={handleCreateSection}
+        />
+      )}
+
+      {editingSection && (
+        <AddShowcaseSectionModal
+          mode="edit"
+          section={editingSection}
+          onClose={() => setEditingSectionId(null)}
+          onSubmit={handleEditSectionSubmit}
         />
       )}
     </div>

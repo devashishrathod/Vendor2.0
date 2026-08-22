@@ -1,5 +1,5 @@
 import React, { useRef } from "react";
-import { Trash2, Plus } from "lucide-react";
+import { Trash2, Plus, Pencil, ChevronUp, ChevronDown } from "lucide-react";
 import ShowcaseMediaRow from "./ShowcaseMediaRow";
 
 const ShowcaseGroup = ({
@@ -7,7 +7,14 @@ const ShowcaseGroup = ({
   guidelinesLink,
   onAddMedia,
   onDeleteMedia,
+  onReplaceMedia,
+  onMoveMedia,
+  onEditSection,
   onDeleteSection,
+  onMoveSectionUp,
+  onMoveSectionDown,
+  isFirstSection,
+  isLastSection,
 }) => {
   const fileInputRef = useRef(null);
 
@@ -38,6 +45,38 @@ const ShowcaseGroup = ({
           >
             Images & Video guidelines
           </a>
+          {(onMoveSectionUp || onMoveSectionDown) && (
+            <div className="flex items-center gap-0.5">
+              <button
+                type="button"
+                onClick={() => onMoveSectionUp(group.id)}
+                disabled={isFirstSection}
+                aria-label="Move section up"
+                className="text-gray-400 hover:text-emerald-600 disabled:opacity-30 disabled:hover:text-gray-400"
+              >
+                <ChevronUp size={16} />
+              </button>
+              <button
+                type="button"
+                onClick={() => onMoveSectionDown(group.id)}
+                disabled={isLastSection}
+                aria-label="Move section down"
+                className="text-gray-400 hover:text-emerald-600 disabled:opacity-30 disabled:hover:text-gray-400"
+              >
+                <ChevronDown size={16} />
+              </button>
+            </div>
+          )}
+          {onEditSection && (
+            <button
+              type="button"
+              onClick={() => onEditSection(group.id)}
+              aria-label="Edit section"
+              className="text-emerald-500 hover:text-emerald-600"
+            >
+              <Pencil size={16} />
+            </button>
+          )}
           {onDeleteSection && (
             <button
               type="button"
@@ -56,11 +95,17 @@ const ShowcaseGroup = ({
           medias={photos}
           type="image"
           onDelete={(mediaId) => onDeleteMedia(group.id, mediaId)}
+          onReplace={onReplaceMedia ? (mediaId, file) => onReplaceMedia(group.id, mediaId, file) : undefined}
+          onMoveUp={onMoveMedia ? (mediaId) => onMoveMedia(group.id, mediaId, "up") : undefined}
+          onMoveDown={onMoveMedia ? (mediaId) => onMoveMedia(group.id, mediaId, "down") : undefined}
         />
         <ShowcaseMediaRow
           medias={videos}
           type="video"
           onDelete={(mediaId) => onDeleteMedia(group.id, mediaId)}
+          onReplace={onReplaceMedia ? (mediaId, file) => onReplaceMedia(group.id, mediaId, file) : undefined}
+          onMoveUp={onMoveMedia ? (mediaId) => onMoveMedia(group.id, mediaId, "up") : undefined}
+          onMoveDown={onMoveMedia ? (mediaId) => onMoveMedia(group.id, mediaId, "down") : undefined}
         />
 
         {onAddMedia && (

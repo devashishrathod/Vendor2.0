@@ -588,7 +588,7 @@ function LiveLocationPicker({ selectedPlace, onSelectPlace, onShowMap, locationS
 }
 
 export default function AddOutletModal({ onClose, onCreated }) {
-  const { brand, loading: brandLoading } = useBrand();
+  const { brand } = useBrand();
   const {
     form,
     update,
@@ -635,32 +635,11 @@ export default function AddOutletModal({ onClose, onCreated }) {
   }, [form.subBrandId]);
 
   // ── Outlet WhatsApp Number — same OTP-verify flow as CreateBrandOutlet ──
-  const brandWhatsappNumber = brand?.whatsappNumber || brand?.phone || brand?.mobile || "";
   const [otpStage, setOtpStage] = useState(false);
   const [otpValue, setOtpValue] = useState("");
   const [otpSending, setOtpSending] = useState(false);
   const [otpConfirming, setOtpConfirming] = useState(false);
   const [otpError, setOtpError] = useState("");
-
-  // ── Keep the copied-in number synced once brand data actually arrives ──
-  useEffect(() => {
-    if (form.whatsapp.isBrandNumber && brandWhatsappNumber && form.whatsapp.number !== brandWhatsappNumber) {
-      updateWhatsapp({ number: brandWhatsappNumber });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [brandWhatsappNumber, form.whatsapp.isBrandNumber]);
-
-  const handleUseBrandNumberToggle = (checked) => {
-    setOtpStage(false);
-    setOtpValue("");
-    setOtpError("");
-    updateWhatsapp({
-      isBrandNumber: checked,
-      number: checked ? brandWhatsappNumber : "",
-      verified: false,
-    });
-    setSubBrandId(null);
-  };
 
   const handleOutletWhatsappChange = (value) => {
     updateWhatsapp({ number: value, verified: false });
@@ -852,30 +831,13 @@ export default function AddOutletModal({ onClose, onCreated }) {
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Outlet WhatsApp Number *</label>
 
-            <label className="flex items-center gap-2 text-xs font-semibold text-gray-600 mb-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={form.whatsapp.isBrandNumber}
-                onChange={(e) => handleUseBrandNumberToggle(e.target.checked)}
-                disabled={brandLoading || !brandWhatsappNumber}
-                className="w-4 h-4 accent-emerald-600 cursor-pointer disabled:opacity-40"
-              />
-              Use my Brand's WhatsApp number
-              {brandLoading
-                ? " (loading…)"
-                : brandWhatsappNumber
-                ? ` (${brandWhatsappNumber})`
-                : " (not available on your brand profile)"}
-            </label>
-
             <div className="flex gap-2">
               <input
                 type="tel"
                 value={form.whatsapp.number}
                 onChange={(e) => handleOutletWhatsappChange(e.target.value)}
-                disabled={form.whatsapp.isBrandNumber}
                 placeholder="eg : 9876543210"
-                className={`${inputBase} disabled:bg-gray-100 disabled:text-gray-500`}
+                className={inputBase}
               />
               {!form.whatsapp.verified && (
                 <button
@@ -892,12 +854,6 @@ export default function AddOutletModal({ onClose, onCreated }) {
                 </button>
               )}
             </div>
-
-            {form.whatsapp.isBrandNumber && !form.whatsapp.verified && (
-              <p className="text-xs text-amber-600 mt-2">
-                This number is pulled from your brand profile, but still needs to be verified for this outlet.
-              </p>
-            )}
 
             {form.whatsapp.verified && (
               <p className="text-xs font-semibold text-emerald-600 mt-2 flex items-center gap-1">

@@ -291,11 +291,22 @@ export async function addListingFeature(brandId, { title, description = '', isAc
     }
 }
 
-// ── Refresh / Re-verify a Brand Feature ───────────────────────
-// NOTE: confirm exact path from Postman — placeholder pattern below.
-export async function refreshListingFeature(featureId) {
+// ── Update a Brand Feature ─────────────────────────────────────
+// PUT {{TryDood2.0BaseUrl}}/brandFeatures/update/:id   (multipart/form-data)
+// Confirmed from Postman — fields: title, description, isActive, icon
+// (file, optional — omit it to keep the currently-uploaded icon).
+export async function updateListingFeature(featureId, { title, description, isActive, iconFile } = {}) {
     try {
-        const { data } = await api.patch(`/brandFeatures/${featureId}/refresh`);
+        if (!featureId) throw new Error('featureId is required');
+
+        const formData = new FormData();
+        if (title !== undefined) formData.append('title', title);
+        if (description !== undefined) formData.append('description', description);
+        if (isActive !== undefined) formData.append('isActive', String(!!isActive));
+        if (iconFile) formData.append('icon', iconFile);
+
+        // See updateBrandDetails's comment — no explicit Content-Type header.
+        const { data } = await api.put(`/brandFeatures/update/${featureId}`, formData);
         return data;
     } catch (error) {
         handleError(error);
@@ -303,10 +314,12 @@ export async function refreshListingFeature(featureId) {
 }
 
 // ── Delete a Brand Feature ────────────────────────────────────
-// NOTE: confirm exact path from Postman — placeholder pattern below.
+// DELETE {{TryDood2.0BaseUrl}}/brandFeatures/delete/:id
+// Confirmed from Postman.
 export async function deleteListingFeature(featureId) {
     try {
-        const { data } = await api.delete(`/brandFeatures/${featureId}/delete`);
+        if (!featureId) throw new Error('featureId is required');
+        const { data } = await api.delete(`/brandFeatures/delete/${featureId}`);
         return data;
     } catch (error) {
         handleError(error);
@@ -376,12 +389,14 @@ export async function getShowcaseSectionById(sectionId) {
 }
 
 // ── Update Section (title, description, sortOrder, sectionType, visibility) ──
-// PATCH {{TryDood2.0BaseUrl}}/showcase/section/update/:id/update
-// body: any subset of { title, description, sortOrder, sectionType, isVisible, showVideosInClips, isActive }
-// NOTE: adjust verb (PATCH vs PUT) / path if the real endpoint differs.
+// PUT {{TryDood2.0BaseUrl}}/showcase/section/update/:id   (raw JSON)
+// Confirmed from Postman — every field is optional, send only what changed:
+// { title, description, sortOrder, sectionType, isActive, isVisible,
+//   isShowVideosInClips }.
 export async function updateShowcaseSection(sectionId, patch = {}) {
     try {
-        const { data } = await api.patch(`/showcase/section/update/${sectionId}/update`, patch);
+        if (!sectionId) throw new Error('sectionId is required');
+        const { data } = await api.put(`/showcase/section/update/${sectionId}`, patch);
         return data;
     } catch (error) {
         handleError(error);
@@ -390,11 +405,25 @@ export async function updateShowcaseSection(sectionId, patch = {}) {
 
 // ── Delete Section ───────────────────────────────────────────────
 // DELETE {{TryDood2.0BaseUrl}}/showcase/section/delete/:id
-// NOTE: adjust path if the real endpoint differs. Confirm with backend
-// whether this cascades and deletes the section's media too.
+// Confirmed from Postman.
 export async function deleteShowcaseSection(sectionId) {
     try {
+        if (!sectionId) throw new Error('sectionId is required');
         const { data } = await api.delete(`/showcase/section/delete/${sectionId}`);
+        return data;
+    } catch (error) {
+        handleError(error);
+    }
+}
+
+// ── Reorder Showcase Sections ─────────────────────────────────────
+// PUT {{TryDood2.0BaseUrl}}/showcase/section/reorder   (raw JSON)
+// Confirmed from Postman — body: { sections: [{ id, sortOrder }, ...] }.
+export async function reorderShowcaseSections(sections = []) {
+    try {
+        const { data } = await api.put('/showcase/section/reorder', {
+            sections: sections.map(({ id, sortOrder }) => ({ id, sortOrder })),
+        });
         return data;
     } catch (error) {
         handleError(error);
@@ -451,16 +480,29 @@ export async function addShowcaseMedia(
     }
 }
 
-// ── Update a Media Item's Metadata ──────────────────────────────
-// PATCH {{TryDood2.0BaseUrl}}/showcase/section/:sectionId/media/update/:mediaId
-// body: e.g. { isShowInVideoClips, month, sortOrder }
-// Does NOT replace the underlying file — delete + re-add for that.
-// NOTE: adjust path if the real endpoint differs.
-export async function updateShowcaseMedia(sectionId, mediaId, patch = {}) {
+// ── Replace a Media Item's File ──────────────────────────────────
+// PUT {{TryDood2.0BaseUrl}}/showcase/section/:sectionId/media/replace/:mediaId
+// (multipart/form-data, field: file)
+// Confirmed from Postman — swaps the underlying file for an existing media
+// item in place (keeps its position/sortOrder).
+export async function replaceShowcaseMedia(sectionId, mediaId, file, onUploadProgress) {
     try {
-        const { data } = await api.patch(
-            `/showcase/section/${sectionId}/media/update/${mediaId}`,
-            patch
+        if (!sectionId) throw new Error('sectionId is required');
+        if (!mediaId) throw new Error('mediaId is required');
+        if (!file) throw new Error('file is required');
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        // See updateBrandDetails's comment — no explicit Content-Type header.
+        const { data } = await api.put(
+            `/showcase/section/${sectionId}/media/replace/${mediaId}`,
+            formData,
+            {
+                onUploadProgress: onUploadProgress
+                    ? (evt) => onUploadProgress(Math.round((evt.loaded * 100) / (evt.total || 1)))
+                    : undefined,
+            }
         );
         return data;
     } catch (error) {
@@ -470,12 +512,30 @@ export async function updateShowcaseMedia(sectionId, mediaId, patch = {}) {
 
 // ── Delete a Media Item ──────────────────────────────────────────
 // DELETE {{TryDood2.0BaseUrl}}/showcase/section/:sectionId/media/delete/:mediaId
-// NOTE: adjust path if the real endpoint differs.
+// Confirmed from Postman.
 export async function deleteShowcaseMedia(sectionId, mediaId) {
     try {
+        if (!sectionId) throw new Error('sectionId is required');
+        if (!mediaId) throw new Error('mediaId is required');
         const { data } = await api.delete(
             `/showcase/section/${sectionId}/media/delete/${mediaId}`
         );
+        return data;
+    } catch (error) {
+        handleError(error);
+    }
+}
+
+// ── Reorder Media within a Section ────────────────────────────────
+// PUT {{TryDood2.0BaseUrl}}/showcase/section/:sectionId/media/reorder
+// (raw JSON) — body: { medias: [{ id, sortOrder }, ...] }.
+// Confirmed from Postman.
+export async function reorderShowcaseMedia(sectionId, medias = []) {
+    try {
+        if (!sectionId) throw new Error('sectionId is required');
+        const { data } = await api.put(`/showcase/section/${sectionId}/media/reorder`, {
+            medias: medias.map(({ id, sortOrder }) => ({ id, sortOrder })),
+        });
         return data;
     } catch (error) {
         handleError(error);

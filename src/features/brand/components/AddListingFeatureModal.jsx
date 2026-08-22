@@ -1,15 +1,20 @@
 import React, { useState } from "react";
-import { X, Plus } from "lucide-react";
+import { X, Plus, Pencil } from "lucide-react";
 
 /**
  * AddListingFeatureModal
- * Form for POST /brandFeatures/add — title, description, isActive toggle,
- * and an icon (image or video) file upload with a live preview.
+ * Shared form for both:
+ *  - POST /brandFeatures/add (mode="add", default) — icon is required.
+ *  - PUT /brandFeatures/update/:id (mode="edit", pass `feature`) — icon is
+ *    optional; leaving it unset keeps the currently-uploaded icon.
+ * Fields: title, description, isActive toggle, icon (image or video) file
+ * upload with a live preview.
  */
-const AddListingFeatureModal = ({ onClose, onSubmit }) => {
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [isActive, setIsActive] = useState(true);
+const AddListingFeatureModal = ({ mode = "add", feature = null, onClose, onSubmit }) => {
+  const isEdit = mode === "edit";
+  const [title, setTitle] = useState(feature?.lfName || "");
+  const [description, setDescription] = useState(feature?.description || "");
+  const [isActive, setIsActive] = useState(feature?.isActive ?? true);
   const [iconFile, setIconFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -30,7 +35,7 @@ const AddListingFeatureModal = ({ onClose, onSubmit }) => {
       setFormError("Title is required.");
       return;
     }
-    if (!iconFile) {
+    if (!isEdit && !iconFile) {
       setFormError("Please select an icon image or video.");
       return;
     }
@@ -40,13 +45,15 @@ const AddListingFeatureModal = ({ onClose, onSubmit }) => {
       await onSubmit({ title: title.trim(), description: description.trim(), isActive, iconFile });
       onClose();
     } catch (err) {
-      setFormError(err.message || "Failed to add feature.");
+      setFormError(err.message || `Failed to ${isEdit ? "update" : "add"} feature.`);
     } finally {
       setSubmitting(false);
     }
   };
 
   const isVideoPreview = iconFile?.type?.startsWith("video/");
+  const currentPreviewUrl = previewUrl || (isEdit ? feature?.iconUrl : null);
+  const isVideoCurrentIcon = !previewUrl && isEdit && /\.(mp4|webm|mov|ogg)(\?|$)/i.test(feature?.iconUrl || "");
 
   return (
     <div
@@ -60,10 +67,14 @@ const AddListingFeatureModal = ({ onClose, onSubmit }) => {
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center flex-shrink-0">
-              <Plus size={18} className="text-emerald-500" />
+              {isEdit ? (
+                <Pencil size={18} className="text-emerald-500" />
+              ) : (
+                <Plus size={18} className="text-emerald-500" />
+              )}
             </div>
             <h3 className="text-sm font-bold text-gray-900">
-              Add Listing Feature
+              {isEdit ? "Edit Listing Feature" : "Add Listing Feature"}
             </h3>
           </div>
           <button
@@ -109,7 +120,7 @@ const AddListingFeatureModal = ({ onClose, onSubmit }) => {
 
           <div>
             <label className="mb-1 block text-xs font-medium text-gray-600">
-              Icon (image or video)
+              Icon (image or video){isEdit && " — leave empty to keep the current one"}
             </label>
             <input
               type="file"
@@ -117,18 +128,32 @@ const AddListingFeatureModal = ({ onClose, onSubmit }) => {
               onChange={handleFileChange}
               className="w-full text-sm text-gray-600 file:mr-3 file:rounded-xl file:border-0 file:bg-emerald-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-emerald-700 hover:file:bg-emerald-100"
             />
-            {previewUrl && (
+            {currentPreviewUrl && (
               <div className="mt-2">
-                {isVideoPreview ? (
+                {previewUrl ? (
+                  isVideoPreview ? (
+                    <video
+                      src={currentPreviewUrl}
+                      className="h-20 w-20 rounded-xl border border-gray-100 object-cover"
+                      muted
+                    />
+                  ) : (
+                    <img
+                      src={currentPreviewUrl}
+                      alt="Preview"
+                      className="h-20 w-20 rounded-xl border border-gray-100 object-contain"
+                    />
+                  )
+                ) : isVideoCurrentIcon ? (
                   <video
-                    src={previewUrl}
+                    src={currentPreviewUrl}
                     className="h-20 w-20 rounded-xl border border-gray-100 object-cover"
                     muted
                   />
                 ) : (
                   <img
-                    src={previewUrl}
-                    alt="Preview"
+                    src={currentPreviewUrl}
+                    alt="Current icon"
                     className="h-20 w-20 rounded-xl border border-gray-100 object-contain"
                   />
                 )}
@@ -162,7 +187,7 @@ const AddListingFeatureModal = ({ onClose, onSubmit }) => {
               disabled={submitting}
               className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-bold text-white shadow-sm shadow-emerald-100 transition-all duration-200 hover:bg-emerald-600 active:scale-[0.97] disabled:bg-gray-100 disabled:text-gray-300 disabled:shadow-none disabled:cursor-not-allowed disabled:active:scale-100"
             >
-              {submitting ? "Adding…" : "Add Feature"}
+              {submitting ? (isEdit ? "Updating…" : "Adding…") : isEdit ? "Update Feature" : "Add Feature"}
             </button>
           </div>
         </form>

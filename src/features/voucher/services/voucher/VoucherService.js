@@ -67,12 +67,24 @@ function buildVoucherFormData({
     offers = [],
     images = [],
     existingImageUrls = [], // NOTE: not confirmed from Postman — createVoucher never sends this today
+    bannerType,
+    bannerImage,
+    // NOTE: only bannerType + bannerImage were confirmed via Postman on
+    // create — bannerVideo/bannerGif are sent here for symmetry with the
+    // dedicated banner endpoint's contract (same 4 fields), since the add
+    // form now offers all three banner types up front.
+    bannerVideo,
+    bannerGif,
 } = {}) {
     const formData = new FormData();
 
     if (brandId) formData.append('brandId', brandId);
     if (name !== undefined) formData.append('name', name);
     if (description !== undefined) formData.append('description', description);
+    if (bannerType) formData.append('bannerType', bannerType);
+    if (bannerImage) formData.append('bannerImage', bannerImage);
+    if (bannerVideo) formData.append('bannerVideo', bannerVideo);
+    if (bannerGif) formData.append('bannerGif', bannerGif);
 
     appendArrayField(formData, 'tags', tags);
 
@@ -343,6 +355,36 @@ export async function updateVoucher(voucherId, patch, onUploadProgress) {
     }
 }
 
+// ── Update Voucher Banner (dedicated endpoint) ───────────────────
+// POST {{TryDood2.0BaseUrl}}/vouchers/:id/banner   (multipart/form-data)
+// Confirmed from Postman — lets a vendor change just the banner of an
+// already-created voucher without resending the whole form. bannerType is
+// one of IMAGE/VIDEO/GIF; bannerImage is a File, bannerVideo/bannerGif are
+// plain URL strings.
+function buildVoucherBannerFormData({ bannerType, bannerImage, bannerVideo, bannerGif } = {}) {
+    const formData = new FormData();
+    if (bannerType) formData.append('bannerType', bannerType);
+    if (bannerImage) formData.append('bannerImage', bannerImage);
+    if (bannerVideo) formData.append('bannerVideo', bannerVideo);
+    if (bannerGif) formData.append('bannerGif', bannerGif);
+    return formData;
+}
+
+export async function updateVoucherBanner(voucherId, { bannerType, bannerImage, bannerVideo, bannerGif } = {}, onUploadProgress) {
+    try {
+        if (!voucherId) throw new Error('voucherId is required');
+        const formData = buildVoucherBannerFormData({ bannerType, bannerImage, bannerVideo, bannerGif });
+        const { data } = await api.post(`/vouchers/${voucherId}/banner`, formData, {
+            onUploadProgress: onUploadProgress
+                ? (evt) => onUploadProgress(Math.round((evt.loaded * 100) / (evt.total || 1)))
+                : undefined,
+        });
+        return data;
+    } catch (error) {
+        handleError(error);
+    }
+}
+
 // ── Lightweight status patch (e.g. draft → published, or isActive) ──
 // PATCH {{TryDood2.0BaseUrl}}/vouchers/:id/update
 // Use this instead of updateVoucher() when you're only flipping a flag
@@ -418,6 +460,24 @@ export async function deleteVoucherImage(voucherId, imageId) {
         if (!voucherId) throw new Error('voucherId is required');
         if (!imageId) throw new Error('imageId is required');
         const { data } = await api.delete(`/vouchers/${voucherId}/images/${imageId}/delete`);
+        return data;
+    } catch (error) {
+        handleError(error);
+    }
+}
+
+// ── Delete Voucher Banner ────────────────────────────────────────
+// POST {{TryDood2.0BaseUrl}}/vouchers/:id/banner   (multipart/form-data)
+// There's no separate delete endpoint — confirmed the banner only has the
+// one "set" route (same as updateVoucherBanner above). Deleting reuses it,
+// sending an explicit empty bannerType and nothing else to tell the
+// backend to clear the banner.
+export async function deleteVoucherBanner(voucherId) {
+    try {
+        if (!voucherId) throw new Error('voucherId is required');
+        const formData = new FormData();
+        formData.append('bannerType', '');
+        const { data } = await api.post(`/vouchers/${voucherId}/banner`, formData);
         return data;
     } catch (error) {
         handleError(error);
