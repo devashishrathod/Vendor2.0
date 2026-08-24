@@ -417,11 +417,15 @@ export async function deleteShowcaseSection(sectionId) {
 }
 
 // ── Reorder Showcase Sections ─────────────────────────────────────
-// PUT {{TryDood2.0BaseUrl}}/showcase/section/reorder   (raw JSON)
-// Confirmed from Postman — body: { sections: [{ id, sortOrder }, ...] }.
+// PUT {{TryDood2.0BaseUrl}}/showcase/section/:sectionId/reorder   (raw JSON)
+// Confirmed from Postman — the path id is just one of the sections being
+// reordered (its own id, e.g. the first one in the list); the actual
+// reordering is driven entirely by the body: { sections: [{ id, sortOrder },
+// ...] }, covering every section in the new order.
 export async function reorderShowcaseSections(sections = []) {
     try {
-        const { data } = await api.put('/showcase/section/reorder', {
+        if (!sections.length) throw new Error('sections is required');
+        const { data } = await api.put(`/showcase/section/${sections[0].id}/reorder`, {
             sections: sections.map(({ id, sortOrder }) => ({ id, sortOrder })),
         });
         return data;

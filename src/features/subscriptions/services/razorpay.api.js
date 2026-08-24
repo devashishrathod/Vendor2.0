@@ -14,7 +14,6 @@ import { request } from "@/services/api/client";
  * POST {{TryDood2.0BaseUrl}}/transactions/subscribe/create-order
  *
  * @param {{
- *   brandId: string,          // required
  *   subscriptionId: string,   // required — the plan's _id
  *   email?: string,           // optional
  *   whatsappNumber?: string,  // optional
@@ -24,15 +23,17 @@ import { request } from "@/services/api/client";
  *
  * @example
  * const { data } = await razorpayAPI.createOrder({
- *   brandId,
  *   subscriptionId: plan.id,
  *   email: billingDetails?.email,
  *   whatsappNumber: billingDetails?.phone,
  * });
- * // data.razorpayOrderId, data.amount, data.currency, data.contact, ... are used to open checkout
+ * // Confirmed response shape: data.razorpay.{orderId, amount (paise),
+ * // currency, keyId}, data.transaction._id, plus billingDetails/
+ * // orderSummary/plan/pricing/reused — used to open the Razorpay widget
+ * // (see useRazorpayCheckout.js).
  */
-export const createOrder = ({ brandId, subscriptionId, email, whatsappNumber, amount, currency = "INR" }) => {
-  const payload = { brandId, subscriptionId, currency };
+export const createOrder = ({ subscriptionId, email, whatsappNumber, amount, currency = "INR" }) => {
+  const payload = { subscriptionId, currency };
   if (email) payload.email = email;
   if (whatsappNumber) payload.whatsappNumber = whatsappNumber;
   if (amount !== undefined) payload.amount = amount;
@@ -48,14 +49,14 @@ export const createOrder = ({ brandId, subscriptionId, email, whatsappNumber, am
  *   razorpayPaymentId: string,  // required — from Razorpay checkout response
  *   razorpayOrderId: string,    // required — from Razorpay checkout response
  *   razorpaySignature: string,  // required — from Razorpay checkout response
- *   transactionId: string,      // required — the `_id` returned by createOrder's `data`
+ *   transactionId: string,      // required — createOrder's `data.transaction._id`
  * }} payload
  * @example
  * await razorpayAPI.verifyPayment({
  *   razorpayPaymentId: response.razorpay_payment_id,
  *   razorpayOrderId: response.razorpay_order_id,
  *   razorpaySignature: response.razorpay_signature,
- *   transactionId: order._id, // captured from the createOrder response
+ *   transactionId: order.transaction?._id, // captured from the createOrder response
  * });
  */
 export const verifyPayment = ({

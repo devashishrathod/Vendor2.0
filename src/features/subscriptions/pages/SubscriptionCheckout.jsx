@@ -1,86 +1,82 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useBrand } from "../../../hooks/useBrand";
-import { getPlanById } from "../services/subscriptionApi";
-import { PLANS_BY_ID } from "../constants/plans"; // remove once /api/plans/:id is live
+import { previewCheckout } from "../services/subscriptionApi";
 import TrustBar from "../components/TrustBar";
 import PlanInfo from "../components/PlanInfo";
 import BillingDetailsCard from "../components/BillingDetailsCard";
 import OrderSummary from "../components/OrderSummary";
 
 export default function SubscriptionCheckout() {
-  const { brand, loading: brandLoading } = useBrand();
   const { state } = useLocation();
   const navigate = useNavigate();
 
-  const [plan, setPlan] = useState(state?.plan ?? null);
-  const [planLoading, setPlanLoading] = useState(!state?.plan);
+  // The plan picked on the pricing page only supplies the id to preview —
+  // everything shown on this page (plan details, billing, pricing/GST
+  // breakdown, order summary rows, whether the brand can even proceed)
+  // comes from POST /transactions/subscribe/preview and is rendered as-is,
+  // not recomputed on the frontend.
+  const subscriptionId = state?.plan?.id ?? state?.plan?._id;
 
-  const [billing, setBilling] = useState({
-    brandName: "",
-    address: "",
-    gstin: "",
-    pan: "",
-  });
+  const [preview, setPreview] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Resolve the plan if the page was loaded directly / refreshed and
-  // navigate state is gone. Reads ?planId= from the URL.
+  // Local edits to billing details before paying — starts from the
+  // server's billingDetails, editable via BillingDetailsCard.
+  const [billing, setBilling] = useState(null);
+
+  // Applying/removing a promo code just re-runs the preview with/without
+  // `promoCode` and swaps in whatever the server returns — same as the
+  // initial load, no local discount math.
+  const [applyingPromo, setApplyingPromo] = useState(false);
+  const [promoError, setPromoError] = useState("");
+
   useEffect(() => {
-    if (plan) return;
-
-    const params = new URLSearchParams(window.location.search);
-    const id = params.get("planId");
-
-    if (!id) {
+    if (!subscriptionId) {
       navigate("/subscription", { replace: true });
       return;
     }
 
-    getPlanById(id)
-      .then(setPlan)
-      .catch(() => {
-        // backend not ready yet — fall back to local constants
-        const fallback = PLANS_BY_ID[id];
-        if (fallback) {
-          setPlan(fallback);
-        } else {
-          navigate("/subscription", { replace: true });
-        }
+    previewCheckout(subscriptionId)
+      .then((data) => {
+        setPreview(data);
+        setBilling(data?.billingDetails ?? null);
       })
-      .finally(() => setPlanLoading(false));
-  }, [plan, navigate]);
+      .catch((err) => setError(err.message || "Couldn't load checkout details."))
+      .finally(() => setLoading(false));
+  }, [subscriptionId, navigate]);
 
-  useEffect(() => {
-    if (!brand) return;
+  const handleApplyPromo = async (code) => {
+    setApplyingPromo(true);
+    setPromoError("");
+    try {
+      const data = await previewCheckout(subscriptionId, code);
+      setPreview(data);
+    } catch (err) {
+      setPromoError(err.message || "Couldn't apply that promo code.");
+    } finally {
+      setApplyingPromo(false);
+    }
+  };
 
-    setBilling({
-      brandName: brand.legalBusinessName || brand.brandName || "",
-      address:
-        brand.gst?.address?.location ||
-        [
-          brand.address?.floorNumber,
-          brand.address?.street,
-          brand.address?.city,
-          brand.address?.district,
-          brand.address?.state,
-          brand.address?.pinCode,
-        ]
-          .filter(Boolean)
-          .join(", "),
-      gstin: brand.gst?.gstNumber || brand.gstin || "",
-      pan: brand.pan?.pan || (typeof brand.pan === "string" ? brand.pan : ""),
-      // used only for Razorpay prefill, not shown in BillingDetailsCard
-      email: brand.email || brand.gst?.email || "",
-      phone: brand.phone || brand.mobile || "",
-    });
-  }, [brand]);
+  const handleRemovePromo = async () => {
+    setApplyingPromo(true);
+    setPromoError("");
+    try {
+      const data = await previewCheckout(subscriptionId);
+      setPreview(data);
+    } catch (err) {
+      setPromoError(err.message || "Couldn't remove the promo code.");
+    } finally {
+      setApplyingPromo(false);
+    }
+  };
 
-  if (brandLoading || planLoading || !plan) {
-    return <div>Loading...</div>;
+  if (loading || !preview) {
+    return <div>{error || "Loading..."}</div>;
   }
 
-  const businessName = brand?.gst?.legalName || brand?.brandName;
-  const brandId = brand?._id ?? brand?.id;
+  const businessName = preview.billingDetails?.brandName || preview.brand?.brandName;
 
   return (
     <div className="min-h-screen bg-gray-100 p-4 md:p-8">
@@ -89,15 +85,24 @@ export default function SubscriptionCheckout() {
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-5">
           <div className="flex flex-col gap-4">
-            <PlanInfo plan={plan} />
+            <PlanInfo plan={preview.plan} />
             <BillingDetailsCard details={billing} onSave={setBilling} />
           </div>
 
           <OrderSummary
-            plan={plan}
-            brandId={brandId}
+            subscriptionId={subscriptionId}
+            orderSummary={preview.orderSummary}
+            pricing={preview.pricing}
+            promo={preview.promo}
+            canProceed={preview.canProceed}
+            blockedReason={preview.blockedReason}
+            notices={preview.notices}
             businessName={businessName}
             billingDetails={billing}
+            onApplyPromo={handleApplyPromo}
+            onRemovePromo={handleRemovePromo}
+            applyingPromo={applyingPromo}
+            promoError={promoError}
           />
         </div>
       </div>

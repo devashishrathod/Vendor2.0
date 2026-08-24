@@ -53,14 +53,13 @@ export function useRazorpayCheckout() {
 
   /**
    * @param {{
-   *   brandId: string,
    *   subscriptionId: string,          // plan._id
    *   businessDetails?: { brandName?: string, email?: string, phone?: string },
    *   onSuccess?: (order: object) => void,   // receives the MERGED order object
    *   onFailure?: (err: Error) => void,
    * }} args
    */
-  const pay = useCallback(async ({ brandId, subscriptionId, businessDetails = {}, onSuccess, onFailure }) => {
+  const pay = useCallback(async ({ subscriptionId, businessDetails = {}, onSuccess, onFailure }) => {
     setError("");
     setProcessing(true);
     try {
@@ -68,36 +67,46 @@ export function useRazorpayCheckout() {
 
       // 1. Create the order on our backend
       const orderRes = await razorpayAPI.createOrder({
-        brandId,
         subscriptionId,
         email: businessDetails.email,
         whatsappNumber: businessDetails.phone,
       });
       console.log("Create Order Response:", orderRes);
 
+      // Confirmed shape: { razorpay: { orderId, amount (paise), currency,
+      // keyId }, transaction: { _id, ... }, billingDetails, orderSummary,
+      // plan, pricing, reused }. There's no top-level razorpayOrderId/
+      // amount/contact/_id — those were guessed before anyone had seen a
+      // real response.
       const order = orderRes?.data;
-      if (!order?.razorpayOrderId) {
+      const razorpayOrder = order?.razorpay;
+      if (!razorpayOrder?.orderId) {
         throw new Error("Could not create payment order. Please try again.");
       }
       console.log("Order Data:", order);
 
+      // WelcomePage still reads a flat `orderData.amount` in rupees —
+      // razorpay.amount comes back in paise, so derive that once here
+      // rather than touching every downstream consumer.
+      const orderForUi = { ...order, amount: razorpayOrder.amount / 100 };
+
       // Store it locally right away — before the Razorpay widget even opens.
       // WelcomePage can use this from the very first render if needed.
-      setOrderData(order);
-      persistOrder(order);
+      setOrderData(orderForUi);
+      persistOrder(orderForUi);
 
       // 2. Open the Razorpay checkout widget
       return await new Promise((resolve, reject) => {
         const rzp = new window.Razorpay({
-          key: import.meta.env.VITE_RAZORPAY_KEY_ID,
-          amount: order.amount * 100, // paise
-          currency: order.currency || "INR",
+          key: razorpayOrder.keyId || import.meta.env.VITE_RAZORPAY_KEY_ID,
+          amount: razorpayOrder.amount, // already paise — don't multiply again
+          currency: razorpayOrder.currency || "INR",
           name: businessDetails.brandName || "Trydood",
           description: "Subscription payment",
-          order_id: order.razorpayOrderId,
+          order_id: razorpayOrder.orderId,
           prefill: {
             email: businessDetails.email,
-            contact: order.contact || businessDetails.phone,
+            contact: businessDetails.phone,
           },
           theme: { color: "#09B285" },
           handler: async (response) => {
@@ -107,15 +116,15 @@ export function useRazorpayCheckout() {
                 razorpayPaymentId: response.razorpay_payment_id,
                 razorpayOrderId: response.razorpay_order_id,
                 razorpaySignature: response.razorpay_signature,
-                transactionId: order._id,
+                transactionId: order.transaction?._id,
               });
               console.log("Verify Payment Response:", verifyRes);
 
               // Merge, don't replace: keep every field from the original
-              // create-order object (amount, invoiceId, contact, ...) and
+              // create-order object (amount, billingDetails, ...) and
               // layer in whatever verify-transaction confirms changed
               // (status, paidAmount, verified, etc.).
-              const merged = { ...order, ...(verifyRes?.data || {}) };
+              const merged = { ...orderForUi, ...(verifyRes?.data || {}) };
 
               setOrderData(merged);
               persistOrder(merged);

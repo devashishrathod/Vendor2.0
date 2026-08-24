@@ -2,12 +2,6 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useBrand } from "../../../hooks/useBrand";
 
-const DEFAULT_PLAN = {
-  name: "Basic Plan",
-  originalPrice: 4000,
-  igstRate: 0.18,
-};
-
 const CONFETTI_COLORS = [
   "#f472b6", "#818cf8", "#34d399", "#fb923c", "#facc15",
   "#60a5fa", "#a78bfa", "#f87171", "#2dd4bf",
@@ -54,19 +48,17 @@ function ChevronIcon({ open }) {
   );
 }
 
-function PlanSummaryCard({ planName, billValue, originalPrice, igstRate, defaultOpen = false }) {
+// Renders the real POST /transactions/subscribe/create-order response's
+// `orderSummary` (same shape as the checkout preview's) as-is — no local
+// GST/discount math here. `strikePrice` (the plan's own pre-discount
+// price, when the backend sets one) overrides the "Original Price" row's
+// display; otherwise that row already shows the real list price.
+function PlanSummaryCard({ planName, orderSummary, strikePrice, defaultOpen = false }) {
   const [open, setOpen] = useState(defaultOpen);
 
-  const igst = parseFloat((billValue * igstRate).toFixed(2));
-  const trydoodDiscount = parseFloat(igst.toFixed(2));
-  const totalPayable = parseFloat((billValue + igst - trydoodDiscount).toFixed(2));
-
-  const rows = [
-    { label: "Original Price", value: fmt(originalPrice), accent: false },
-    { label: "Bill Value", value: fmt(billValue), accent: false },
-    { label: `IGST @ ${(igstRate * 100).toFixed(2)}%`, value: fmt(igst), accent: false },
-    { label: "Trydood Discount", value: `-${fmt(trydoodDiscount)}`, accent: true },
-  ];
+  const rows = orderSummary?.rows ?? [];
+  const payable = orderSummary?.payable;
+  if (rows.length === 0) return null;
 
   return (
     <div className="border border-gray-200 rounded-xl overflow-hidden mb-6 bg-white">
@@ -81,18 +73,29 @@ function PlanSummaryCard({ planName, billValue, originalPrice, igstRate, default
 
       {open && (
         <div className="px-5 py-4 space-y-3">
-          {rows.map((row) => (
-            <div key={row.label} className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">{row.label}</span>
-              <span className={`text-sm font-semibold ${row.accent ? "text-teal-600" : "text-gray-800"}`}>
-                {row.value}
-              </span>
+          {rows.map((row) => {
+            const isOriginal = row.key === "ORIGINAL_PRICE";
+            const isDiscount = /discount/i.test(row.label || "");
+            const value = isOriginal && strikePrice != null ? fmt(strikePrice) : row.display;
+            return (
+              <div key={row.key} className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">{row.label}</span>
+                <span
+                  className={`text-sm font-semibold ${
+                    isDiscount ? "text-teal-600" : isOriginal ? "text-gray-400 line-through" : "text-gray-800"
+                  }`}
+                >
+                  {value}
+                </span>
+              </div>
+            );
+          })}
+          {payable && (
+            <div className="flex items-center justify-between pt-2 border-t border-dashed border-gray-200">
+              <span className="text-sm font-bold text-gray-900">{payable.label || "Total Paid"}</span>
+              <span className="text-base font-extrabold text-gray-900">{payable.display}</span>
             </div>
-          ))}
-          <div className="flex items-center justify-between pt-2 border-t border-dashed border-gray-200">
-            <span className="text-sm font-bold text-gray-900">Total Paid</span>
-            <span className="text-base font-extrabold text-gray-900">{fmt(totalPayable)}</span>
-          </div>
+          )}
         </div>
       )}
     </div>
@@ -118,7 +121,9 @@ export default function WelcomePage({ orderData = null, asModal = true, onClose 
     panNo: brand?.pan?.pan || "—",
   };
 
-  const billValue = orderData?.amount ?? 1999;
+  const planName = orderData?.plan?.name || "—";
+  const strikePrice = orderData?.plan?.strikePrice;
+  const orderSummary = orderData?.orderSummary;
 
   const handleAddListing = () => {
     if (asModal && onClose) onClose();
@@ -231,10 +236,9 @@ export default function WelcomePage({ orderData = null, asModal = true, onClose 
             </div>
 
             <PlanSummaryCard
-              planName={DEFAULT_PLAN.name}
-              billValue={billValue}
-              originalPrice={DEFAULT_PLAN.originalPrice}
-              igstRate={DEFAULT_PLAN.igstRate}
+              planName={planName}
+              orderSummary={orderSummary}
+              strikePrice={strikePrice}
               defaultOpen={asModal}
             />
 

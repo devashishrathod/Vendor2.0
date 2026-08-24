@@ -75,5 +75,42 @@ export const getPlanById = async (id) => {
   return plan;
 };
 
-const subscriptionAPI = { getAll, getPlanById };
+/**
+ * Get the full checkout preview for a subscription plan — pricing/GST
+ * breakdown, ready-to-render order summary rows, billing details, the
+ * validity window, and whether the brand can even proceed — all computed
+ * server-side so the checkout page doesn't need to recompute any of it.
+ * POST /transactions/subscribe/preview
+ * body: { subscriptionId }
+ *
+ * Response shape (data): { brand, plan, action, currentPlan, validity,
+ *   billingDetails, pricing, orderSummary, limits, promo, canProceed,
+ *   blockedReason, notices }
+ *
+ * Passing `promoCode` re-runs the same preview with that code applied —
+ * the response's `pricing.promoCode`/`promoDiscount` and `orderSummary`
+ * reflect the discount, and `promo.applied` carries whatever the backend
+ * confirmed about it. Omit `promoCode` (or pass "") to clear one already
+ * applied.
+ *
+ * @param {string} subscriptionId - the plan's _id being purchased
+ * @param {string} [promoCode] - a coupon code to apply/re-validate
+ * @returns {Promise<object>} the raw `data` object above, used as-is
+ * @example
+ * const preview = await subscriptionAPI.previewCheckout(plan.id);
+ * const withPromo = await subscriptionAPI.previewCheckout(plan.id, "WELCOME10");
+ */
+export const previewCheckout = async (subscriptionId, promoCode) => {
+  const body = { subscriptionId };
+  if (promoCode) body.promoCode = promoCode;
+  const res = await request(
+    "/transactions/subscribe/preview",
+    "POST",
+    body,
+    true
+  );
+  return unwrap(res);
+};
+
+const subscriptionAPI = { getAll, getPlanById, previewCheckout };
 export default subscriptionAPI;
