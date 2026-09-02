@@ -98,7 +98,7 @@ export function useWhatsappOtp({ brandId, brandWhatsappNumber, isFirstOutlet } =
 
   // ── First send (Case 3 — no shell exists yet): create the subBrand
   // shell + trigger the OTP. ─────────────────────────────────────────
-  const sendOtp = async () => {
+  const sendOtp = async (outletType) => {
     if (!isValidPhone(outletWhatsapp)) return;
     setOtpSending(true);
     setOtpError("");
@@ -106,6 +106,7 @@ export function useWhatsappOtp({ brandId, brandWhatsappNumber, isFirstOutlet } =
       const res = await sendOutletWhatsappOtp({
         brandId,
         whatsappNumber: outletWhatsapp,
+        outletType,
         isFirstOutlet,
       });
       const created = res?.data ?? res;

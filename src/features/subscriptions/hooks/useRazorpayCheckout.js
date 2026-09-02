@@ -55,11 +55,12 @@ export function useRazorpayCheckout() {
    * @param {{
    *   subscriptionId: string,          // plan._id
    *   businessDetails?: { brandName?: string, email?: string, phone?: string },
+   *   promoCode?: string,              // only pass this when the vendor actually applied one at checkout
    *   onSuccess?: (order: object) => void,   // receives the MERGED order object
    *   onFailure?: (err: Error) => void,
    * }} args
    */
-  const pay = useCallback(async ({ subscriptionId, businessDetails = {}, onSuccess, onFailure }) => {
+  const pay = useCallback(async ({ subscriptionId, businessDetails = {}, promoCode, onSuccess, onFailure }) => {
     setError("");
     setProcessing(true);
     try {
@@ -70,6 +71,7 @@ export function useRazorpayCheckout() {
         subscriptionId,
         email: businessDetails.email,
         whatsappNumber: businessDetails.phone,
+        promoCode,
       });
       console.log("Create Order Response:", orderRes);
 

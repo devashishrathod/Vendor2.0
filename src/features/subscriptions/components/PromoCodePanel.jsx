@@ -10,8 +10,8 @@ import { useState } from "react";
  * code + a Remove control directly under that discount row instead of
  * here — see SummaryRow's `sub` prop.
  */
-export default function PromoCodePanel({ onApply, applying, error }) {
-  const [open, setOpen] = useState(false);
+export default function PromoCodePanel({ onApply, applying, error, initialOpen = false }) {
+  const [open, setOpen] = useState(initialOpen);
   const [code, setCode] = useState("");
 
   const handleApply = () => {

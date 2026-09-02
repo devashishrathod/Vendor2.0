@@ -80,9 +80,10 @@ export async function verifyOtpWhatsapp({ whatsappNumber, otp, role = 'SUB_VENDO
 // Working Hours payload) will silently send the wrong id — the request
 // won't necessarily error, it'll just attach hours to nothing or to the
 // wrong record.
-export async function signUpSubBrandWithWhatsapp({ brandId, whatsappNumber, isFirstOutlet } = {}) {
+export async function signUpSubBrandWithWhatsapp({ brandId, whatsappNumber, outletType, isFirstOutlet } = {}) {
     try {
         const body = { brandId, whatsappNumber };
+        if (outletType) body.outletType = outletType;
         if (isFirstOutlet) body.isFirstOutlet = true;
         const { data } = await api.post('/subBrands/signUp-with-whatsapp', body);
         return data;
@@ -100,8 +101,8 @@ export async function signUpSubBrandWithWhatsapp({ brandId, whatsappNumber, isFi
 // Return shape: { success, message, data: { _id /* user id, NOT the outlet */, subBrandId /* the real outlet id */, ... } }
 // Callers must read res.data.subBrandId, never res.data._id, when they
 // need the outlet's id for updateSubBrand / upsertWorkHours.
-export async function sendOutletWhatsappOtp({ brandId, whatsappNumber, isFirstOutlet } = {}) {
-    const subBrandRes = await signUpSubBrandWithWhatsapp({ brandId, whatsappNumber, isFirstOutlet });
+export async function sendOutletWhatsappOtp({ brandId, whatsappNumber, outletType, isFirstOutlet } = {}) {
+    const subBrandRes = await signUpSubBrandWithWhatsapp({ brandId, whatsappNumber, outletType, isFirstOutlet });
     await loginOrSignUpWithWhatsapp({ whatsappNumber });
     return subBrandRes;
 }
@@ -211,7 +212,11 @@ export async function upsertWorkHours({ brandId, subBrandId, hours } = {}) {
 // ── Update a Brand ──────────────────────────────────────────────
 // PUT {{TryDood2.0BaseUrl}}/brands/update?brandId=:brandId
 // multipart/form-data: logo(file), isOnboarding, subCategoryId,
-// brandName, email, joinedDate, description, isActive
+// brandName, email, joinedDate, description
+// ⚠️ isActive is NOT accepted here anymore — backend: "isActive is not
+// settable here. Use PUT /brands/admin/:brandId/status" (admin-only,
+// controls the vendor's account; hideFromCustomers is the separate
+// customer-visibility flag). Sending it makes the whole call fail.
 export async function updateBrandDetails(brandId, brandPayload = {}, logoFile = null) {
     try {
         const formData = new FormData();
@@ -309,6 +314,25 @@ export async function getBrandById(brandId) {
         return data;
     } catch (error) {
         console.error('[brandApi] getBrandById ✗ FAILED', error?.response?.data || error);
+        handleError(error);
+    }
+}
+
+// ── Get Brand Verification History ────────────────────────────────
+// GET {{TryDood2.0BaseUrl}}/brands/verifications/history?brandId=:brandId&page=&limit=
+// Confirmed from Postman — replaces the old GET /brands/onboarding/
+// system-verify one-shot check on the Under Review page. Each entry:
+// { _id, brandId, action, performedByType, attemptNumber, previousStatus,
+//   newStatus, reason, createdAt, brand }. Response envelope: { success,
+// message, data: { total, totalPages, page, limit, data: [...] } }.
+export async function getBrandVerificationHistory({ brandId, page = 1, limit = 20 } = {}) {
+    if (!brandId) return null;
+    try {
+        const { data } = await api.get('/brands/verifications/history', {
+            params: { brandId, page, limit },
+        });
+        return data;
+    } catch (error) {
         handleError(error);
     }
 }

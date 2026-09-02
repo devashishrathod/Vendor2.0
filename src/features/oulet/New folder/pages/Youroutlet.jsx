@@ -1,23 +1,57 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  Check,
+  Ticket,
+  CalendarDays,
+  ArrowRight,
+  PartyPopper,
+  Sparkle,
+  BadgeCheck,
+  TrendingUp,
+  ShieldCheck,
+  Headset,
+  ChevronRight,
+} from "lucide-react";
 import logo1 from "@/assets/Logo1.jpg";
 import ErrorToast from "@/components/common/ErrorToast";
+import SuccessToast from "@/components/common/SuccessToast";
+
+// Scattered, gently-twinkling sparkles/confetti for the "approved" hero
+// below — a settled/celebratory feel rather than actively falling pieces.
+const REVIEW_CONFETTI_COLORS = ["#f472b6", "#818cf8", "#34d399", "#fb923c", "#facc15", "#60a5fa"];
+const REVIEW_CONFETTI_ITEMS = Array.from({ length: 18 }, (_, i) => ({
+  id: i,
+  color: REVIEW_CONFETTI_COLORS[i % REVIEW_CONFETTI_COLORS.length],
+  left: Math.random() * 100,
+  top: Math.random() * 90,
+  size: Math.random() * 8 + 6,
+  duration: Math.random() * 2 + 2,
+  delay: Math.random() * 3,
+  rotate: Math.random() * 360,
+  opacity: Math.random() * 0.4 + 0.4,
+  isSparkle: Math.random() > 0.5,
+}));
 
 import { useOnboardingStore } from "@/features/onboarding/store/onboardingStore";
 import { useAuthStore } from "@/features/onboarding/store/authStore";
-import { getBrandById } from "../services/brandOutletApi"; // ← path apne project ke hisaab se adjust karo
+import { getBrandById, getBrandVerificationHistory, updateBrandDetails } from "../services/brandOutletApi"; // ← path apne project ke hisaab se adjust karo
 import {
-  systemVerify,
   acknowledgeApproval,
+  systemVerify,
   verifyPAN,
   verifyGST,
   verifyBank,
 } from "@/features/onboarding/services/api/verify.api";
 import {
   updateBusinessName,
-  updateRegistrationStatus,
   updateBusinessEntityType,
 } from "@/features/onboarding/services/api/brand.api";
+import {
+  submitVerifiedPanDetails,
+  submitVerifiedGstDetails,
+  submitVerifiedBankDetails,
+} from "@/features/onboarding/services/api/verificationDetails.api";
 import {
   validateBusinessName,
   validatePAN,
@@ -42,9 +76,27 @@ const ENTITY_TYPE_OPTIONS = [
 
 function useSavableField(initialValue, saveFn) {
   const [value, setValue] = useState(initialValue);
+  // The last-known-saved value — compared against `value` to decide
+  // whether the row shows an inert pencil icon (nothing to save) or an
+  // active "Save" button (edited, not yet saved).
+  const [baseline, setBaseline] = useState(initialValue);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
+
+  // Used by the prefill-from-brand effect: sets value AND baseline
+  // together so the field starts clean against the real saved value,
+  // instead of looking "dirty" the instant real data loads.
+  const setPrefilled = useCallback((v) => {
+    setValue(v);
+    setBaseline(v);
+  }, []);
+
+  // Cleared back to empty shows the pencil icon again, not Save — an
+  // empty value is never a real edit worth saving (and would just fail
+  // validation), so it falls back to the inert state instead of looking
+  // like there's a pending change.
+  const isDirty = value !== baseline && String(value ?? "").trim() !== "";
 
   const save = useCallback(async () => {
     setSaving(true);
@@ -52,6 +104,7 @@ function useSavableField(initialValue, saveFn) {
     setSaved(false);
     try {
       await saveFn(value);
+      setBaseline(value);
       setSaved(true);
     } catch (err) {
       setError(err.message || "Something went wrong. Please try again.");
@@ -60,7 +113,7 @@ function useSavableField(initialValue, saveFn) {
     }
   }, [value, saveFn]);
 
-  return { value, setValue, saving, saved, error, save };
+  return { value, setValue, setPrefilled, isDirty, saving, saved, error, save };
 }
 
 function useVerifyField(initialValue, verifyFn, validateFn) {
@@ -89,7 +142,38 @@ function useVerifyField(initialValue, verifyFn, validateFn) {
     }
   }, [value, verifyFn, validateFn]);
 
-  return { value, setValue, verifying, result, error, verify };
+  // Clears the verified result so the field flips back to the editable
+  // input+Verify UI ("Change Details") without touching the typed value.
+  const reset = useCallback(() => {
+    setResult(null);
+    setError("");
+  }, []);
+
+  return { value, setValue, verifying, result, error, verify, reset };
+}
+
+// Generic "call this one API, track saving/error" wrapper for the
+// submitVerified*Details calls below — same shape as useSavableField's
+// save(), just not tied to a text field.
+function useSubmitAction(submitFn) {
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  const run = useCallback(async () => {
+    setSubmitting(true);
+    setError("");
+    try {
+      await submitFn();
+      return true;
+    } catch (err) {
+      setError(err.message || "Something went wrong. Please try again.");
+      return false;
+    } finally {
+      setSubmitting(false);
+    }
+  }, [submitFn]);
+
+  return { submitting, error, run };
 }
 
 // ── Small presentational pieces ──────────────────────────────────────────
@@ -103,34 +187,96 @@ function FieldCard({ title, children }) {
   );
 }
 
+// Collapsible field row for Business Details (PAN/GST/Bank) — header is a
+// single horizontal line (title + summary + chevron); the input/verify
+// content only renders once expanded. Each card has its own border, so
+// stacking them (mb-3) reads as a separated list.
+function AccordionFieldCard({ title, summary, defaultOpen = false, collapseSignal, children }) {
+  const [open, setOpen] = useState(defaultOpen);
+  // Bump collapseSignal (e.g. after a successful "Save Details") to force
+  // this back closed — it goes back to reading like a plain summary row,
+  // the same as before the vendor started editing it.
+  useEffect(() => {
+    if (collapseSignal) setOpen(false);
+  }, [collapseSignal]);
+  return (
+    <div className="bg-white border border-gray-100 rounded-xl mb-3 overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left"
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-xs font-semibold text-gray-700 shrink-0">{title}</span>
+          {summary && <span className="text-xs text-gray-400 truncate">{summary}</span>}
+        </div>
+        <svg
+          className={`w-4 h-4 text-gray-400 shrink-0 transition-transform duration-150 ${open ? "rotate-180" : ""}`}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {open && <div className="px-4 pb-4 pt-1 border-t border-gray-100">{children}</div>}
+    </div>
+  );
+}
+
 const inputBase =
   "flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none transition-colors " +
   "focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100";
 
-function SaveRow({ value, onChange, placeholder, onSave, saving, saved, error, children }) {
+// Just the input (or a custom control via `children`, e.g. a <select>)
+// plus its own error/saved message — no per-field button. Basic Details'
+// three fields share ONE combined save button below them instead (see
+// handleSaveBasicDetails), rather than one button per field.
+function PlainFieldRow({ value, onChange, placeholder, error, saved, children }) {
   return (
     <div>
-      <div className="flex gap-2">
-        {children ?? (
-          <input
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder={placeholder}
-            className={inputBase}
-          />
-        )}
-        <button
-          type="button"
-          onClick={onSave}
-          disabled={saving}
-          className="shrink-0 px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {saving ? "Saving…" : "Save"}
-        </button>
-      </div>
+      {children ?? (
+        <input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className={`${inputBase} w-full`}
+        />
+      )}
       {error && <p className="text-xs text-red-500 mt-1.5">{error}</p>}
       {!error && saved && <p className="text-xs text-emerald-600 mt-1.5">✓ Updated</p>}
     </div>
+  );
+}
+
+// isDirty=true (value changed, not yet saved) shows an active "Save"
+// button. isDirty=false shows an inert pencil icon instead — nothing to
+// save yet, it's just a visual cue that the field is editable.
+function SaveButton({ onSave, saving, isDirty = true, className = "" }) {
+  return (
+    <button
+      type="button"
+      onClick={onSave}
+      disabled={saving || !isDirty}
+      title={isDirty ? "Save changes" : "No changes to save"}
+      className={
+        (isDirty
+          ? "px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          : "w-9 h-9 flex items-center justify-center rounded-lg bg-gray-100 text-gray-400 cursor-not-allowed") +
+        " " + className
+      }
+    >
+      {saving ? (
+        "Saving…"
+      ) : isDirty ? (
+        "Save"
+      ) : (
+        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+        </svg>
+      )}
+    </button>
   );
 }
 
@@ -161,6 +307,61 @@ function VerifyRow({ value, onChange, placeholder, onVerify, verifying, result, 
   );
 }
 
+// Shown once a field's verify() call succeeds — a read-only summary of
+// the verified data (every row the corresponding onboarding wizard step
+// shows, minus the decorative icon badges), a "Change Details" button to
+// go back to the editable input, and a "Save Details" button that POSTs
+// the exact payload the wizard's read-only step would (submitVerified*
+// in verificationDetails.api.js), so this really does persist to the
+// brand record instead of only confirming the value is valid.
+function VerifiedDetailCard({ rows, onChangeDetails, onSave, saving, saveError }) {
+  const visibleRows = rows.filter((r) => r.value && r.value !== "—");
+  return (
+    <div>
+      <div className="inline-flex items-center gap-1.5 rounded-full border bg-emerald-50 border-emerald-200 text-emerald-700 text-[11px] font-semibold px-2.5 py-1 mb-3">
+        <svg className="w-3 h-3 fill-emerald-500" viewBox="0 0 24 24">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1.41 14.08L6.7 12.2l1.41-1.42 2.48 2.49 5.31-5.32 1.41 1.42-6.72 6.71z" />
+        </svg>
+        Verified
+      </div>
+
+      {visibleRows.length > 0 && (
+        <div className="space-y-2 mb-3">
+          {visibleRows.map((r) => (
+            <div key={r.label} className="flex items-start justify-between gap-3">
+              <span className="text-xs text-gray-400 shrink-0">{r.label}</span>
+              <span className="text-xs font-semibold text-gray-800 text-right max-w-[60%] break-words">
+                {r.value}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {saveError && <p className="text-xs text-red-500 mb-2">{saveError}</p>}
+
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={onChangeDetails}
+          disabled={saving}
+          className="flex-1 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 text-xs font-semibold transition-colors disabled:opacity-50"
+        >
+          Change Details
+        </button>
+        <button
+          type="button"
+          onClick={onSave}
+          disabled={saving}
+          className="flex-1 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {saving ? "Saving…" : "Save Details"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function UnderReview() {
   const navigate = useNavigate();
   const { formData } = useOnboardingStore();
@@ -174,28 +375,29 @@ export default function UnderReview() {
   const [error, setError] = useState("");
   const [refreshing, setRefreshing] = useState(false);
 
-  // ── Review status — GET /brands/onboarding/system-verify ────────────
-  // { status, score, flags, remarks } — the closest thing to a status
-  // history this backend exposes today (a single point-in-time result,
-  // not a stored timeline).
-  const [verification, setVerification] = useState(null);
+  // ── Review status — GET /brands/verifications/history?brandId= ──────
+  // A real, ordered history of every admin action taken on this brand's
+  // verification (submit/approve/reject attempts), not just a single
+  // point-in-time check. Empty list = no action taken yet (still pending).
+  const [verificationHistory, setVerificationHistory] = useState([]);
   const [verifyLoading, setVerifyLoading] = useState(true);
-  // Every non-2xx system-verify response (already approved, still waiting
-  // on the admin, not a vendor, account deactivated, brand deleted, no
-  // token, etc.) surfaces here and is shown via ErrorToast below.
+  // Any failed history fetch (auth issues, brand deleted, etc.) surfaces
+  // here and is shown via ErrorToast below.
   const [verifyError, setVerifyError] = useState(null);
 
   const fetchStatus = useCallback(async ({ silent } = {}) => {
+    if (!brandId) return;
     if (!silent) setVerifyLoading(true);
     try {
-      const res = await systemVerify();
-      setVerification(res?.data ?? res);
+      const res = await getBrandVerificationHistory({ brandId });
+      const list = res?.data?.data ?? res?.data ?? [];
+      setVerificationHistory(Array.isArray(list) ? list : []);
     } catch (err) {
       setVerifyError({ status: err.status, message: err.message });
     } finally {
       setVerifyLoading(false);
     }
-  }, []);
+  }, [brandId]);
 
   // ── Fetch brand from /brands/get?brandId=:brandId ──────────────
   const fetchBrand = useCallback(async ({ silent } = {}) => {
@@ -262,17 +464,22 @@ export default function UnderReview() {
     })
     : "—";
 
-  // ── Derived review status ────────────────────────────────────────
-  const reviewStatus = verification?.status;
+  // ── Derived review status — from the most recent verification-history
+  // entry's `action` (e.g. "REJECTED", "APPROVED"). No entries yet (an
+  // empty history) means nothing's been actioned, i.e. still pending.
+  const sortedHistory = [...verificationHistory].sort(
+    (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
+  );
+  const latestEntry = sortedHistory[0] || null;
+  const reviewStatus = latestEntry?.action;
   const isApproved = reviewStatus === "APPROVED";
-  const isPending = !reviewStatus || ["REVIEW", "MANUAL_REVIEW", "PENDING"].includes(reviewStatus);
-  const isRejected = !isApproved && !isPending;
-
-  const statusLabel = isApproved
-    ? "Approved"
-    : isRejected
-      ? "Changes requested"
-      : "Under review";
+  // A revoked brand (brand.isRevoked, confirmed field — separate from the
+  // approve/reject history, since revoke can happen to an already-approved
+  // brand later) gets the exact same "needs correction" treatment as a
+  // rejected one — same banner, same Basic/Business Details correction
+  // panels — rather than a distinct case.
+  const isRejected = reviewStatus === "REJECTED" || !!brand?.isRevoked;
+  const isPending = !isApproved && !isRejected;
 
   // ── Approve → acknowledge → go to dashboard. Only ever called once
   // isApproved is true (the button only renders in that state). ──────
@@ -290,62 +497,166 @@ export default function UnderReview() {
     }
   };
 
-  // ── Basic Details — corrections, shown only when rejected ─────────
-  const businessNameField = useSavableField(formData?.businessName || "", async (value) => {
+  // ── Basic Details — corrections, shown only when rejected. Initial
+  // values start empty and get filled in by the prefill effect below once
+  // the real brand record loads — `formData` (the onboarding wizard's
+  // local draft state) is usually stale/empty by the time a brand reaches
+  // "under review", so it's not a reliable prefill source here.
+  const businessNameField = useSavableField("", async (value) => {
     const err = validateBusinessName(value);
     if (err) throw new Error(err);
     await updateBusinessName({ legalBusinessName: value });
   });
-  const [isRegistered, setIsRegistered] = useState(formData?.isRegistered || "REGISTERED");
-  const [registeredSaving, setRegisteredSaving] = useState(false);
-  const [registeredSaved, setRegisteredSaved] = useState(false);
-  const [registeredError, setRegisteredError] = useState("");
-  const handleSaveRegistered = async () => {
-    setRegisteredSaving(true); setRegisteredError(""); setRegisteredSaved(false);
-    try {
-      await updateRegistrationStatus({ status: isRegistered });
-      setRegisteredSaved(true);
-    } catch (err) {
-      setRegisteredError(err.message || "Something went wrong. Please try again.");
-    } finally {
-      setRegisteredSaving(false);
-    }
-  };
-  const [businessType, setBusinessType] = useState(
-    ENTITY_TYPE_OPTIONS.find((o) => o.id === formData?.businessType)?.id || "pvt_ltd"
-  );
-  const [businessTypeSaving, setBusinessTypeSaving] = useState(false);
+  // Brand short name — separate from the legal business name above, saved
+  // via the generic PUT /brands/update?brandId= endpoint's `brandName`
+  // field (confirmed from Postman), not the onboarding add-basic-details
+  // endpoint businessNameField uses.
+  const brandShortNameField = useSavableField("", async (value) => {
+    await updateBrandDetails(brandId, { brandName: value });
+  });
+  const [businessType, setBusinessType] = useState("pvt_ltd");
+  const [businessTypeBaseline, setBusinessTypeBaseline] = useState("pvt_ltd");
   const [businessTypeSaved, setBusinessTypeSaved] = useState(false);
   const [businessTypeError, setBusinessTypeError] = useState("");
+  const businessTypeDirty = businessType !== businessTypeBaseline;
   const handleSaveBusinessType = async () => {
-    setBusinessTypeSaving(true); setBusinessTypeError(""); setBusinessTypeSaved(false);
+    setBusinessTypeError(""); setBusinessTypeSaved(false);
     try {
       const entityType = ENTITY_TYPE_OPTIONS.find((o) => o.id === businessType)?.entityType;
       await updateBusinessEntityType({ entityType });
+      setBusinessTypeBaseline(businessType);
       setBusinessTypeSaved(true);
     } catch (err) {
       setBusinessTypeError(err.message || "Something went wrong. Please try again.");
+    }
+  };
+
+  // Tracks whether ANYTHING has actually been saved this session — once
+  // true, a "Submit for Review" button appears (rejected case only) that
+  // re-runs system-verify to resubmit the corrected brand for review.
+  const [hasUpdated, setHasUpdated] = useState(false);
+
+  // One combined Save for all of Basic Details instead of a button per
+  // field — only the fields that actually changed get saved; each still
+  // shows its own inline error/✓-Updated message via PlainFieldRow.
+  const [basicSaving, setBasicSaving] = useState(false);
+  const basicDetailsDirty = businessNameField.isDirty || brandShortNameField.isDirty || businessTypeDirty;
+  const handleSaveBasicDetails = async () => {
+    setBasicSaving(true);
+    try {
+      await Promise.all([
+        businessNameField.isDirty ? businessNameField.save() : null,
+        brandShortNameField.isDirty ? brandShortNameField.save() : null,
+        businessTypeDirty ? handleSaveBusinessType() : null,
+      ]);
+      setHasUpdated(true);
     } finally {
-      setBusinessTypeSaving(false);
+      setBasicSaving(false);
     }
   };
 
   // ── Business Details — PAN / GST / Bank re-verify, shown only when
-  // rejected. These call the same verify-pan/verify-gst/verify-bank
-  // endpoints the onboarding wizard uses and show the result inline —
-  // they don't resubmit anything to the brand record (there's no
-  // confirmed endpoint for that outside the onboarding wizard's own
-  // step flow), so use this to confirm corrected details are valid.
-  const panField = useVerifyField(formData?.pan || "", verifyPAN, validatePAN);
-  const gstField = useVerifyField(formData?.gstin || "", verifyGST, (v) => validateGST(v, panField.value));
+  // rejected. Verifying just confirms the corrected value is valid
+  // (verifyPAN/GST/Bank, same as onboarding); once verified, a read-only
+  // VerifiedDetailCard appears and "Save Details" persists it to the
+  // brand record via the exact same payload format + endpoint the
+  // onboarding wizard's read-only step (Step7/9/12) uses — see
+  // verificationDetails.api.js.
+  const panField = useVerifyField("", verifyPAN, validatePAN);
+  const gstField = useVerifyField("", verifyGST, (v) => validateGST(v, panField.value));
   const [bankFields, setBankFields] = useState({
-    accountNumber: formData?.bankAccount || "",
-    ifsc: formData?.bankIfsc || "",
-    accountHolderName: formData?.bankHolderName || "",
+    accountNumber: "",
+    ifsc: "",
+    accountHolderName: "",
   });
   const [bankVerifying, setBankVerifying] = useState(false);
   const [bankResult, setBankResult] = useState(null);
   const [bankError, setBankError] = useState("");
+  const resetBank = () => {
+    setBankResult(null);
+    setBankError("");
+  };
+
+  const [verifySuccessMsg, setVerifySuccessMsg] = useState("");
+  const panSubmit = useSubmitAction(() => submitVerifiedPanDetails(brandId, panField.result));
+  const gstSubmit = useSubmitAction(() => submitVerifiedGstDetails(gstField.result));
+  const bankSubmit = useSubmitAction(() =>
+    submitVerifiedBankDetails(bankResult, { enteredAccountNumber: bankFields.accountNumber })
+  );
+  // Bumped after a successful "Save Details" so the field's
+  // AccordionFieldCard collapses back closed — it goes back to reading
+  // like a plain summary row, same as before the vendor opened it to fix
+  // something, instead of staying pinned open on the Verified card.
+  const [panCollapse, setPanCollapse] = useState(0);
+  const [gstCollapse, setGstCollapse] = useState(0);
+  const [bankCollapse, setBankCollapse] = useState(0);
+  const handleSavePanDetails = async () => {
+    if (await panSubmit.run()) {
+      setVerifySuccessMsg("PAN details saved successfully.");
+      setHasUpdated(true);
+      setPanCollapse((n) => n + 1);
+    }
+  };
+  const handleSaveGstDetails = async () => {
+    if (await gstSubmit.run()) {
+      setVerifySuccessMsg("GST details saved successfully.");
+      setHasUpdated(true);
+      setGstCollapse((n) => n + 1);
+    }
+  };
+  const handleSaveBankDetails = async () => {
+    if (await bankSubmit.run()) {
+      setVerifySuccessMsg("Bank details saved successfully.");
+      setHasUpdated(true);
+      setBankCollapse((n) => n + 1);
+    }
+  };
+
+  // ── Resubmit for review — the "Submit" action after fixing rejected
+  // details. Re-runs the same GET /brands/onboarding/system-verify score
+  // check the onboarding wizard uses, then refreshes both the brand and
+  // the verification history so Status History picks up the new attempt.
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const handleSubmitForReview = async () => {
+    setSubmittingReview(true);
+    try {
+      await systemVerify();
+      setVerifySuccessMsg("Submitted for review.");
+      setHasUpdated(false);
+      await Promise.all([fetchBrand({ silent: true }), fetchStatus({ silent: true })]);
+    } catch (err) {
+      setVerifyError({ status: err.status, message: err.message });
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
+  // ── Prefill Basic/Business Details from the real brand record once it
+  // loads — runs a single time (guarded by prefilledRef) so a later
+  // "Recheck" refetch doesn't clobber whatever the vendor is mid-editing.
+  // NOTE: businessRegistrationStatus/businessEntityType are confirmed as
+  // the field names brand.api.js WRITES — not independently confirmed on
+  // this GET response, but REST APIs normally read back what they wrote.
+  const prefilledRef = useRef(false);
+  useEffect(() => {
+    if (!brand || prefilledRef.current) return;
+    prefilledRef.current = true;
+
+    businessNameField.setPrefilled(brand.legalBusinessName || brand.brandName || "");
+    brandShortNameField.setPrefilled(brand.brandName || "");
+    const prefilledBusinessType =
+      ENTITY_TYPE_OPTIONS.find((o) => o.entityType === brand.businessEntityType)?.id || "pvt_ltd";
+    setBusinessType(prefilledBusinessType);
+    setBusinessTypeBaseline(prefilledBusinessType);
+    panField.setValue(brand.pan?.pan || "");
+    gstField.setValue(brand.gst?.gstNumber || "");
+    setBankFields({
+      accountNumber: brand.bank?.accountNumber || "",
+      ifsc: brand.bank?.ifscCode || "",
+      accountHolderName: brand.bank?.accountHolderName || "",
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [brand]);
   const handleVerifyBank = async () => {
     const errors = validateBankDetails(bankFields);
     if (errors) {
@@ -399,9 +710,13 @@ export default function UnderReview() {
       </nav>
 
       {/* ── Content ── */}
-      <div className="max-w-2xl mx-auto px-6 py-8">
+      <div className="max-w-4xl mx-auto px-6 py-8">
         <h1 className="text-xl font-bold text-gray-900 mb-1">Your Outlet</h1>
-        <p className="text-xs text-gray-400 mb-6">Overview · Showcase your listing outlet</p>
+        <p className="text-xs mb-6 flex items-center gap-1.5">
+          <span className="font-semibold text-emerald-600">Overview</span>
+          <ChevronRight className="w-3 h-3 text-gray-300" />
+          <span className="text-gray-400">Showcase your listing outlet</span>
+        </p>
 
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-5 text-xs text-red-600">
@@ -409,57 +724,278 @@ export default function UnderReview() {
           </div>
         )}
 
-        {/* ── Status History — built from what's actually available:
-            when this was submitted, and the latest system-verify result.
-            There's no backend timeline/audit-log endpoint yet, so this
-            is a 2-entry history, not a full log. Hidden once approved. */}
-        {!isApproved && (
-          <div className="bg-white border border-gray-100 rounded-xl px-4 py-4 mb-5">
-            <p className="text-xs font-bold text-gray-700 uppercase tracking-wide mb-3">
-              Status History
-            </p>
-            <div className="space-y-3">
-              <div className="flex items-start gap-3">
-                <span className="mt-1 w-2 h-2 rounded-full bg-gray-300 shrink-0" />
-                <div>
-                  <p className="text-sm text-gray-700">Submitted for review</p>
-                  <p className="text-xs text-gray-400">{formattedDate}</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <span
-                  className={`mt-1 w-2 h-2 rounded-full shrink-0 ${
-                    isRejected ? "bg-rose-400" : "bg-amber-400"
-                  }`}
-                />
-                <div>
-                  <p className="text-sm text-gray-700">
-                    {verifyLoading ? "Checking current status…" : statusLabel}
-                  </p>
-                  {!verifyLoading && verification?.remarks?.length > 0 && (
-                    <ul className="mt-1 space-y-0.5">
-                      {verification.remarks.map((remark, i) => (
-                        <li key={i} className="text-xs text-gray-400">
-                          {remark}
-                        </li>
-                      ))}
-                    </ul>
+        {/* ── Status History — real timeline from GET /brands/verifications/
+            history: every submit/approve/reject action taken on this
+            brand, oldest first, plus the original submission. A single
+            connecting line runs through every dot so it reads as one
+            continuous timeline instead of a loose list. Hidden once
+            approved. */}
+        {!isApproved && (() => {
+          const timelineItems = [
+            {
+              id: "submitted",
+              dotColor: "bg-gray-300",
+              ringColor: "ring-gray-100",
+              title: "Submitted for review",
+              date: formattedDate,
+            },
+            ...[...sortedHistory].reverse().map((entry) => {
+              const dotColor =
+                entry.action === "REJECTED"
+                  ? "bg-rose-500"
+                  : entry.action === "APPROVED"
+                    ? "bg-emerald-500"
+                    : "bg-amber-400";
+              const ringColor =
+                entry.action === "REJECTED"
+                  ? "ring-rose-100"
+                  : entry.action === "APPROVED"
+                    ? "ring-emerald-100"
+                    : "ring-amber-100";
+              const title =
+                entry.action === "REJECTED"
+                  ? "Changes requested"
+                  : entry.action === "APPROVED"
+                    ? "Approved"
+                    : entry.action || "Status updated";
+              return {
+                id: entry._id,
+                dotColor,
+                ringColor,
+                title:
+                  title +
+                  (entry.attemptNumber > 1 ? ` · Attempt ${entry.attemptNumber}` : "") +
+                  (entry.performedByType ? ` · ${entry.performedByType}` : ""),
+                subtitle: entry.reason,
+                date: entry.createdAt
+                  ? new Date(entry.createdAt).toLocaleString("en-IN", {
+                    day: "numeric", month: "long", year: "numeric",
+                    hour: "2-digit", minute: "2-digit",
+                  })
+                  : "—",
+              };
+            }),
+          ];
+
+          return (
+            <div className="bg-white border border-gray-100 rounded-xl px-4 py-4 mb-5">
+              <p className="text-xs font-bold text-gray-700 uppercase tracking-wide mb-4">
+                Status History
+              </p>
+
+              <div className="relative">
+                <div className="absolute left-[5px] top-2 bottom-2 w-px bg-gray-200" />
+                <div className="space-y-5">
+                  {timelineItems.map((item) => (
+                    <div key={item.id} className="relative flex items-start gap-3">
+                      <span
+                        className={`relative z-10 mt-1 w-2.5 h-2.5 rounded-full shrink-0 ring-4 ${item.dotColor} ${item.ringColor}`}
+                      />
+                      <div className="flex-1 min-w-0 flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-gray-800">{item.title}</p>
+                          {item.subtitle && (
+                            <p className="text-xs text-gray-500 mt-0.5">{item.subtitle}</p>
+                          )}
+                        </div>
+                        <span className="text-[11px] text-gray-400 shrink-0 whitespace-nowrap">
+                          {item.date}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+
+                  {verifyLoading && (
+                    <div className="relative flex items-start gap-3">
+                      <span className="relative z-10 mt-1 w-2.5 h-2.5 rounded-full bg-amber-400 shrink-0 ring-4 ring-amber-100" />
+                      <p className="text-sm text-gray-500">Checking current status…</p>
+                    </div>
                   )}
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Alert banner */}
         {isApproved ? (
-          <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3.5 mb-5">
-            <p className="text-sm font-semibold text-emerald-800 mb-1">
-              🎉 Welcome aboard — your listing is approved!
-            </p>
-            <p className="text-xs text-emerald-700 leading-relaxed">
-              You're all set. Head to your dashboard to start managing your outlet.
-            </p>
+          <div className="relative overflow-hidden rounded-2xl mb-5 bg-white border border-gray-100 shadow-sm px-6 py-10 sm:px-10">
+            <style>{`
+              @keyframes reviewBadgePop {
+                0%   { transform: scale(0.5); opacity: 0; }
+                60%  { transform: scale(1.08); opacity: 1; }
+                100% { transform: scale(1); opacity: 1; }
+              }
+              @keyframes reviewFadeUp {
+                from { opacity: 0; transform: translateY(10px); }
+                to   { opacity: 1; transform: translateY(0); }
+              }
+              @keyframes reviewRingPulse {
+                0%, 100% { box-shadow: 0 0 0 0 rgba(16,185,129,0.25); }
+                50%      { box-shadow: 0 0 0 10px rgba(16,185,129,0.06); }
+              }
+              @keyframes reviewSunburst {
+                0%, 100% { opacity: 0.4; transform: scale(0.92); }
+                50%      { opacity: 1; transform: scale(1); }
+              }
+              @keyframes reviewTwinkle {
+                0%, 100% { opacity: 0.25; transform: scale(0.85); }
+                50%      { opacity: 1; transform: scale(1.1); }
+              }
+            `}</style>
+
+            {/* Scattered sparkles/confetti — decorative, gently twinkling
+                rather than falling, matching a "just landed, settled" feel. */}
+            <div className="pointer-events-none absolute inset-0 overflow-hidden">
+              {REVIEW_CONFETTI_ITEMS.map((item) =>
+                item.isSparkle ? (
+                  <Sparkle
+                    key={item.id}
+                    className="absolute text-emerald-400"
+                    style={{
+                      left: `${item.left}%`,
+                      top: `${item.top}%`,
+                      width: item.size,
+                      height: item.size,
+                      opacity: item.opacity,
+                      animation: `reviewTwinkle ${item.duration}s ease-in-out ${item.delay}s infinite`,
+                    }}
+                    fill="currentColor"
+                  />
+                ) : (
+                  <span
+                    key={item.id}
+                    className="absolute rounded-full"
+                    style={{
+                      left: `${item.left}%`,
+                      top: `${item.top}%`,
+                      width: `${item.size}px`,
+                      height: `${item.size * 0.55}px`,
+                      background: item.color,
+                      opacity: item.opacity,
+                      transform: `rotate(${item.rotate}deg)`,
+                      animation: `reviewTwinkle ${item.duration}s ease-in-out ${item.delay}s infinite`,
+                    }}
+                  />
+                )
+              )}
+            </div>
+
+            <div className="relative flex flex-col items-center text-center gap-3">
+              <div className="relative flex items-center justify-center mb-1">
+                {/* Sunburst rays behind the badge */}
+                <div
+                  className="absolute w-28 h-28"
+                  style={{ animation: "reviewSunburst 2.4s ease-in-out infinite" }}
+                >
+                  {Array.from({ length: 8 }, (_, i) => (
+                    <span
+                      key={i}
+                      className="absolute left-1/2 top-1/2 w-0.5 h-3 bg-emerald-300 rounded-full"
+                      style={{
+                        transform: `rotate(${i * 45}deg) translateY(-52px)`,
+                        transformOrigin: "center",
+                      }}
+                    />
+                  ))}
+                </div>
+                {/* Soft halo */}
+                <div className="absolute w-24 h-24 rounded-full bg-emerald-100" />
+                {/* Checkmark badge */}
+                <div
+                  className="relative w-16 h-16 rounded-full bg-emerald-500 flex items-center justify-center"
+                  style={{ animation: "reviewBadgePop 0.5s cubic-bezier(0.34,1.56,0.64,1) both, reviewRingPulse 2.4s ease-in-out 0.5s infinite" }}
+                >
+                  <Check className="w-8 h-8 text-white" strokeWidth={3} />
+                </div>
+              </div>
+
+              <h2
+                className="text-2xl sm:text-3xl font-bold flex items-center gap-2"
+                style={{ animation: "reviewFadeUp 0.4s 0.15s ease both", opacity: 0 }}
+              >
+                <span className="text-gray-900">You're</span>{" "}
+                <span className="text-emerald-600">approved!</span>{" "}
+                <PartyPopper className="w-6 h-6 sm:w-7 sm:h-7 text-emerald-500" />
+              </h2>
+              <p
+                className="text-sm sm:text-base text-gray-500 max-w-md"
+                style={{ animation: "reviewFadeUp 0.4s 0.25s ease both", opacity: 0 }}
+              >
+                Your listing has been verified and is now live.
+                <br />
+                Head to your dashboard to start managing your outlet.
+              </p>
+            </div>
+
+            <div
+              className="relative mt-7 bg-white rounded-xl border border-gray-100 px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-4"
+              style={{ animation: "reviewFadeUp 0.4s 0.35s ease both", opacity: 0 }}
+            >
+              <div className="flex items-center gap-4 flex-1 min-w-0">
+                <div className="w-12 h-16 flex items-center justify-center overflow-hidden rounded-md bg-gray-50 shrink-0">
+                  <img
+                    src={brandData.logo}
+                    alt="Trydood"
+                    className="w-12 h-16 object-contain"
+                    onError={(e) => {
+                      e.target.style.display = "none";
+                      e.target.nextSibling.style.display = "block";
+                    }}
+                  />
+                  <span className="text-emerald-400 text-xs font-bold hidden">T</span>
+                </div>
+                <div className="flex-1 min-w-0 text-left">
+                  <p className="text-sm font-semibold text-gray-900 truncate">{brandData.companyName}</p>
+                  <p className="text-xs text-gray-400 mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <span className="inline-flex items-center gap-1.5">
+                      <Ticket className="w-3.5 h-3.5 text-emerald-500" /> {brandData.merchantToken}
+                    </span>
+                    <span className="text-gray-200">|</span>
+                    <span className="inline-flex items-center gap-1.5">
+                      <CalendarDays className="w-3.5 h-3.5 text-emerald-500" /> {formattedDate}
+                    </span>
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-col items-start sm:items-end gap-1.5 flex-shrink-0">
+                <button
+                  onClick={handleGoToDashboard}
+                  disabled={acknowledging}
+                  className="px-5 py-2.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100
+                    text-sm font-bold flex items-center justify-center gap-1.5 whitespace-nowrap
+                    transition-all duration-150 active:scale-[0.97] disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {acknowledging ? "Opening…" : "Go to Dashboard"}
+                  {!acknowledging && <ArrowRight className="w-4 h-4" />}
+                </button>
+                {ackError && <p className="text-xs text-rose-500">{ackError}</p>}
+              </div>
+            </div>
+
+            {/* Benefit strip */}
+            <div
+              className="relative mt-7 grid grid-cols-2 sm:grid-cols-4 gap-6"
+              style={{ animation: "reviewFadeUp 0.4s 0.45s ease both", opacity: 0 }}
+            >
+              {[
+                { icon: BadgeCheck, title: "Verified & Live", desc: "Your outlet is now visible to customers." },
+                { icon: TrendingUp, title: "Boost Visibility", desc: "Increase reach and grow your business." },
+                { icon: ShieldCheck, title: "Secure & Trusted", desc: "All details verified for a safe experience." },
+                { icon: Headset, title: "Need Help?", desc: "Our support team is here for you." },
+              ].map(({ icon: Icon, title, desc }) => (
+                <div key={title} className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0">
+                    <Icon className="w-4.5 h-4.5 text-emerald-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-gray-800">{title}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         ) : (
           <div className={`rounded-xl px-4 py-3.5 mb-5 border ${
@@ -476,46 +1012,35 @@ export default function UnderReview() {
           </div>
         )}
 
-        {/* Outlet card */}
-        <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
-          <div className="flex items-center gap-4 px-5 py-4">
-            <div className="w-12 h-16 flex items-center justify-center overflow-hidden">
-              <img
-                src={brandData.logo}
-                alt="Trydood"
-                className="w-12 h-16 object-contain"
-                onError={(e) => {
-                  e.target.style.display = "none";
-                  e.target.nextSibling.style.display = "block";
-                }}
-              />
-              <span className="text-emerald-400 text-xs font-bold hidden">T</span>
-            </div>
-
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-gray-900 truncate">
-                {brandData.companyName}
-              </p>
-              <p className="text-xs text-gray-400 mt-0.5">
-                Merchant Token: {brandData.merchantToken} &nbsp;·&nbsp; <br />
-                Created on: {formattedDate}
-              </p>
-            </div>
-
-            {isApproved ? (
-              <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-                <button
-                  onClick={handleGoToDashboard}
-                  disabled={acknowledging}
-                  className="px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600
-                    text-white text-xs font-semibold flex items-center justify-center gap-1.5
-                    transition-all duration-150 active:scale-[0.97] disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  {acknowledging ? "Opening…" : "Go to Dashboard"}
-                </button>
-                {ackError && <p className="text-xs text-red-500">{ackError}</p>}
+        {/* Outlet card — approved case already shows this info inside the
+            celebratory hero above, so this plain card is only for
+            pending/rejected states. */}
+        {!isApproved && (
+          <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
+            <div className="flex items-center gap-4 px-5 py-4">
+              <div className="w-12 h-16 flex items-center justify-center overflow-hidden">
+                <img
+                  src={brandData.logo}
+                  alt="Trydood"
+                  className="w-12 h-16 object-contain"
+                  onError={(e) => {
+                    e.target.style.display = "none";
+                    e.target.nextSibling.style.display = "block";
+                  }}
+                />
+                <span className="text-emerald-400 text-xs font-bold hidden">T</span>
               </div>
-            ) : (
+
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-gray-900 truncate">
+                  {brandData.companyName}
+                </p>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Merchant Token: {brandData.merchantToken} &nbsp;·&nbsp; <br />
+                  Created on: {formattedDate}
+                </p>
+              </div>
+
               <button
                 onClick={handleRecheck}
                 disabled={refreshing}
@@ -525,142 +1050,203 @@ export default function UnderReview() {
               >
                 {refreshing ? "Checking…" : "Recheck"}
               </button>
-            )}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* ── Rejected: Basic Details + Business Details correction
-            panels. Not a new page — just input rows in cards, with the
-            verified/saved result shown right below each one. ────────── */}
+            panels, stacked vertically — Basic Details on top, Business
+            Details below. Both are themselves collapsible (down-arrow
+            header, same AccordionFieldCard as the inner PAN/GST/Bank
+            rows), not just their individual fields. Not a new page —
+            just input rows in cards, with the verified/saved result
+            shown right below each one. ─────────────────────────────── */}
         {isRejected && (
-          <div className="mt-5">
-            <p className="text-xs font-bold text-gray-700 uppercase tracking-wide mb-3">
-              Basic Details
-            </p>
+          <div className="mt-5 space-y-4">
+          <AccordionFieldCard title="Basic Details">
             <FieldCard title="Business Name">
-              <SaveRow
+              <PlainFieldRow
                 value={businessNameField.value}
                 onChange={businessNameField.setValue}
                 placeholder="Registered business name"
-                onSave={businessNameField.save}
-                saving={businessNameField.saving}
-                saved={businessNameField.saved}
                 error={businessNameField.error}
+                saved={businessNameField.saved}
               />
             </FieldCard>
 
-            <FieldCard title="Registered">
-              <SaveRow
-                onSave={handleSaveRegistered}
-                saving={registeredSaving}
-                saved={registeredSaved}
-                error={registeredError}
-              >
-                <select
-                  value={isRegistered}
-                  onChange={(e) => setIsRegistered(e.target.value)}
-                  className={inputBase}
-                >
-                  <option value="REGISTERED">Registered</option>
-                  <option value="UNREGISTERED">Unregistered</option>
-                </select>
-              </SaveRow>
+            <FieldCard title="Brand Short Name">
+              <PlainFieldRow
+                value={brandShortNameField.value}
+                onChange={brandShortNameField.setValue}
+                placeholder="e.g. Trydood"
+                error={brandShortNameField.error}
+                saved={brandShortNameField.saved}
+              />
             </FieldCard>
 
             <FieldCard title="Business Type">
-              <SaveRow
-                onSave={handleSaveBusinessType}
-                saving={businessTypeSaving}
-                saved={businessTypeSaved}
-                error={businessTypeError}
-              >
+              <PlainFieldRow error={businessTypeError} saved={businessTypeSaved}>
                 <select
                   value={businessType}
                   onChange={(e) => setBusinessType(e.target.value)}
-                  className={inputBase}
+                  className={`${inputBase} w-full`}
                 >
                   {ENTITY_TYPE_OPTIONS.map((o) => (
                     <option key={o.id} value={o.id}>{o.label}</option>
                   ))}
                 </select>
-              </SaveRow>
+              </PlainFieldRow>
             </FieldCard>
 
-            <p className="text-xs font-bold text-gray-700 uppercase tracking-wide mb-3 mt-6">
-              Business Details
-            </p>
-            <FieldCard title="PAN">
-              <VerifyRow
-                value={panField.value}
-                onChange={panField.setValue}
-                placeholder="ABCDE1234F"
-                onVerify={panField.verify}
-                verifying={panField.verifying}
-                result={panField.result}
-                error={panField.error}
-                resultLabel={(r) => `PAN verified${r?.full_name ? ` — ${r.full_name}` : r?.fullName ? ` — ${r.fullName}` : ""}`}
-              />
-            </FieldCard>
+            <div className="flex justify-end">
+              <SaveButton onSave={handleSaveBasicDetails} saving={basicSaving} isDirty={basicDetailsDirty} />
+            </div>
+          </AccordionFieldCard>
 
-            <FieldCard title="GST">
-              <VerifyRow
-                value={gstField.value}
-                onChange={gstField.setValue}
-                placeholder="22ABCDE1234F1Z5"
-                onVerify={gstField.verify}
-                verifying={gstField.verifying}
-                result={gstField.result}
-                error={gstField.error}
-                resultLabel={(r) => `GST verified${r?.legalName ? ` — ${r.legalName}` : ""}`}
-              />
-            </FieldCard>
+          <AccordionFieldCard title="Business Details">
+            <AccordionFieldCard
+              title="PAN"
+              summary={panField.result ? "✓ Verified" : panField.value || "Not set"}
+              collapseSignal={panCollapse}
+            >
+              {panField.result ? (
+                <VerifiedDetailCard
+                  rows={[
+                    { label: "PAN", value: panField.result.pan },
+                    { label: "PAN Type", value: panField.result.panType?.toUpperCase()?.trim() },
+                    { label: "Full Name", value: panField.result.fullName || panField.result.lastName },
+                    { label: "DOB", value: panField.result.dob },
+                  ]}
+                  onChangeDetails={panField.reset}
+                  onSave={handleSavePanDetails}
+                  saving={panSubmit.submitting}
+                  saveError={panSubmit.error}
+                />
+              ) : (
+                <VerifyRow
+                  value={panField.value}
+                  onChange={panField.setValue}
+                  placeholder="ABCDE1234F"
+                  onVerify={panField.verify}
+                  verifying={panField.verifying}
+                  result={panField.result}
+                  error={panField.error}
+                  resultLabel={(r) => `PAN verified${r?.full_name ? ` — ${r.full_name}` : r?.fullName ? ` — ${r.fullName}` : ""}`}
+                />
+              )}
+            </AccordionFieldCard>
 
-            <FieldCard title="Bank Account">
-              <div className="space-y-2">
-                <input
-                  value={bankFields.accountNumber}
-                  onChange={(e) => setBankFields((prev) => ({ ...prev, accountNumber: e.target.value.replace(/\D/g, "") }))}
-                  placeholder="Account number"
-                  className={`${inputBase} w-full`}
+            <AccordionFieldCard
+              title="GST"
+              summary={gstField.result ? "✓ Verified" : gstField.value || "Not set"}
+              collapseSignal={gstCollapse}
+            >
+              {gstField.result ? (
+                <VerifiedDetailCard
+                  rows={[
+                    { label: "GSTIN", value: gstField.result.gstNumber },
+                    { label: "Legal Name", value: gstField.result.legalName },
+                    { label: "Trade Name", value: gstField.result.tradeName },
+                    { label: "Constitution of Business", value: gstField.result.constitutionOfBusiness },
+                    { label: "Taxpayer Type", value: gstField.result.taxpayerType },
+                    { label: "Registration Date", value: gstField.result.registrationDate },
+                  ]}
+                  onChangeDetails={gstField.reset}
+                  onSave={handleSaveGstDetails}
+                  saving={gstSubmit.submitting}
+                  saveError={gstSubmit.error}
                 />
-                <input
-                  value={bankFields.ifsc}
-                  onChange={(e) => setBankFields((prev) => ({ ...prev, ifsc: e.target.value.toUpperCase() }))}
-                  placeholder="IFSC code"
-                  className={`${inputBase} w-full`}
+              ) : (
+                <VerifyRow
+                  value={gstField.value}
+                  onChange={gstField.setValue}
+                  placeholder="22ABCDE1234F1Z5"
+                  onVerify={gstField.verify}
+                  verifying={gstField.verifying}
+                  result={gstField.result}
+                  error={gstField.error}
+                  resultLabel={(r) => `GST verified${r?.legalName ? ` — ${r.legalName}` : ""}`}
                 />
-                <input
-                  value={bankFields.accountHolderName}
-                  onChange={(e) => setBankFields((prev) => ({ ...prev, accountHolderName: e.target.value }))}
-                  placeholder="Account holder name"
-                  className={`${inputBase} w-full`}
+              )}
+            </AccordionFieldCard>
+
+            <AccordionFieldCard
+              title="Bank Account"
+              summary={bankResult ? "✓ Verified" : bankFields.accountNumber || "Not set"}
+              collapseSignal={bankCollapse}
+            >
+              {bankResult ? (
+                <VerifiedDetailCard
+                  rows={[
+                    { label: "Account Number", value: bankFields.accountNumber },
+                    { label: "Account Holder Name", value: bankResult.account_holder_name },
+                    { label: "IFSC Code", value: bankResult.account_ifsc },
+                    { label: "Bank Name", value: bankResult.bank_name },
+                    { label: "Branch Name", value: bankResult.bank_branch },
+                  ]}
+                  onChangeDetails={resetBank}
+                  onSave={handleSaveBankDetails}
+                  saving={bankSubmit.submitting}
+                  saveError={bankSubmit.error}
                 />
-                <button
-                  type="button"
-                  onClick={handleVerifyBank}
-                  disabled={bankVerifying}
-                  className="w-full px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {bankVerifying ? "Verifying…" : "Verify"}
-                </button>
-                {bankError && <p className="text-xs text-red-500">{bankError}</p>}
-                {!bankError && bankResult && (
-                  <p className="text-xs text-emerald-600">
-                    ✓ Bank account verified{bankResult?.bank_name ? ` — ${bankResult.bank_name}` : ""}
-                  </p>
-                )}
-              </div>
-            </FieldCard>
+              ) : (
+                <div className="space-y-2">
+                  <input
+                    value={bankFields.accountNumber}
+                    onChange={(e) => setBankFields((prev) => ({ ...prev, accountNumber: e.target.value.replace(/\D/g, "") }))}
+                    placeholder="Account number"
+                    className={`${inputBase} w-full`}
+                  />
+                  <input
+                    value={bankFields.ifsc}
+                    onChange={(e) => setBankFields((prev) => ({ ...prev, ifsc: e.target.value.toUpperCase() }))}
+                    placeholder="IFSC code"
+                    className={`${inputBase} w-full`}
+                  />
+                  <input
+                    value={bankFields.accountHolderName}
+                    onChange={(e) => setBankFields((prev) => ({ ...prev, accountHolderName: e.target.value }))}
+                    placeholder="Account holder name"
+                    className={`${inputBase} w-full`}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleVerifyBank}
+                    disabled={bankVerifying}
+                    className="w-full px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {bankVerifying ? "Verifying…" : "Verify"}
+                  </button>
+                  {bankError && <p className="text-xs text-red-500">{bankError}</p>}
+                </div>
+              )}
+            </AccordionFieldCard>
+          </AccordionFieldCard>
+
+          {/* Only shows up once something has actually been saved — no
+              point resubmitting for review if nothing changed. */}
+          {hasUpdated && (
+            <button
+              type="button"
+              onClick={handleSubmitForReview}
+              disabled={submittingReview}
+              className="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white
+                text-sm font-bold tracking-wide transition-all duration-150 active:scale-[0.99]
+                disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {submittingReview ? "Submitting…" : "Submit for Review"}
+            </button>
+          )}
           </div>
         )}
 
-        <button
+        {/* <button
           onClick={() => navigate("/manage-outlet")} // ← apna actual route lagana
           className="w-full mt-4 px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700
     text-sm font-semibold rounded-xl transition-all duration-150 active:scale-[0.98]"
         >
           Manage Your Outlet
-        </button>
+        </button> */}
 
         {/* ── Polling indicator — hidden once approved or rejected ── */}
         {isPending && (
@@ -672,6 +1258,7 @@ export default function UnderReview() {
       </div>
 
       <ErrorToast error={verifyError} onDismiss={() => setVerifyError(null)} />
+      <SuccessToast message={verifySuccessMsg} onDismiss={() => setVerifySuccessMsg("")} />
     </div>
   );
 }

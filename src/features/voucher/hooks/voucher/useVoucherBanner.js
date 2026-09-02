@@ -7,10 +7,19 @@ import { useCallback, useState } from "react";
 import { updateVoucherBanner, deleteVoucherBanner } from "../../services/voucher/VoucherService";
 
 export default function useVoucherBanner(voucher) {
-  const [bannerType, setBannerType] = useState(voucher?.bannerType || "IMAGE");
+  // `voucher` here is actually a VERSION object (see VoucherTable.jsx) — the
+  // real banner lives nested on its parent voucher, by type: { type,
+  // image: { url }, video: { url }, gif: { url } }, not flat
+  // bannerType/bannerImage/bannerVideo/bannerGif fields on the version.
+  const existingBanner = voucher?.voucher?.banner;
+  const [bannerType, setBannerType] = useState(existingBanner?.type || "IMAGE");
   const [bannerImage, setBannerImage] = useState(null); // newly-picked File, pending upload
-  const [bannerVideo, setBannerVideo] = useState(voucher?.bannerVideo || "");
-  const [bannerGif, setBannerGif] = useState(voucher?.bannerGif || "");
+  const [bannerVideo, setBannerVideo] = useState(
+    existingBanner?.type === "VIDEO" ? existingBanner?.video?.url || "" : ""
+  );
+  const [bannerGif, setBannerGif] = useState(
+    existingBanner?.type === "GIF" ? existingBanner?.gif?.url || "" : ""
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState(null);

@@ -1,8 +1,21 @@
 // src/components/voucher/VoucherDetailsInfo.jsx
-import React from "react";
+// Renders the real GET /vouchers/versions/get-all?voucherId= response as-is
+// — every field below maps 1:1 to a confirmed field on the version object
+// (see useVoucherDetails.js). No fabricated analytics/outlet-usage data.
 
-const formatCurrency = (value) =>
-  `₹ ${Number(value ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
+function formatDate(iso) {
+  if (!iso) return "—";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+function formatDiscount(offer) {
+  if (!offer) return "—";
+  return offer.discountType === "PERCENTAGE"
+    ? `${offer.discountValue}% off`
+    : `₹${offer.discountValue} off`;
+}
 
 function SectionHeading({ children }) {
   return (
@@ -12,21 +25,22 @@ function SectionHeading({ children }) {
   );
 }
 
-function Field({ label, value, link, linkColor = "text-indigo-600" }) {
+function Field({ label, value }) {
   return (
     <div>
       <p className="text-xs text-gray-400">{label}</p>
-      <p className="mt-1 text-sm font-medium text-gray-900">
-        {value}
-        {link && (
-          <>
-            {" "}
-            <button type="button" className={`text-xs font-medium hover:underline ${linkColor}`}>
-              {link}
-            </button>
-          </>
-        )}
-      </p>
+      <p className="mt-1 text-sm font-medium text-gray-900">{value ?? "—"}</p>
+    </div>
+  );
+}
+
+function ReviewStep({ label, at, by, colorClass = "text-gray-900" }) {
+  if (!at) return null;
+  return (
+    <div>
+      <p className="text-xs text-gray-400">{label}</p>
+      <p className={`mt-1 text-sm font-medium ${colorClass}`}>{formatDate(at)}</p>
+      {by && <p className="text-xs text-gray-400">by {by.name || by.whatsappNumber || by.username}</p>}
     </div>
   );
 }
@@ -34,125 +48,121 @@ function Field({ label, value, link, linkColor = "text-indigo-600" }) {
 export default function VoucherDetailsInfo({ voucher }) {
   if (!voucher) return null;
 
+  const bannerUrl =
+    voucher.voucher?.banner?.type === "IMAGE" ? voucher.voucher?.banner?.image?.url : null;
+  const images = Array.isArray(voucher.images) ? voucher.images : [];
+  const offers = Array.isArray(voucher.offers) ? voucher.offers : [];
+  const tags = Array.isArray(voucher.tags) ? voucher.tags : [];
+
   return (
-    <div className="divide-y divide-gray-100  bg-white">
+    <div className="divide-y divide-gray-100 bg-white">
       {/* Voucher Information */}
       <section className="p-6">
         <SectionHeading>Voucher Information</SectionHeading>
         <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-4">
-          <Field label="Voucher Id" value={`#${voucher.id}`} link="Edit Voucher" />
-          <Field
-            label="Voucher Name"
-            value={
-              <>
-                {voucher.title}
-                <span className="block text-xs font-normal text-gray-400">
-                  Discount &amp; Offer
+          <Field label="Voucher Name" value={voucher.name} />
+          <Field label="Version" value={voucher.versionCode} />
+          <Field label="Category" value={voucher.category?.name} />
+          <Field label="Sub-category" value={voucher.subCategory?.name} />
+          <Field label="Valid From" value={formatDate(voucher.startAt)} />
+          <Field label="Valid Till" value={formatDate(voucher.endAt)} />
+          <Field label="Created On" value={formatDate(voucher.createdAt)} />
+          <Field label="Voucher Status" value={voucher.status} />
+        </div>
+        {voucher.description && (
+          <div className="mt-6">
+            <p className="text-xs text-gray-400">Description</p>
+            <p className="mt-1 text-sm text-gray-700">{voucher.description}</p>
+          </div>
+        )}
+      </section>
+
+      {/* Tags */}
+      {tags.length > 0 && (
+        <section className="p-6">
+          <SectionHeading>Search Tags</SectionHeading>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {tags.map((tag) => (
+              <span
+                key={tag}
+                className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Banner & Gallery */}
+      {(bannerUrl || images.length > 0) && (
+        <section className="p-6">
+          <SectionHeading>Banner &amp; Gallery</SectionHeading>
+          <div className="mt-4 flex flex-wrap gap-3">
+            {bannerUrl && (
+              <div className="relative">
+                <img
+                  src={bannerUrl}
+                  alt="Banner"
+                  className="h-24 w-24 rounded-xl border border-gray-100 object-cover"
+                />
+                <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-indigo-600 px-2 py-0.5 text-[10px] font-semibold text-white">
+                  Banner
                 </span>
-              </>
-            }
-          />
-          <Field label="Published Date" value={voucher.publishedDate} />
-          <Field label="Expired" value={voucher.expiredDate} />
+              </div>
+            )}
+            {images
+              .slice()
+              .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+              .map((img) => (
+                <img
+                  key={img._id}
+                  src={img.url}
+                  alt=""
+                  className="h-24 w-24 rounded-xl border border-gray-100 object-cover"
+                />
+              ))}
+          </div>
+        </section>
+      )}
 
-          <Field label="Tag Line" value={voucher.shortTitle} />
-          <Field label="Best Value" value={formatCurrency(voucher.valueOfAmount)} />
-          <Field label="Percentage" value={`${voucher.percentageOfDiscount || 0} %`} />
-          <Field
-            label="Voucher Status"
-            value={<span className="text-indigo-600">{voucher.status}</span>}
-          />
-        </div>
-      </section>
+      {/* Offers */}
+      {offers.length > 0 && (
+        <section className="p-6">
+          <SectionHeading>Offers</SectionHeading>
+          <div className="mt-4 space-y-4">
+            {offers.map((offer) => (
+              <div
+                key={offer._id}
+                className="rounded-xl border border-gray-100 p-4 grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4"
+              >
+                <Field label="Title" value={offer.title} />
+                <Field label="Discount" value={formatDiscount(offer)} />
+                <Field label="Min Bill Amount" value={`₹${offer.minBillAmount ?? 0}`} />
+                <Field label="Max Discount Cap" value={`₹${offer.maxDiscountAmount ?? 0}`} />
+                <Field label="Usage Type" value={offer.usageType} />
+                <Field label="Applicable On" value={offer.discountApplicableOn} />
+                <Field label="Active" value={offer.isActive ? "Yes" : "No"} />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
-      {/* Which outlet applied this voucher */}
+      {/* Review Timeline */}
       <section className="p-6">
-        <SectionHeading>Which Outlet Applied This Voucher?</SectionHeading>
+        <SectionHeading>Review Timeline</SectionHeading>
         <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-4">
-          <Field
-            label="Selected Brand - Outlet's / Sub - Brand"
-            value={`Count - ${voucher.applicableOutlets?.selectedBrandOutletCount ?? 0}`}
-            link="Increase - Decrease"
-            linkColor="text-rose-500"
-          />
-          <Field
-            label="Total Outlet's"
-            value={`Count - ${voucher.applicableOutlets?.totalOutletsCount ?? 0}`}
-          />
-          <Field
-            label="Sub - Brand"
-            value={`Count - ${voucher.applicableOutlets?.subBrandCount ?? 0}`}
-          />
-          <Field
-            label="Franchise"
-            value={`Count - ${String(voucher.applicableOutlets?.franchiseCount ?? 0).padStart(2, "0")}`}
-          />
+          <ReviewStep label="Submitted" at={voucher.submittedAt} by={voucher.submittedByUser} />
+          <ReviewStep label="Reviewed" at={voucher.reviewedAt} by={voucher.reviewedByUser} />
+          <ReviewStep label="Approved" at={voucher.approvedAt} by={voucher.approvedByUser} colorClass="text-emerald-600" />
+          <ReviewStep label="Rejected" at={voucher.rejectedAt} by={voucher.rejectedByUser} colorClass="text-rose-500" />
         </div>
-      </section>
-
-      {/* Search tag */}
-      <section className="p-6">
-        <SectionHeading>Search Tag</SectionHeading>
-        <p className="mt-1 text-xs text-gray-500">
-          Keywords that help users quickly find this item. Add keywords to improve
-          search visibility.
-        </p>
-        <div className="mt-4">
-          <Field
-            label="Selected Brand - Outlet's / Sub - Brand"
-            value={`Count - ${String(voucher.searchTags?.length ?? 0).padStart(2, "0")}`}
-            link="+ Add Tag Line"
-          />
-        </div>
-      </section>
-
-      {/* Configuration */}
-      <section className="p-6">
-        <SectionHeading>Configuration</SectionHeading>
-        <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-4">
-          <Field label="Voucher Status" value="Pan Active" link="Active" />
-          <div>
-            <Field label="Voucher Action" value="Submission" link="Deleted Submission" linkColor="text-rose-500" />
-            <p className="mt-2 text-[11px] leading-relaxed text-rose-500">
-              Important Note: If you delete this action button, it will automatically
-              change status. After that, this voucher will not be published on your
-              next page.
-            </p>
-          </div>
-          <Field label="Create On" value={voucher.createdDate} />
-          <Field label="Create Ticket" value="Issue Reported" />
-        </div>
-      </section>
-
-      {/* Information details */}
-      <section className="p-6">
-        <SectionHeading>Information Details</SectionHeading>
-        <div className="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-3">
-          <div>
-            <p className="text-xs font-semibold text-gray-700">
-              Exclusive For Prime Users
-            </p>
-            <p className="mt-1 text-xs leading-relaxed text-gray-500">
-              The TryDood team identifies which users ("Prime" or "Ordinary") can use
-              this voucher.
-            </p>
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-gray-700">TryDood Wallet</p>
-            <p className="mt-1 text-xs leading-relaxed text-gray-500">
-              Any user can make a payment using this wallet, and the amount will be
-              credited directly to your bank account through TryDood settlement.
-            </p>
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-gray-700">TryDood (T) Coin's</p>
-            <p className="mt-1 text-xs leading-relaxed text-gray-500">
-              Payment amounts converted to TryDood (T) Coin's, use them for discounts
-              like membership, or TryDood Prime. These points do not affect your real
-              money.
-            </p>
-          </div>
-        </div>
+        {voucher.rejectionReason && (
+          <p className="mt-4 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-600">
+            Rejection reason: {voucher.rejectionReason}
+          </p>
+        )}
       </section>
     </div>
   );

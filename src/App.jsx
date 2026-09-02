@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-
+import { onForegroundMessage } from './config/firebaseMessaging';
+import PushNotificationToast from './components/common/PushNotificationToast';
 import ProtectedRoute from './routes/ProtectedRoute';
 import PublicRoute from './routes/PublicRoute';
 import DashboardLayout from './features/dashboard/layouts/DashboardLayout';
@@ -28,8 +30,62 @@ import PostAuthRouteGuard from './routes/PostAuthRouteGuard';
 
 
 function App() {
+
+    const [pushToast, setPushToast] = useState(null);
+
+  useEffect(() => {
+    let unsubscribe;
+
+    const handleMessage = (payload) => {
+      const title =
+        payload?.notification?.title ||
+        payload?.title ||
+        payload?.data?.title ||
+        "New Notification";
+
+      const body =
+        payload?.notification?.body ||
+        payload?.body ||
+        payload?.data?.body ||
+        "";
+
+      const deepLink =
+        payload?.data?.deepLink ||
+        payload?.data?.deeplink ||
+        payload?.deepLink ||
+        null;
+
+      setPushToast({ title, body, deepLink });
+    };
+
+    onForegroundMessage(handleMessage).then((unsub) => {
+      unsubscribe = unsub;
+    });
+
+    // Background pushes are shown by firebase-messaging-sw.js itself; this
+    // only covers a worker that also forwards the payload to open tabs via
+    // postMessage (type: "FCM_PUSH") so the same toast can render for it.
+    const handleServiceWorkerMessage = (event) => {
+      if (event.data?.type === "FCM_PUSH") {
+        handleMessage(event.data);
+      }
+    };
+
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.addEventListener("message", handleServiceWorkerMessage);
+    }
+
+    return () => {
+      unsubscribe?.();
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.removeEventListener("message", handleServiceWorkerMessage);
+      }
+    };
+  }, []);
+
   return (
     <BrowserRouter>
+    <PushNotificationToast toast={pushToast} onDismiss={() => setPushToast(null)} />
      <PostAuthRouteGuard>   {/* ✅ yahan wrap karo — Routes ke bahar, Router ke andar */}
       <Routes>
 

@@ -12,10 +12,12 @@ export default function useVoucherDetails(voucherId) {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await getVoucherById(voucherId);
-      // NOTE: if the API wraps the voucher in an envelope (e.g. { data: {...} }),
-      // unwrap it here: setVoucher(data?.data ?? data);
-      setVoucher(data);
+      const res = await getVoucherById(voucherId);
+      // Confirmed envelope: { success, message, data: { total, totalPages,
+      // page, limit, data: [...] } } — same shape as getVouchers(); the
+      // single version we asked for (limit: 1) is data.data.data[0].
+      const version = res?.data?.data?.[0] ?? null;
+      setVoucher(version);
     } catch (err) {
       setError(err.message);
     } finally {

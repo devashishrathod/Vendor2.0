@@ -53,6 +53,15 @@ function ChevronIcon({ open }) {
 // GST/discount math here. `strikePrice` (the plan's own pre-discount
 // price, when the backend sets one) overrides the "Original Price" row's
 // display; otherwise that row already shows the real list price.
+// Backend sends discount row labels with a computed decimal percentage
+// (e.g. "Discount (50.02% off)") — truncated here to a whole number
+// ("Discount (50% off)"), not rounded, matching the "drop what's after the
+// point" ask.
+function truncatePercentInLabel(label) {
+  if (!label) return label;
+  return label.replace(/(\d+(?:\.\d+)?)%/, (_match, num) => `${Math.floor(parseFloat(num))}%`);
+}
+
 function PlanSummaryCard({ planName, orderSummary, strikePrice, defaultOpen = false }) {
   const [open, setOpen] = useState(defaultOpen);
 
@@ -76,10 +85,13 @@ function PlanSummaryCard({ planName, orderSummary, strikePrice, defaultOpen = fa
           {rows.map((row) => {
             const isOriginal = row.key === "ORIGINAL_PRICE";
             const isDiscount = /discount/i.test(row.label || "");
-            const value = isOriginal && strikePrice != null ? fmt(strikePrice) : row.display;
+            // strikePrice is often 0 (confirmed field, meaning "none set"),
+            // not null/undefined — `!= null` alone let a real 0 through and
+            // overrode the actual Original Price with "₹0.00".
+            const value = isOriginal && strikePrice > 0 ? fmt(strikePrice) : row.display;
             return (
               <div key={row.key} className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">{row.label}</span>
+                <span className="text-sm text-gray-600">{truncatePercentInLabel(row.label)}</span>
                 <span
                   className={`text-sm font-semibold ${
                     isDiscount ? "text-teal-600" : isOriginal ? "text-gray-400 line-through" : "text-gray-800"

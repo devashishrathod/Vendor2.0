@@ -45,6 +45,11 @@ export function useSubscriptionPlans({ page = 1, limit = 10 } = {}) {
         benefits: p.benefits || [],
         limitations: p.limitations || [],
         features: p.features || [],
+        entitlements: p.entitlements || null,
+        strikePrice: p.strikePrice,
+        discountAmount: p.discountAmount,
+        discountPercent: p.discountPercent,
+        discountType: p.discountType,
         isActive: p.isActive,
         createdAt: p.createdAt,
       }));

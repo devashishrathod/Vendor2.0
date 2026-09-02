@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import MediaPreviewModal from "./modals/MediaPreviewModal";
+import ErrorToast from "../../../../../components/common/ErrorToast";
 import {
   MAX_ALBUMS,
   MAX_ITEMS_PER_ALBUM,
@@ -59,6 +60,17 @@ export default function ShowcaseAlbumsEditor({ albums, onChange, brandId }) {
   const [loadError, setLoadError] = useState("");
   const fileInputRefs = useRef({});
   const hydratedRef = useRef(false);
+
+  // ── Toast notifications ──
+  // On top of the inline per-album/per-item error text below — pops a
+  // toast for the same failure so it's noticeable even if that album/item
+  // isn't currently in view (e.g. a 403 "plan doesn't include showcase
+  // sections" while adding a new album).
+  const [toastError, setToastError] = useState(null);
+  const showError = (message) => {
+    if (!message) return;
+    setToastError({ message });
+  };
 
   // ── Per-album "Show in Video Clips" toggle ──
   // Merchant checks this BEFORE uploading — value goes straight into the
@@ -173,6 +185,7 @@ export default function ShowcaseAlbumsEditor({ albums, onChange, brandId }) {
       onChange((prev) =>
         prev.map((a) => (a.id === tempId ? { ...a, status: "error", error: err.message } : a))
       );
+      showError(err.message);
     }
   };
 
@@ -187,6 +200,7 @@ export default function ShowcaseAlbumsEditor({ albums, onChange, brandId }) {
       patchAlbum(album.id, { status: "idle" });
     } catch (err) {
       patchAlbum(album.id, { status: "error", error: err.message });
+      showError(err.message);
     }
   };
 
@@ -204,6 +218,7 @@ export default function ShowcaseAlbumsEditor({ albums, onChange, brandId }) {
       onChange((prev) => prev.filter((a) => a.id !== album.id));
     } catch (err) {
       patchAlbum(album.id, { status: "error", error: err.message });
+      showError(err.message);
     }
   };
 
@@ -318,6 +333,7 @@ export default function ShowcaseAlbumsEditor({ albums, onChange, brandId }) {
           };
         })
       );
+      showError(err.message);
     }
   };
 
@@ -351,6 +367,7 @@ export default function ShowcaseAlbumsEditor({ albums, onChange, brandId }) {
           a.id === albumId ? { ...a, media: patchAlbumById(a.media, media.id, { status: "error", error: err.message }) } : a
         )
       );
+      showError(err.message);
     }
   };
 
@@ -370,6 +387,7 @@ export default function ShowcaseAlbumsEditor({ albums, onChange, brandId }) {
   };
 
   return (
+    <>
     <div>
       {canAddAlbum ? (
         <div className="mb-6">
@@ -633,5 +651,7 @@ export default function ShowcaseAlbumsEditor({ albums, onChange, brandId }) {
         <MediaPreviewModal src={previewItem.preview} type={previewItem.type} onClose={() => setPreviewItem(null)} />
       )}
     </div>
+    <ErrorToast error={toastError} onDismiss={() => setToastError(null)} />
+    </>
   );
 }

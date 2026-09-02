@@ -196,7 +196,7 @@ export default function Step7PANReadOnly() {
         message={successMsg}
         onDismiss={() => {
           setSuccessMsg(null);
-          // setSubStep(BIZ_SUB.GST_VERIFICATION);
+          setSubStep(BIZ_SUB.GST_VERIFICATION);
         }}
         duration={3500}
       />

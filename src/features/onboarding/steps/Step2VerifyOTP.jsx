@@ -10,6 +10,7 @@ import {
 } from "@/features/onboarding/store/onboardingStore";
 import { STEPS } from "@/features/onboarding/constants/steps";
 import { ROLES } from "@/constants";
+import { registerCurrentDevice } from "@/features/onboarding/services/api/deviceToken.api";
 
 const SCREEN_TO_STEP = {
   BUSINESS_NAME:            { step: STEPS.BASIC_DETAILS,         subStep: BASIC_SUB.BUSINESS_NAME },
@@ -134,6 +135,14 @@ export default function Step2VerifyOTP({ isOpen, onClose, phoneNumber, onVerifie
         setBrandId(brandId);
         console.log('✅ brandId saved:', brandId);
       }
+
+      // Register this device for push notifications now that the vendor
+      // has a valid session — failures here shouldn't block onboarding,
+      // just log and move on.
+      registerCurrentDevice().catch((err) => {
+        console.error('[OTP] registerCurrentDevice failed — FCM token generated: false');
+        console.error('[OTP] registerCurrentDevice error:', err);
+      });
 
       const currentScreen = res?.data?.user?.currentScreen ?? "BUSINESS_NAME";
       const mapped = SCREEN_TO_STEP[currentScreen];

@@ -365,29 +365,30 @@ export default function OnboardingPage() {
           isLast={isLast}
         />
 
-        <header className="hidden lg:flex px-8 pt-5 pb-4 items-center justify-between
-          border-b border-gray-100/80 backdrop-blur-sm bg-white/70 flex-shrink-0">
+        <header className="hidden lg:flex px-8 py-5 items-center justify-between
+          border-b border-gray-100 bg-white/90 backdrop-blur-sm shadow-[0_1px_0_rgba(0,0,0,0.02)] flex-shrink-0">
           <div className="flex items-center gap-3">
+            <div className="w-1 h-8 rounded-full bg-emerald-500 flex-shrink-0" />
             <div>
-              <h1 className="text-sm font-extrabold text-gray-900 leading-tight">Vendor Onboarding</h1>
-              <p className="text-[10px] text-gray-400 mt-0.5">{headerSub}</p>
+              <h1 className="text-base font-bold text-gray-900 leading-tight">Vendor Onboarding</h1>
+              <p className="text-xs text-gray-400 mt-0.5">{headerSub}</p>
             </div>
           </div>
 
           {!isLast && (
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-3">
               <div className="text-right">
-                <p className="text-[11px] font-bold text-emerald-600">Step {displayIndex} of {totalSteps}</p>
-                <p className="text-[9px] text-gray-400">{pct}% Complete</p>
+                <p className="text-xs font-bold text-emerald-600">Step {displayIndex} of {totalSteps}</p>
+                <p className="text-[10px] text-gray-400">{pct}% Complete</p>
               </div>
-              <div className="relative w-9 h-9">
-                <svg viewBox="0 0 36 36" className="w-9 h-9 -rotate-90">
-                  <circle cx="18" cy="18" r="14" fill="none" stroke="#e5e7eb" strokeWidth="3"/>
-                  <circle cx="18" cy="18" r="14" fill="none" stroke="#10b981" strokeWidth="3"
-                    strokeDasharray={`${pct * 0.879} ${87.9 - pct * 0.879}`} strokeLinecap="round"/>
+              <div className="relative w-10 h-10 flex-shrink-0">
+                <svg viewBox="0 0 36 36" className="w-10 h-10 -rotate-90">
+                  <circle cx="18" cy="18" r="15" fill="none" stroke="#e5e7eb" strokeWidth="3"/>
+                  <circle cx="18" cy="18" r="15" fill="none" stroke="#10b981" strokeWidth="3"
+                    strokeDasharray={`${pct * 0.942} ${94.2 - pct * 0.942}`} strokeLinecap="round"/>
                 </svg>
                 <span className="absolute inset-0 flex items-center justify-center
-                  text-[9px] font-black text-emerald-600">
+                  text-[10px] font-black text-emerald-600">
                   {pct}%
                 </span>
               </div>

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 
 import ShowcaseSection from "../components/ShowcaseSection";
 import AddShowcaseSectionModal from "../components/AddShowcaseSectionModal";
@@ -14,36 +14,21 @@ import {
   reorderShowcaseMedia,
 } from "../services/brandApi";
 
-// Moves `mediaId` one step earlier/later among same-type (PHOTO/PHOTO or
-// VIDEO/VIDEO) neighbors within the section's full (photos+videos combined)
-// media list, preserving the relative order between the two types. Returns
-// the same array reference when there's no same-type neighbor to swap with
-// (already at that end) — callers treat that as a no-op.
-function moveMediaWithinType(mediaList, mediaId, direction) {
-  const idx = mediaList.findIndex((m) => m._id === mediaId);
-  if (idx === -1) return mediaList;
-  const type = mediaList[idx].type;
+// Moves the item at `id` (matched by `idKey`) to 1-based `newPosition`
+// within `list`, clamping to the list's actual bounds. Returns the SAME
+// array reference when the position doesn't actually change (already
+// there, or an invalid id) — callers treat that as a no-op.
+function moveToPosition(list, id, idKey, newPositionRaw) {
+  const idx = list.findIndex((item) => item[idKey] === id);
+  if (idx === -1) return list;
 
-  let swapWith = -1;
-  if (direction === "up") {
-    for (let i = idx - 1; i >= 0; i -= 1) {
-      if (mediaList[i].type === type) {
-        swapWith = i;
-        break;
-      }
-    }
-  } else {
-    for (let i = idx + 1; i < mediaList.length; i += 1) {
-      if (mediaList[i].type === type) {
-        swapWith = i;
-        break;
-      }
-    }
-  }
-  if (swapWith === -1) return mediaList;
+  const newPosition = Math.min(Math.max(1, Number(newPositionRaw) || 1), list.length);
+  const newIdx = newPosition - 1;
+  if (newIdx === idx) return list;
 
-  const next = [...mediaList];
-  [next[idx], next[swapWith]] = [next[swapWith], next[idx]];
+  const next = [...list];
+  const [moved] = next.splice(idx, 1);
+  next.splice(newIdx, 0, moved);
   return next;
 }
 
@@ -68,7 +53,6 @@ const ShowcasePage = ({ brandId }) => {
 
   const showcase = {
     subtitle: "View and update the photos & videos shown on your listing.",
-    guidelinesLink: "#",
     groups: sections.map((s) => ({
       id: s._id,
       title: s.title,
@@ -90,10 +74,10 @@ const handleCreateSection = async ({ title, description, files, isShowInVideoCli
   reload();
 };
 
-  const handleAddMedia = async (sectionId, files) => {
+  const handleAddMedia = async (sectionId, files, options) => {
     setActionError(null);
     try {
-      await addShowcaseMedia(sectionId, files);
+      await addShowcaseMedia(sectionId, files, options);
       reload();
     } catch (err) {
       setActionError(err.message);
@@ -127,15 +111,10 @@ const handleCreateSection = async ({ title, description, files, isShowInVideoCli
     reload();
   };
 
-  const handleMoveSection = async (sectionId, direction) => {
+  const handleSetSectionOrder = async (sectionId, newPositionRaw) => {
     setActionError(null);
-    const idx = sections.findIndex((s) => s._id === sectionId);
-    if (idx === -1) return;
-    const swapWith = direction === "up" ? idx - 1 : idx + 1;
-    if (swapWith < 0 || swapWith >= sections.length) return;
-
-    const reordered = [...sections];
-    [reordered[idx], reordered[swapWith]] = [reordered[swapWith], reordered[idx]];
+    const reordered = moveToPosition(sections, sectionId, "_id", newPositionRaw);
+    if (reordered === sections) return;
 
     try {
       await reorderShowcaseSections(reordered.map((s, i) => ({ id: s._id, sortOrder: i + 1 })));
@@ -155,11 +134,11 @@ const handleCreateSection = async ({ title, description, files, isShowInVideoCli
     }
   };
 
-  const handleMoveMedia = async (sectionId, mediaId, direction) => {
+  const handleSetMediaOrder = async (sectionId, mediaId, newPositionRaw) => {
     setActionError(null);
     const section = sections.find((s) => s._id === sectionId);
     const mediaList = section?.medias || [];
-    const reordered = moveMediaWithinType(mediaList, mediaId, direction);
+    const reordered = moveToPosition(mediaList, mediaId, "_id", newPositionRaw);
     if (reordered === mediaList) return;
 
     try {
@@ -192,11 +171,10 @@ const handleCreateSection = async ({ title, description, files, isShowInVideoCli
         onAddMedia={handleAddMedia}
         onDeleteMedia={handleDeleteMedia}
         onReplaceMedia={handleReplaceMedia}
-        onMoveMedia={handleMoveMedia}
+        onSetMediaOrder={handleSetMediaOrder}
         onEditSection={handleEditSection}
         onDeleteSection={handleDeleteSection}
-        onMoveSectionUp={(sectionId) => handleMoveSection(sectionId, "up")}
-        onMoveSectionDown={(sectionId) => handleMoveSection(sectionId, "down")}
+        onSetSectionOrder={handleSetSectionOrder}
       />
 
       {showAddModal && (

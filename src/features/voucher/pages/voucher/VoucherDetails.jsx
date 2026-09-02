@@ -16,11 +16,24 @@ import {
 } from "../../components/voucher";
 import DashboardHeader from "@/features/dashboard/components/DashboardHeader";
 
+// Confirmed real values seen so far: DRAFT, APPROVED — REJECTED/
+// UNDER_REVIEW inferred from the rejectedAt/rejectedBy and submittedAt/
+// reviewedAt fields the API also returns. Anything else falls back to the
+// plain gray badge below rather than guessing further enum values.
 const STATUS_BADGE = {
-  Active: "bg-emerald-50 text-emerald-600",
-  Expired: "bg-rose-50 text-rose-500",
-  "Under Review": "bg-amber-50 text-amber-600",
+  DRAFT: "bg-gray-100 text-gray-600",
+  UNDER_REVIEW: "bg-amber-50 text-amber-600",
+  APPROVED: "bg-emerald-50 text-emerald-600",
+  PUBLISHED: "bg-emerald-50 text-emerald-600",
+  REJECTED: "bg-rose-50 text-rose-500",
 };
+
+function formatDate(iso) {
+  if (!iso) return "—";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+}
 
 export default function VoucherDetails() {
   const { voucherId } = useParams();
@@ -50,8 +63,8 @@ export default function VoucherDetails() {
               <ArrowLeft className="h-5 w-5" />
             </button>
             <div>
-              <h1 className="text-lg font-semibold text-gray-900">{voucher.title}</h1>
-              <p className="text-xs text-gray-400">Created Date: {voucher.createdDate}</p>
+              <h1 className="text-lg font-semibold text-gray-900">{voucher.name}</h1>
+              <p className="text-xs text-gray-400">Created Date: {formatDate(voucher.createdAt)}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -62,7 +75,7 @@ export default function VoucherDetails() {
               {voucher.status}
             </span>
             <button
-              onClick={() => navigate(`/vouchers/${voucher.id}/edit`)}
+              onClick={() => navigate(`/vouchers/${voucher.voucherId}/edit`)}
               className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
             >
               Edit Voucher
@@ -71,7 +84,7 @@ export default function VoucherDetails() {
         </div>
 
         <div className="mb-4 flex items-center  gap-3">
-          <p className="text-xs text-black">Voucher Id #{voucher.id}</p>
+          <p className="text-xs text-black">{voucher.versionCode}</p>
 
           <VoucherTabs activeTab={activeTab} onChange={setActiveTab} />
         </div>
@@ -91,7 +104,7 @@ export default function VoucherDetails() {
           {activeTab === "Voucher Details" && <VoucherDetailsInfo voucher={voucher} />}
 
           {activeTab === "Transaction Information" && (
-            <VoucherTransactionInfo transactions={voucher.transactions} />
+            <VoucherTransactionInfo voucherTitle={voucher.name} transactions={voucher.transactions} />
           )}
         </div>
       </div>

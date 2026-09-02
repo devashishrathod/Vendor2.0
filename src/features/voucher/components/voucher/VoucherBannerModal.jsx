@@ -49,7 +49,14 @@ export default function VoucherBannerModal({ voucher, onClose, onSaved }) {
     }
   };
 
-  const imagePreviewUrl = bannerImage ? URL.createObjectURL(bannerImage) : voucher.bannerImage;
+  // Confirmed real shape: voucher.voucher.banner.{type, image.url,
+  // video.url, gif.url} — not a flat voucher.bannerImage field.
+  const existingBanner = voucher.voucher?.banner;
+  const imagePreviewUrl = bannerImage
+    ? URL.createObjectURL(bannerImage)
+    : existingBanner?.type === "IMAGE"
+      ? existingBanner?.image?.url
+      : null;
 
   return (
     <div

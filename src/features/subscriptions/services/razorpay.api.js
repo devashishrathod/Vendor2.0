@@ -17,6 +17,7 @@ import { request } from "@/services/api/client";
  *   subscriptionId: string,   // required — the plan's _id
  *   email?: string,           // optional
  *   whatsappNumber?: string,  // optional
+ *   promoCode?: string,       // optional — only sent when the vendor actually applied one at checkout
  *   amount?: number,          // optional — backend falls back to the plan's price if omitted
  *   currency?: string,        // optional — defaults to "INR"
  * }} payload
@@ -26,16 +27,18 @@ import { request } from "@/services/api/client";
  *   subscriptionId: plan.id,
  *   email: billingDetails?.email,
  *   whatsappNumber: billingDetails?.phone,
+ *   promoCode: pricing?.promoCode,
  * });
  * // Confirmed response shape: data.razorpay.{orderId, amount (paise),
  * // currency, keyId}, data.transaction._id, plus billingDetails/
  * // orderSummary/plan/pricing/reused — used to open the Razorpay widget
  * // (see useRazorpayCheckout.js).
  */
-export const createOrder = ({ subscriptionId, email, whatsappNumber, amount, currency = "INR" }) => {
+export const createOrder = ({ subscriptionId, email, whatsappNumber, promoCode, amount, currency = "INR" }) => {
   const payload = { subscriptionId, currency };
   if (email) payload.email = email;
   if (whatsappNumber) payload.whatsappNumber = whatsappNumber;
+  if (promoCode) payload.promoCode = promoCode;
   if (amount !== undefined) payload.amount = amount;
 
   return request("/transactions/subscribe/create-order", "POST", payload, true);

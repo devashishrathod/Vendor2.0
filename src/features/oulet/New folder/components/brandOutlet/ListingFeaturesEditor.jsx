@@ -49,7 +49,11 @@ export default function ListingFeaturesEditor({ features, onChange, brandId }) {
     (async () => {
       try {
         const res = await getBrandFeatures(brandId);
-        const list = res?.data.data ?? res ?? [];
+        // A brand-new outlet with nothing saved yet gets back `data: null`
+        // here (not an empty array) — `res?.data.data` (missing the second
+        // `?.`) threw on that null, landing in the catch below and showing
+        // a scary "couldn't load" error for what's just a normal empty state.
+        const list = res?.data?.data ?? res ?? [];
         const mapped = (Array.isArray(list) ? list : []).map((f) => ({
           id: f._id || `f${featureIdCounter++}`,
           title: f.title || "",
@@ -60,12 +64,12 @@ export default function ListingFeaturesEditor({ features, onChange, brandId }) {
         }));
         if (mapped.length) onChange(mapped);
       } catch (err) {
-        // Worst case the merchant sees an empty list and can still add
-        // features fresh (see the "No features added yet" empty state
-        // below) — a toast is enough of a heads-up, no need for a
-        // permanent red banner sitting on the page.
+        // A brand-new outlet with nothing saved yet legitimately fails
+        // this fetch (backend has nothing to return) — that's a normal,
+        // expected state, not an error worth alarming the merchant over.
+        // The "No features added yet" empty state below already covers
+        // it silently; logged for debugging only, no user-facing toast.
         console.error("Couldn't load existing brand features:", err.message);
-        showError("Couldn't load your previously saved features. You can still add new ones below.");
       } finally {
         setLoading(false);
       }

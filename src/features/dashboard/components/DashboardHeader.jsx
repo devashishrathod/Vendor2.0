@@ -8,7 +8,7 @@ const NAV_TABS = [
   { label: "Transactions",    to: "/transactions"        },
   { label: "Settlements",     to: "/settlements"      },
   { label: "Voucher",         to: "/vouchers"          },
-  { label: "Account Information ",       to: "/account-information"        },
+  { label: "Account Information",       to: "/account-information"        },
   { label: "Sub Outlets & Franchise",      to: "/outlets"       },
   { label: "Subscription Plan",      to: "/subscription-plan"       },
   // { label: "Playlist Music",      to: "/music"       },
@@ -106,7 +106,7 @@ export default function DashboardHeader() {
           <div className="relative" ref={profileRef}>
             <div
               onClick={() => setProfileOpen((prev) => !prev)}
-              className="w-8 h-8 bg-purple-900 rounded-lg flex items-center justify-center cursor-pointer flex-shrink-0"
+              className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-lg flex items-center justify-center cursor-pointer flex-shrink-0 shadow-sm shadow-emerald-100 hover:shadow-emerald-200 transition-shadow duration-150"
             >
               <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}

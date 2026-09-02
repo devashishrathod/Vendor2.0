@@ -323,9 +323,14 @@ export default function VoucherTable({
                     <td className="px-4 py-3 text-gray-600">{version.versionCode}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        {version.bannerType === "IMAGE" && version.bannerImage ? (
+                        {/* Confirmed real shape: the banner lives on the
+                            parent voucher, nested by type — { type, image:
+                            { url }, video: { url }, gif: { url } } — not
+                            flat bannerType/bannerImage fields on the
+                            version itself. */}
+                        {version.voucher?.banner?.type === "IMAGE" && version.voucher?.banner?.image?.url ? (
                           <img
-                            src={version.bannerImage}
+                            src={version.voucher.banner.image.url}
                             alt=""
                             className="h-9 w-9 rounded-md border border-gray-100 object-cover"
                           />

@@ -601,15 +601,21 @@ export default function OutletLocationSearch({
           )}
 
           <div className="flex gap-2 mt-3">
-            {/* SHOW MAP */}
+            {/* SHOW MAP — only once the vendor has actually picked a result
+                from search ("source" is "search"). A GST-address autofill
+                ("source" is "gst") is just a provisional suggestion shown
+                in this same box before any deliberate selection, so it
+                shouldn't get the same "confirmed" action available to it. */}
 
-            <button
-              type="button"
-              onClick={handleShowMap}
-              className="flex-1 bg-indigo-600 text-white font-semibold py-2.5 rounded-xl text-sm hover:bg-indigo-700 transition-colors"
-            >
-              Show on Google Map
-            </button>
+            {selectedPlace.source === "search" && (
+              <button
+                type="button"
+                onClick={handleShowMap}
+                className="flex-1 bg-indigo-600 text-white font-semibold py-2.5 rounded-xl text-sm hover:bg-indigo-700 transition-colors"
+              >
+                Show on Google Map
+              </button>
+            )}
 
             {/* CLEAR */}
 
@@ -623,7 +629,9 @@ export default function OutletLocationSearch({
                 onSelectPlace(null);
                 setQuery("");
               }}
-              className="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-500 hover:bg-gray-100 transition-colors"
+              className={`px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-500 hover:bg-gray-100 transition-colors ${
+                selectedPlace.source === "search" ? "" : "flex-1"
+              }`}
             >
               Clear
             </button>

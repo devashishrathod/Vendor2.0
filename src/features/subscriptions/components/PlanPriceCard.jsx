@@ -56,6 +56,7 @@
 
 
 // ── Price section — changes per selected tab, sourced from the API ────────────
+import { amountToWords, computeEffectivePrice } from "../utils/priceCalculator";
 
 const fmt = (n) =>
   new Intl.NumberFormat("en-IN", { minimumFractionDigits: 2 }).format(n || 0);
@@ -92,6 +93,23 @@ export default function PlanPriceCard({ plans = [], selectedId, onPurchase, load
     return <div className="text-center py-10 text-sm text-gray-400">No plan selected.</div>;
   }
 
+  // The API sends the pre-discount `price` plus discountPercent/
+  // discountAmount, not a ready-made discounted total — this computes what
+  // to actually display/charge. "Was" price shown struck-through is
+  // whichever of strikePrice (an optional, separately-set higher marketing
+  // reference) or the plan's own price is above that computed amount.
+  const effectivePrice = computeEffectivePrice(plan);
+  const strikeReference =
+    plan.strikePrice > effectivePrice ? plan.strikePrice : plan.price > effectivePrice ? plan.price : null;
+  const discountLabel =
+    plan.discountType === "PERCENT" && plan.discountPercent > 0
+      // "Point ke baad wali value" (e.g. the .025 in 50.025) is dropped,
+      // not rounded — a truncated whole number for the badge.
+      ? `${Math.floor(plan.discountPercent)}% Off`
+      : plan.discountAmount > 0
+        ? `₹ ${fmt(plan.discountAmount)} Off`
+        : null;
+
   return (
     <div className="text-center py-6">
       {/* Title */}
@@ -99,18 +117,31 @@ export default function PlanPriceCard({ plans = [], selectedId, onPurchase, load
       {plan.description && <p className="text-sm text-gray-400 mb-5">{plan.description}</p>}
 
       {/* Price row */}
-      <div className="flex items-baseline justify-center gap-3 mb-2">
-        <span className="text-4xl font-bold text-gray-900">₹ {fmt(plan.price)}</span>
+      <div className="flex items-baseline justify-center gap-3 mb-1">
+        <span className="text-4xl font-bold text-gray-900">₹ {fmt(effectivePrice)}</span>
         <span className="text-gray-400 text-base font-medium">/ {billingLabel(plan.type)}</span>
       </div>
+
+      {(strikeReference != null || discountLabel) && (
+        <div className="flex items-center justify-center gap-3 mb-2">
+          {strikeReference != null && (
+            <span className="text-gray-400 line-through text-sm">₹ {fmt(strikeReference)}</span>
+          )}
+          {discountLabel && (
+            <span className="bg-indigo-600 text-white text-xs font-bold px-3 py-1 rounded-md">
+              {discountLabel}
+            </span>
+          )}
+        </div>
+      )}
+
+      <p className="text-xs text-gray-400 mb-2">{amountToWords(effectivePrice)} Rupees Only</p>
 
       {plan.durationInDays ? (
         <p className="text-xs text-gray-400 mb-6">Access for {durationLabel(plan.durationInDays)}</p>
       ) : (
         <div className="mb-6" />
       )}
-
-      
 
       {/* Purchase button */}
       <button

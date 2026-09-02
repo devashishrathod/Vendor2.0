@@ -35,7 +35,10 @@ export default function VoucherOverview({ stats, isLoading, isExpanded, onToggle
         <VoucherStatCard
           label="Additional Discount"
           value={isLoading ? "—" : `-${formatCurrency(Math.abs(stats?.additionalDiscount ?? 0))}`}
-          valueClassName="text-rose-500"
+          // Only tinted while there's a real negative amount to show — the
+          // "—" placeholder during loading stayed rose too, standing out
+          // oddly next to every other card's plain gray placeholder.
+          valueClassName={isLoading ? undefined : "text-rose-500"}
         />
         <VoucherStatCard
           label="Gst Amount"

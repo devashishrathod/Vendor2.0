@@ -19,112 +19,16 @@ const AVATAR_COLORS = [
 const formatCurrency = (value) =>
     `₹ ${Number(value ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
 
-const DEFAULT_SUMMARY = {
-    overallEarnings: 252899.0,
-    overallBillAmount: 157729.0,
-    discountAmount: 52899.0,
-    paidAmount: 152899.0,
-    totalUserCount: 858,
+// No confirmed transactions/summary endpoint exists yet for a voucher's
+// payment history — show real zeros/empty state instead of fabricated
+// numbers until one is wired up (see VoucherDetails.jsx).
+const ZERO_SUMMARY = {
+    overallEarnings: 0,
+    overallBillAmount: 0,
+    discountAmount: 0,
+    paidAmount: 0,
+    totalUserCount: 0,
 };
-
-const DEFAULT_TRANSACTIONS = [
-    {
-        orderId: "VC086324",
-        customerName: "Chitra Yalp",
-        customerId: "#xxx41721",
-        outletName: "Anna Nagar, Chennai",
-        storeId: "#1245829",
-        storeType: "Sub-Brand",
-        date: "17/02/2026",
-        time: "10:30 am",
-        status: "Success",
-        amount: 675.0,
-    },
-    {
-        orderId: "VC086324",
-        customerName: "Manami Suda",
-        customerId: "#xxx77770",
-        outletName: "Sadipet, Chennai",
-        storeId: "#1245830",
-        storeType: "Franchise",
-        date: "17/02/2026",
-        time: "10:30 am",
-        status: "Success",
-        amount: 675.0,
-    },
-    {
-        orderId: "VC086324",
-        customerName: "Christina Yalp",
-        customerId: "#xxx52521",
-        outletName: "Anna Nagar, Chennai 39",
-        storeId: "#1245879",
-        storeType: "Sub-Brand",
-        date: "17/02/2026",
-        time: "10:23 am",
-        status: "Success",
-        amount: 1099.0,
-    },
-    {
-        orderId: "VC086324",
-        customerName: "Kyjiseal Neitorn",
-        customerId: "#xxx63212",
-        outletName: "Goring Nagar, Trivpini",
-        storeId: "#1245879",
-        storeType: "Sub-Brand",
-        date: "17/02/2026",
-        time: "10:23 am",
-        status: "Success",
-        amount: 675.0,
-    },
-    {
-        orderId: "VC086324",
-        customerName: "Nanami Kanto",
-        customerId: "#xxx98212",
-        outletName: "Ayanavaram, Chennai",
-        storeId: "#1245880",
-        storeType: "Sub-Brand",
-        date: "17/02/2026",
-        time: "10:12 am",
-        status: "Success",
-        amount: 675.0,
-    },
-    {
-        orderId: "VC086324",
-        customerName: "Tsykhqurs Meguml",
-        customerId: "#xxx43212",
-        outletName: "West Anna Nagar, Chennai",
-        storeId: "#1245879",
-        storeType: "Franchise",
-        date: "17/02/2026",
-        time: "10:05 am",
-        status: "Failed",
-        amount: 675.0,
-    },
-    {
-        orderId: "VC086324",
-        customerName: "Nrtsi Akani",
-        customerId: "#xxx11212",
-        outletName: "Girei, Chennai",
-        storeId: "#1245881",
-        storeType: "Franchise",
-        date: "17/02/2026",
-        time: "09:58 am",
-        status: "Success",
-        amount: 675.0,
-    },
-    {
-        orderId: "VC086324",
-        customerName: "Inumesli Tegai",
-        customerId: "#xxx22212",
-        outletName: "Eci, Chennai",
-        storeId: "#1245882",
-        storeType: "Franchise",
-        date: "17/02/2026",
-        time: "09:50 am",
-        status: "Success",
-        amount: 675.0,
-    },
-];
 
 function getInitials(name = "") {
     return name
@@ -147,9 +51,9 @@ function SummaryStat({ label, value, valueClassName = "" }) {
 }
 
 export default function VoucherTransactionInfo({
-    voucherTitle = "Wednesday Sepical Deal's Yoga Class 25%",
-    summary = DEFAULT_SUMMARY,
-    transactions = DEFAULT_TRANSACTIONS,
+    voucherTitle = "",
+    summary = ZERO_SUMMARY,
+    transactions = [],
 }) {
     const [activeFilter, setActiveFilter] = useState("All");
     const [search, setSearch] = useState("");
@@ -188,13 +92,12 @@ export default function VoucherTransactionInfo({
             {/* Toolbar */}
             <div className="flex flex-wrap items-center justify-between gap-3   border-b border-gray-200 pb-4 text-xs text-gray-500">
                 <span>
-                    Payment Transaction History &nbsp;/&nbsp; {voucherTitle} &nbsp;|&nbsp; 25th
-                    Feb, 2026, 12:00 AM – 26th Feb, 2026, 12:10 AM
+                    Payment Transaction History{voucherTitle ? ` / ${voucherTitle}` : ""}
                 </span>
                 <div className="flex items-center gap-2">
                     <button className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 hover:bg-gray-50">
                         <Calendar className="h-3.5 w-3.5" />
-                        Feb 26, 2026, 12:15
+                        Filter by date
                     </button>
                     <button className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 font-medium text-white hover:bg-indigo-700">
                         <Download className="h-3.5 w-3.5" />

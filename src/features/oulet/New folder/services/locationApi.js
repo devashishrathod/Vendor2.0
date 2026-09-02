@@ -33,6 +33,20 @@ function handleError(error) {
 
 export const ADDRESS_TYPES = { HOME: 'HOME', WORK: 'WORK', OTHER: 'OTHER' };
 
+// Drops any key whose value is null/undefined or an empty (whitespace-only
+// counts) string — the backend rejects a field sent as "" with e.g. "Body.
+// addressLine2 is not allowed to be empty", so a field we couldn't
+// determine must be OMITTED entirely, never sent as an empty placeholder.
+function stripEmpty(payload = {}) {
+    return Object.fromEntries(
+        Object.entries(payload).filter(([, value]) => {
+            if (value === null || value === undefined) return false;
+            if (typeof value === 'string' && value.trim() === '') return false;
+            return true;
+        })
+    );
+}
+
 // ══════════════════════════════════════════════════════════════
 // LOCATIONS
 // ══════════════════════════════════════════════════════════════
@@ -65,7 +79,8 @@ export const ADDRESS_TYPES = { HOME: 'HOME', WORK: 'WORK', OTHER: 'OTHER' };
 // coordinates differently — under `geo.coordinates` (GeoJSON Point), not a
 // top-level `coordinates` key. That's just how the backend stores/returns
 // it; the CREATE payload itself still takes a flat `coordinates: [lng,lat]`.
-export async function createLocation(payload) {
+export async function createLocation(rawPayload) {
+    const payload = stripEmpty(rawPayload);
     console.log('[locationApi] createLocation → sending payload:', JSON.stringify(payload, null, 2));
     try {
         const { data } = await api.post('/locations/create', payload);
@@ -154,7 +169,8 @@ export async function getAllLocations({ page = 1, limit = 10, brandId, userId, s
 // ⚠️ FIXED: was calling PUT /locations/:id — confirmed via Postman that
 // the real route is PUT /locations/update/:id (same pattern as
 // /locations/create, not a bare REST /locations/:id).
-export async function updateLocation(id, patch = {}) {
+export async function updateLocation(id, rawPatch = {}) {
+    const patch = stripEmpty(rawPatch);
     console.log('[locationApi] updateLocation → id:', id, 'patch:', patch);
     try {
         const { data } = await api.put(`/locations/update/${id}`, patch);

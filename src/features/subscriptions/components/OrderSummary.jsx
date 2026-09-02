@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useRazorpayCheckout } from "../hooks/useRazorpayCheckout";
+import { formatINR } from "../utils/priceCalculator";
 import SummaryRow from "./SummaryRow";
 import PromoCodePanel from "./PromoCodePanel";
 import WelcomePage from "../pages/WelcomePage"; // 👈 adjust to the real relative path
@@ -16,6 +17,7 @@ import PaymentStatusOverlay from "./PaymentStatusOverlay"; // 👈 adjust to the
  */
 export default function OrderSummary({
   subscriptionId,
+  plan,
   orderSummary,
   pricing,
   promo,
@@ -27,6 +29,7 @@ export default function OrderSummary({
   onApplyPromo,
   onRemovePromo,
   applyingPromo,
+  promoJustRemoved,
   promoError,
 }) {
   const navigate = useNavigate();
@@ -58,6 +61,10 @@ export default function OrderSummary({
           email: billingDetails?.email,
           phone: billingDetails?.phone,
         },
+        // Only sent when the vendor actually applied one — pricing.promoCode
+        // is unset until a successful apply, so this stays undefined
+        // (and createOrder's payload just omits the field) otherwise.
+        promoCode: pricing?.promoCode,
         onSuccess: (response) => {
           setSuccessOrder(response?.data ?? response);
           setPaymentState("success"); // overlay plays the checkmark animation, then hands off
@@ -103,33 +110,54 @@ export default function OrderSummary({
         <h2 className="text-2xl font-bold text-gray-900 mb-6">Order Summary</h2>
 
         <div className="space-y-4 mb-5">
-          {rows.map((row) => {
-            const isDiscountRow = /discount/i.test(row.label || "");
-            return (
-              <SummaryRow
-                key={row.key}
-                label={row.label}
-                value={row.display}
-                muted={row.key === "ORIGINAL_PRICE"}
-                strike={row.key === "ORIGINAL_PRICE"}
-                accent={isDiscountRow}
-                sub={
-                  isDiscountRow && pricing?.promoCode
-                    ? { label: pricing.promoCode, onRemove: onRemovePromo }
-                    : undefined
-                }
-              />
-            );
-          })}
+          {/* plan.strikePrice (confirmed field, e.g. 4000) is a separate,
+              larger number from the ORIGINAL_PRICE row below (confirmed to
+              be plan.price, e.g. 1999) — it never appears in
+              orderSummary.rows at all, so it's rendered here as its own
+              row rather than overwriting/relabeling ORIGINAL_PRICE. Shown
+              as-is, no discountPercent/discountAmount math involved. */}
+          {plan?.strikePrice != null && plan.strikePrice > (plan?.price ?? 0) && (
+            <SummaryRow label="Strike Price" value={formatINR(plan.strikePrice)} muted strike />
+          )}
+          {rows
+            // Skip the separate "Discount (X% off)" line item — that
+            // saving is already visible from the strike-through rows above
+            // + the "You saved" text. A user-applied promo-code row
+            // ("Promo code (CODE)") isn't caught by this — it's a
+            // different, action-driven discount and still shows normally.
+            .filter((row) => !/^discount\s*\(/i.test(row.label || ""))
+            .map((row) => {
+              // The backend has sent this row under more than one label
+              // ("Trydood Discount", "Promo code (CODE)") — match either so
+              // the code + Remove control reliably attaches to it.
+              const isDiscountRow = /discount|promo/i.test(row.label || "");
+              return (
+                <SummaryRow
+                  key={row.key}
+                  label={row.label}
+                  value={row.display}
+                  muted={row.key === "ORIGINAL_PRICE"}
+                  strike={row.key === "ORIGINAL_PRICE"}
+                  accent={isDiscountRow}
+                  sub={
+                    isDiscountRow && pricing?.promoCode
+                      ? { label: pricing.promoCode, onRemove: onRemovePromo }
+                      : undefined
+                  }
+                />
+              );
+            })}
         </div>
 
         {/* Not-yet-applied promo entry — once pricing.promoCode is set, the
             discount row above already carries the code + Remove control,
-            so this prompt disappears rather than duplicating it. */}
+            so this prompt hides (it duplicated that row otherwise) and
+            comes back once the code is removed. */}
         {promo?.supported && !pricing?.promoCode && (
           <PromoCodePanel
             onApply={onApplyPromo}
             applying={applyingPromo}
+            initialOpen={promoJustRemoved}
             error={promoError}
           />
         )}
@@ -164,7 +192,9 @@ export default function OrderSummary({
         )}
 
         {!canCheckout && blockedReason && (
-          <p className="text-sm text-amber-600 mb-3 text-center">{blockedReason}</p>
+          <p className="mb-5 text-sm text-rose-700 bg-rose-50 border border-rose-100 rounded-lg px-3 py-2.5 text-center">
+            {blockedReason}
+          </p>
         )}
 
         {error && paymentState === "idle" && (

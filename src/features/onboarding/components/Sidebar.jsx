@@ -135,7 +135,7 @@ export default function Sidebar({
         }} />
       </div>
 
-      <div className="px-4 pt-5 pb-4">
+      <div className="px-4 pt-6 pb-5">
         <div className="flex items-center justify-center gap-2.5 mb-4 ml-6">
           <div className="rounded-lg flex items-center justify-center flex-shrink-0">
             <img src={TrydoodLogo} alt="Trydood_Logo" className="w-20 h-14 rounded-2xl" />
@@ -143,7 +143,7 @@ export default function Sidebar({
         </div>
       </div>
 
-      <div className="flex items-center justify-between px-4 pb-3">
+      <div className="flex items-center justify-between px-4 pb-4">
         <button
           onClick={goBack}
           disabled={backDisabled}
@@ -164,8 +164,13 @@ export default function Sidebar({
 
       <div className="h-px bg-gray-200 mx-4 mb-2" />
 
-      <div className="flex flex-1 pb-4 pt-4 px-3">
-        <div className="flex flex-col flex-1 ml-2.5 gap-4.5">
+      <div className="flex flex-1 pb-4 pt-4 px-4">
+        {/* ml-4 (not ml-2.5) so each row's icon lines up with the logo/Back
+            button above (px-4 + ml-6 there vs px-4 + ml-4 + the button's
+            own px-2 here — both land at the same 40px inset). gap-3 (not
+            the invalid gap-4.5, which Tailwind silently dropped, collapsing
+            the rows together with no spacing at all). */}
+        <div className="flex flex-col flex-1 ml-4 gap-3">
           {SIDEBAR_STEPS.map((step) => {
             const isPartnerContract = step.id === STEPS.PARTNER_CONTRACT;
 
