@@ -51,7 +51,7 @@ export default function LiveLocationPicker({ selectedPlace, onSelectPlace, onSho
   return (
     <div className="border border-gray-200 rounded-xl p-4">
       <div className="flex items-start gap-3 mb-4">
-        <svg className="w-4 h-4 text-indigo-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
           <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
         </svg>
@@ -67,7 +67,7 @@ export default function LiveLocationPicker({ selectedPlace, onSelectPlace, onSho
         className={`w-full flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
           fetching
             ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-            : "bg-indigo-600 text-white hover:bg-indigo-700"
+            : "bg-emerald-500 text-white hover:bg-emerald-600"
         }`}
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -85,7 +85,7 @@ export default function LiveLocationPicker({ selectedPlace, onSelectPlace, onSho
           <div className="flex gap-2 mt-3">
             <button
               onClick={onShowMap}
-              className="flex-1 bg-indigo-600 text-white font-semibold py-2.5 rounded-xl text-sm hover:bg-indigo-700 transition-colors"
+              className="flex-1 bg-emerald-500 text-white font-semibold py-2.5 rounded-xl text-sm hover:bg-emerald-600 transition-colors"
             >
               Show on Google Map
             </button>

@@ -343,8 +343,10 @@ export default function useVoucherForm(voucherId) {
 
   // ── Images ───────────────────────────────────────────────────
   // Max 5 images total (existing + newly picked); extra picks beyond the
-  // limit are dropped with an inline error.
+  // limit are dropped with an inline error. At least MIN_IMAGES is required
+  // to submit at all (enforced in submit() below).
   const MAX_IMAGES = 5;
+  const MIN_IMAGES = 3;
 
   const addImages = useCallback((fileList) => {
     const files = Array.from(fileList || []);
@@ -412,8 +414,8 @@ export default function useVoucherForm(voucherId) {
   const submit = useCallback(
     async (e) => {
       e?.preventDefault?.();
-      if (form.existingImageUrls.length + form.images.length === 0) {
-        setError("Please upload at least one voucher image.");
+      if (form.existingImageUrls.length + form.images.length < MIN_IMAGES) {
+        setError(`Please upload at least ${MIN_IMAGES} voucher images.`);
         return;
       }
       if (form.selectedOutletIds.length === 0) {

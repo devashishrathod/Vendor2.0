@@ -315,7 +315,7 @@ export default function MapModal({ place, onClose }) {
               onClick={() => setActiveTab(tab)}
               className={`text-sm font-medium pb-2 border-b-2 transition ${
                 activeTab === tab
-                  ? "border-indigo-600 text-indigo-600"
+                  ? "border-emerald-600 text-emerald-600"
                   : "border-transparent text-gray-500 hover:text-gray-700"
               }`}
             >
@@ -340,7 +340,7 @@ export default function MapModal({ place, onClose }) {
                   <button
                     type="button"
                     onClick={() => setShowFullFacts((v) => !v)}
-                    className="text-indigo-600 font-medium"
+                    className="text-emerald-600 font-medium"
                   >
                     {showFullFacts ? "Less" : "More"}
                   </button>

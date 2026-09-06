@@ -86,16 +86,22 @@ function TicketRow({ ticket, isOpen, onToggle }) {
 function NewTicketModal({ open, onClose, onSubmit, submitting }) {
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
 
   if (!open) return null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!subject.trim() || !message.trim()) return;
-    await onSubmit?.({ subject, message });
-    setSubject("");
-    setMessage("");
-    onClose?.();
+    setError("");
+    try {
+      await onSubmit?.({ subject, message });
+      setSubject("");
+      setMessage("");
+      onClose?.();
+    } catch (err) {
+      setError(err.message || "Couldn't submit this ticket. Please try again.");
+    }
   };
 
   return (
@@ -128,6 +134,7 @@ function NewTicketModal({ open, onClose, onSubmit, submitting }) {
               className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
             />
           </div>
+          {error && <p className="text-xs text-rose-500">{error}</p>}
           <div className="flex justify-end gap-2 pt-1">
             <button
               type="button"

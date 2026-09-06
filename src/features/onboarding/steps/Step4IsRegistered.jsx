@@ -71,7 +71,7 @@ function OptionCard({
     emerald: {
       card: selected
         ? "border-2 border-emerald-400 bg-emerald-50/50 shadow-sm shadow-emerald-100"
-        : "border border-gray-200 hover:border-emerald-200 hover:bg-gray-50/40",
+        : "border border-gray-200 bg-white hover:border-emerald-200 hover:bg-gray-50/40",
       iconWrap: selected ? "bg-emerald-100" : "bg-gray-100",
       iconColor: selected ? "text-emerald-600" : "text-gray-400",
       title: selected ? "text-emerald-700" : "text-gray-700",
@@ -87,7 +87,7 @@ function OptionCard({
     blue: {
       card: selected
         ? "border-2 border-red-400 bg-red-50/50 shadow-sm shadow-red-100"
-        : "border border-gray-200 hover:border-red-200 hover:bg-gray-50/40",
+        : "border border-gray-200 bg-white hover:border-red-200 hover:bg-gray-50/40",
       iconWrap: selected ? "bg-red-100" : "bg-gray-100",
       iconColor: selected ? "text-red-600" : "text-gray-400",
       title: selected ? "text-red-700" : "text-gray-700",
@@ -381,7 +381,7 @@ function RightInfoPanel({ selectedOption }) {
         </div>
         <div>
           <p className="text-[11px] font-semibold text-gray-700">Not sure?</p>
-          <p className="text-[10px] text-gray-400 mt-0.5 leading-snug">
+          <p className="text-[10px] text-gray-500 mt-0.5 leading-snug">
             You can always update your registration details later from account settings.
           </p>
         </div>
@@ -562,7 +562,7 @@ function BlockingPage({ onDelete }) {
         className="absolute bottom-0 left-0 w-[400px] h-[400px] pointer-events-none"
         style={{ background: "radial-gradient(ellipse at bottom left, rgba(16,185,129,0.07) 0%, transparent 65%)" }}
       />
-      <div className="w-full max-w-3xl bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden relative z-10">
+      <div className="w-full max-w-3xl bg-white rounded-2xl border border-gray-50 shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden relative z-10">
         <BlockingContent
           onRegister={() => goToStep(STEPS.BASIC_DETAILS, BASIC_SUB.REGISTRATION_STATUS)}
           onDelete={handleDelete}
@@ -648,7 +648,7 @@ export default function Step4IsRegistered() {
                   <h2 className="text-base md:text-lg font-semibold text-gray-900 mb-0.5">
                     Is your business registered?
                   </h2>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-gray-500">
                     Select the most applicable option to continue
                   </p>
                 </div>

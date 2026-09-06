@@ -417,15 +417,17 @@ export async function deleteShowcaseSection(sectionId) {
 }
 
 // ── Reorder Showcase Sections ─────────────────────────────────────
-// PUT {{TryDood2.0BaseUrl}}/showcase/section/:sectionId/reorder   (raw JSON)
-// Confirmed from Postman — the path id is just one of the sections being
-// reordered (its own id, e.g. the first one in the list); the actual
-// reordering is driven entirely by the body: { sections: [{ id, sortOrder },
-// ...] }, covering every section in the new order.
-export async function reorderShowcaseSections(sections = []) {
+// PUT {{TryDood2.0BaseUrl}}/showcase/section/:brandId/reorder   (raw JSON)
+// Confirmed from Postman — the path id is the BRAND's id, not any
+// section's own id (an earlier version wrongly sent sections[0].id there,
+// which 404'd as "Brand not found" since the backend looks it up as a
+// brand). The actual reordering is driven by the body: { sections: [{ id,
+// sortOrder }, ...] }, covering every section in the new order.
+export async function reorderShowcaseSections(brandId, sections = []) {
     try {
+        if (!brandId) throw new Error('brandId is required');
         if (!sections.length) throw new Error('sections is required');
-        const { data } = await api.put(`/showcase/section/${sections[0].id}/reorder`, {
+        const { data } = await api.put(`/showcase/section/${brandId}/reorder`, {
             sections: sections.map(({ id, sortOrder }) => ({ id, sortOrder })),
         });
         return data;

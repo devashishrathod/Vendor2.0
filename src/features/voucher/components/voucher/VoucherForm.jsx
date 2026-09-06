@@ -262,11 +262,11 @@ export default function VoucherForm({
           </div>
 
           {/* Images — placed right below Description. Max 5 images total
-              (existing + newly picked), at least 1 required. */}
+              (existing + newly picked), at least 3 required. */}
           <div className="mt-4">
             <FieldLabel>Voucher Images</FieldLabel>
             <p className="mb-2 text-xs text-gray-400">
-              Upload 1 to 5 images for this voucher. At least one image is required.
+              Upload 3 to 5 images for this voucher. At least 3 images are required.
             </p>
 
             <div className="flex flex-wrap gap-3">

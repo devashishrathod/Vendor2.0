@@ -21,19 +21,21 @@ function IconBadge({ bgColor, children }) {
   );
 }
 
-function DetailRow({ icon, iconBg, label, value, last }) {
+function DetailTile({ icon, iconBg, label, value, wide }) {
   if (!value || value === "—" || value === "null" || value === null)
     return null;
   return (
     <div
-      className={`flex items-center justify-between py-2.5 ${last ? "" : "border-b border-gray-100"
-        } last:border-0`}
+      className={`rounded-xl border border-gray-100 bg-gray-50/60 p-3 flex flex-col gap-1.5
+        ${wide ? "col-span-2" : ""}`}
     >
       <div className="flex items-center gap-2">
         <IconBadge bgColor={iconBg}>{icon}</IconBadge>
-        <span className="text-xs text-gray-400">{label}</span>
+        <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">
+          {label}
+        </span>
       </div>
-      <span className="text-xs font-semibold text-gray-800 text-right max-w-[55%]">
+      <span className="text-sm font-bold text-gray-800 leading-snug">
         {value}
       </span>
     </div>
@@ -266,7 +268,7 @@ export default function Step9GSTReadOnly() {
       />
 
       <div
-        className="w-full max-w-xl mx-auto "
+        className="w-full max-w-3xl mx-auto"
         style={{ animation: "stepIn 0.35s cubic-bezier(0.34,1.4,0.64,1) both" }}
       >
         <style>{`
@@ -277,12 +279,12 @@ export default function Step9GSTReadOnly() {
         `}</style>
 
         {/* ── Header ── */}
-        <div className="flex items-start justify-between mb-5">
+        <div className="flex items-start justify-between mb-4">
           <div>
             <h2 className="text-lg font-bold text-gray-900 leading-tight">
               GST Verified
             </h2>
-            <p className="text-xs text-gray-400 mt-0.5">
+            <p className="text-xs text-gray-500 mt-0.5">
               Review your details carefully before continuing
             </p>
           </div>
@@ -296,7 +298,7 @@ export default function Step9GSTReadOnly() {
         </div>
 
         {/* ── GSTIN Card ── */}
-        <div className="relative bg-emerald-50 border border-emerald-100 rounded-2xl px-5 py-4 mb-4 flex items-center justify-between overflow-hidden">
+        <div className="relative bg-emerald-50 border border-emerald-100 rounded-2xl px-5 py-3 mb-3 flex items-center justify-between overflow-hidden">
           {/* watermark */}
           <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-10 pointer-events-none">
             <svg className="w-20 h-20 text-emerald-500" fill="currentColor" viewBox="0 0 24 24">
@@ -326,10 +328,9 @@ export default function Step9GSTReadOnly() {
           </div>
         </div>
 
-        {/* ── Detail Card ── */}
-        <div className="bg-white border border-gray-100 rounded-2xl px-4 py-1 shadow-sm mb-4">
-          {/* Legal Name */}
-          <DetailRow
+        {/* ── Detail Bento Grid ── */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-3">
+          <DetailTile
             label="Legal Name"
             value={d.legalName}
             iconBg="#EFF6FF"
@@ -340,8 +341,7 @@ export default function Step9GSTReadOnly() {
             }
           />
 
-          {/* Trade Name */}
-          <DetailRow
+          <DetailTile
             label="Trade Name"
             value={d.tradeName}
             iconBg="#ECFEFF"
@@ -352,8 +352,7 @@ export default function Step9GSTReadOnly() {
             }
           />
 
-          {/* Constitution of Business */}
-          <DetailRow
+          <DetailTile
             label="Constitution of Business"
             value={d.constitutionOfBusiness}
             iconBg="#FAF5FF"
@@ -364,8 +363,7 @@ export default function Step9GSTReadOnly() {
             }
           />
 
-          {/* Taxpayer Type */}
-          <DetailRow
+          <DetailTile
             label="Taxpayer Type"
             value={d.taxpayerType}
             iconBg="#FFF1F2"
@@ -376,8 +374,7 @@ export default function Step9GSTReadOnly() {
             }
           />
 
-          {/* Registration Date */}
-          <DetailRow
+          <DetailTile
             label="Registration Date"
             value={d.registrationDate}
             iconBg="#FFF7ED"
@@ -388,8 +385,7 @@ export default function Step9GSTReadOnly() {
             }
           />
 
-          {/* Cancellation Date */}
-          <DetailRow
+          <DetailTile
             label="Cancellation Date"
             value={d.cancellationDate}
             iconBg="#FEF2F2"
@@ -400,8 +396,7 @@ export default function Step9GSTReadOnly() {
             }
           />
 
-          {/* Nature of Business */}
-          <DetailRow
+          <DetailTile
             label="Nature of Business"
             value={d.natureOfBusiness}
             iconBg="#F0FDFA"
@@ -412,11 +407,10 @@ export default function Step9GSTReadOnly() {
             }
           />
 
-          {/* Address */}
-          <DetailRow
+          <DetailTile
             label="Address"
             value={d.address}
-            last
+            wide
             iconBg="#ECFDF5"
             icon={
               <svg className="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -428,7 +422,7 @@ export default function Step9GSTReadOnly() {
         </div>
 
         {/* ── Warning Notice ── */}
-        <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 flex items-start gap-2.5 mb-4">
+        <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-2.5 flex items-start gap-2.5 mb-3">
           <div className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0 mt-0.5">
             <svg className="w-3.5 h-3.5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />

@@ -30,6 +30,10 @@ function StatusBadge({ status }) {
   );
 }
 
+// ⚠️ No confirmed response yet for GET /settlements includes a per-item
+// breakdown, so `row.breakup` (see useSettlement.js's mapSettlementRow)
+// comes through zeroed rather than fabricated non-zero numbers — the
+// original UI section stays exactly as it was.
 function BreakupRow({ breakup }) {
   const items = [
     { label: "Discount Summary", value: breakup.discountSummary, tone: "text-slate-700" },

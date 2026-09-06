@@ -1,4 +1,4 @@
-import { MOOD_COLLECTIONS, LANGUAGE_COLLECTIONS, ARTIST_COLLECTIONS } from "../constants/musicConstants";
+import { MOOD_COLLECTIONS, LANGUAGE_COLLECTIONS, ARTIST_COLLECTIONS, TRENDING_SONGS } from "../constants/musicConstants";
 
 // Point these at your real backend when ready, e.g.
 // const API_BASE = "/api/music";
@@ -13,7 +13,7 @@ function delay(ms) {
 
 export async function fetchCollections() {
   await delay(200);
-  return { mood: MOOD_COLLECTIONS, language: LANGUAGE_COLLECTIONS, artist: ARTIST_COLLECTIONS };
+  return { mood: MOOD_COLLECTIONS, language: LANGUAGE_COLLECTIONS, artist: ARTIST_COLLECTIONS, trending: TRENDING_SONGS };
 }
 
 export async function fetchUserPlaylists() {

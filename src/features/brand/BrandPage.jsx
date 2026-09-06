@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 
 import BrandHeader from "./components/BrandHeader";
 import BrandTabs from "./components/BrandTabs";
@@ -139,6 +139,7 @@ const BrandPage = ({ brandId: brandIdProp }) => {
                 brand={brand}
                 brandLoading={loading}
                 brandError={error}
+                reload={reload}
               />
             ) : (
               <ComingSoonPage label={activeTabLabel} />

@@ -3,6 +3,7 @@ import MediaPreviewModal from "./modals/MediaPreviewModal";
 import ErrorToast from "../../../../../components/common/ErrorToast";
 import {
   MAX_ALBUMS,
+  MIN_ITEMS_PER_ALBUM,
   MAX_ITEMS_PER_ALBUM,
   MAX_VIDEOS_PER_ALBUM,
   SHOWCASE_MONTHS,
@@ -402,7 +403,7 @@ export default function ShowcaseAlbumsEditor({ albums, onChange, brandId }) {
                   setNewAlbumName(preset);
                   setShowAddInput(true);
                 }}
-                className="text-xs font-semibold px-3 py-1.5 rounded-full border border-indigo-200 text-indigo-600 hover:bg-indigo-50 transition-colors"
+                className="text-xs font-semibold px-3 py-1.5 rounded-full border border-emerald-200 text-emerald-600 hover:bg-emerald-50 transition-colors"
               >
                 + {preset}
               </button>
@@ -410,7 +411,7 @@ export default function ShowcaseAlbumsEditor({ albums, onChange, brandId }) {
             <button
               type="button"
               onClick={() => setShowAddInput(true)}
-              className="text-xs font-semibold px-3 py-1.5 rounded-full border border-indigo-200 text-indigo-600 hover:bg-indigo-50 transition-colors"
+              className="text-xs font-semibold px-3 py-1.5 rounded-full border border-emerald-200 text-emerald-600 hover:bg-emerald-50 transition-colors"
             >
               + Add More
             </button>
@@ -434,14 +435,14 @@ export default function ShowcaseAlbumsEditor({ albums, onChange, brandId }) {
                   }
                 }}
                 placeholder="eg : Gallery Photo"
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-400 bg-white text-gray-700"
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-emerald-400 bg-white text-gray-700"
               />
               <button
                 onClick={() => addAlbum()}
                 disabled={!newAlbumName.trim()}
                 className={`shrink-0 px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
                   newAlbumName.trim()
-                    ? "bg-indigo-600 text-white hover:bg-indigo-700"
+                    ? "bg-emerald-500 text-white hover:bg-emerald-600"
                     : "bg-gray-100 text-gray-400 cursor-not-allowed"
                 }`}
               >
@@ -497,7 +498,7 @@ export default function ShowcaseAlbumsEditor({ albums, onChange, brandId }) {
                   onBlur={() => saveAlbumName(album)}
                   disabled={albumBusy}
                   placeholder="Album name"
-                  className="text-sm font-bold text-gray-900 border-b border-transparent hover:border-gray-200 focus:border-indigo-400 outline-none bg-transparent px-0.5 py-0.5 flex-1 disabled:opacity-50"
+                  className="text-sm font-bold text-gray-900 border-b border-transparent hover:border-gray-200 focus:border-emerald-400 outline-none bg-transparent px-0.5 py-0.5 flex-1 disabled:opacity-50"
                 />
                 <button
                   onClick={() => removeAlbum(album)}
@@ -509,10 +510,10 @@ export default function ShowcaseAlbumsEditor({ albums, onChange, brandId }) {
               </div>
 
               {album.status === "creating" && (
-                <p className="text-xs text-indigo-500 font-semibold mb-2">Creating album…</p>
+                <p className="text-xs text-emerald-500 font-semibold mb-2">Creating album…</p>
               )}
               {album.status === "saving" && (
-                <p className="text-xs text-indigo-500 font-semibold mb-2">Saving name…</p>
+                <p className="text-xs text-emerald-500 font-semibold mb-2">Saving name…</p>
               )}
               {album.status === "error" && album.error && (
                 <p className="text-xs text-red-500 font-semibold mb-2">{album.error}</p>
@@ -520,7 +521,7 @@ export default function ShowcaseAlbumsEditor({ albums, onChange, brandId }) {
 
               <p className="text-xs text-gray-500 mb-3">
                 {videoOnly ? "Video only. " : "Photos & videos. "}
-                At least 1 {videoOnly ? "video" : "photo or video"} required · Max {MAX_ITEMS_PER_ALBUM} items · Max {MAX_VIDEOS_PER_ALBUM} videos
+                At least {MIN_ITEMS_PER_ALBUM} {videoOnly ? "videos" : "photos or videos"} required · Max {MAX_ITEMS_PER_ALBUM} items · Max {MAX_VIDEOS_PER_ALBUM} videos
                 {monthly ? " · Tag each item with a month" : ""}
               </p>
 
@@ -554,7 +555,7 @@ export default function ShowcaseAlbumsEditor({ albums, onChange, brandId }) {
                       setShowInClipsMap((prev) => ({ ...prev, [album.id]: e.target.checked }))
                     }
                     disabled={!canUpload}
-                    className="w-4 h-4 accent-indigo-600 cursor-pointer disabled:opacity-40"
+                    className="w-4 h-4 accent-emerald-600 cursor-pointer disabled:opacity-40"
                   />
                   Show in Video Clips
                 </label>
@@ -564,11 +565,13 @@ export default function ShowcaseAlbumsEditor({ albums, onChange, brandId }) {
                 </span>
               </div>
 
-              {itemCount === 0 ? (
-                <p className="text-xs text-red-500 font-semibold">
-                  Add at least 1 {videoOnly ? "video" : "photo or video"} to this album.
+              {itemCount < MIN_ITEMS_PER_ALBUM ? (
+                <p className="text-xs text-red-500 font-semibold mb-3">
+                  Add at least {MIN_ITEMS_PER_ALBUM} {videoOnly ? "videos" : "photos or videos"} to this album
+                  {itemCount > 0 ? ` (${MIN_ITEMS_PER_ALBUM - itemCount} more needed)` : ""}.
                 </p>
-              ) : (
+              ) : null}
+              {itemCount > 0 && (
                 <div className="flex flex-wrap gap-3">
                   {album.media.map((m) => (
                     <div key={m.id} className="relative w-20 rounded-lg overflow-hidden border border-gray-200 group">
@@ -615,7 +618,7 @@ export default function ShowcaseAlbumsEditor({ albums, onChange, brandId }) {
                         ×
                       </button>
                       {m.isShowInVideoClips && (
-                        <span className="absolute bottom-0 left-0 right-0 text-center text-[8px] font-semibold text-white bg-indigo-600/90 py-0.5 truncate">
+                        <span className="absolute bottom-0 left-0 right-0 text-center text-[8px] font-semibold text-white bg-emerald-600/90 py-0.5 truncate">
                           In Video Clips
                         </span>
                       )}
@@ -632,7 +635,7 @@ export default function ShowcaseAlbumsEditor({ albums, onChange, brandId }) {
                             ))}
                           </select>
                           {m.month && (
-                            <span className="block text-center text-[9px] font-semibold text-indigo-600 bg-indigo-50 border-t border-gray-200 py-0.5 truncate">
+                            <span className="block text-center text-[9px] font-semibold text-emerald-600 bg-emerald-50 border-t border-gray-200 py-0.5 truncate">
                               {m.month} Month Photo
                             </span>
                           )}

@@ -25,14 +25,39 @@ function getAvatarColors(name = "") {
   return AVATAR_RING_COLORS[Math.abs(hash) % AVATAR_RING_COLORS.length];
 }
 
+// Shown only until the real GET /voucher-claims/payments response lands —
+// zeroed out rather than reusing any dummy numbers, so nothing fabricated
+// ever flashes on screen even for a moment.
+const EMPTY_VOUCHER_OVERVIEW = {
+  sectionTitle: "Voucher Overview",
+  idLabel: "Voucher Id",
+  overviewStats: [
+    { label: "Overall Bill Value", value: "₹ 0.00" },
+    { label: "Overall Paid Amount", value: "₹ 0.00" },
+    { label: "Discount Amount", value: "₹ 0.00", negative: true },
+    { label: "Additional discount", value: "₹ 0.00", negative: true },
+    { label: "Gst Amount", value: "₹ 0.00" },
+  ],
+  rows: [],
+};
+
 // ─── Overview section: toolbar + stats + table — content swaps per tab ────
-export default function TransactionOverview({ activeTxnTab }) {
+// `voucherData` is fetched once by the parent (Transactions.jsx) — shared
+// with the page header + Voucher Summary card — and passed in here.
+// Dealpack/membership stay on the dummy TRANSACTION_DATA below (no backend
+// endpoint for those yet). `voucherData` is null until it resolves, so the
+// table's existing "no rows" empty state covers the loading moment too,
+// without adding any new loading UI.
+export default function TransactionOverview({ activeTxnTab, voucherData }) {
   const [collapsed, setCollapsed] = useState(false);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
 
-  const data = TRANSACTION_DATA[activeTxnTab];
+  const data =
+    activeTxnTab === "voucher"
+      ? voucherData || EMPTY_VOUCHER_OVERVIEW
+      : TRANSACTION_DATA[activeTxnTab];
   const activeIcon = TRANSACTION_TABS.find((t) => t.key === activeTxnTab)?.icon;
 
   // Search — Customer Name & ID, Voucher/Deal Pack/Membership Id, Outlet Details
@@ -232,9 +257,14 @@ export default function TransactionOverview({ activeTxnTab }) {
                     return (
                       <tr key={row.orderId} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
                         <td className="px-5 py-3.5 whitespace-nowrap">
-                          {/* Order Id click → detail page */}
+                          {/* Order Id click → detail page. Routes on the
+                              real payment _id (row.txnId) when present —
+                              that's the actual GET /voucher-claims/payments/
+                              :claimTransactionId lookup key — falling back
+                              to orderId for the still-dummy dealpack/
+                              membership tabs, which have no txnId. */}
                           <Link
-                            to={`/transactions/order/${row.orderId.replace("#", "")}`}
+                            to={`/transactions/order/${(row.txnId || row.orderId).replace(/^#/, "")}`}
                             className="font-semibold text-blue-600 hover:underline"
                           >
                             {row.orderId}

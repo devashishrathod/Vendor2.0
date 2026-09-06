@@ -17,6 +17,18 @@ import logo1 from "@/assets/Logo1.jpg";
 import ErrorToast from "@/components/common/ErrorToast";
 import SuccessToast from "@/components/common/SuccessToast";
 
+// "SYSTEM_VERIFIED" → "System Verified", "REJECTED" → "Rejected" — used
+// for every raw SCREAMING_SNAKE_CASE enum the verification-history API
+// returns (action, newStatus, previousStatus, performedByType), instead
+// of printing them verbatim in the Status History timeline.
+function prettifyStatus(value) {
+  if (!value) return "";
+  return value
+    .replace(/_/g, " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 // Scattered, gently-twinkling sparkles/confetti for the "approved" hero
 // below — a settled/celebratory feel rather than actively falling pieces.
 const REVIEW_CONFETTI_COLORS = ["#f472b6", "#818cf8", "#34d399", "#fb923c", "#facc15", "#60a5fa"];
@@ -417,7 +429,7 @@ export default function UnderReview() {
 
       // Backend's authoritative screen state lives on data.user.currentScreen
       if (data?.user?.currentScreen === "DASHBOARD") {
-        navigate("/dashboard", { replace: true });
+        navigate("/analysis-report", { replace: true });
       }
     } catch (err) {
       setError(err.message || "Couldn't fetch brand status.");
@@ -438,7 +450,7 @@ export default function UnderReview() {
   const authCurrentScreen = useAuthStore((s) => s.currentScreen);
   useEffect(() => {
     if (authCurrentScreen === "DASHBOARD") {
-      navigate("/dashboard", { replace: true });
+      navigate("/analysis-report", { replace: true });
     }
   }, [authCurrentScreen, navigate]);
 
@@ -465,13 +477,23 @@ export default function UnderReview() {
     : "—";
 
   // ── Derived review status — from the most recent verification-history
-  // entry's `action` (e.g. "REJECTED", "APPROVED"). No entries yet (an
-  // empty history) means nothing's been actioned, i.e. still pending.
+  // entry's `newStatus`, NOT `action`. ⚠️ FIXED: this used to read
+  // `entry.action` instead, but `action` just names the KIND of action
+  // taken (e.g. "SYSTEM_VERIFIED") — it does NOT mean the outcome was a
+  // pass. A system-verify attempt can itself result in newStatus
+  // "REJECTED" (see the real history entry that surfaced this: action
+  // "SYSTEM_VERIFIED", previousStatus "PENDING", newStatus "REJECTED").
+  // Reading `action` meant a rejected brand silently fell through to
+  // isPending, showing the amber "under review" banner instead of the
+  // rose "needs correction" one — and never showing the correction
+  // fields below at all. `newStatus` is the actual resulting state.
+  // No entries yet (an empty history) means nothing's been actioned,
+  // i.e. still pending.
   const sortedHistory = [...verificationHistory].sort(
     (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
   );
   const latestEntry = sortedHistory[0] || null;
-  const reviewStatus = latestEntry?.action;
+  const reviewStatus = latestEntry?.newStatus || latestEntry?.action;
   const isApproved = reviewStatus === "APPROVED";
   // A revoked brand (brand.isRevoked, confirmed field — separate from the
   // approve/reject history, since revoke can happen to an already-approved
@@ -490,7 +512,7 @@ export default function UnderReview() {
     setAckError("");
     try {
       await acknowledgeApproval();
-      navigate("/dashboard", { replace: true });
+      navigate("/analysis-report", { replace: true });
     } catch (err) {
       setAckError(err.message || "Couldn't confirm approval. Please try again.");
       setAcknowledging(false);
@@ -740,33 +762,43 @@ export default function UnderReview() {
               date: formattedDate,
             },
             ...[...sortedHistory].reverse().map((entry) => {
+              // ⚠️ FIXED: color/status now derive from `newStatus` (the
+              // actual resulting state), not `action` (just the kind of
+              // action taken, e.g. "SYSTEM_VERIFIED" — which can itself
+              // result in newStatus "REJECTED", as it did here).
+              const status = entry.newStatus || entry.action;
               const dotColor =
-                entry.action === "REJECTED"
-                  ? "bg-rose-500"
-                  : entry.action === "APPROVED"
-                    ? "bg-emerald-500"
+                status === "REJECTED" ? "bg-rose-500"
+                  : status === "APPROVED" ? "bg-emerald-500"
                     : "bg-amber-400";
               const ringColor =
-                entry.action === "REJECTED"
-                  ? "ring-rose-100"
-                  : entry.action === "APPROVED"
-                    ? "ring-emerald-100"
+                status === "REJECTED" ? "ring-rose-100"
+                  : status === "APPROVED" ? "ring-emerald-100"
                     : "ring-amber-100";
-              const title =
-                entry.action === "REJECTED"
-                  ? "Changes requested"
-                  : entry.action === "APPROVED"
-                    ? "Approved"
-                    : entry.action || "Status updated";
+              const badgeClass =
+                status === "REJECTED" ? "bg-rose-50 text-rose-600 border-rose-200"
+                  : status === "APPROVED" ? "bg-emerald-50 text-emerald-600 border-emerald-200"
+                    : "bg-amber-50 text-amber-600 border-amber-200";
+
               return {
                 id: entry._id,
                 dotColor,
                 ringColor,
-                title:
-                  title +
-                  (entry.attemptNumber > 1 ? ` · Attempt ${entry.attemptNumber}` : "") +
-                  (entry.performedByType ? ` · ${entry.performedByType}` : ""),
-                subtitle: entry.reason,
+                // "SYSTEM_VERIFIED" → "System Verified"
+                actionLabel: prettifyStatus(entry.action) || "Status updated",
+                attemptNumber: entry.attemptNumber,
+                performedByType: entry.performedByType,
+                statusLabel: prettifyStatus(status),
+                badgeClass,
+                transition: entry.previousStatus && entry.newStatus
+                  ? `${prettifyStatus(entry.previousStatus)} → ${prettifyStatus(entry.newStatus)}`
+                  : null,
+                // "Business name mismatch (78.00%) | Bank holder name
+                // mismatch (22%)" → one bullet per reason instead of a
+                // single run-on line.
+                reasons: entry.reason
+                  ? entry.reason.split("|").map((r) => r.trim()).filter(Boolean)
+                  : [],
                 date: entry.createdAt
                   ? new Date(entry.createdAt).toLocaleString("en-IN", {
                     day: "numeric", month: "long", year: "numeric",
@@ -793,9 +825,44 @@ export default function UnderReview() {
                       />
                       <div className="flex-1 min-w-0 flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="text-sm font-medium text-gray-800">{item.title}</p>
-                          {item.subtitle && (
-                            <p className="text-xs text-gray-500 mt-0.5">{item.subtitle}</p>
+                          {item.title ? (
+                            <p className="text-sm font-medium text-gray-800">{item.title}</p>
+                          ) : (
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <span className="text-sm font-medium text-gray-800">
+                                {item.actionLabel}
+                              </span>
+                              {item.statusLabel && (
+                                <span className={`text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full border ${item.badgeClass}`}>
+                                  {item.statusLabel}
+                                </span>
+                              )}
+                              {item.attemptNumber && (
+                                <span className="text-[11px] text-gray-400">
+                                  · Attempt {item.attemptNumber}
+                                </span>
+                              )}
+                              {item.performedByType && (
+                                <span className="text-[11px] text-gray-400">
+                                  · {prettifyStatus(item.performedByType)}
+                                </span>
+                              )}
+                            </div>
+                          )}
+
+                          {item.transition && (
+                            <p className="text-[11px] text-gray-400 mt-0.5">{item.transition}</p>
+                          )}
+
+                          {item.reasons?.length > 0 && (
+                            <ul className="mt-1 space-y-0.5">
+                              {item.reasons.map((r, i) => (
+                                <li key={i} className="text-xs text-gray-500 flex items-start gap-1.5">
+                                  <span className="w-1 h-1 rounded-full bg-gray-300 flex-shrink-0 mt-1.5" />
+                                  {r}
+                                </li>
+                              ))}
+                            </ul>
                           )}
                         </div>
                         <span className="text-[11px] text-gray-400 shrink-0 whitespace-nowrap">

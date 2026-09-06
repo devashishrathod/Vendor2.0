@@ -1,17 +1,10 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { InfoSection } from './InfoGrid';
 import UpgradeButton from './UpgradeButton';
 import PlanBenefitsModal from './PlanBenefitsModal';
-import { usePlanBenefits } from '../hooks/usePlanBenefits';
 
 export default function PlanBenefits({ subscription, onUpgrade }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  // `enabled` means benefits are only fetched once the user actually opens
-  // the modal, not on initial page load.
-  const { benefits, isLoading, error } = usePlanBenefits(subscription.planName, {
-    enabled: isModalOpen,
-  });
 
   return (
     <InfoSection title="Plan Benefit's">
@@ -37,9 +30,9 @@ export default function PlanBenefits({ subscription, onUpgrade }) {
         open={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         planName={subscription.planName}
-        benefits={benefits}
-        isLoading={isLoading}
-        error={error}
+        features={subscription.features}
+        benefits={subscription.benefits}
+        usage={subscription.usage}
       />
     </InfoSection>
   );

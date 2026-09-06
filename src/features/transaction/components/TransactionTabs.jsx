@@ -8,8 +8,9 @@ export default function TransactionTabs({ activeTxnTab, setActiveTxnTab }) {
       <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1 flex-wrap">
         {TRANSACTION_TABS.map(({ key, label, icon }, index) => (
           <div key={key} className="flex items-center">
-            {/* Divider before the last tab, like in the reference design */}
-            {index === TRANSACTION_TABS.length - 1 && (
+            {/* Divider before the last tab, like in the reference design —
+                only when there's more than one tab to separate. */}
+            {TRANSACTION_TABS.length > 1 && index === TRANSACTION_TABS.length - 1 && (
               <span className="w-px h-4 bg-gray-300 mx-1" />
             )}
             <button

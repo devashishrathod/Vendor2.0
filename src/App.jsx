@@ -9,10 +9,9 @@ import DashboardLayout from './features/dashboard/layouts/DashboardLayout';
 import Step1WhatsApp from './features/onboarding/steps/Step1WhatsApp';
 import OnboardingPage from './features/onboarding/pages/VendorOnboarding';
 
-import Dashboard from './features/dashboard/pages/Dashboard';
 import AnalysisReport from './features/dashboard/pages/AnalysisReport';
-import Transactions from './features/dashboard/pages/Transactions';
-import OrderDetail from './features/dashboard/pages/OrderDetail';
+import Transactions from './features/transaction/pages/Transactions';
+import OrderDetail from './features/transaction/pages/OrderDetail';
 import { Voucher, VoucherDetails } from './features/voucher/pages/voucher';
 import { Settlement, SettlementDetails } from './features/Settlement/pages/settlement';
 import VoucherFormPage from './features/voucher/pages/voucher/VoucherFormPage';
@@ -21,7 +20,9 @@ import SubscriptionPlan from './features/subscriptions/pages/SubscriptionPlan';
 import SubscriptionCheckout from './features/subscriptions/pages/SubscriptionCheckout';
 
 import { OutletDetailsPage, OutletsPage } from './features/outlets';
-import { MusicPage } from './features/music';
+import MusicLayout from './features/music/pages/MusicLayout';
+import MusicPage from './features/music/pages/MusicPage';
+import CollectionPage from './features/music/pages/CollectionPage';
 import { SubscriptionPage } from './features/subscription';
 import BrandPage from './features/brand';
 import CreateBrandOutlet from './features/oulet/New folder/pages/CreateBrandOutlet';
@@ -103,7 +104,6 @@ function App() {
         {/* ─── DASHBOARD GROUP: header/footer YAHAN chahiye ─── */}
         <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
 
-          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/analysis-report" element={<AnalysisReport />} />
 
           {/* Transactions */}
@@ -127,8 +127,13 @@ function App() {
           <Route path="/outlets" element={<OutletsPage />} />
           <Route path="/outlets/:id" element={<OutletDetailsPage />} />
 
-          {/* Music */}
-          <Route path="/music" element={<MusicPage />} />
+          {/* Music — nested under MusicLayout so the bottom player (and its
+              playback state) survives navigating into a collection's own
+              page and back, Spotify-style. */}
+          <Route path="/music" element={<MusicLayout />}>
+            <Route index element={<MusicPage />} />
+            <Route path="collection/:collectionId" element={<CollectionPage />} />
+          </Route>
 
           {/* Subscription Page */}
           <Route path="/subscription-plan" element={<SubscriptionPage />} />

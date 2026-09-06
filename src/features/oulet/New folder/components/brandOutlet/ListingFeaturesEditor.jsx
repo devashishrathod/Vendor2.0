@@ -170,7 +170,7 @@ export default function ListingFeaturesEditor({ features, onChange, brandId }) {
             onChange={(e) => setTitle(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="eg : Premium Quality"
-            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50 transition-colors bg-white text-gray-700"
+            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50 transition-colors bg-white text-gray-700"
           />
         </div>
 
@@ -181,7 +181,7 @@ export default function ListingFeaturesEditor({ features, onChange, brandId }) {
             onChange={(e) => setDescription(e.target.value)}
             placeholder="eg : We provide premium quality products with carefully selected materials."
             rows={3}
-            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50 transition-colors bg-white text-gray-700 resize-none"
+            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50 transition-colors bg-white text-gray-700 resize-none"
           />
         </div>
 
@@ -189,7 +189,7 @@ export default function ListingFeaturesEditor({ features, onChange, brandId }) {
           <button
             type="button"
             onClick={pickIcon}
-            className="flex items-center gap-2 text-xs font-semibold text-indigo-600 hover:text-indigo-700 transition-colors"
+            className="flex items-center gap-2 text-xs font-semibold text-emerald-600 hover:text-emerald-700 transition-colors"
           >
             {iconPreview ? (
               <span className="flex items-center gap-2">
@@ -229,7 +229,7 @@ export default function ListingFeaturesEditor({ features, onChange, brandId }) {
               type="checkbox"
               checked={isActive}
               onChange={(e) => setIsActive(e.target.checked)}
-              className="w-4 h-4 accent-indigo-600 cursor-pointer"
+              className="w-4 h-4 accent-emerald-600 cursor-pointer"
             />
             Active
           </label>
@@ -241,7 +241,7 @@ export default function ListingFeaturesEditor({ features, onChange, brandId }) {
           disabled={!title.trim() || saving || capReached}
           className={`w-full px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
             title.trim() && !saving && !capReached
-              ? "bg-indigo-600 text-white hover:bg-indigo-700"
+              ? "bg-emerald-500 text-white hover:bg-emerald-600"
               : "bg-gray-100 text-gray-400 cursor-not-allowed"
           }`}
         >

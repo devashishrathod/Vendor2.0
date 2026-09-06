@@ -418,7 +418,7 @@ function CompanyIllustration() {
 // ── Dynamic right info panel ───────────────────────────────────────────────────
 function RightInfoPanel({ info }) {
   return (
-    <div className="w-full md:w-[270px] mt-[-85px]   flex-shrink-0 flex flex-col gap-3">
+    <div className="w-full md:w-[270px] md:mt-[-85px] flex-shrink-0 flex flex-col gap-3">
       <div className="rounded-xl overflow-hidden border border-emerald-100 bg-emerald-50/40 p-2">
         <CompanyIllustration />
       </div>
@@ -543,14 +543,14 @@ goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_VERIFICATION);
                   <h2 className="text-base md:text-lg font-bold text-gray-900 mb-0.5">
                     Select your business type
                   </h2>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-gray-500">
                     Please select your business structure to continue
                   </p>
                 </div>
               </div>
 
               {/* Cards grid */}
-              <div className="grid grid-cols-3 gap-2.5 mb-2.5">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 mb-2.5">
                 {BUSINESS_TYPES.slice(0, 3).map((type) => (
                   <TypeCard
                     key={type.id}
@@ -564,7 +564,7 @@ goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_VERIFICATION);
                   />
                 ))}
               </div>
-              <div className="grid grid-cols-3 gap-2.5 mb-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 mb-3">
                 {BUSINESS_TYPES.slice(3).map((type) => (
                   <TypeCard
                     key={type.id}
@@ -612,12 +612,11 @@ goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_VERIFICATION);
 
               {/* Footer */}
               <div className="flex items-center justify-between border-t border-gray-100 pt-3 mt-1">
-
-
                 <PrimaryButton
                   onClick={handleContinue}
                   disabled={!selected}
                   loading={loading}
+                  className="w-full sm:w-auto"
                 >
                   {loading ? "Saving…" : "Continue →"}
                 </PrimaryButton>

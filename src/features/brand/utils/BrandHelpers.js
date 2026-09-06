@@ -45,6 +45,45 @@ export const getBrandInitials = (name = "") => {
 };
 
 /**
+ * Lets one DOM node serve as multiple React refs at once (e.g. dnd-kit's
+ * `ref` and `handleRef` on the same element), so a whole element can be
+ * both the sortable boundary and the drag handle instead of needing a
+ * separate dedicated handle icon.
+ */
+export function mergeRefs(...refs) {
+  return (node) => {
+    refs.forEach((r) => {
+      if (typeof r === "function") r(node);
+      else if (r) r.current = node;
+    });
+  };
+}
+
+/**
+ * Ref callback for any element (e.g. a button/menu) nested inside a dnd-kit
+ * drag handle that must stay independently clickable — dnd-kit's own
+ * pointerdown listener is a real `addEventListener` sitting directly on the
+ * handle's DOM node, which fires during the native BUBBLE phase, and it
+ * activates a drag immediately on a mouse press with no movement threshold
+ * at all once the event reaches it. Two things that do NOT work here:
+ *   - `onPointerDown={(e) => e.stopPropagation()}` — that's a bubble-phase
+ *     stop too, so it runs at the same time as (and racing against) dnd-kit's
+ *     own listener, too late to reliably win.
+ *   - passing `preventActivation` to `useSortable(...)` — dnd-kit only reads
+ *     that option from a sensor DESCRIPTOR in its `sensors` array, not from
+ *     arbitrary useSortable props, so it's silently ignored there.
+ * A CAPTURE-phase listener is the one thing guaranteed to run before dnd-kit
+ * sees the event at all, since the full capture phase (root -> target)
+ * always completes before the bubble phase (target -> root) even begins.
+ */
+export function noDragRef(node) {
+  if (!node) return undefined;
+  const stop = (e) => e.stopPropagation();
+  node.addEventListener("pointerdown", stop, { capture: true });
+  return () => node.removeEventListener("pointerdown", stop, { capture: true });
+}
+
+/**
  * Basic validation used before submitting brand profile edits.
  * Returns an object of { fieldName: errorMessage } — empty object means valid.
  */

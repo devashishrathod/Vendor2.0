@@ -69,14 +69,14 @@ export default function Step2VerifyOTP({ isOpen, onClose, phoneNumber, onVerifie
   const { goToStep, setBrandId } = useOnboardingStore();
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [error, setError] = useState(null);
-  const [resendTimer, setResendTimer] = useState(30);
+  const [resendTimer, setResendTimer] = useState(60);
   const [canResend, setCanResend] = useState(false);
   const inputRefs = useRef([]);
   const navigate = useNavigate();
 
   useEffect(() => {
     if (!isOpen) return;
-    setResendTimer(30);
+    setResendTimer(60);
     setCanResend(false);
     const interval = setInterval(() => {
       setResendTimer((t) => {
@@ -168,7 +168,7 @@ export default function Step2VerifyOTP({ isOpen, onClose, phoneNumber, onVerifie
     setOtp(["", "", "", "", "", ""]);
     setError(null);
     setCanResend(false);
-    setResendTimer(30);
+    setResendTimer(60);
     try {
       await sendOTP(phoneNumber, "VENDOR");
     } catch (e) {
@@ -224,7 +224,7 @@ export default function Step2VerifyOTP({ isOpen, onClose, phoneNumber, onVerifie
               </svg>
             </div>
             <h2 className="text-xl font-bold text-gray-900 mb-1">Verify OTP</h2>
-            <p className="text-xs text-gray-400 leading-relaxed">
+            <p className="text-xs text-gray-500 leading-relaxed">
               We have sent a 6-digit OTP on<br />
               <span className="text-gray-600 font-semibold">{maskedNumber}</span>
             </p>
@@ -273,7 +273,7 @@ export default function Step2VerifyOTP({ isOpen, onClose, phoneNumber, onVerifie
             {loading ? "Verifying…" : "Continue →"}
           </PrimaryButton>
 
-          <p className="text-center text-xs text-gray-400 mt-4">
+          <p className="text-center text-xs text-gray-500 mt-4">
             🔒 We will never share your number with anyone.
           </p>
         </div>

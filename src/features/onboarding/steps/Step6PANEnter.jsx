@@ -141,7 +141,7 @@ goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_READONLY); // turant
   };
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="max-w-5xl mx-auto">
       <style>{`
         @keyframes stepIn {
           from { opacity:0; transform:translateY(12px) scale(0.99); }
@@ -150,8 +150,10 @@ goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_READONLY); // turant
         .step-in { animation: stepIn 0.3s cubic-bezier(0.34,1.2,0.64,1) both; }
       `}</style>
 
+      <div className="bg-white border border-gray-50 rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-4 sm:p-5">
+
       {/* ── Header ── */}
-      <div className="flex items-center gap-4 mb-8 step-in">
+      <div className="flex items-center gap-4 mb-4 step-in">
         <div
           className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-100
           flex items-center justify-center flex-shrink-0"
@@ -174,7 +176,7 @@ goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_READONLY); // turant
           <h2 className="text-lg font-extrabold text-gray-900 leading-tight tracking-tight">
             Enter Your Business PAN Number
           </h2>
-          <p className="text-xs text-gray-400 mt-0.5">
+          <p className="text-xs text-gray-500 mt-0.5">
             Please enter your 10-digit PAN to continue
           </p>
         </div>
@@ -182,11 +184,11 @@ goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_READONLY); // turant
 
       {/* ── Two column grid ── */}
       <div
-        className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5 step-in"
+        className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3 step-in"
         style={{ animationDelay: "0.05s" }}
       >
         {/* LEFT — Input */}
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3">
           <div className="flex flex-col">
             {/* <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
               Business PAN
@@ -351,11 +353,11 @@ goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_READONLY); // turant
 
       {/* Tips — compact card */}
       <div
-        className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 mb-4 step-in"
+        className="bg-gray-50 border border-gray-100 rounded-xl px-4 py-2.5 mb-3 step-in"
         style={{ animationDelay: "0.1s" }}
       >
         <p
-          className="text-[10px] font-bold text-slate-500 uppercase tracking-widest
+          className="text-[10px] font-bold text-gray-600 uppercase tracking-widest
           flex items-center gap-1.5 mb-2"
         >
           <svg
@@ -373,15 +375,15 @@ goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_READONLY); // turant
           </svg>
           Tips
         </p>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5">
           {[
             "PAN is case-insensitive",
             "No spaces or special characters",
             "Must match your business registration",
           ].map((tip, i) => (
             <div key={i} className="flex items-start gap-1.5">
-              <span className="w-1 h-1 rounded-full bg-slate-400 flex-shrink-0 mt-1.5" />
-              <span className="text-[11px] text-slate-500 leading-snug">
+              <span className="w-1 h-1 rounded-full bg-gray-400 flex-shrink-0 mt-1.5" />
+              <span className="text-[11px] text-gray-600 leading-snug">
                 {tip}
               </span>
             </div>
@@ -391,11 +393,11 @@ goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_READONLY); // turant
 
       {/* ── CTA row ── */}
       <div
-        className="flex items-center gap-3 step-in"
+        className="flex flex-col sm:flex-row sm:items-center gap-3 step-in"
         style={{ animationDelay: "0.15s" }}
       >
         {/* Preview pill */}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 order-2 sm:order-1">
           {upper.trim() ? (
             <div
               className="flex items-center gap-2 bg-gray-50 border border-gray-100
@@ -428,8 +430,8 @@ goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_READONLY); // turant
         <button
           onClick={handleFetch}
           disabled={!isValid || fetching}
-          className={`flex items-center gap-2 px-7 py-3 rounded-xl font-bold text-sm
-            tracking-wide transition-all duration-200 flex-shrink-0
+          className={`flex items-center justify-center gap-2 px-7 py-3 rounded-xl font-bold text-sm
+            tracking-wide transition-all duration-200 flex-shrink-0 order-1 sm:order-2 w-full sm:w-auto
             ${isValid && !fetching
               ? "bg-emerald-500 hover:bg-emerald-600 active:scale-[0.97] text-white shadow-sm shadow-emerald-100"
               : "bg-gray-100 text-gray-300 cursor-not-allowed"
@@ -494,6 +496,8 @@ goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_READONLY); // turant
             </>
           )}
         </button>
+      </div>
+
       </div>
 
       {/* ── Success Toast — 200 ── */}

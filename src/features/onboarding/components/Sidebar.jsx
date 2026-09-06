@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { STEPS } from "@/features/onboarding/constants/steps";
 import { useAuthStore } from "@/features/onboarding/store/authStore";
 import { useOnboardingStore, computeCanGoBack } from "@/features/onboarding/store/onboardingStore";
-import TrydoodLogo from "@/assets/svg/trydood.svg";
+import TrydoodIcon from "@/assets/Icon.png";
 
 const SIDEBAR_STEPS = [
   { id: STEPS.BASIC_DETAILS,         label: "Basic Details",         icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" },
@@ -78,8 +78,8 @@ const LockCircle = () => (
 
 const PendingCircle = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="flex-shrink-0">
-    <circle cx="12" cy="12" r="10" fill="#f3f7ff" stroke="#e5e7eb" strokeWidth="1.5" />
-    <circle cx="12" cy="12" r="3" fill="#d1d5db" />
+    <circle cx="12" cy="12" r="10" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1.5" />
+    <circle cx="12" cy="12" r="3" fill="#9ca3af" />
   </svg>
 );
 
@@ -123,9 +123,13 @@ export default function Sidebar({
 
   return (
     <div
-      className="w-64 flex-shrink-0 flex flex-col self-stretch bg-gray-100 min-h-full border-r border-gray-200 relative"
+      className="w-64 flex-shrink-0 flex flex-col sticky top-0 h-screen bg-white border-r border-gray-100 relative overflow-y-auto"
       style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif" }}
     >
+      <div className="absolute top-0 left-0 right-0 h-48 pointer-events-none" style={{
+        background: "radial-gradient(ellipse at top, rgba(16,185,129,0.07), transparent 70%)",
+      }} />
+
       <div style={{ position: "absolute", left: 4, top: 20, bottom: 20, width: 8, zIndex: 10 }}>
         <div style={{ position: "absolute", inset: 0, backgroundColor: "#e5e7eb", borderRadius: 999 }} />
         <div style={{
@@ -136,10 +140,13 @@ export default function Sidebar({
       </div>
 
       <div className="px-4 pt-6 pb-5">
-        <div className="flex items-center justify-center gap-2.5 mb-4 ml-6">
-          <div className="rounded-lg flex items-center justify-center flex-shrink-0">
-            <img src={TrydoodLogo} alt="Trydood_Logo" className="w-20 h-14 rounded-2xl" />
-          </div>
+        {/* Compact icon + wordmark instead of the full logo image — that
+            image is a big icon+wordmark+tagline lockup meant for a wider
+            spot (e.g. the login screen), and looked oversized/out of place
+            filling this narrow sidebar. */}
+        <div className="flex ml-4 items-start justify-start gap-2">
+          <img src={TrydoodIcon} alt="" className="w-8 h-8 rounded-lg object-contain flex-shrink-0" />
+          <span className="text-lg font-extrabold tracking-tight text-gray-900">Trydood</span>
         </div>
       </div>
 
@@ -162,9 +169,7 @@ export default function Sidebar({
         </button>
       </div>
 
-      <div className="h-px bg-gray-200 mx-4 mb-2" />
-
-      <div className="flex flex-1 pb-4 pt-4 px-4">
+      <div className="flex flex-1 pb-4 pt-2 px-4">
         {/* ml-4 (not ml-2.5) so each row's icon lines up with the logo/Back
             button above (px-4 + ml-6 there vs px-4 + ml-4 + the button's
             own px-2 here — both land at the same 40px inset). gap-3 (not
@@ -216,7 +221,7 @@ export default function Sidebar({
                   : isDoneLocked  ? "opacity-75 cursor-not-allowed"
                   : isHardLocked  ? "opacity-50 cursor-not-allowed"
                   : isFuture      ? "opacity-40 cursor-not-allowed"
-                                  : "cursor-pointer hover:bg-white"}`}
+                                  : "cursor-pointer hover:bg-gray-50"}`}
               >
                 <div className="flex-shrink-0">
                   {isActive      && <ActiveCircle />}

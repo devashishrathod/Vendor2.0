@@ -30,9 +30,10 @@ export const DEFAULT_WORKING_HOURS = WEEK_DAYS.reduce((acc, d) => {
 //   - all albums accept both photos and videos (no video-only album type)
 //   - an album named like "Ambience Photo" lets you tag each item with a
 //     month, so you can build a month-by-month gallery
-//   - every album needs at least 1 item (photo or video) before it's valid
+//   - every album needs at least 3 items (photo or video) before it's valid
 //   - a single album: max 15 items total, of which max 5 can be video
 export const MAX_ALBUMS = 5;
+export const MIN_ITEMS_PER_ALBUM = 3;
 export const MAX_ITEMS_PER_ALBUM = 15;
 export const MAX_VIDEOS_PER_ALBUM = 5;
 export const SHOWCASE_MONTHS = [
@@ -116,7 +117,7 @@ export const GUIDELINES = {
       { heading: "Albums", body: "Create up to 5 albums — e.g. \"Gallery Photo\", \"Menu Photo\", \"Ambience Photo\", \"Event Photo\". Name each album so customers know what they're looking at." },
       { heading: "Event Photo", body: "\"Event Photo\" style albums accept both event photos and videos." },
       { heading: "Ambience Photo", body: "\"Ambience\" style albums let you tag each upload with a month, so you can keep a running month-wise gallery." },
-      { heading: "Limits", body: "Each album needs at least 1 photo or video. Max 15 items per album, of which max 5 can be videos." },
+      { heading: "Limits", body: "Each album needs at least 3 photos or videos. Max 15 items per album, of which max 5 can be videos." },
       { heading: "Do's", body: "✅ Use a clear, descriptive album name\n✅ Upload real photos/videos of this outlet\n✅ Keep videos under 60 seconds" },
       { heading: "Don'ts", body: "❌ No stock photos or videos\n❌ No empty albums\n❌ No copyrighted music in videos" },
     ],

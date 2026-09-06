@@ -6,6 +6,9 @@ export function usePlayer() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const [isShuffle, setIsShuffle] = useState(false);
+  const [isRepeat, setIsRepeat] = useState(false);
+  const [volume, setVolume] = useState(1);
   const [favorites, setFavorites] = useState({});
   const [progress, setProgress] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
@@ -24,7 +27,20 @@ export function usePlayer() {
       if (audio.duration) setProgress((audio.currentTime / audio.duration) * 100);
     };
     const handleLoadedMetadata = () => setDuration(audio.duration);
-    const handleEnded = () => playAt(activeIndex + 1);
+    const handleEnded = () => {
+      if (isRepeat) {
+        audio.currentTime = 0;
+        audio.play().catch(() => setIsPlaying(false));
+        return;
+      }
+      if (isShuffle && queue.length > 1) {
+        let nextIndex = activeIndex;
+        while (nextIndex === activeIndex) nextIndex = Math.floor(Math.random() * queue.length);
+        playAt(nextIndex);
+        return;
+      }
+      playAt(activeIndex + 1);
+    };
 
     audio.addEventListener("timeupdate", handleTimeUpdate);
     audio.addEventListener("loadedmetadata", handleLoadedMetadata);
@@ -35,7 +51,7 @@ export function usePlayer() {
       audio.removeEventListener("ended", handleEnded);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeIndex, queue]);
+  }, [activeIndex, queue, isRepeat, isShuffle]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -47,6 +63,10 @@ export function usePlayer() {
   useEffect(() => {
     if (audioRef.current) audioRef.current.muted = isMuted;
   }, [isMuted]);
+
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.volume = volume;
+  }, [volume]);
 
   function playCollection(collection) {
     setQueue(collection.songs);
@@ -92,6 +112,20 @@ export function usePlayer() {
     setIsMuted((m) => !m);
   }
 
+  function toggleShuffle() {
+    setIsShuffle((s) => !s);
+  }
+
+  function toggleRepeat() {
+    setIsRepeat((r) => !r);
+  }
+
+  function setVolumeLevel(level) {
+    const clamped = Math.min(1, Math.max(0, level));
+    setVolume(clamped);
+    if (clamped > 0) setIsMuted(false);
+  }
+
   function handleSeek(pct) {
     const audio = audioRef.current;
     if (audio && audio.duration) {
@@ -109,6 +143,9 @@ export function usePlayer() {
     activeSong,
     isPlaying,
     isMuted,
+    isShuffle,
+    isRepeat,
+    volume,
     favorites,
     progress,
     currentTime,
@@ -119,6 +156,9 @@ export function usePlayer() {
     togglePlayPause,
     toggleFavorite,
     toggleMute,
+    toggleShuffle,
+    toggleRepeat,
+    setVolumeLevel,
     handleSeek,
   };
 }

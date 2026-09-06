@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { InfoSection } from './InfoGrid';
 import InvoiceModal from './InvoiceModal';
 import InvoiceHistoryModal from './InvoiceHistoryModal';
 import RaiseQueryModal from './RaiseQueryModal';
 
 export default function InvoiceInfo({ subscription }) {
-  const { orderId, ticketStatus, purchasedListLabel } = subscription;
+  const { orderId, ticketStatus, purchasedListLabel, history } = subscription;
 
   // Only one of these is ever open at a time, but they're independent
   // booleans (rather than a single "activeModal" enum) so History can open
@@ -77,6 +77,7 @@ export default function InvoiceInfo({ subscription }) {
       <InvoiceHistoryModal
         open={isHistoryOpen}
         onClose={() => setIsHistoryOpen(false)}
+        history={history}
         onViewInvoice={(clickedOrderId) => {
           // Swap to the invoice modal for the row that was clicked, and
           // close the history modal underneath it.

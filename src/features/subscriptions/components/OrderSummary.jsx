@@ -17,6 +17,7 @@ import PaymentStatusOverlay from "./PaymentStatusOverlay"; // 👈 adjust to the
  */
 export default function OrderSummary({
   subscriptionId,
+  returnTo,
   plan,
   orderSummary,
   pricing,
@@ -219,7 +220,7 @@ export default function OrderSummary({
           // forward instead.
           <button
             type="button"
-            onClick={() => navigate("/dashboard")}
+            onClick={() => navigate("/analysis-report")}
             className="w-full active:scale-[0.99] text-white font-bold text-base py-4 rounded-xl transition-all duration-150 mb-3 bg-emerald-600 hover:bg-emerald-700"
           >
             Continue
@@ -248,6 +249,7 @@ export default function OrderSummary({
           orderData={successOrder}
           asModal
           onClose={() => setSuccessOrder(null)}
+          returnTo={returnTo}
         />
       )}
     </>

@@ -1,11 +1,24 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { previewCheckout } from "../services/subscriptionApi";
+import { previewCheckout, getCurrentSubscription } from "../services/subscriptionApi";
 import { useBrand } from "../../../hooks/useBrand";
 import TrustBar from "../components/TrustBar";
 import PlanInfo from "../components/PlanInfo";
 import BillingDetailsCard from "../components/BillingDetailsCard";
 import OrderSummary from "../components/OrderSummary";
+
+// A hard page reload loses React Router's navigation `state` (that's how
+// this page normally gets `plan.id`), which used to send the vendor back
+// to /subscription unconditionally — including right after they'd already
+// paid (e.g. reloading while the WelcomePage success modal was showing).
+// Check the real subscription status first so an already-paid vendor is
+// sent forward instead of back to checkout/plan-picking. Confirmed real
+// shape (GET /subscribeds/get): top-level `isSubscribed` boolean, plus
+// `subscription.status === "ACTIVE"`.
+function hasActiveSubscription(sub) {
+  if (!sub) return false;
+  return !!sub.isSubscribed || sub.subscription?.status === "ACTIVE";
+}
 
 export default function SubscriptionCheckout() {
   const { state } = useLocation();
@@ -45,7 +58,15 @@ export default function SubscriptionCheckout() {
 
   useEffect(() => {
     if (!subscriptionId) {
-      navigate("/subscription", { replace: true });
+      // Before bouncing back to plan-picking, confirm the vendor hasn't
+      // already paid — a reload here (state lost) used to always send an
+      // already-successful payment back to /subscription instead of
+      // forward, letting them stumble into paying again.
+      getCurrentSubscription(brand?._id)
+        .then((sub) => {
+          navigate(hasActiveSubscription(sub) ? "/brand-outlet" : "/subscription", { replace: true });
+        })
+        .catch(() => navigate("/subscription", { replace: true }));
       return;
     }
 
@@ -56,7 +77,7 @@ export default function SubscriptionCheckout() {
       })
       .catch((err) => setError(err.message || "Couldn't load checkout details."))
       .finally(() => setLoading(false));
-  }, [subscriptionId, navigate]);
+  }, [subscriptionId, navigate, brand?._id]);
 
   const handleApplyPromo = async (code) => {
     setApplyingPromo(true);
@@ -121,6 +142,7 @@ export default function SubscriptionCheckout() {
 
           <OrderSummary
             subscriptionId={subscriptionId}
+            returnTo={state?.returnTo}
             plan={preview.plan}
             orderSummary={preview.orderSummary}
             pricing={preview.pricing}

@@ -1,66 +1,139 @@
 // subscriptionService.js
-// There's no separate "get subscription" endpoint — the plan/subscription
-// data lives under `subscribed` in the confirmed brands/get response (the
-// same object useBrand() already fetches for the whole app). This file's
-// only job is mapping that real brand doc into the `subscription` shape
-// every Subscription page component (PlanStatusBanner, SubscriptionInfo,
-// InvoiceInfo, BillingInfo, PlanBenefits) already expects.
+// GET /subscribeds/get?brandId= — "My current subscription", confirmed
+// real response shape: { success, message, data: { brand, isSubscribed,
+// subscription: { status, startDate, endDate, daysRemaining, durationLabel,
+// paidAmount, transactionId, pricing: { listPrice, discountPercent,
+// discountAmount, gstAmount, gstPercentage, totalPayable, youSaved },
+// plan: { name, type, typeLabel, price, features[], benefits[] } },
+// entitlements, usage, totalSubscriptions } }. mapSubscriptionResponse maps
+// that into the `subscription` shape every Subscription page component
+// (PlanStatusBanner, SubscriptionInfo, InvoiceInfo, BillingInfo,
+// PlanBenefits) already expects.
 
+import axios from 'axios';
 import { PLAN_STATUS } from '../constants/subscription.constants';
 
-// durationInDays has no separate "plan name" field anywhere in the
-// confirmed brands/get response, so derive a readable label from the
-// duration itself rather than showing a raw number of days.
-function planLabelFromDuration(days) {
-  if (!days) return 'Subscription Plan';
-  if (days >= 360 && days <= 370) return 'Annual Plan';
-  if (days >= 28 && days <= 31) return 'Monthly Plan';
-  return `${days}-Day Plan`;
+const BASE_URL = import.meta.env.VITE_BASE_URL;
+
+const api = axios.create({ baseURL: BASE_URL });
+
+// Attach auth token automatically (same pattern as the other feature
+// services in this codebase, e.g. brandApi.js / transactionService.js).
+api.interceptors.request.use(async (config) => {
+  const { useAuthStore } = await import('../../onboarding/store/authStore');
+  const token = useAuthStore.getState().token;
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+function handleError(error) {
+  const message =
+    error?.response?.data?.message ||
+    error?.response?.data?.error ||
+    error?.message ||
+    'Something went wrong. Please try again.';
+  throw new Error(message);
 }
 
 /**
- * Maps `useBrand()`'s `brand` (the confirmed brands/get response's `data`
- * object) into the `subscription` shape the Subscription page renders.
- * Returns null if the brand hasn't loaded yet or genuinely has no
- * `subscribed` record.
- *
- * @param {object|null} brand
+ * GET /subscribeds/get?brandId= — the vendor's real current subscription.
+ * `brandId` is optional for a vendor (inferred from the auth token) and
+ * required only for an admin acting on a brand's behalf.
+ * @param {string} [brandId]
+ * @returns {Promise<object|null>} the raw `data` object (brand, isSubscribed,
+ *   subscription, entitlements, usage, totalSubscriptions), or null on error.
  */
-export function mapBrandToSubscription(brand) {
-  if (!brand?.subscribed) return null;
-  const sub = brand.subscribed;
+export async function getCurrentSubscription(brandId) {
+  try {
+    const params = {};
+    if (brandId) params.brandId = brandId;
+    const { data } = await api.get('/subscribeds/get', { params });
+    return data?.data ?? null;
+  } catch (error) {
+    handleError(error);
+  }
+}
+
+// durationLabel is a string like "1 Year" / "6 Months" — parsed for the
+// leading number rather than guessed from raw days, falling back to a
+// start/end date diff if durationLabel is ever missing.
+function subscriptionTermYears(durationLabel, startDate, endDate) {
+  const match = durationLabel && /(\d+(?:\.\d+)?)\s*year/i.exec(durationLabel);
+  if (match) return Number(match[1]);
+  if (startDate && endDate) {
+    const days = (new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24);
+    return Math.round(days / 365) || 0;
+  }
+  return 0;
+}
+
+/**
+ * Maps getCurrentSubscription()'s real response (plus the separately-fetched
+ * `brand` from useBrand(), for brand/GST/PAN fields the subscription
+ * response doesn't carry) into the `subscription` shape the Subscription
+ * page renders. Returns null while loading or if the brand genuinely has no
+ * active subscription.
+ *
+ * @param {object|null} res - getCurrentSubscription()'s return value
+ * @param {object|null} brand - useBrand()'s `brand`
+ */
+export function mapSubscriptionResponse(res, brand) {
+  if (!res?.isSubscribed || !res?.subscription) return null;
+  const sub = res.subscription;
+  const pricing = sub.pricing || {};
+
+  // "Plan Discount Price" (pre-GST) is distinct from `paidAmount`
+  // (post-GST) — computed from the confirmed listPrice/discountAmount
+  // fields rather than reusing totalPayable, which already includes GST.
+  const discountedPrice =
+    pricing.listPrice != null ? pricing.listPrice - (pricing.discountAmount || 0) : sub.paidAmount;
 
   return {
-    status: sub.isExpired
-      ? PLAN_STATUS.EXPIRED
-      : sub.isActive === false
-        ? PLAN_STATUS.CANCELLED
-        : PLAN_STATUS.ACTIVE,
-    planName: planLabelFromDuration(sub.durationInDays),
-    brandName: brand.brandName || brand.legalBusinessName || '—',
+    status: sub.status || PLAN_STATUS.ACTIVE,
+    planName: sub.plan?.name || 'Subscription Plan',
+    brandName: brand?.brandName || brand?.legalBusinessName || '—',
     nextRenewalDate: sub.endDate,
     createdOnDate: sub.startDate,
-    subscriptionTermYears: sub.durationInDays ? Math.round(sub.durationInDays / 365) : 0,
+    subscriptionTermYears: subscriptionTermYears(sub.durationLabel, sub.startDate, sub.endDate),
     expirationDate: sub.endDate,
-    // The confirmed response only carries a single `price` (what the plan
-    // costs) and `paidAmount` (what was actually paid) — there's no
-    // separate "discounted price" field, so both original/discounted show
-    // the same real price rather than a fabricated discount.
-    originalPrice: sub.price,
-    discountedPrice: sub.price,
+    originalPrice: pricing.listPrice,
+    discountedPrice,
     paidAmount: sub.paidAmount,
-    orderId: sub._id,
+    orderId: sub.transactionId,
     // Billing address: prefer the brand's verified GST address (real,
     // government-verified), falling back to the first outlet's saved
     // location if GST verification hasn't happened.
     billingAddress:
-      brand.gst?.address?.location || brand.firstSubBrand?.location?.formattedAddress || '—',
-    gstDetails: brand.gst?.gstNumber || '—',
-    panDetails: brand.pan?.pan || '—',
-    // No support-ticket data exists in the brand response — this is
-    // static copy for the "Create Ticket" row, same as purchasedListLabel.
+      brand?.gst?.address?.location || brand?.firstSubBrand?.location?.formattedAddress || '—',
+    gstDetails: brand?.gst?.gstNumber || '—',
+    panDetails: brand?.pan?.pan || '—',
+    // No support-ticket data exists anywhere in the confirmed response —
+    // this is static copy for the "Create Ticket" row, same as
+    // purchasedListLabel.
     ticketStatus: 'No Active Ticket',
     purchasedListLabel: 'Purchased List',
     currentPlanBenefitsUrl: '/subscription/benefits/current',
+    // Real per-plan feature flags/limits, marketing-style benefit bullets,
+    // and the brand's actual entitlement limits + current usage against
+    // them — all straight from the confirmed response, nothing guessed.
+    features: sub.plan?.features || [],
+    benefits: sub.plan?.benefits || [],
+    entitlements: res.entitlements || {},
+    usage: res.usage || {},
+    // "Subscription Invoice" / View History — there's no confirmed endpoint
+    // that lists every past subscription, only the current one plus
+    // `lastSubscription` (the one immediately before it, or null if this is
+    // the brand's first). Real history is limited to whichever of those two
+    // actually exist, mapped into the row shape InvoiceHistoryTable expects.
+    history: [sub, res.lastSubscription].filter(Boolean).map((s) => ({
+      orderId: s.transactionId || s._id,
+      invoiceNumber: s.transactionId || s._id,
+      planName: s.plan?.name || '—',
+      date: s.startDate,
+      amount: s.paidAmount,
+      status: s.status,
+    })),
   };
 }

@@ -1,8 +1,18 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import DashboardHeader from "../components/DashboardHeader";
 // import RaiseTicketModal from "../components/RaiseTicketModal";
-import { getOrderById } from "../data/transactionData";
+import { getOrderById, TYPE_CONFIG } from "../data/transactionData";
+import { getVoucherClaimPaymentById, mapPaymentToOrderDetail } from "../services/transactionService";
+import { getVoucherById } from "@/features/voucher/services/voucher/VoucherService";
+import VoucherViewModal from "../components/VoucherViewModal";
+
+function formatVoucherDate(iso) {
+  if (!iso) return undefined;
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime())
+    ? undefined
+    : date.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+}
 
 // Small reusable "label above value" cell used across every section
 function Field({ label, value, valueClass = "text-gray-900", action }) {
@@ -123,12 +133,75 @@ export default function OrderDetail() {
   const { orderId } = useParams();
   const navigate = useNavigate();
 
-  const result = getOrderById(`#${orderId}`);
+  // Dummy dealpack/membership orders are still looked up synchronously by
+  // their "#..." code — unchanged. A real voucher row's link now routes on
+  // the payment's actual _id (see TransactionOverview.jsx), which never
+  // matches that dummy map, so it falls through to the real API fetch below.
+  const dummyResult = getOrderById(`#${orderId}`);
 
-  if (!result) {
+  const [realResult, setRealResult] = useState(null);
+  const [loading, setLoading] = useState(!dummyResult);
+  const [notFound, setNotFound] = useState(false);
+  const [showVoucherModal, setShowVoucherModal] = useState(false);
+
+  useEffect(() => {
+    if (dummyResult) return;
+    let cancelled = false;
+    setLoading(true);
+    setNotFound(false);
+    getVoucherClaimPaymentById(orderId)
+      .then(async (res) => {
+        if (cancelled) return;
+        // Confirmed real shape: { success, message, data: { payment, claim,
+        // brand, outlet, viewer } } — NOT a flat payment record.
+        const data = res?.data ?? res;
+        if (!data?.payment) { setNotFound(true); return; }
+        const order = mapPaymentToOrderDetail(data);
+
+        // Published/Expired come from the full voucher record, not the
+        // claim/payment — same GET /vouchers/versions/get-all the "View
+        // Page" modal uses. Fetched alongside (not blocking): if it fails,
+        // the two fields just stay blank rather than the whole page erroring.
+        try {
+          const voucherRes = await getVoucherById(order.refId);
+          const version = voucherRes?.data?.data?.[0];
+          if (!cancelled && version) {
+            order.publishedDate = formatVoucherDate(version.startAt);
+            order.expiredDate = formatVoucherDate(version.endAt);
+          }
+        } catch (err) {
+          console.error("Failed to load voucher publish/expiry dates:", err.message);
+        }
+
+        if (!cancelled) {
+          setRealResult({ order, typeConfig: TYPE_CONFIG.voucher });
+        }
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.error("Failed to load transaction details:", err.message);
+        setNotFound(true);
+      })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orderId]);
+
+  const result = dummyResult || realResult;
+
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 font-sans">
-        <DashboardHeader />
+        <div className="max-w-3xl mx-auto px-6 py-16 text-center">
+          <p className="text-gray-400 text-sm">Loading order details…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!result || notFound) {
+    return (
+      <div className="min-h-screen bg-gray-50 font-sans">
         <div className="max-w-3xl mx-auto px-6 py-16 text-center">
           <p className="text-gray-500 mb-4">Order #{orderId} not found.</p>
           <button
@@ -146,8 +219,6 @@ export default function OrderDetail() {
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
-      <DashboardHeader />
-
       <div className="w-full mx-auto px-6 py-6">
         {/* <div className="bg-white border border-gray-100 rounded-xl"> */}
         <div className="">
@@ -212,7 +283,7 @@ export default function OrderDetail() {
                 </div>
                 <Field label="Outlet Location" value={order.outlet} />
                 <Field label="Store Id" value={order.storeId} />
-                <Field label="Store Type" value={order.storeType} />
+                {order.storeType && <Field label="Store Type" value={order.storeType} />}
               </div>
             </Section>
             <hr className="p-6" />
@@ -226,10 +297,15 @@ export default function OrderDetail() {
                   label={typeConfig.idFieldLabel}
                   value={order.refId}
                   action={
-                    typeConfig.withViewPage && (
+                    typeConfig === TYPE_CONFIG.voucher && (
                       <>
                         <span className="text-gray-300">·</span>
-                        <button className="text-xs text-blue-500 hover:underline font-medium">View Page</button>
+                        <button
+                          onClick={() => setShowVoucherModal(true)}
+                          className="text-xs text-blue-500 hover:underline font-medium"
+                        >
+                          View Page
+                        </button>
                       </>
                     )
                   }
@@ -247,9 +323,9 @@ export default function OrderDetail() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-y-5 gap-x-6">
                 <Field label="Bill Amount" value={order.billAmount} />
                 <Field label="Discount Amount" value={order.discountAmount} valueClass="text-gray-900" />
-                <Field label="Trydood Discount" value={order.trydoodDiscount} />
-                <Field label="Membership Discount" value={order.membershipDiscount} valueClass="text-emerald-500 font-semibold" />
-                <Field label="Coupon Code" value={order.couponCode} />
+                {order.trydoodDiscount && <Field label="Trydood Discount" value={order.trydoodDiscount} />}
+                {order.membershipDiscount && <Field label="Membership Discount" value={order.membershipDiscount} valueClass="text-emerald-500 font-semibold" />}
+                {order.couponCode && <Field label="Coupon Code" value={order.couponCode} />}
                 <Field label="Paid Amount" value={order.paidAmount} />
               </div>
             </Section>
@@ -260,21 +336,23 @@ export default function OrderDetail() {
             <Section title="PAYMENTS INFORMATION">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-y-5 gap-x-6">
                 <Field label="Payment Method" value={order.paymentMethod} />
-                <Field label="Payment options" value={order.paymentOptions} />
-                <Field label="Payment Via" value={order.paymentVia} />
+                {order.paymentOptions && <Field label="Payment options" value={order.paymentOptions} />}
+                {order.paymentVia && <Field label="Payment Via" value={order.paymentVia} />}
               </div>
             </Section>
 
             <hr className="p-6" />
 
             {/* Customer Information */}
-            <Section title="CUSTOMER INFORMATION" subtitle={order.customerNote}>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-y-5 gap-x-6">
-                <Field label="Customer Name" value={order.customerName} />
-                <Field label="Customer Id" value={order.customerCode} />
-                <Field label="Mail Id" value={order.customerEmail} />
-              </div>
-            </Section>
+            {(order.customerName || order.customerCode || order.customerEmail || order.customerNote) && (
+              <Section title="CUSTOMER INFORMATION" subtitle={order.customerNote}>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-y-5 gap-x-6">
+                  {order.customerName && <Field label="Customer Name" value={order.customerName} />}
+                  {order.customerCode && <Field label="Customer Id" value={order.customerCode} />}
+                  {order.customerEmail && <Field label="Mail Id" value={order.customerEmail} />}
+                </div>
+              </Section>
+            )}
 
             <hr className="p-6" />
 
@@ -308,25 +386,30 @@ export default function OrderDetail() {
                   </div>
                 </div>
 
-                {/* Settlement row */}
-                <div className="flex gap-3">
-                  <div className="w-7 h-7 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} className="text-emerald-500">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
+                {/* Settlement row — no settlement id/date/account exists yet
+                    on a real voucher claim's payment record, only on the
+                    still-dummy dealpack/membership entries, so this whole
+                    row is skipped rather than showing four blank fields. */}
+                {order.settlementId && (
+                  <div className="flex gap-3">
+                    <div className="w-7 h-7 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} className="text-emerald-500">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-y-5 gap-x-6 flex-1">
+                      <Field
+                        label="Settlement Done"
+                        value={order.settlementId}
+                        valueClass="text-blue-500 font-medium"
+                        action={<CopyButton text={order.settlementId} />}
+                      />
+                      <Field label="Date & Time" value={order.settlementDateTime} />
+                      <Field label="Settlement Transaction ID" value={order.settlementTransactionId} />
+                      <Field label="Settlement Account Info" value={order.settlementAccountInfo} />
+                    </div>
                   </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-y-5 gap-x-6 flex-1">
-                    <Field
-                      label="Settlement Done"
-                      value={order.settlementId}
-                      valueClass="text-blue-500 font-medium"
-                      action={<CopyButton text={order.settlementId} />}
-                    />
-                    <Field label="Date & Time" value={order.settlementDateTime} />
-                    <Field label="Settlement Transaction ID" value={order.settlementTransactionId} />
-                    <Field label="Settlement Account Info" value={order.settlementAccountInfo} />
-                  </div>
-                </div>
+                )}
               </div>
             </Section>
             <hr className="p-6" />
@@ -355,6 +438,13 @@ export default function OrderDetail() {
           </div>
         </div>
       </div>
+
+      {showVoucherModal && (
+        <VoucherViewModal
+          voucherId={order.refId}
+          onClose={() => setShowVoucherModal(false)}
+        />
+      )}
     </div>
   );
 }

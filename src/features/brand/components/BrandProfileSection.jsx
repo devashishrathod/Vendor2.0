@@ -1,4 +1,5 @@
-import React from "react";
+import { useState } from "react";
+import { X } from "lucide-react";
 import InfoItem from "./InfoItem";
 import { formatMobileNumber } from "../utils/BrandHelpers";
 
@@ -26,8 +27,17 @@ const getLogoFileName = (logoUrl) => {
   }
 };
 
-const BrandProfileSection = ({ profile, onChangeLogo }) => {
+const BrandProfileSection = ({ profile, onChangeLogo, logoUpdating }) => {
+  const [previewOpen, setPreviewOpen] = useState(false);
+
   if (!profile) return null;
+
+  const logoActions = [
+    ...(profile.logo
+      ? [{ label: "View", onClick: () => setPreviewOpen(true) }]
+      : []),
+    { label: logoUpdating ? "Uploading…" : "Change", onClick: onChangeLogo, disabled: logoUpdating },
+  ];
 
   return (
     <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
@@ -51,7 +61,7 @@ const BrandProfileSection = ({ profile, onChangeLogo }) => {
         <InfoItem
           label="Brand Logo"
           value={getLogoFileName(profile.logo) || "No logo uploaded"}
-          action={{ label: "Change", onClick: onChangeLogo }}
+          actions={logoActions}
         />
 
         <InfoItem label="Mail Id" value={profile.mailId || "Gmail ID Not Provided"} />
@@ -62,6 +72,29 @@ const BrandProfileSection = ({ profile, onChangeLogo }) => {
         <InfoItem label="Refer Code" value={profile.user?.referralCode} />
         <InfoItem label="Joining" value={formatJoinedDate(profile.joinedDate)} />
       </div>
+
+      {previewOpen && profile.logo && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4"
+          onClick={() => setPreviewOpen(false)}
+        >
+          <div className="relative max-w-sm" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              onClick={() => setPreviewOpen(false)}
+              aria-label="Close"
+              className="absolute -top-10 right-0 text-white hover:text-gray-300"
+            >
+              <X size={22} />
+            </button>
+            <img
+              src={profile.logo}
+              alt="Brand logo"
+              className="max-h-[70vh] w-full rounded-2xl bg-white object-contain p-4"
+            />
+          </div>
+        </div>
+      )}
     </section>
   );
 };

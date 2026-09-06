@@ -6,10 +6,12 @@ const SCREEN_ROUTES = {
   SUBSCRIBE_PLAN: "/subscription",
   OUTLET_PAGE:    "/brand-outlet",
   UNDER_REVIEW:   "/under-review",
-  DASHBOARD:      "/dashboard",
+  // The /dashboard route was removed — DASHBOARD now lands on Analysis
+  // Report, the dashboard group's new default page.
+  DASHBOARD:      "/analysis-report",
 };
 
-const DASHBOARD_GROUP_PREFIXES = ["/dashboard", "/analysis-report"];
+const DASHBOARD_GROUP_PREFIXES = ["/analysis-report"];
 
 function isPathAllowed(currentScreen, pathname) {
   if (currentScreen === "DASHBOARD") {

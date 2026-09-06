@@ -171,7 +171,7 @@ export default function BankDetailsReview({ accountType, onNavigate, lastStep, l
           </button>
         </div>
         <h1 className="text-2xl font-extrabold text-gray-700 leading-tight">Review /&nbsp;Edit</h1>
-        <p className="text-base font-bold text-gray-400 leading-tight">Bank Details</p>
+        <p className="text-base font-bold text-gray-500 leading-tight">Bank Details</p>
       </div>
 
       {/* Rows */}

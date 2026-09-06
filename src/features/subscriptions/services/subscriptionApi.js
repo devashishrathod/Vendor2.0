@@ -112,5 +112,29 @@ export const previewCheckout = async (subscriptionId, promoCode) => {
   return unwrap(res);
 };
 
-const subscriptionAPI = { getAll, getPlanById, previewCheckout };
+/**
+ * Get the vendor's current active subscription ("My current subscription").
+ * GET /subscribeds/get?brandId=
+ *
+ * `brandId` is optional for a vendor (inferred from the auth token) and
+ * required only for an admin acting on a brand's behalf — so this is
+ * normally called with no argument at all from vendor-facing pages.
+ *
+ * Response shape unconfirmed (no sample JSON shared yet) — returns
+ * whatever `data` the backend sends as-is, unwrapped one level, so callers
+ * can read real field names once confirmed instead of this guessing them.
+ *
+ * @param {string} [brandId] - only needed for an admin-context call
+ * @returns {Promise<object|null>} the raw current-subscription object, or
+ *   null if the brand has no active subscription
+ * @example
+ * const current = await subscriptionAPI.getCurrentSubscription();
+ */
+export const getCurrentSubscription = async (brandId) => {
+  const qs = brandId ? `?brandId=${encodeURIComponent(brandId)}` : "";
+  const res = await request(`/subscribeds/get${qs}`, "GET", null, true);
+  return unwrap(res);
+};
+
+const subscriptionAPI = { getAll, getPlanById, previewCheckout, getCurrentSubscription };
 export default subscriptionAPI;

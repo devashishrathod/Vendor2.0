@@ -146,7 +146,7 @@
 
 
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import HeroBanner from "../components/HeroBanner";
 import PlanTabs from "../components/PlanTabs";
 import PlanPriceCard from "../components/PlanPriceCard";
@@ -155,12 +155,14 @@ import { useBlockBack } from "@/hooks/useBlockBack";
 import { useLogout } from "@/hooks/useLogout";
 import { useBrand } from "../../../hooks/useBrand";
 import { useSubscriptionPlans } from "@/features/subscriptions/hooks/useSubscriptionPlans";
+import { getCurrentSubscription } from "../services/subscriptionApi";
 
 export default function SubscriptionPlan({
   businessName: propBusinessName = "Yoga Education and Research Pvt Ltd",
 }) {
   useBlockBack();
   const navigate = useNavigate();
+  const { state } = useLocation();
   const { handleLogout } = useLogout();
 
   const { brand, loading: brandLoading } = useBrand();
@@ -183,13 +185,30 @@ export default function SubscriptionPlan({
     }
   }, [plans, selectedPlan]);
 
+  // GET /subscribeds/get?brandId= — "My current subscription", so this page
+  // can tell the vendor what plan they're already on (relevant when they
+  // arrived here via the Upgrade button, not just a brand-new subscribe).
+  const [currentSub, setCurrentSub] = useState(null);
+  useEffect(() => {
+    if (!brand?._id) return;
+    let cancelled = false;
+    getCurrentSubscription(brand._id)
+      .then((res) => { if (!cancelled) setCurrentSub(res); })
+      .catch((err) => console.error("Failed to load current subscription:", err.message));
+    return () => { cancelled = true; };
+  }, [brand?._id]);
+
+  const currentPlanName = currentSub?.isSubscribed ? currentSub.subscription?.plan?.name : null;
+
   const businessName = brand?.gst?.legalName || brand?.brandName || propBusinessName;
 
   // plan comes from PlanPriceCard's onPurchase, already carrying the full
   // normalized plan object (id, name, price, etc.) — no more re-fetch/guessing
-  // on checkout.
+  // on checkout. `returnTo` (set by useSubscription's goToPlans when this
+  // page was reached via the "Plan & Billing" page's Upgrade button) rides
+  // along so checkout knows where to send the vendor back to afterwards.
   const handlePurchase = (plan) => {
-    navigate("/subscription/checkout", { state: { plan } });
+    navigate("/subscription/checkout", { state: { plan, returnTo: state?.returnTo } });
   };
 
   if (brandLoading) {
@@ -268,6 +287,11 @@ export default function SubscriptionPlan({
             Enjoy enhanced benefits, exclusive content, and priority support with your
             subscription.
           </p>
+          {currentPlanName && (
+            <p className="mt-3 text-xs text-gray-500">
+              You're currently on the <span className="font-semibold text-gray-800">{currentPlanName}</span> Plan
+            </p>
+          )}
         </div>
 
         <div style={{ animation: "fadeUp 0.5s 0.1s ease both", opacity: 0 }}>

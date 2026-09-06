@@ -63,30 +63,30 @@ export default function SettlementOverview({
           <StatCard
             icon={<Wallet className="h-4 w-4" />}
             label="Previous settlement"
-            amount={overview?.previousSettlement.amount}
-            note={overview?.previousSettlement.note}
+            amount={overview?.previousSettlement?.amount}
+            note={overview?.previousSettlement?.note}
             showBreakup
           />
           <StatCard
             icon={<Clock3 className="h-4 w-4" />}
             label="Today settlement"
-            amount={overview?.todaySettlement.amount}
-            note={overview?.todaySettlement.note}
+            amount={overview?.todaySettlement?.amount}
+            note={overview?.todaySettlement?.note}
             showBreakup
           />
           <StatCard
             icon={<CircleDollarSign className="h-4 w-4" />}
             label="Available balance"
-            amount={overview?.availableBalance.amount}
-            note={overview?.availableBalance.note}
-            count={overview?.availableBalance.count}
+            amount={overview?.availableBalance?.amount}
+            note={overview?.availableBalance?.note}
+            count={overview?.availableBalance?.count}
           />
           <StatCard
             icon={<ReceiptText className="h-4 w-4" />}
             label="GST balance"
-            amount={overview?.gstBalance.amount}
-            note={overview?.gstBalance.note}
-            count={overview?.gstBalance.count}
+            amount={overview?.gstBalance?.amount}
+            note={overview?.gstBalance?.note}
+            count={overview?.gstBalance?.count}
             isLast
           />
         </div>

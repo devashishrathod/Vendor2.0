@@ -19,15 +19,20 @@ function IconBadge({ bgColor, children }) {
   );
 }
 
-function DetailRow({ icon, iconBg, label, value }) {
+function DetailTile({ icon, iconBg, label, value, wide }) {
   if (!value || value === "—") return null;
   return (
-    <div className="flex items-center justify-between py-2.5 border-b border-gray-100 last:border-0">
+    <div
+      className={`rounded-xl border border-gray-100 bg-gray-50/60 p-3 flex flex-col gap-1.5
+        ${wide ? "col-span-2 sm:col-span-3" : ""}`}
+    >
       <div className="flex items-center gap-2">
         <IconBadge bgColor={iconBg}>{icon}</IconBadge>
-        <span className="text-xs text-gray-400">{label}</span>
+        <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">
+          {label}
+        </span>
       </div>
-      <span className="text-xs font-semibold text-gray-800 text-right max-w-[55%]">
+      <span className="text-sm font-bold text-gray-800 leading-snug">
         {value}
       </span>
     </div>
@@ -212,7 +217,7 @@ export default function Step7PANReadOnly() {
       />
 
       <div
-        className="w-full max-w-xl mx-auto"
+        className="w-full max-w-3xl mx-auto"
         style={{ animation: "stepIn 0.35s cubic-bezier(0.34,1.4,0.64,1) both" }}
       >
         <style>{`
@@ -228,7 +233,7 @@ export default function Step7PANReadOnly() {
             <h2 className="text-lg font-bold text-gray-900 leading-tight">
               PAN Verified
             </h2>
-            <p className="text-xs text-gray-400 mt-0.5">
+            <p className="text-xs text-gray-500 mt-0.5">
               Review your details carefully before continuing
             </p>
           </div>
@@ -272,68 +277,53 @@ export default function Step7PANReadOnly() {
           </div>
         </div>
 
-        {/* ── Detail Card ── */}
-        <div className="bg-white border border-gray-100 rounded-2xl px-4 py-1 shadow-sm mb-4">
-          {/* Full Name */}
-          {d.fullName && d.fullName !== "—" && (
-            <div className="flex items-center justify-between py-2.5 border-b border-gray-100">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-blue-50">
-                  <svg className="w-3.5 h-3.5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                </div>
-                <span className="text-xs text-gray-400">Full Name</span>
-              </div>
-              <span className="text-xs font-semibold text-gray-800 text-right max-w-[55%]">{d.fullName}</span>
-            </div>
-          )}
+        {/* ── Detail Bento Grid ── */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
+          <DetailTile
+            label="Full Name"
+            value={d.fullName}
+            iconBg="#EFF6FF"
+            icon={
+              <svg className="w-3.5 h-3.5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            }
+          />
 
-          {/* PAN Type */}
-          {d.panType && (
-            <div className="flex items-center justify-between py-2.5 border-b border-gray-100">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-purple-50">
-                  <svg className="w-3.5 h-3.5 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                  </svg>
-                </div>
-                <span className="text-xs text-gray-400">PAN Type</span>
-              </div>
-              <span className="text-xs font-semibold text-gray-800">{d.panType}</span>
-            </div>
-          )}
+          <DetailTile
+            label="PAN Type"
+            value={d.panType}
+            iconBg="#FAF5FF"
+            icon={
+              <svg className="w-3.5 h-3.5 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+            }
+          />
 
-          {/* Registration Date */}
-          {d.dob && d.dob !== "—" && (
-            <div className="flex items-center justify-between py-2.5 border-b border-gray-100">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-orange-50">
-                  <svg className="w-3.5 h-3.5 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <span className="text-xs text-gray-400">Date of Incorporation</span>
-              </div>
-              <span className="text-xs font-semibold text-gray-800">{d.dob}</span>
-            </div>
-          )}
+          <DetailTile
+            label="Date of Incorporation"
+            value={d.dob !== "—" ? d.dob : null}
+            iconBg="#FFF7ED"
+            icon={
+              <svg className="w-3.5 h-3.5 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            }
+          />
 
-          {/* Address */}
-          {d.address && (
-            <div className="flex items-center justify-between py-2.5">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-emerald-50">
-                  <svg className="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                </div>
-                <span className="text-xs text-gray-400">Address</span>
-              </div>
-              <span className="text-xs font-semibold text-gray-800 text-right max-w-[55%]">{d.address}</span>
-            </div>
-          )}
+          <DetailTile
+            label="Address"
+            value={d.address}
+            wide
+            iconBg="#ECFDF5"
+            icon={
+              <svg className="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            }
+          />
         </div>
 
         {/* ── Warning Notice ── */}

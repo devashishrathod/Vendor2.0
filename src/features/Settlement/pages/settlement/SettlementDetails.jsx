@@ -55,6 +55,7 @@ export default function SettlementDetails() {
   const {
     detail,
     loading,
+    tickets,
     expandedTicket,
     toggleTicket,
     submitTicket,
@@ -71,7 +72,7 @@ export default function SettlementDetails() {
     );
   }
 
-  const { breakup, transactionInfo, tickets } = detail;
+  const { breakup, transactionInfo } = detail;
 
   return (
    <div>

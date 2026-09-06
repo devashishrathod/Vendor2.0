@@ -141,7 +141,7 @@ export default function Step3BusinessName() {
   const canContinue = name.trim().length > 0 && !loading;
 
   return (
-    <div className="relative w-full max-w-4xl mx-auto " style={{ minHeight: 480 }}>
+    <div className="relative w-full max-w-6xl mx-auto">
       <div className="relative z-10 w-full">
 
         <style>{`
@@ -155,8 +155,8 @@ export default function Step3BusinessName() {
         <div className="flex gap-5 items-start flex-wrap">
 
           {/* ── Form card ── */}
-          <div className="flex-1 min-w-[320px] bg-white border border-gray-100 rounded-2xl mt-14
-            shadow-sm p-6 step-in" style={{ animationDelay: "0s" }}>
+          <div className="flex-1 min-w-0 bg-white border border-gray-50 rounded-2xl mt-4 sm:mt-8
+            shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-4 sm:p-6 step-in" style={{ animationDelay: "0s" }}>
 
             {/* Header */}
             <div className="flex items-center gap-3 mb-5 step-in" style={{ animationDelay: "0s" }}>
@@ -167,16 +167,31 @@ export default function Step3BusinessName() {
                     d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                 </svg>
               </div>
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <h2 className="text-base font-bold text-gray-900 leading-tight">Know Your Brand</h2>
-                <p className="text-xs text-gray-400 mt-0.5">
+                <p className="text-xs text-gray-500 mt-0.5">
                   Enter your business name as it appears on official documents.
                 </p>
+              </div>
+
+              {/* Decorative badge — matches reference mockup */}
+              <div className="relative hidden sm:flex items-center justify-center w-12 h-12
+                rounded-2xl bg-emerald-50/70 flex-shrink-0">
+                <svg className="w-6 h-6 text-emerald-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6}
+                    d="M3 21h18M4 21V9l8-6 8 6v12M9 21v-6h6v6" />
+                </svg>
+                <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-emerald-500
+                  border-2 border-white flex items-center justify-center">
+                  <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  </svg>
+                </span>
               </div>
             </div>
 
             {/* Inputs */}
-            <div className="grid grid-cols-2 gap-4 mb-4 step-in" style={{ animationDelay: "0.05s" }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4 step-in" style={{ animationDelay: "0.05s" }}>
               <Input
                 label="Legal Business Name"
                 required
@@ -212,9 +227,9 @@ export default function Step3BusinessName() {
             </div>
 
             {/* Tips panel */}
-            <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 mb-4 step-in"
+            <div className="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 mb-4 step-in"
               style={{ animationDelay: "0.1s" }}>
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest
+              <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest
                 flex items-center gap-1.5 mb-2">
                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -222,7 +237,7 @@ export default function Step3BusinessName() {
                 </svg>
                 Tips
               </p>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5">
                 {[
                   "Use your registered brand name",
                   "At least 3 characters",
@@ -230,41 +245,45 @@ export default function Step3BusinessName() {
                   "Short name: 2–10 chars (e.g. KFC)",
                 ].map((tip, i) => (
                   <div key={i} className="flex items-start gap-1.5">
-                    <span className="w-1 h-1 rounded-full bg-slate-400 flex-shrink-0 mt-1.5" />
-                    <span className="text-[11px] text-slate-500 leading-snug">{tip}</span>
+                    <span className="w-1 h-1 rounded-full bg-gray-400 flex-shrink-0 mt-1.5" />
+                    <span className="text-[11px] text-gray-600 leading-snug">{tip}</span>
                   </div>
                 ))}
               </div>
             </div>
 
+            {/* Divider */}
+            <div className="border-t border-gray-100 my-4" />
+
             {/* CTA row */}
-            <div className="flex items-center gap-3 step-in" style={{ animationDelay: "0.15s" }}>
-              <div className="flex-1 min-w-0">
-                {name.trim() ? (
-                  <div className="flex items-center gap-2 bg-gray-50 border border-gray-100
-                    rounded-xl px-3 py-2.5 overflow-hidden">
-                    <span className="text-[9px] font-bold text-gray-300 uppercase tracking-widest flex-shrink-0">Preview</span>
-                    <span className="w-px h-3 bg-gray-200 flex-shrink-0" />
-                    <span className="text-xs font-semibold text-gray-800 truncate">{name.trim()}</span>
-                    {shortName.trim() && (
-                      <>
-                        <span className="w-px h-3 bg-gray-200 flex-shrink-0" />
-                        <span className="text-[10px] font-black text-emerald-600 tracking-widest uppercase flex-shrink-0">
-                          {shortName.trim()}
-                        </span>
-                      </>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-[11px] text-gray-300 pl-1">Your brand preview appears here</p>
-                )}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 step-in" style={{ animationDelay: "0.15s" }}>
+              <div className="flex items-center gap-2.5 flex-1 min-w-0 order-2 sm:order-1">
+                <div className="w-9 h-9 rounded-lg bg-gray-50 border border-gray-100
+                  flex items-center justify-center flex-shrink-0">
+                  <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+                      d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-gray-700 truncate">
+                    {name.trim() || "—–"}
+                  </p>
+                  <p className="text-[11px] text-gray-500 truncate">
+                    {name.trim()
+                      ? shortName.trim()
+                        ? `Short name: ${shortName.trim()}`
+                        : "Brand preview"
+                      : "Your brand preview will appear here"}
+                  </p>
+                </div>
               </div>
 
               <button
                 onClick={handleContinue}
                 disabled={!canContinue}
-                className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm
-                  tracking-wide transition-all duration-200 flex-shrink-0
+                className={`flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm
+                  tracking-wide transition-all duration-200 flex-shrink-0 order-1 sm:order-2 w-full sm:w-auto
                   ${canContinue
                     ? "bg-emerald-500 hover:bg-emerald-600 active:scale-[0.97] text-white shadow-sm shadow-emerald-100"
                     : "bg-gray-100 text-gray-300 cursor-not-allowed"
@@ -287,6 +306,19 @@ export default function Step3BusinessName() {
                   </>
                 )}
               </button>
+            </div>
+
+            {/* Footer note */}
+            <div className="flex items-center gap-2 border-t border-gray-100 mt-4 pt-3">
+              <div className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                <svg className="w-3 h-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <p className="text-[11px] text-gray-500">
+                Don't worry, you can edit these details later from your profile settings.
+              </p>
             </div>
 
           </div>

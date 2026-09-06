@@ -45,7 +45,12 @@ const ShowcasePage = ({ brandId }) => {
   const [editingSectionId, setEditingSectionId] = useState(null);
   const [actionError, setActionError] = useState(null);
 
-  if (loading) {
+  // Only the very first load (no data yet) shows this — every reload()
+  // afterwards (drag reorder, add/delete/edit) also flips `loading` back to
+  // true, but the page must keep showing the CURRENT sections while that
+  // background refetch runs instead of unmounting them, otherwise every
+  // action looks like the whole page flashes/reloads.
+  if (loading && !data) {
     return <p className="text-sm text-gray-400">Loading showcase…</p>;
   }
 
@@ -117,7 +122,7 @@ const handleCreateSection = async ({ title, description, files, isShowInVideoCli
     if (reordered === sections) return;
 
     try {
-      await reorderShowcaseSections(reordered.map((s, i) => ({ id: s._id, sortOrder: i + 1 })));
+      await reorderShowcaseSections(brandId, reordered.map((s, i) => ({ id: s._id, sortOrder: i + 1 })));
       reload();
     } catch (err) {
       setActionError(err.message);

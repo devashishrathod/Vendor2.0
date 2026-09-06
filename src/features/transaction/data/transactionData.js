@@ -11,15 +11,19 @@
 
 export const SUMMARY_CARDS = [
   { key: "voucher", label: "Voucher Summary", amount: "₹ 7,256.00", change: "+74.6%", positive: true },
-  { key: "dealpack", label: "Deal Pack Summary", amount: "₹ 4,460.00", change: "+624%", positive: true },
-  { key: "membership", label: "Membership Summary", amount: "₹ 4,244.00", change: "-20.00%", positive: false },
+  // Commented out for now — no backend endpoint yet, dummy data only.
+  // Re-enable once Deal Pack / Membership have real APIs.
+  // { key: "dealpack", label: "Deal Pack Summary", amount: "₹ 4,460.00", change: "+624%", positive: true },
+  // { key: "membership", label: "Membership Summary", amount: "₹ 4,244.00", change: "-20.00%", positive: false },
   { key: "gsi", label: "GSI Summary", amount: "₹ 3,118.00", change: "-70.00%", positive: false },
 ];
 
 export const TRANSACTION_TABS = [
   { key: "voucher", label: "Voucher Transaction", icon: "voucher" },
-  { key: "dealpack", label: "Deal Pack Transaction", icon: "dealpack" },
-  { key: "membership", label: "Membership Transaction", icon: "membership" },
+  // Commented out for now — no backend endpoint yet, dummy data only.
+  // Re-enable once Deal Pack / Membership have real APIs.
+  // { key: "dealpack", label: "Deal Pack Transaction", icon: "dealpack" },
+  // { key: "membership", label: "Membership Transaction", icon: "membership" },
 ];
 
 // ─── Detail-page field config (per transaction type) ──────────────────────
@@ -38,7 +42,6 @@ export const TYPE_CONFIG = {
       { label: "Best Value", key: "bestValue" },
       { label: "Published Date", key: "publishedDate" },
       { label: "Expired", key: "expiredDate" },
-      { label: "Reminder Days", key: "reminderDays" },
       { label: "Tag Line", key: "tagLine" },
     ],
   },

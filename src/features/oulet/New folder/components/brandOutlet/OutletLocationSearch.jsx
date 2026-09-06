@@ -6,6 +6,37 @@ import {
   getPlaceDetails,
 } from "../../services/googleMapsService";
 
+// A bare city/state/country-level Google result (e.g. searching "delhi" and
+// getting back "Delhi, India" as the whole city) never carries a postal
+// code — persistSelectedPlace's hasValidZipcode check in CreateBrandOutlet
+// blocks saving it anyway, but that only surfaces AFTER the vendor has
+// already picked it. Flag it right in the dropdown instead, so a broad
+// query nudges them toward adding a street/landmark/business name before
+// they pick a result that's guaranteed to fail.
+const BROAD_AREA_TYPES = [
+  "locality",
+  "sublocality",
+  "sublocality_level_1",
+  "administrative_area_level_1",
+  "administrative_area_level_2",
+  "administrative_area_level_3",
+  "postal_town",
+  "country",
+];
+const PRECISE_TYPES = [
+  "street_address",
+  "premise",
+  "subpremise",
+  "route",
+  "establishment",
+  "point_of_interest",
+];
+function isBroadAreaResult(place) {
+  const types = place?.rawPlace?.types || [];
+  if (types.some((t) => PRECISE_TYPES.includes(t))) return false;
+  return types.some((t) => BROAD_AREA_TYPES.includes(t));
+}
+
 export default function OutletLocationSearch({
   selectedPlace,
   onSelectPlace,
@@ -459,7 +490,7 @@ export default function OutletLocationSearch({
           }
           onKeyDown={handleKeyDown}
           placeholder="eg : Toni & Guy Ahmedabad"
-          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-400 bg-white text-gray-700"
+          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-emerald-400 bg-white text-gray-700"
         />
 
         <button
@@ -473,7 +504,7 @@ export default function OutletLocationSearch({
             searching ||
             !query.trim()
               ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-              : "bg-indigo-600 text-white hover:bg-indigo-700"
+              : "bg-emerald-500 text-white hover:bg-emerald-600"
           }`}
         >
           {searching
@@ -542,6 +573,13 @@ export default function OutletLocationSearch({
                     {place.address ||
                       "Address unavailable"}
                   </span>
+
+                  {isBroadAreaResult(place) && (
+                    <span className="block text-[11px] text-amber-600 font-medium mt-1">
+                      ⚠ Broad area — likely missing a full address/PIN code.
+                      Try adding a street or landmark to your search.
+                    </span>
+                  )}
                 </span>
               </button>
             )
@@ -611,7 +649,7 @@ export default function OutletLocationSearch({
               <button
                 type="button"
                 onClick={handleShowMap}
-                className="flex-1 bg-indigo-600 text-white font-semibold py-2.5 rounded-xl text-sm hover:bg-indigo-700 transition-colors"
+                className="flex-1 bg-emerald-500 text-white font-semibold py-2.5 rounded-xl text-sm hover:bg-emerald-600 transition-colors"
               >
                 Show on Google Map
               </button>

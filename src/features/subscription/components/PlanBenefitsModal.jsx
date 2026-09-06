@@ -1,7 +1,14 @@
-import React, { useEffect } from 'react';
-import { CloseIcon, BENEFIT_ICON_MAP, XCircleIcon } from './icons';
+import { useEffect } from 'react';
+import { CloseIcon } from './icons';
 
-export default function PlanBenefitsModal({ open, onClose, planName, benefits, isLoading, error }) {
+const USAGE_LABELS = {
+  subBrands: 'Sub Brands',
+  franchises: 'Franchises',
+  vouchers: 'Vouchers',
+  showcase: 'Showcase Sections',
+};
+
+export default function PlanBenefitsModal({ open, onClose, planName, features = [], benefits = [], usage = {} }) {
   // Close on Escape for basic accessibility/keyboard support.
   useEffect(() => {
     if (!open) return;
@@ -13,6 +20,8 @@ export default function PlanBenefitsModal({ open, onClose, planName, benefits, i
   }, [open, onClose]);
 
   if (!open) return null;
+
+  const usageRows = Object.entries(usage).filter(([key]) => USAGE_LABELS[key]);
 
   return (
     <div
@@ -29,39 +38,66 @@ export default function PlanBenefitsModal({ open, onClose, planName, benefits, i
           </button>
         </div>
 
-        {isLoading && <p style={{ padding: '24px 0', color: '#6b7280' }}>Loading benefits…</p>}
-        {error && <p style={{ padding: '24px 0', color: '#b91c1c' }}>{error}</p>}
+        {features.length === 0 && benefits.length === 0 && usageRows.length === 0 && (
+          <p style={{ padding: '24px 0', color: '#6b7280' }}>No plan details available.</p>
+        )}
 
-        {!isLoading && !error && (
-          <table className="inv-benefits-table">
-            <thead>
-              <tr>
-                <th>Icon</th>
-                <th>Benefit's Name</th>
-                <th>Description</th>
-                <th>Conditions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {benefits.map((benefit) => {
-                const Icon = BENEFIT_ICON_MAP[benefit.icon];
-                return (
-                  <tr key={benefit.id}>
-                    <td>{Icon && <Icon className="inv-benefit-icon" width={22} height={22} />}</td>
-                    <td>{benefit.name}</td>
-                    <td>{benefit.description}</td>
-                    <td>
-                      {benefit.included ? (
-                        benefit.condition
-                      ) : (
-                        <XCircleIcon className="inv-benefit-excluded" width={22} height={22} />
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        {features.length > 0 && (
+          <div style={{ marginBottom: 24 }}>
+            <p className="sub-info-section__title" style={{ fontSize: 13, marginBottom: 12 }}>
+              Plan Features
+            </p>
+            <div className="sub-feature-grid">
+              {features.map((f) => (
+                <div key={f.title} className="sub-feature-row">
+                  <span className="sub-feature-row__title">{f.title}</span>
+                  <span className={`sub-feature-row__value ${f.available ? '' : 'sub-feature-row__value--off'}`}>
+                    {f.value}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {benefits.length > 0 && (
+          <div style={{ marginBottom: 24 }}>
+            <p className="sub-info-section__title" style={{ fontSize: 13, marginBottom: 12 }}>
+              Benefits
+            </p>
+            <ul className="sub-benefit-list">
+              {benefits.map((b) => (
+                <li key={b} className="sub-benefit-list__item">
+                  <span className="sub-benefit-list__check">✓</span>
+                  {b}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {usageRows.length > 0 && (
+          <div>
+            <p className="sub-info-section__title" style={{ fontSize: 13, marginBottom: 12 }}>
+              Usage
+            </p>
+            <div className="sub-info-grid">
+              {usageRows.map(([key, u]) => (
+                <div className="sub-info-item" key={key}>
+                  <dt>{USAGE_LABELS[key]}</dt>
+                  <dd>
+                    {u.used ?? 0}
+                    {u.isUnlimited ? ' / Unlimited' : u.limit != null ? ` / ${u.limit}` : ''}
+                    {u.overflowBy > 0 && (
+                      <span className="sub-feature-row__value--off" style={{ marginLeft: 6 }}>
+                        (+{u.overflowBy} over limit)
+                      </span>
+                    )}
+                  </dd>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
       </div>
     </div>

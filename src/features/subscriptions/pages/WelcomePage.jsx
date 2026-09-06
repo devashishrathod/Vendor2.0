@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useBrand } from "../../../hooks/useBrand";
+import { getCurrentSubscription } from "../services/subscriptionApi";
 
 const CONFETTI_COLORS = [
   "#f472b6", "#818cf8", "#34d399", "#fb923c", "#facc15",
@@ -33,6 +34,44 @@ const fmt = (amount) =>
     currency: "INR",
     minimumFractionDigits: 2,
   }).format(amount);
+
+// ⚠️ Confirmed real GET /subscribeds/get response has NO invoice field at
+// all (checked: brand, isSubscribed, subscription{...}, lastSubscription,
+// entitlements, usage, totalSubscriptions — nothing invoice-shaped). Kept
+// here for whichever endpoint eventually adds one, checking the common
+// plausible names a Cloudinary-hosted document link tends to use elsewhere
+// in this app (see brand.logo, showcase images, etc.) — the button below
+// stays visible but disabled until a real field shows up.
+function getInvoiceUrl(source) {
+  if (!source) return null;
+  return (
+    source.invoiceUrl ||
+    source.invoicePdfUrl ||
+    source.invoice?.url ||
+    source.invoice?.pdfUrl ||
+    source.receiptUrl ||
+    null
+  );
+}
+
+// Content-width (not full-width) — sits top-right in a card's header row,
+// next to the plan name/status, rather than as its own full block.
+function DownloadInvoiceButton({ invoiceUrl, className = "" }) {
+  return (
+    <button
+      type="button"
+      onClick={() => invoiceUrl && window.open(invoiceUrl, "_blank", "noopener,noreferrer")}
+      disabled={!invoiceUrl}
+      title={invoiceUrl ? "Download invoice" : "Invoice not available yet"}
+      className={`inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 bg-white text-gray-700 text-xs font-semibold rounded-lg hover:bg-gray-50 active:scale-[0.97] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white flex-shrink-0 ${className}`}
+    >
+      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
+      </svg>
+      Download Invoice
+    </button>
+  );
+}
 
 function ChevronIcon({ open }) {
   return (
@@ -114,15 +153,191 @@ function PlanSummaryCard({ planName, orderSummary, strikePrice, defaultOpen = fa
   );
 }
 
+const formatDate = (iso) =>
+  iso ? new Date(iso).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—";
+
+const USAGE_KEYS = ["subBrands", "franchises", "vouchers", "showcase"];
+
+// Shown when this page is visited on its own (no `orderData` from a just-
+// completed checkout) — GET /subscribeds/get, "My current subscription".
+// Confirmed real response shape: data.subscription.{status, startDate,
+// endDate, daysRemaining, durationLabel, paidAmount, transactionId,
+// pricing{...}, plan{name, type, typeLabel, price, features[], benefits[]}},
+// plus data.usage{subBrands/franchises/vouchers/showcase}. Every field
+// below maps 1:1 to that confirmed shape — nothing guessed.
+function CurrentSubscriptionCard({ sub }) {
+  const subscription = sub?.subscription;
+  if (!subscription) return null;
+
+  const plan = subscription.plan || {};
+  const pricing = subscription.pricing || {};
+  const usage = sub?.usage || {};
+
+  const isActive = subscription.status === "ACTIVE";
+
+  return (
+    <div className="border border-gray-200 rounded-xl overflow-hidden mb-6 bg-white">
+      <div className="flex items-center justify-between gap-3 px-5 py-3 bg-gray-50 border-b border-gray-200">
+        <p className="text-sm font-semibold text-gray-700 min-w-0 truncate">
+          Current Plan : {plan.name || "—"}
+          {plan.typeLabel ? ` (${plan.typeLabel})` : ""}
+        </p>
+        <span
+          className={`text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0 ${
+            isActive ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"
+          }`}
+        >
+          {subscription.status || "—"}
+        </span>
+      </div>
+
+      <div className="px-5 py-4">
+        {/* Validity */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+          <div>
+            <p className="text-xs text-gray-400">Valid From</p>
+            <p className="text-sm font-semibold text-gray-800 mt-0.5">{formatDate(subscription.startDate)}</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-400">Valid Until</p>
+            <p className="text-sm font-semibold text-gray-800 mt-0.5">{formatDate(subscription.endDate)}</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-400">Days Remaining</p>
+            <p className="text-sm font-semibold text-gray-800 mt-0.5">{subscription.daysRemaining ?? "—"}</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-400">Duration</p>
+            <p className="text-sm font-semibold text-gray-800 mt-0.5">{subscription.durationLabel || "—"}</p>
+          </div>
+        </div>
+
+        {/* Pricing breakdown */}
+        <div className="space-y-2 pt-3 border-t border-dashed border-gray-200">
+          {pricing.listPrice != null && (
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">List Price</span>
+              <span className="text-sm font-semibold text-gray-400 line-through">{fmt(pricing.listPrice)}</span>
+            </div>
+          )}
+          {pricing.discountAmount > 0 && (
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">
+                Discount ({Math.floor(pricing.discountPercent || 0)}% off)
+              </span>
+              <span className="text-sm font-semibold text-teal-600">-{fmt(pricing.discountAmount)}</span>
+            </div>
+          )}
+          {pricing.gstAmount > 0 && (
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">
+                GST{pricing.gstPercentage != null ? ` (${pricing.gstPercentage}%)` : ""}
+              </span>
+              <span className="text-sm font-semibold text-gray-800">{fmt(pricing.gstAmount)}</span>
+            </div>
+          )}
+          <div className="flex items-center justify-between pt-2 border-t border-dashed border-gray-200">
+            <span className="text-sm font-bold text-gray-900">Total Paid</span>
+            <span className="text-base font-extrabold text-gray-900">
+              {fmt(subscription.paidAmount ?? pricing.totalPayable)}
+            </span>
+          </div>
+          {pricing.youSaved > 0 && (
+            <p className="text-xs text-teal-600 font-medium text-right">
+              You saved {fmt(pricing.youSaved)} on this plan
+            </p>
+          )}
+        </div>
+
+        {/* Plan features */}
+        {plan.features?.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-dashed border-gray-200">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Plan Features</p>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-1.5">
+              {plan.features.map((f) => (
+                <div key={f.title} className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">{f.title}</span>
+                  <span className={`font-medium ${f.available ? "text-gray-800" : "text-gray-300"}`}>
+                    {f.value}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Benefits */}
+        {plan.benefits?.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-dashed border-gray-200">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Benefits</p>
+            <ul className="space-y-1">
+              {plan.benefits.map((b) => (
+                <li key={b} className="flex items-start gap-2 text-sm text-gray-700">
+                  <span className="text-teal-500 mt-0.5">✓</span>
+                  {b}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Usage */}
+        {Object.keys(usage).length > 0 && (
+          <div className="mt-4 pt-4 border-t border-dashed border-gray-200">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Usage</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {USAGE_KEYS.map((key) => {
+                const u = usage[key];
+                if (!u) return null;
+                return (
+                  <div key={key}>
+                    <p className="text-xs text-gray-400 capitalize">{u.label || key}</p>
+                    <p className="text-sm font-semibold text-gray-800 mt-0.5">
+                      {u.used ?? 0}
+                      {u.isUnlimited ? " / Unlimited" : u.limit != null ? ` / ${u.limit}` : ""}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /**
  * @param {object}  props
  * @param {object}  [props.orderData] - the `data` object from your subscribe-order API response
  * @param {boolean} [props.asModal]   - render as a centered overlay instead of a full page
  * @param {Function}[props.onClose]   - required when asModal is true
+ * @param {string}  [props.returnTo]  - where the primary CTA sends the vendor afterwards. Set
+ *   only when this checkout was reached via the "Plan & Billing" page's Upgrade button (see
+ *   useSubscription's goToPlans) — an existing vendor who just upgraded should land back on
+ *   their plan/billing page, not get routed into the brand-new-vendor onboarding step below.
  */
-export default function WelcomePage({ orderData = null, asModal = true, onClose }) {
+export default function WelcomePage({ orderData = null, asModal = true, onClose, returnTo }) {
   const { brand, loading } = useBrand();
   const navigate = useNavigate();
+
+  // Always fetched — GET /subscribeds/get?brandId=, "My current
+  // subscription". Passed explicitly with this brand's own _id (from
+  // useBrand() above) rather than omitted, per confirmed usage. The
+  // invoice link lives on THIS response, not on the create-order
+  // `orderData` prop, so this is fetched even in the fresh-checkout/
+  // asModal case, purely to power the Download Invoice button — the plan
+  // SUMMARY shown still prefers `orderData` when present (see the render
+  // below).
+  const [currentSub, setCurrentSub] = useState(null);
+  useEffect(() => {
+    if (!brand?._id) return;
+    let cancelled = false;
+    getCurrentSubscription(brand._id)
+      .then((res) => { if (!cancelled) setCurrentSub(res); })
+      .catch((err) => console.error("Failed to load current subscription:", err.message));
+    return () => { cancelled = true; };
+  }, [brand?._id]);
 
   if (loading) return <div>Loading...</div>;
 
@@ -136,10 +351,11 @@ export default function WelcomePage({ orderData = null, asModal = true, onClose 
   const planName = orderData?.plan?.name || "—";
   const strikePrice = orderData?.plan?.strikePrice;
   const orderSummary = orderData?.orderSummary;
+  const invoiceUrl = getInvoiceUrl(orderData) || getInvoiceUrl(currentSub);
 
-  const handleAddListing = () => {
+  const handlePrimaryCta = () => {
     if (asModal && onClose) onClose();
-    navigate("/brand-outlet");
+    navigate(returnTo || "/brand-outlet");
   };
 
   return (
@@ -195,16 +411,6 @@ export default function WelcomePage({ orderData = null, asModal = true, onClose 
           ))}
         </div>
 
-        {asModal && (
-          <button
-            onClick={onClose}
-            className="absolute top-3 right-3 z-20 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 text-sm"
-            aria-label="Close"
-          >
-            ✕
-          </button>
-        )}
-
         <div className={`relative p-6 z-10 ${asModal ? "px-6 pb-6" : "px-6 md:px-10 pb-16"}`}>
           <div className={`text-center ${asModal ? "pt-8 pb-6" : "pt-10 pb-10"}`}>
             {orderData && (
@@ -247,21 +453,35 @@ export default function WelcomePage({ orderData = null, asModal = true, onClose 
               <span>PAN No : <span className="text-indigo-500 font-medium">{brandData.panNo}</span></span>
             </div>
 
-            <PlanSummaryCard
-              planName={planName}
-              orderSummary={orderSummary}
-              strikePrice={strikePrice}
-              defaultOpen={asModal}
-            />
+            <div className="flex justify-end mb-2">
+              <DownloadInvoiceButton invoiceUrl={invoiceUrl} />
+            </div>
+
+            {orderData ? (
+              <PlanSummaryCard
+                planName={planName}
+                orderSummary={orderSummary}
+                strikePrice={strikePrice}
+                defaultOpen={asModal}
+              />
+            ) : (
+              currentSub && <CurrentSubscriptionCard sub={currentSub} />
+            )}
 
             <button
-              onClick={handleAddListing}
+              onClick={handlePrimaryCta}
               className="w-full flex items-center justify-center gap-3 py-3.5 bg-[#1a1a2e] text-white text-base font-semibold rounded-xl hover:bg-[#2d2d5e] active:scale-[0.99] transition-all"
             >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-              </svg>
-              Add Listing
+              {returnTo ? (
+                "Continue"
+              ) : (
+                <>
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add Listing
+                </>
+              )}
             </button>
           </div>
         </div>

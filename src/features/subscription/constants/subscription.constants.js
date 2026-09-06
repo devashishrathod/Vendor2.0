@@ -4,7 +4,11 @@
 // hard-code magic strings inline.
 
 export const ROUTES = {
-  PLANS: '/plans', // Where the "Upgrade" button should take the user
+  // Where the "Upgrade" button takes the user — the real plan-selection
+  // page (features/subscriptions, plural) also used during onboarding
+  // checkout. '/plans' was never a registered route, so Upgrade previously
+  // hit the app's catch-all and bounced to the landing page.
+  PLANS: '/subscription',
   SUBSCRIPTION: '/subscription',
   INVOICE_DETAIL: '/invoices/:orderId', // Route pattern for router registration
   INVOICE_HISTORY: '/subscription/invoice-history',
