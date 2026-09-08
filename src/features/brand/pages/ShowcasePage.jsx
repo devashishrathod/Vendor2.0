@@ -63,6 +63,9 @@ const ShowcasePage = ({ brandId }) => {
       title: s.title,
       subtitle: s.description || `${s.photoCount || 0} photos · ${s.videoCount || 0} videos`,
       medias: s.medias || [],
+      // Defaults to true (visible) — a brand-new section with no explicit
+      // isVisible from the API should show up for customers by default.
+      isVisible: s.isVisible !== false,
     })),
   };
 
@@ -109,6 +112,19 @@ const handleCreateSection = async ({ title, description, files, isShowInVideoCli
     }
   };
 
+  // "Show in Clips" visibility toggle on the section header — PUT
+  // /showcase/section/update/:id with just { isVisible }, the same
+  // update-section endpoint the title/description edit modal already uses.
+  const handleToggleSectionVisibility = async (sectionId, isVisible) => {
+    setActionError(null);
+    try {
+      await updateShowcaseSection(sectionId, { isVisible });
+      reload();
+    } catch (err) {
+      setActionError(err.message);
+    }
+  };
+
   const handleEditSection = (sectionId) => setEditingSectionId(sectionId);
 
   const handleEditSectionSubmit = async ({ title, description }) => {
@@ -132,7 +148,20 @@ const handleCreateSection = async ({ title, description, files, isShowInVideoCli
   const handleReplaceMedia = async (sectionId, mediaId, file) => {
     setActionError(null);
     try {
-      await replaceShowcaseMedia(sectionId, mediaId, file);
+      await replaceShowcaseMedia(sectionId, mediaId, { file });
+      reload();
+    } catch (err) {
+      setActionError(err.message);
+    }
+  };
+
+  // Video 3-dot menu's "Show in Video Clips" checkbox — flips one existing
+  // media item's isShowInVideoClips flag (see replaceShowcaseMedia's
+  // comment for why this reuses the replace-media endpoint).
+  const handleToggleMediaClip = async (sectionId, mediaId, isShowInVideoClips) => {
+    setActionError(null);
+    try {
+      await replaceShowcaseMedia(sectionId, mediaId, { isShowInVideoClips });
       reload();
     } catch (err) {
       setActionError(err.message);
@@ -180,6 +209,8 @@ const handleCreateSection = async ({ title, description, files, isShowInVideoCli
         onEditSection={handleEditSection}
         onDeleteSection={handleDeleteSection}
         onSetSectionOrder={handleSetSectionOrder}
+        onToggleVisibility={handleToggleSectionVisibility}
+        onToggleMediaClip={handleToggleMediaClip}
       />
 
       {showAddModal && (

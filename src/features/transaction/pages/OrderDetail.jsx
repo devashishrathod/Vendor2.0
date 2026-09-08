@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 // import RaiseTicketModal from "../components/RaiseTicketModal";
 import { getOrderById, TYPE_CONFIG } from "../data/transactionData";
 import { getVoucherClaimPaymentById, mapPaymentToOrderDetail } from "../services/transactionService";
@@ -14,13 +14,16 @@ function formatVoucherDate(iso) {
     : date.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
 }
 
-// Small reusable "label above value" cell used across every section
+// Small reusable "label above value" cell used across every section.
+// Falls back to "Not Found" for a genuinely missing value instead of
+// rendering an empty cell — the field itself always shows, per the
+// as-it-was layout, rather than being hidden when the API has no data.
 function Field({ label, value, valueClass = "text-gray-900", action }) {
   return (
     <div>
       <p className="text-xs font-semibold text-gray-900 mb-1">{label}</p>
       <div className="flex items-center gap-1.5">
-        <p className={`text-sm ${valueClass} whitespace-pre-line`}>{value}</p>
+        <p className={`text-sm ${valueClass} whitespace-pre-line`}>{value ?? "Not Found"}</p>
         {action}
       </div>
     </div>
@@ -168,6 +171,14 @@ export default function OrderDetail() {
           if (!cancelled && version) {
             order.publishedDate = formatVoucherDate(version.startAt);
             order.expiredDate = formatVoucherDate(version.endAt);
+            // Countdown to expiry, computed client-side from the real
+            // endAt — there's no separate "reminder days" field on the
+            // API, but this is exactly what that label means: days left
+            // before the voucher expires. Clamped at 0 once it's past.
+            if (version.endAt) {
+              const daysLeft = Math.ceil((new Date(version.endAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+              order.reminderDays = `${Math.max(daysLeft, 0)} Days`;
+            }
           }
         } catch (err) {
           console.error("Failed to load voucher publish/expiry dates:", err.message);
@@ -217,6 +228,41 @@ export default function OrderDetail() {
 
   const { order, typeConfig } = result;
 
+  // Builds a plain-text receipt from the real data already loaded on this
+  // page — there's no confirmed backend "receipt PDF" endpoint, so this
+  // stays client-side (same approach as the CSV export on the Transactions
+  // table) instead of leaving the button unwired.
+  const handleDownloadReceipt = () => {
+    const lines = [
+      "TRYDOOD RETAIL PRIVATE LIMITED",
+      "Payment Receipt",
+      "",
+      `Order Id: ${order.orderId || "—"}`,
+      `${typeConfig.idFieldLabel}: ${order.refId || "—"}`,
+      order.voucherName && `Voucher Name: ${order.voucherName}`,
+      `Outlet Location: ${order.outlet || "—"}`,
+      order.storeId && `Store Id: ${order.storeId}`,
+      "",
+      `Bill Amount: ${order.billAmount || "—"}`,
+      `Discount Amount: ${order.discountAmount || "—"}`,
+      `Paid Amount: ${order.paidAmount || "—"}`,
+      "",
+      `Payment Method: ${order.paymentMethod || "—"}`,
+      `Payment Transaction Id: ${order.paymentTransactionId || "—"}`,
+      `Date & Time: ${order.paymentDateTime || "—"}`,
+    ].filter(Boolean).join("\n");
+
+    const blob = new Blob([lines], { type: "text/plain;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `receipt-${order.orderId || "order"}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
       <div className="w-full mx-auto px-6 py-6">
@@ -246,7 +292,7 @@ export default function OrderDetail() {
                 <CopyButton text={order.orderId} />
                 <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full ml-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                  Active
+                  {order.status || "Active"}
                 </span>
                 <span className="text-[11px] font-semibold text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full">
                   {typeConfig.badgeLabel}
@@ -255,10 +301,14 @@ export default function OrderDetail() {
             </div>
 
             <div className="flex items-center gap-2 ml-auto">
-              <button className="text-xs font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg px-4 py-2.5">
+              {/* Create Ticket — not needed right now, commented out. */}
+              {/* <button className="text-xs font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg px-4 py-2.5">
                 Create Ticket
-              </button>
-              <button className="flex items-center gap-1.5 text-xs font-semibold text-white bg-gray-900 hover:bg-black rounded-lg px-4 py-2.5">
+              </button> */}
+              <button
+                onClick={handleDownloadReceipt}
+                className="flex items-center gap-1.5 text-xs font-semibold text-white bg-gray-900 hover:bg-black rounded-lg px-4 py-2.5"
+              >
                 <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
                 </svg>
@@ -283,7 +333,7 @@ export default function OrderDetail() {
                 </div>
                 <Field label="Outlet Location" value={order.outlet} />
                 <Field label="Store Id" value={order.storeId} />
-                {order.storeType && <Field label="Store Type" value={order.storeType} />}
+                <Field label="Store Type" value={order.storeType} />
               </div>
             </Section>
             <hr className="p-6" />
@@ -323,9 +373,9 @@ export default function OrderDetail() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-y-5 gap-x-6">
                 <Field label="Bill Amount" value={order.billAmount} />
                 <Field label="Discount Amount" value={order.discountAmount} valueClass="text-gray-900" />
-                {order.trydoodDiscount && <Field label="Trydood Discount" value={order.trydoodDiscount} />}
-                {order.membershipDiscount && <Field label="Membership Discount" value={order.membershipDiscount} valueClass="text-emerald-500 font-semibold" />}
-                {order.couponCode && <Field label="Coupon Code" value={order.couponCode} />}
+                <Field label="Trydood Discount" value={order.trydoodDiscount} />
+                <Field label="Membership Discount" value={order.membershipDiscount} valueClass={order.membershipDiscount ? "text-emerald-500 font-semibold" : "text-gray-900"} />
+                <Field label="Coupon Code" value={order.couponCode} />
                 <Field label="Paid Amount" value={order.paidAmount} />
               </div>
             </Section>
@@ -336,8 +386,8 @@ export default function OrderDetail() {
             <Section title="PAYMENTS INFORMATION">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-y-5 gap-x-6">
                 <Field label="Payment Method" value={order.paymentMethod} />
-                {order.paymentOptions && <Field label="Payment options" value={order.paymentOptions} />}
-                {order.paymentVia && <Field label="Payment Via" value={order.paymentVia} />}
+                <Field label="Payment options" value={order.paymentOptions} />
+                <Field label="Payment Via" value={order.paymentVia} />
               </div>
             </Section>
 

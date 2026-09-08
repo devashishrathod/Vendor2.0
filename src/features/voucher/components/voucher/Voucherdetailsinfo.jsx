@@ -1,17 +1,33 @@
 // src/components/voucher/VoucherDetailsInfo.jsx
-// Renders the real GET /vouchers/versions/get-all?voucherId= response as-is
-// — every field below maps 1:1 to a confirmed field on the version object
-// (see useVoucherDetails.js). No fabricated analytics/outlet-usage data.
+// "Voucher Information" / "Which Outlet Applied This Voucher?" / "Search
+// Tag" sections match the reference design exactly — real fields where
+// confirmed, "Not Found" wherever the API genuinely has no value for that
+// spot (never a fabricated number). Banner & Gallery / Offers / Review
+// Timeline below stay as they were — real data already, not part of the
+// requested redesign.
+
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useOnboardingStore } from "../../../onboarding/store/onboardingStore";
+import { useAuthStore } from "../../../onboarding/store/authStore";
+import useBrandData from "../../../brand/hooks/useBrandData";
+import { getSubBrands } from "../../services/voucher/VoucherService";
+
+const NOT_FOUND = "Not Found";
 
 function formatDate(iso) {
-  if (!iso) return "—";
+  if (!iso) return NOT_FOUND;
   const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "—";
+  if (Number.isNaN(date.getTime())) return NOT_FOUND;
   return date.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
 }
 
+function formatINR(n) {
+  return `₹ ${Number(n).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
 function formatDiscount(offer) {
-  if (!offer) return "—";
+  if (!offer) return NOT_FOUND;
   return offer.discountType === "PERCENTAGE"
     ? `${offer.discountValue}% off`
     : `₹${offer.discountValue} off`;
@@ -19,17 +35,18 @@ function formatDiscount(offer) {
 
 function SectionHeading({ children }) {
   return (
-    <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-800">
+    <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-gray-900">
       {children}
     </h2>
   );
 }
 
-function Field({ label, value }) {
+function Field({ label, value, action }) {
   return (
-    <div>
-      <p className="text-xs text-gray-400">{label}</p>
-      <p className="mt-1 text-sm font-medium text-gray-900">{value ?? "—"}</p>
+    <div className="min-w-0">
+      <p className="text-xs font-semibold text-gray-900 mb-1">{label}</p>
+      <p className="text-sm text-gray-900 break-all">{value ?? NOT_FOUND}</p>
+      {action && <div className="mt-1 flex items-center gap-1.5">{action}</div>}
     </div>
   );
 }
@@ -46,6 +63,42 @@ function ReviewStep({ label, at, by, colorClass = "text-gray-900" }) {
 }
 
 export default function VoucherDetailsInfo({ voucher }) {
+  const navigate = useNavigate();
+
+  // Same brandId-resolution pattern as useVoucher.js — needed to fetch
+  // this brand's real sub-brand/outlet counts for the "Which Outlet
+  // Applied This Voucher?" section below.
+  const onboardingBrandId = useOnboardingStore((s) => s.formData.brandId);
+  const authUserBrandId = useAuthStore((s) => s.user?.brandId);
+  const candidateBrandId = voucher?.brandId || onboardingBrandId || authUserBrandId;
+  const { data: brand } = useBrandData(candidateBrandId);
+  const resolvedBrandId = brand?._id || candidateBrandId;
+
+  // GET /subBrands/get-all?brandId= — real outlet count for the whole
+  // brand, split by outletType (outlet = "Sub-Brand", franchise =
+  // "Franchise" in this page's labels). limit:200 is a pragmatic upper
+  // bound to count client-side in one call rather than paginating; if a
+  // brand genuinely has more outlets than that, this undercounts — the
+  // "Total Outlet's" figure itself still comes straight from the API's
+  // own `total`, so only the Sub-Brand/Franchise split could be affected.
+  const [outletCounts, setOutletCounts] = useState(null);
+  useEffect(() => {
+    if (!resolvedBrandId) return;
+    let cancelled = false;
+    getSubBrands({ brandId: resolvedBrandId, limit: 200 })
+      .then((res) => {
+        if (cancelled) return;
+        const list = res?.data?.data ?? [];
+        setOutletCounts({
+          total: res?.data?.total ?? list.length,
+          subBrand: list.filter((o) => o.outletType === "outlet").length,
+          franchise: list.filter((o) => o.outletType === "franchise").length,
+        });
+      })
+      .catch((err) => console.error("Failed to load outlet counts:", err.message));
+    return () => { cancelled = true; };
+  }, [resolvedBrandId]);
+
   if (!voucher) return null;
 
   const bannerUrl =
@@ -53,6 +106,10 @@ export default function VoucherDetailsInfo({ voucher }) {
   const images = Array.isArray(voucher.images) ? voucher.images : [];
   const offers = Array.isArray(voucher.offers) ? voucher.offers : [];
   const tags = Array.isArray(voucher.tags) ? voucher.tags : [];
+  const primaryOffer = offers[0];
+  const selectedOutletCount = Array.isArray(voucher.subBrandIds) ? voucher.subBrandIds.length : 0;
+
+  const goToEdit = () => navigate(`/vouchers/${voucher.voucherId}/edit`);
 
   return (
     <div className="divide-y divide-gray-100 bg-white">
@@ -60,39 +117,78 @@ export default function VoucherDetailsInfo({ voucher }) {
       <section className="p-6">
         <SectionHeading>Voucher Information</SectionHeading>
         <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-4">
+          <Field
+            label="Voucher Id"
+            value={voucher.voucherId ? `#${voucher.voucherId}` : NOT_FOUND}
+            action={
+              <button onClick={goToEdit} className="text-xs text-blue-500 hover:underline font-medium">
+                Edit Voucher
+              </button>
+            }
+          />
           <Field label="Voucher Name" value={voucher.name} />
-          <Field label="Version" value={voucher.versionCode} />
-          <Field label="Category" value={voucher.category?.name} />
-          <Field label="Sub-category" value={voucher.subCategory?.name} />
-          <Field label="Valid From" value={formatDate(voucher.startAt)} />
-          <Field label="Valid Till" value={formatDate(voucher.endAt)} />
-          <Field label="Created On" value={formatDate(voucher.createdAt)} />
-          <Field label="Voucher Status" value={voucher.status} />
+          <Field label="Published Date" value={formatDate(voucher.startAt)} />
+          <Field label="Expired" value={formatDate(voucher.endAt)} />
+          <Field label="Tag Line" value={primaryOffer?.title} />
+          <Field label="Best Value" value={primaryOffer?.maxDiscountAmount != null ? formatINR(primaryOffer.maxDiscountAmount) : NOT_FOUND} />
+          <Field label="Percentage" value={primaryOffer?.discountType === "PERCENTAGE" ? `${primaryOffer.discountValue} %` : NOT_FOUND} />
+          <Field
+            label="Voucher Status"
+            value={
+              <span className={voucher.status === "PUBLISHED" || voucher.status === "APPROVED" ? "text-emerald-600 font-semibold" : ""}>
+                {voucher.status || NOT_FOUND}
+              </span>
+            }
+          />
         </div>
-        {voucher.description && (
-          <div className="mt-6">
-            <p className="text-xs text-gray-400">Description</p>
-            <p className="mt-1 text-sm text-gray-700">{voucher.description}</p>
-          </div>
-        )}
       </section>
 
-      {/* Tags */}
-      {tags.length > 0 && (
-        <section className="p-6">
-          <SectionHeading>Search Tags</SectionHeading>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {tags.map((tag) => (
-              <span
-                key={tag}
-                className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-        </section>
-      )}
+      {/* Which Outlet Applied This Voucher? */}
+      <section className="p-6">
+        <SectionHeading>Which Outlet Applied This Voucher?</SectionHeading>
+        <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-4">
+          <Field
+            label="Selected Brand - Outlet's / Sub - Brand"
+            value={`Count - ${String(selectedOutletCount).padStart(2, "0")}`}
+            action={
+              <button onClick={goToEdit} className="text-xs text-blue-500 hover:underline font-medium">
+                Increase - Decrease
+              </button>
+            }
+          />
+          <Field
+            label="Total Outlet's"
+            value={outletCounts ? `Count - ${String(outletCounts.total).padStart(2, "0")}` : NOT_FOUND}
+          />
+          <Field
+            label="Sub - Brand"
+            value={outletCounts ? `Count - ${String(outletCounts.subBrand).padStart(2, "0")}` : NOT_FOUND}
+          />
+          <Field
+            label="Franchise"
+            value={outletCounts ? `Count - ${String(outletCounts.franchise).padStart(2, "0")}` : NOT_FOUND}
+          />
+        </div>
+      </section>
+
+      {/* Search Tag */}
+      <section className="p-6">
+        <SectionHeading>Search Tag</SectionHeading>
+        <p className="mt-1 text-xs text-gray-400">
+          Keywords that help users quickly find this item. Add keywords to improve search visibility.
+        </p>
+        <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-4">
+          <Field
+            label="Selected Brand - Outlet's / Sub - Brand"
+            value={`Count - ${String(tags.length).padStart(2, "0")}`}
+            action={
+              <button onClick={goToEdit} className="text-xs text-blue-500 hover:underline font-medium">
+                Add Tag Line
+              </button>
+            }
+          />
+        </div>
+      </section>
 
       {/* Banner & Gallery */}
       {(bannerUrl || images.length > 0) && (

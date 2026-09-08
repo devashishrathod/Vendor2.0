@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 
 import ListingFeaturesSection from "../components/ListingFeaturesSection";
 import AddListingFeatureModal from "../components/AddListingFeatureModal";
@@ -37,6 +37,13 @@ const ListingFeaturesPage = ({ brandId }) => {
     }
   };
 
+  // "Change" on the Icon column's hover overlay — swaps just the icon,
+  // keeping the feature's title/description/status untouched.
+  const handleChangeIcon = async (feature, iconFile) => {
+    await updateListingFeature(feature.id, { iconFile });
+    reload();
+  };
+
   if (loading) {
     return <p className="text-sm text-gray-400">Loading listing features…</p>;
   }
@@ -72,6 +79,7 @@ const ListingFeaturesPage = ({ brandId }) => {
         onAdd={handleAdd}
         onEdit={handleEdit}
         onDelete={handleDelete}
+        onChangeIcon={handleChangeIcon}
       />
 
       {showAddModal && (

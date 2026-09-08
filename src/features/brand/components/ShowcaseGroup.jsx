@@ -5,6 +5,7 @@ import { move } from "@dnd-kit/helpers";
 import { Trash2, Plus, ListOrdered, GripVertical } from "lucide-react";
 import ShowcaseMediaRow from "./ShowcaseMediaRow";
 import { noDragRef } from "../utils/BrandHelpers";
+import ConfirmModal from "@/components/common/ConfirmModal";
 
 // One draggable row inside the Order panel — same combined media array the
 // earlier number-input version reordered, just moved by dragging the
@@ -47,6 +48,33 @@ function OrderRow({ media, index }) {
   );
 }
 
+// Small on/off switch shared by both "Show in Clips" controls in this
+// header — the persisted section-visibility one and the plain local
+// upload-default one below — instead of one being a toggle and the other
+// a plain checkbox.
+function ToggleSwitch({ label, checked, onChange, hoverLabel }) {
+  return (
+    <label className="flex items-center gap-2 text-[11px] font-medium text-gray-500" title={hoverLabel}>
+      {label}
+      <button
+        type="button"
+        onClick={() => onChange(!checked)}
+        aria-label={hoverLabel || label}
+        aria-pressed={checked}
+        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+          checked ? "bg-emerald-500" : "bg-gray-300"
+        }`}
+      >
+        <span
+          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+            checked ? "translate-x-4" : "translate-x-1"
+          }`}
+        />
+      </button>
+    </label>
+  );
+}
+
 const ShowcaseGroup = ({
   group,
   index,
@@ -55,10 +83,12 @@ const ShowcaseGroup = ({
   onReplaceMedia,
   onSetMediaOrder,
   onDeleteSection,
+  onToggleVisibility,
+  onToggleMediaClip,
 }) => {
   const fileInputRef = useRef(null);
-  const [showInClips, setShowInClips] = useState(false);
   const [orderPanelOpen, setOrderPanelOpen] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   // Registers this whole section as a sortable item within the parent
   // ShowcaseSection's DragDropProvider. The header row (title/subtitle area)
@@ -75,10 +105,13 @@ const ShowcaseGroup = ({
   // sequence directly instead of splitting into separate rows.
   const combinedMedias = group.medias || [];
 
+  // Whether new uploads show in video clips is now set per-video AFTER
+  // upload (each tile's "⋮" menu), not chosen upfront — avoids a second,
+  // confusingly-similarly-labeled "Show in clips" control in this header.
   const handleFilesSelected = (e) => {
     const files = Array.from(e.target.files || []);
     if (files.length && onAddMedia) {
-      onAddMedia(group.id, files, { isShowInVideoClips: showInClips });
+      onAddMedia(group.id, files, { isShowInVideoClips: false });
     }
     e.target.value = "";
   };
@@ -121,6 +154,16 @@ const ShowcaseGroup = ({
             <h3 className="text-sm font-bold text-gray-900 capitalize">{group.title}</h3>
             <p className="mt-0.5 text-xs text-gray-400 capitalize">{group.subtitle}</p>
           </div>
+          {onToggleVisibility && (
+            <div ref={noDragRef} className="ml-1 flex-shrink-0">
+              <ToggleSwitch
+                label="Section Visibility"
+                checked={!!group.isVisible}
+                onChange={(next) => onToggleVisibility(group.id, next)}
+                hoverLabel={group.isVisible ? "Hide from customers" : "Visible to Customers"}
+              />
+            </div>
+          )}
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2" ref={noDragRef}>
           {onAddMedia && (
@@ -133,15 +176,6 @@ const ShowcaseGroup = ({
                 onChange={handleFilesSelected}
                 className="hidden"
               />
-              <label className="flex items-center gap-1 text-[11px] text-gray-500">
-                <input
-                  type="checkbox"
-                  checked={showInClips}
-                  onChange={(e) => setShowInClips(e.target.checked)}
-                  className="h-3 w-3 rounded border-gray-300 accent-emerald-600 focus:ring-emerald-400"
-                />
-                Show in clips
-              </label>
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
@@ -168,7 +202,7 @@ const ShowcaseGroup = ({
           {onDeleteSection && (
             <button
               type="button"
-              onClick={() => onDeleteSection(group.id)}
+              onClick={() => setConfirmingDelete(true)}
               aria-label="Delete section"
               className="flex h-8 w-8 items-center justify-center rounded-full text-rose-500 hover:bg-rose-50"
             >
@@ -199,8 +233,21 @@ const ShowcaseGroup = ({
           onDelete={(mediaId) => onDeleteMedia(group.id, mediaId)}
           onReplace={onReplaceMedia ? (mediaId, file) => onReplaceMedia(group.id, mediaId, file) : undefined}
           onReorder={onSetMediaOrder ? (mediaId, newPosition) => onSetMediaOrder(group.id, mediaId, newPosition) : undefined}
+          onToggleClip={onToggleMediaClip ? (mediaId, next) => onToggleMediaClip(group.id, mediaId, next) : undefined}
         />
       </div>
+
+      {confirmingDelete && (
+        <ConfirmModal
+          title="Delete this section?"
+          description={`"${group.title}" and all its photos/videos will be permanently removed. This action can't be undone.`}
+          onConfirm={() => {
+            setConfirmingDelete(false);
+            onDeleteSection(group.id);
+          }}
+          onCancel={() => setConfirmingDelete(false)}
+        />
+      )}
     </div>
   );
 };

@@ -252,6 +252,37 @@ export async function getBrandById(brandId) {
 }
 
 // ══════════════════════════════════════════════════════════════
+// EMAIL VERIFICATION
+// ══════════════════════════════════════════════════════════════
+
+// ── Send Email Verification Code ──────────────────────────────
+// POST {{TryDood2.0BaseUrl}}/auth/email/send-verification
+// body: { email } — omit to resend a code to the current unverified
+// email on file; pass a different email to switch to it instead.
+// Confirmed from Postman — response: { data: { sentTo, isChange } }.
+export async function sendEmailVerification(email) {
+    try {
+        const body = email ? { email } : {};
+        const { data } = await api.post('/auth/email/send-verification', body);
+        return data;
+    } catch (error) {
+        handleError(error);
+    }
+}
+
+// ── Verify Email OTP ────────────────────────────────────────────
+// POST {{TryDood2.0BaseUrl}}/auth/email/verify
+// body: { otp, email } — confirmed from Postman.
+export async function verifyEmailOtp({ otp, email }) {
+    try {
+        const { data } = await api.post('/auth/email/verify', { otp, email });
+        return data;
+    } catch (error) {
+        handleError(error);
+    }
+}
+
+// ══════════════════════════════════════════════════════════════
 // LISTING FEATURES (a.k.a. Brand Features)
 // ══════════════════════════════════════════════════════════════
 
@@ -486,19 +517,25 @@ export async function addShowcaseMedia(
     }
 }
 
-// ── Replace a Media Item's File ──────────────────────────────────
+// ── Replace a Media Item's File (and/or its isShowInVideoClips flag) ────
 // PUT {{TryDood2.0BaseUrl}}/showcase/section/:sectionId/media/replace/:mediaId
-// (multipart/form-data, field: file)
-// Confirmed from Postman — swaps the underlying file for an existing media
-// item in place (keeps its position/sortOrder).
-export async function replaceShowcaseMedia(sectionId, mediaId, file, onUploadProgress) {
+// (multipart/form-data, field: file — confirmed from Postman)
+// Swaps the underlying file for an existing media item in place (keeps its
+// position/sortOrder). `isShowInVideoClips` is NOT confirmed from Postman
+// on this endpoint — there's no separate "update media metadata" endpoint
+// documented anywhere, so this reuses the same replace call with just that
+// one extra form field and no `file`, as the closest real endpoint that
+// touches one existing media item. If the backend doesn't actually accept
+// it here, this needs a real confirmed endpoint swapped in instead.
+export async function replaceShowcaseMedia(sectionId, mediaId, { file, isShowInVideoClips } = {}, onUploadProgress) {
     try {
         if (!sectionId) throw new Error('sectionId is required');
         if (!mediaId) throw new Error('mediaId is required');
-        if (!file) throw new Error('file is required');
+        if (!file && isShowInVideoClips === undefined) throw new Error('file or isShowInVideoClips is required');
 
         const formData = new FormData();
-        formData.append('file', file);
+        if (file) formData.append('file', file);
+        if (isShowInVideoClips !== undefined) formData.append('isShowInVideoClips', String(isShowInVideoClips));
 
         // See updateBrandDetails's comment — no explicit Content-Type header.
         const { data } = await api.put(

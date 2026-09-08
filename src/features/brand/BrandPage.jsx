@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import BrandHeader from "./components/BrandHeader";
 import BrandTabs from "./components/BrandTabs";
@@ -14,6 +14,7 @@ import ComingSoonPage from "./pages/ComingSoonPage";
 import useBrandData from "./hooks/useBrandData";
 import { useAuthStore } from "../onboarding/store/authStore";
 import { BRAND_TABS } from "./utils/BrandHelpers";
+import { updateBrandDetails } from "./services/brandApi";
 
 
 import ScanQrCodePage from "./pages/ScanQrCodePage";
@@ -52,6 +53,34 @@ const BrandPage = ({ brandId: brandIdProp }) => {
   const brandId = brandIdProp || sessionBrandId;
 
   const { data: brand, loading, error, reload } = useBrandData(brandId);
+
+  // Logo change/view now lives on the header (not the Brand Profile tab) —
+  // PUT /brands/update?brandId= with only the logo file, same as before.
+  const logoInputRef = useRef(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [logoError, setLogoError] = useState("");
+
+  const handleChangeLogo = () => {
+    logoInputRef.current?.click();
+  };
+
+  const handleLogoFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    try {
+      setUploadingLogo(true);
+      setLogoError("");
+      await updateBrandDetails(brandId, {}, file);
+      await reload?.();
+    } catch (err) {
+      console.error("Brand logo update failed:", err);
+      setLogoError(err.message || "Failed to update logo. Please try again.");
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
 
   const activeTabLabel = BRAND_TABS.find((tab) => tab.id === activeTab)?.label;
   const ActivePage = TAB_PAGES[activeTab];
@@ -126,6 +155,19 @@ const BrandPage = ({ brandId: brandIdProp }) => {
           <BrandHeader
             brandName={brand.brandName}
             merchantId={brand.merchantId}
+            logo={brand.logo}
+            onChangeLogo={handleChangeLogo}
+            logoUpdating={uploadingLogo}
+            logoError={logoError}
+            isApproved={brand.isApproved}
+            joinedDate={brand.joinedDate}
+          />
+          <input
+            ref={logoInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleLogoFileChange}
           />
 
           <div className="mt-6">

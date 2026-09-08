@@ -80,9 +80,15 @@ export default function TransactionOverview({ activeTxnTab, voucherData }) {
 
   // Export current filtered rows as CSV
   const handleExport = () => {
-    const headers = ["Order Id", "Customer", "Customer Code", data.idLabel, "Created On", "Outlet", "Amount", "Status"];
+    const headers = [
+      "Order Id", "Customer", "Customer Code", data.idLabel, "Razorpay Order Id", "Created On", "Outlet",
+      "Bill Amount", "Offer Discount", "Net Bill", "Amount", "Payment Method", "Status",
+    ];
     const csvRows = filteredRows.map((r) =>
-      [r.orderId, r.customerName, r.customerCode, r.refId, r.createdOn, r.outlet, r.amount, r.status]
+      [
+        r.orderId, r.customerName, r.customerCode, r.refId, r.razorpayOrderId, r.createdOn, r.outlet,
+        r.billAmount, r.offerDiscount, r.netBill, r.amount, r.paymentMethod, r.status,
+      ]
         .map((v) => `"${v}"`)
         .join(",")
     );
@@ -236,9 +242,12 @@ export default function TransactionOverview({ activeTxnTab, voucherData }) {
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
-                <tr className="border-b border-gray-100 bg-blue-50/60">
-                  {["Order Id", "Customer detail", data.idLabel, "Created on", "Outlet Details", "Amount", "Status"].map((h) => (
-                    <th key={h} className="text-left px-5 py-3 text-gray-500 font-medium whitespace-nowrap">
+                <tr className="bg-[#1a1a2e]">
+                  {[
+                    "Order Id", "Customer detail", "Voucher Version ID",  "Created on", "Outlet Store ID",
+                    "Bill Amount", "Offer Discount", "Net Bill", "Paid Amount", "Payment Method", "Status",
+                  ].map((h) => (
+                    <th key={h} className="text-left px-3 py-2.5 text-[11px] font-bold uppercase tracking-wide text-white/80 whitespace-nowrap">
                       {h}
                     </th>
                   ))}
@@ -247,7 +256,7 @@ export default function TransactionOverview({ activeTxnTab, voucherData }) {
               <tbody>
                 {pageRows.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-5 py-8 text-center text-gray-400">
+                    <td colSpan={12} className="px-3 py-8 text-center text-gray-400">
                       No {data.sectionTitle.replace(" Overview", "")} transactions found.
                     </td>
                   </tr>
@@ -255,8 +264,8 @@ export default function TransactionOverview({ activeTxnTab, voucherData }) {
                   pageRows.map((row) => {
                     const avatar = getAvatarColors(row.customerName);
                     return (
-                      <tr key={row.orderId} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                        <td className="px-5 py-3.5 whitespace-nowrap">
+                      <tr key={row.orderId} className="border-b border-gray-100 bg-white last:border-b-0 hover:bg-gray-50 transition-colors">
+                        <td className="px-3 py-2 whitespace-nowrap">
                           {/* Order Id click → detail page. Routes on the
                               real payment _id (row.txnId) when present —
                               that's the actual GET /voucher-claims/payments/
@@ -270,10 +279,10 @@ export default function TransactionOverview({ activeTxnTab, voucherData }) {
                             {row.orderId}
                           </Link>
                         </td>
-                        <td className="px-5 py-3.5 whitespace-nowrap">
-                          <div className="flex items-center gap-2.5">
+                        <td className="px-3 py-2 whitespace-nowrap">
+                          <div className="flex items-center gap-2">
                             <div
-                              className={`w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-semibold ring-2 flex-shrink-0
+                              className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-semibold ring-1 flex-shrink-0
                                 ${avatar.bg} ${avatar.text} ${avatar.ring}`}
                             >
                               {getInitials(row.customerName)}
@@ -284,13 +293,18 @@ export default function TransactionOverview({ activeTxnTab, voucherData }) {
                             </div>
                           </div>
                         </td>
-                        <td className="px-5 py-3.5 text-gray-700 whitespace-nowrap">{row.refId}</td>
-                        <td className="px-5 py-3.5 text-gray-500 whitespace-nowrap">{row.createdOn}</td>
-                        <td className="px-5 py-3.5 text-gray-500 whitespace-nowrap">{row.outlet}</td>
-                        <td className="px-5 py-3.5 text-gray-700 font-medium whitespace-nowrap">{row.amount}</td>
-                        <td className="px-5 py-3.5 whitespace-nowrap">
+                        <td className="px-3 py-2 text-gray-700 whitespace-nowrap">{row.refId}</td>
+                        {/* <td className="px-3 py-2 text-gray-500 whitespace-nowrap">{row.razorpayOrderId}</td> */}
+                        <td className="px-3 py-2 text-gray-500 whitespace-nowrap">{row.createdOn}</td>
+                        <td className="px-3 py-2 text-gray-500 whitespace-nowrap">{row.outlet}</td>
+                        <td className="px-3 py-2 text-gray-700 whitespace-nowrap">{row.billAmount}</td>
+                        <td className="px-3 py-2 text-rose-500 whitespace-nowrap">{row.offerDiscount}</td>
+                        <td className="px-3 py-2 text-gray-700 whitespace-nowrap">{row.netBill}</td>
+                        <td className="px-3 py-2 text-gray-700 font-medium whitespace-nowrap">{row.amount}</td>
+                        <td className="px-3 py-2 text-gray-500 whitespace-nowrap capitalize">{row.paymentMethod}</td>
+                        <td className="px-3 py-2 whitespace-nowrap">
                           <span
-                            className={`text-[11px] font-semibold px-2.5 py-1 rounded-full
+                            className={`text-[11px] font-semibold px-2 py-0.5 rounded-full
                               ${row.status === "Paid"
                                 ? "bg-emerald-50 text-emerald-700"
                                 : "bg-amber-50 text-amber-700"

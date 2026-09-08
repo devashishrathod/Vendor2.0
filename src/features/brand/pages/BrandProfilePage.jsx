@@ -1,39 +1,24 @@
-import { useRef, useState } from "react";
-
+import { useEffect, useState } from "react";
 import BrandProfileSection from "../components/BrandProfileSection";
 import CategoryInfoSection from "../components/CategoryInfoSection";
-import CategoryTagSection from "../components/CategoryTagSection";
-import { updateBrandDetails } from "../services/brandApi";
+import { getSubBrands } from "@/features/voucher/services/voucher/VoucherService";
+// import CategoryTagSection from "../components/CategoryTagSection";
 
-const BrandProfilePage = ({ brandId, brand, brandLoading, brandError, reload }) => {
-  const logoInputRef = useRef(null);
-  const [uploadingLogo, setUploadingLogo] = useState(false);
-  const [logoError, setLogoError] = useState("");
-
-  const handleChangeLogo = () => {
-    logoInputRef.current?.click();
-  };
-
-  // PUT /brands/update?brandId= — sending only the logo file (no other
-  // brandPayload fields) so this is a logo-only update, nothing else on
-  // the brand gets touched.
-  const handleLogoFileChange = async (e) => {
-    const file = e.target.files?.[0];
-    e.target.value = ""; // lets the same file be re-selected next time
-    if (!file) return;
-
-    try {
-      setUploadingLogo(true);
-      setLogoError("");
-      await updateBrandDetails(brandId, {}, file);
-      await reload?.();
-    } catch (err) {
-      console.error("Brand logo update failed:", err);
-      setLogoError(err.message || "Failed to update logo. Please try again.");
-    } finally {
-      setUploadingLogo(false);
-    }
-  };
+const BrandProfilePage = ({ brand, brandId, brandLoading, brandError, reload }) => {
+  // Real outlet count for the "Outlet Count" field — same GET
+  // /subBrands/get-all?brandId= the Voucher Details page uses.
+  const [outletCount, setOutletCount] = useState(null);
+  useEffect(() => {
+    if (!brandId) return;
+    let cancelled = false;
+    getSubBrands({ brandId, limit: 200 })
+      .then((res) => {
+        if (cancelled) return;
+        setOutletCount(res?.data?.total ?? res?.data?.data?.length ?? 0);
+      })
+      .catch((err) => console.error("Failed to load outlet count:", err.message));
+    return () => { cancelled = true; };
+  }, [brandId]);
 
   if (brandLoading) {
     return <p className="text-sm text-gray-400">Loading brand profile…</p>;
@@ -51,24 +36,7 @@ const BrandProfilePage = ({ brandId, brand, brandLoading, brandError, reload }) 
         </p>
       )}
 
-      {logoError && (
-        <p className="rounded-xl border border-red-100 bg-red-50 px-4 py-2.5 text-sm text-red-500">
-          {logoError}
-        </p>
-      )}
-
-      <BrandProfileSection
-        profile={brand}
-        onChangeLogo={handleChangeLogo}
-        logoUpdating={uploadingLogo}
-      />
-      <input
-        ref={logoInputRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={handleLogoFileChange}
-      />
+      <BrandProfileSection profile={brand} outletCount={outletCount} reload={reload} />
 
       <hr className="border-gray-100" />
 
@@ -77,7 +45,7 @@ const BrandProfilePage = ({ brandId, brand, brandLoading, brandError, reload }) 
         subCategory={brand.subCategory}
       />
 
-      <CategoryTagSection categoryTagLine={brand.categoryTagLine} />
+      {/* <CategoryTagSection categoryTagLine={brand.categoryTagLine} /> */}
     </div>
   );
 };

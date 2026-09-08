@@ -1,5 +1,4 @@
 // src/pages/voucher/Voucher.jsx
-import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useVoucher from "../../hooks/voucher/useVoucher";
 import { VoucherOverview, VoucherTable } from "../../components/voucher";
@@ -7,7 +6,6 @@ import { VoucherOverview, VoucherTable } from "../../components/voucher";
 
 export default function Voucher() {
   const navigate = useNavigate();
-  const [isOverviewExpanded, setIsOverviewExpanded] = useState(true);
 
   const {
     stats,
@@ -45,41 +43,34 @@ export default function Voucher() {
         <p className="text-sm text-gray-500">Attract More Customers to your Store</p>
       </div>
 
-      <VoucherOverview
-        stats={stats}
-        isLoading={!stats}
-        isExpanded={isOverviewExpanded}
-        onToggleExpanded={() => setIsOverviewExpanded((prev) => !prev)}
-      />
+      <VoucherOverview stats={stats} isLoading={!stats} />
 
       {actionError && (
         <p className="mt-3 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-500">{actionError}</p>
       )}
 
-      {isOverviewExpanded && (
-        <VoucherTable
-          vouchers={vouchers}
-          isLoading={isLoading}
-          page={page}
-          rowsPerPage={rowsPerPage}
-          totalPages={totalPages}
-          total={total}
-          search={search}
-          dateRange={dateRange}
-          statusFilter={statusFilter}
-          stateSummary={stateSummary}
-          actionLoadingId={actionLoadingId}
-          onSearchChange={updateSearch}
-          onRowsPerPageChange={changeRowsPerPage}
-          onPageChange={goToPage}
-          onOpenAddDiscount={() => navigate("/vouchers/new")}
-          onStatusFilterChange={updateStatusFilter}
-          onDateRangeChange={updateDateRange}
-          onSubmitForReview={submitForReview}
-          onPublish={publish}
-          onBannerUpdated={refresh}
-        />
-      )}
+      <VoucherTable
+        vouchers={vouchers}
+        isLoading={isLoading}
+        page={page}
+        rowsPerPage={rowsPerPage}
+        totalPages={totalPages}
+        total={total}
+        search={search}
+        dateRange={dateRange}
+        statusFilter={statusFilter}
+        stateSummary={stateSummary}
+        actionLoadingId={actionLoadingId}
+        onSearchChange={updateSearch}
+        onRowsPerPageChange={changeRowsPerPage}
+        onPageChange={goToPage}
+        onOpenAddDiscount={() => navigate("/vouchers/new")}
+        onStatusFilterChange={updateStatusFilter}
+        onDateRangeChange={updateDateRange}
+        onSubmitForReview={submitForReview}
+        onPublish={publish}
+        onBannerUpdated={refresh}
+      />
     </div>
   </div>
   );

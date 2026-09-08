@@ -9,7 +9,7 @@ export const BRAND_TABS = [
   { id: "bank-account-details", label: "Bank Account Details" },
   { id: "listing-features", label: "Listing Features" },
   { id: "business-hours", label: "Business Hours" },
-  { id: "gst-pan-information", label: "GST & PAN Information" },
+  { id: "gst-pan-information", label: "Business Profile" },
   { id: "scan-qr-code", label: "Scan QR Code" },
 ];
 

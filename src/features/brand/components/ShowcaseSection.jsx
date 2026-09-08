@@ -13,6 +13,8 @@ const ShowcaseSection = ({
   onEditSection,
   onDeleteSection,
   onSetSectionOrder,
+  onToggleVisibility,
+  onToggleMediaClip,
 }) => {
   // Drag-and-drop reorder for sections — computes the dragged section's new
   // 1-based position and hands it to the SAME onSetSectionOrder(id,
@@ -86,6 +88,8 @@ const ShowcaseSection = ({
               onSetMediaOrder={onSetMediaOrder}
               onEditSection={onEditSection}
               onDeleteSection={onDeleteSection}
+              onToggleVisibility={onToggleVisibility}
+              onToggleMediaClip={onToggleMediaClip}
             />
           ))}
         </div>

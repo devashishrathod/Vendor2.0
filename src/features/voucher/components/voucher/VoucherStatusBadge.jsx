@@ -1,18 +1,16 @@
 // src/components/voucher/VoucherStatusBadge.jsx
-import React from "react";
-
 const STATUS_STYLES = {
-  DRAFT: "text-gray-500",
-  UNDER_REVIEW: "text-amber-500",
-  APPROVED: "text-sky-600",
-  REJECTED: "text-rose-500",
-  PUBLISHED: "text-emerald-600",
-  EXPIRED: "text-rose-500",
-  ARCHIVED: "text-gray-400",
+  DRAFT: "bg-gray-100 text-gray-600",
+  UNDER_REVIEW: "bg-amber-50 text-amber-600",
+  APPROVED: "bg-sky-50 text-sky-600",
+  REJECTED: "bg-rose-50 text-rose-500",
+  PUBLISHED: "bg-emerald-50 text-emerald-600",
+  EXPIRED: "bg-rose-50 text-rose-500",
+  ARCHIVED: "bg-gray-100 text-gray-400",
   // Legacy display-only values (older mock data)
-  Active: "text-emerald-600",
-  Expired: "text-rose-500",
-  "Under Review": "text-amber-500",
+  Active: "bg-emerald-50 text-emerald-600",
+  Expired: "bg-rose-50 text-rose-500",
+  "Under Review": "bg-amber-50 text-amber-600",
 };
 
 function toLabel(status) {
@@ -25,10 +23,14 @@ function toLabel(status) {
 }
 
 export default function VoucherStatusBadge({ status, tooltip }) {
-  const className = STATUS_STYLES[status] || "text-gray-500";
+  const className = STATUS_STYLES[status] || "bg-gray-100 text-gray-500";
 
   if (!tooltip) {
-    return <span className={`text-sm font-medium ${className}`}>{toLabel(status)}</span>;
+    return (
+      <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${className}`}>
+        {toLabel(status)}
+      </span>
+    );
   }
 
   // Custom hover card instead of the native `title` attribute — a browser
@@ -38,7 +40,7 @@ export default function VoucherStatusBadge({ status, tooltip }) {
   // never intercepts clicks on the row underneath.
   return (
     <span className="group relative inline-flex">
-      <span className={`text-sm font-medium ${className} cursor-help underline decoration-dotted underline-offset-2`}>
+      <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${className} cursor-help underline decoration-dotted underline-offset-2`}>
         {toLabel(status)}
       </span>
 

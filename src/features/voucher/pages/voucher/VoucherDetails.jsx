@@ -1,11 +1,10 @@
 // src/pages/voucher/VoucherDetails.jsx
-import React, { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import useVoucherDetails from "../../hooks/voucher/useVoucherDetails";
 import {
   VoucherTabs,
-  VoucherKeySummary,
   VoucherAnalysisStats,
   VoucherOutletUsageTable,
   VoucherRevenueChart,
@@ -14,7 +13,10 @@ import {
   VoucherDetailsInfo,
   VoucherTransactionInfo,
 } from "../../components/voucher";
-import DashboardHeader from "@/features/dashboard/components/DashboardHeader";
+import { useOnboardingStore } from "../../../onboarding/store/onboardingStore";
+import { useAuthStore } from "../../../onboarding/store/authStore";
+import useBrandData from "../../../brand/hooks/useBrandData";
+import { fetchVoucherTransactionsByVoucherId } from "../../../transaction/services/transactionService";
 
 // Confirmed real values seen so far: DRAFT, APPROVED — REJECTED/
 // UNDER_REVIEW inferred from the rejectedAt/rejectedBy and submittedAt/
@@ -40,6 +42,26 @@ export default function VoucherDetails() {
   const navigate = useNavigate();
   const { voucher, isLoading, error } = useVoucherDetails(voucherId);
   const [activeTab, setActiveTab] = useState("Analysis Report");
+
+  // Same brandId-resolution pattern as useVoucher.js / VoucherDetailsInfo.jsx.
+  const onboardingBrandId = useOnboardingStore((s) => s.formData.brandId);
+  const authUserBrandId = useAuthStore((s) => s.user?.brandId);
+  const candidateBrandId = voucher?.brandId || onboardingBrandId || authUserBrandId;
+  const { data: brand } = useBrandData(candidateBrandId);
+  const resolvedBrandId = brand?._id || candidateBrandId;
+
+  // GET /voucher-claims/payments?voucherId=&brandId= — real payments for
+  // just this voucher, lazily fetched once the Transaction Information tab
+  // is actually opened.
+  const [txnData, setTxnData] = useState(null);
+  useEffect(() => {
+    if (activeTab !== "Transaction Information" || !voucher?.voucherId || !resolvedBrandId) return;
+    let cancelled = false;
+    fetchVoucherTransactionsByVoucherId(voucher.voucherId, { brandId: resolvedBrandId })
+      .then((result) => { if (!cancelled) setTxnData(result); })
+      .catch((err) => console.error("Failed to load voucher transactions:", err.message));
+    return () => { cancelled = true; };
+  }, [activeTab, voucher?.voucherId, resolvedBrandId]);
 
   if (isLoading) {
     return <p className="px-4 py-10 text-center text-gray-400">Loading voucher details…</p>;
@@ -92,7 +114,7 @@ export default function VoucherDetails() {
         <div className="mt-5 space-y-6">
           {activeTab === "Analysis Report" && (
             <>
-              <VoucherKeySummary keySummary={voucher.keySummary} />
+              {/* <VoucherKeySummary keySummary={voucher.keySummary} /> */}
               <VoucherAnalysisStats analysis={voucher.analysis} />
               <VoucherOutletUsageTable title={voucher.title} outletUsage={voucher.outletUsage} />
               <VoucherRevenueChart revenueWeekly={voucher.revenueWeekly} />
@@ -104,7 +126,11 @@ export default function VoucherDetails() {
           {activeTab === "Voucher Details" && <VoucherDetailsInfo voucher={voucher} />}
 
           {activeTab === "Transaction Information" && (
-            <VoucherTransactionInfo voucherTitle={voucher.name} transactions={voucher.transactions} />
+            <VoucherTransactionInfo
+              voucherTitle={voucher.name}
+              summary={txnData?.summary}
+              transactions={txnData?.rows || []}
+            />
           )}
         </div>
       </div>

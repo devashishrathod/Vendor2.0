@@ -65,16 +65,19 @@ export async function getVoucherClaims({
 }
 
 // ── Get All Voucher Claim Payments ────────────────────────────────
-// GET {{base_url}}/voucher-claims/payments?page=&limit=&brandId=&outletId=
+// GET {{base_url}}/voucher-claims/payments?page=&limit=&brandId=&outletId=&voucherId=
 // brandId is required to scope results to the logged-in vendor's own
 // brand — same convention as getVouchers/getSubBrands elsewhere in this
 // codebase. Without it the query has nothing to filter by and the table
-// comes back empty even when the vendor has real voucher claims.
-export async function getVoucherClaimPayments({ page = 1, limit = 20, brandId, outletId } = {}) {
+// comes back empty even when the vendor has real voucher claims. voucherId
+// narrows it down to just one voucher's payments (used by the Voucher
+// Details page's "Transaction Information" tab).
+export async function getVoucherClaimPayments({ page = 1, limit = 20, brandId, outletId, voucherId } = {}) {
     try {
         const params = { page, limit };
         if (brandId) params.brandId = brandId;
         if (outletId) params.outletId = outletId;
+        if (voucherId) params.voucherId = voucherId;
         const { data } = await api.get('/voucher-claims/payments', { params });
         return data;
     } catch (error) {
@@ -153,9 +156,15 @@ function mapPaymentRow(p) {
     customerName: customerRef,
     customerCode: customerRef,
     customerPhone: "",
+    // Confirmed from a real response: this endpoint's `voucher` object is
+    // { claimId, billAmount, offerDiscount, netBill, vendorPayable,
+    // vendorPromoCost, commissionAmount } — no version-code field anywhere
+    // on it (that only exists on the separate GET /vouchers/versions/get-all
+    // response), so this column shows the plain voucherId instead.
     refId: p.voucherId || p.voucher?.voucherId || "—",
+    razorpayOrderId: p.razorpayOrderId || "—",
     createdOn: formatDate(p.createdAt),
-    outlet: p.outlet?.uniqueId || p.outlet?.storeId || "—",
+    outlet: p.outlet?.storeId || p.outlet?.uniqueId || "—",
     amount: formatINR(p.amount),
     // Razorpay's own status vocabulary ("captured", "failed", "refunded",
     // "created"/"authorized") — only "captured" reads as a completed
@@ -163,6 +172,8 @@ function mapPaymentRow(p) {
     status: p.status === "captured" ? "Paid" : (p.status ? p.status.charAt(0).toUpperCase() + p.status.slice(1) : "Pending"),
     paymentMethod: p.paymentMethod || "—",
     billAmount: formatINR(p.voucher?.billAmount),
+    offerDiscount: formatINR(p.voucher?.offerDiscount),
+    netBill: formatINR(p.voucher?.netBill),
     paidAmount: formatINR(p.amount),
     discountAmount: formatINR(-(p.voucher?.offerDiscount || 0)),
     additionalDiscount: formatINR(0),
@@ -199,10 +210,20 @@ export function mapPaymentToOrderDetail(data) {
     title: claim.voucherSnapshot?.name,
     tagLine: pricing.offerTitle ? `${pricing.offerTitle} OFF` : undefined,
     orderId: payment.invoiceId || payment._id,
+    // Confirmed from a real response: there's no version-code field
+    // anywhere on `claim` or `claim.voucherSnapshot` either (same as the
+    // list endpoint's `voucher` object) — this stays the plain voucherId.
     refId: payment.voucherId || claim.voucherId || "—",
     voucherName: claim.voucherSnapshot?.name,
     percentage: pricing.offerTitle,
-    outlet: outlet.uniqueId || "—",
+    // Confirmed real field — REDEEMED/etc, replaces what used to be a
+    // hardcoded "Active" badge in OrderDetail.jsx's header.
+    status: claim.status,
+    // Real location signal confirmed on this endpoint's outlet
+    // snapshot is just `state` (e.g. "karnataka") — no full street
+    // address/city field exists, so that's shown here (capitalized),
+    // not the outlet's uniqueId (that's an id, not a location).
+    outlet: outlet.state ? outlet.state.charAt(0).toUpperCase() + outlet.state.slice(1) : undefined,
     storeId: outlet.storeId || "—",
     billAmount: formatINR(pricing.billAmount ?? payment.voucher?.billAmount),
     discountAmount: formatINR(-(pricing.offerDiscount ?? payment.voucher?.offerDiscount ?? 0)),
@@ -256,6 +277,63 @@ export async function fetchVoucherTransactionOverview(opts = {}) {
   };
 }
 
+// Maps one payment record into the row shape VoucherTransactionInfo.jsx's
+// table expects (Order Id / Customer / Outlet / Store Type / Date & Time /
+// Status / Payment Details). There's no customer name on this record —
+// only `customerId` (same limitation as mapPaymentRow above) — and no
+// per-payment `storeType` either (the payment's own embedded `outlet` only
+// has uniqueId/storeId, not the outlet's type), so both show "—" rather
+// than a fabricated value; the "Sub-Brand"/"Franchise" filter tabs won't
+// have anything real to filter on until the API adds that field.
+function mapPaymentToVoucherTransactionRow(p) {
+  const customerRef = p.customerId ? `#${String(p.customerId).slice(-8).toUpperCase()}` : "—";
+  const created = p.createdAt ? new Date(p.createdAt) : null;
+  return {
+    orderId: p.invoiceId || p._id,
+    customerName: customerRef,
+    customerId: customerRef,
+    outletName: p.outlet?.uniqueId || "—",
+    storeId: p.outlet?.storeId || "—",
+    storeType: "—",
+    date: created && !Number.isNaN(created.getTime())
+      ? created.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
+      : "—",
+    time: created && !Number.isNaN(created.getTime())
+      ? created.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })
+      : "—",
+    status: p.status === "captured" ? "Success" : (p.status ? p.status.charAt(0).toUpperCase() + p.status.slice(1) : "Pending"),
+    amount: p.amount,
+  };
+}
+
+/**
+ * GET /voucher-claims/payments?voucherId=&brandId= — every real payment
+ * for ONE specific voucher, for the Voucher Details page's "Transaction
+ * Information" tab. Maps into { summary, rows } matching
+ * VoucherTransactionInfo.jsx's props exactly.
+ * @param {string} voucherId
+ * @param {Object} [opts] forwarded to getVoucherClaimPayments (brandId, etc.)
+ */
+export async function fetchVoucherTransactionsByVoucherId(voucherId, opts = {}) {
+  const res = await getVoucherClaimPayments({ limit: 100, voucherId, ...opts });
+  const payments = res?.data?.data ?? [];
+  const rows = payments.map(mapPaymentToVoucherTransactionRow);
+
+  const sum = (fn) => payments.reduce((acc, p) => acc + (fn(p) || 0), 0);
+  const uniqueCustomers = new Set(payments.map((p) => p.customerId).filter(Boolean));
+
+  return {
+    summary: {
+      overallEarnings: sum((p) => p.amount),
+      overallBillAmount: sum((p) => p.voucher?.billAmount),
+      discountAmount: sum((p) => p.voucher?.offerDiscount),
+      paidAmount: sum((p) => p.amount),
+      totalUserCount: uniqueCustomers.size,
+    },
+    rows,
+  };
+}
+
 export default {
     getVoucherClaims,
     mapPaymentToOrderDetail,
@@ -264,4 +342,5 @@ export default {
     getVoucherClaimById,
     getVoucherClaimByCode,
     fetchVoucherTransactionOverview,
+    fetchVoucherTransactionsByVoucherId,
 };

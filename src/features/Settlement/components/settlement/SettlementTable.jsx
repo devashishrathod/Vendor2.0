@@ -20,7 +20,7 @@ function StatusBadge({ status }) {
   const isDone = status?.toLowerCase().includes("done");
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
+      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${
         isDone ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"
       }`}
     >
@@ -138,20 +138,20 @@ export default function SettlementTable({
       <div className="overflow-x-auto">
         <table className="w-full min-w-[820px] text-left text-sm">
           <thead>
-            <tr className="text-xs font-medium uppercase tracking-wide text-slate-400">
-              <th className="px-6 py-3">Settlement Id</th>
-              <th className="px-6 py-3">Payment Received Date</th>
-              <th className="px-6 py-3">Settlement On</th>
-              <th className="px-6 py-3">Transaction ID</th>
-              <th className="px-6 py-3">Amount</th>
-              <th className="px-6 py-3">Status</th>
-              <th className="px-6 py-3 text-right">Info</th>
+            <tr className="bg-[#1a1a2e]">
+              <th className="whitespace-nowrap px-3 py-2.5 text-[11px] font-bold uppercase tracking-wide text-white/80">Settlement Id</th>
+              <th className="whitespace-nowrap px-3 py-2.5 text-[11px] font-bold uppercase tracking-wide text-white/80">Payment Received Date</th>
+              <th className="whitespace-nowrap px-3 py-2.5 text-[11px] font-bold uppercase tracking-wide text-white/80">Settlement On</th>
+              <th className="whitespace-nowrap px-3 py-2.5 text-[11px] font-bold uppercase tracking-wide text-white/80">Transaction ID</th>
+              <th className="whitespace-nowrap px-3 py-2.5 text-[11px] font-bold uppercase tracking-wide text-white/80">Amount</th>
+              <th className="whitespace-nowrap px-3 py-2.5 text-[11px] font-bold uppercase tracking-wide text-white/80">Status</th>
+              <th className="whitespace-nowrap px-3 py-2.5 text-right text-[11px] font-bold uppercase tracking-wide text-white/80">Info</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody>
             {loading && (
               <tr>
-                <td colSpan={7} className="px-6 py-8 text-center text-sm text-slate-400">
+                <td colSpan={7} className="px-3 py-8 text-center text-sm text-slate-400">
                   Loading settlements…
                 </td>
               </tr>
@@ -159,7 +159,7 @@ export default function SettlementTable({
 
             {!loading && rows.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-6 py-8 text-center text-sm text-slate-400">
+                <td colSpan={7} className="px-3 py-8 text-center text-sm text-slate-400">
                   No settlements match your search.
                 </td>
               </tr>
@@ -171,26 +171,26 @@ export default function SettlementTable({
                 const rowKey = row.settlementId + row.transactionId;
                 return (
                   <React.Fragment key={rowKey}>
-                    <tr className="hover:bg-slate-50/60">
-                      <td className="px-6 py-4">
+                    <tr className="border-b border-slate-100 bg-white last:border-b-0 hover:bg-slate-50/60">
+                      <td className="px-3 py-2">
                         <button
                           onClick={() => goToDetails(row.settlementId)}
-                          className="flex items-center gap-1.5 font-medium text-indigo-600 hover:underline"
+                          className="flex items-center gap-1.5 text-xs font-medium text-indigo-600 hover:underline"
                         >
                           {row.settlementId}
                           <Copy className="h-3 w-3 text-slate-300" />
                         </button>
                       </td>
-                      <td className="px-6 py-4 text-slate-600">{row.paymentReceivedDate}</td>
-                      <td className="px-6 py-4 text-slate-600">{row.settlementOn}</td>
-                      <td className="px-6 py-4 text-slate-600">{row.transactionId}</td>
-                      <td className="px-6 py-4 font-medium text-slate-800">
+                      <td className="whitespace-nowrap px-3 py-2 text-xs text-slate-600">{row.paymentReceivedDate}</td>
+                      <td className="whitespace-nowrap px-3 py-2 text-xs text-slate-600">{row.settlementOn}</td>
+                      <td className="whitespace-nowrap px-3 py-2 text-xs text-slate-600">{row.transactionId}</td>
+                      <td className="whitespace-nowrap px-3 py-2 text-xs font-medium text-slate-800">
                         {currency(row.amount)}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-3 py-2">
                         <StatusBadge status={row.status} />
                       </td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-3 py-2 text-right">
                         <button
                           onClick={() => toggleRow(rowKey)}
                           className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"

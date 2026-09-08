@@ -10,11 +10,11 @@ const InfoItem = ({ label, value, action, actions }) => {
   const items = actions || (action ? [action] : []);
   return (
     <div>
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+      <p className="text-[11px] font-semibold  tracking-wide text-gray-400">
         {label}
       </p>
       <div className="mt-1 flex items-center gap-2">
-        <p className="text-sm text-gray-800 capitalize">{value}</p>
+        <p className="text-sm text-gray-800 ">{value}</p>
         {items.map((a, i) => (
           <button
             key={i}

@@ -178,10 +178,12 @@ export default function Transactions() {
           </div>
         </div>
 
-        {/* Top 4 summary cards — Voucher card uses the real total (for the
-            selected date range); the rest stay static until their own
+        {/* Top 4 summary cards — Voucher card always shows the real total
+            (for the selected date range), even while still ₹0.00 before the
+            fetch resolves — never the old dummy fallback, so no fabricated
+            number ever flashes here. The rest stay static until their own
             backend endpoints exist. */}
-        <SummaryCards voucherAmount={voucherData ? formatINR(filteredVoucherData?.totalPaidAmount) : undefined} />
+        <SummaryCards voucherAmount={formatINR(filteredVoucherData?.totalPaidAmount)} />
 
         {/* Tabs — controls activeTxnTab */}
         <TransactionTabs activeTxnTab={activeTxnTab} setActiveTxnTab={setActiveTxnTab} />

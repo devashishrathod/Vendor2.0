@@ -1,13 +1,20 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { Link } from "react-router-dom";
 import {
   Download,
   Search,
-  ArrowUp,
-  ArrowDown,
-  ArrowUpDown,
   TrendingUp,
   TrendingDown,
+  Image as ImageIcon,
+  ChevronLeft,
+  ChevronRight,
+  CalendarDays,
 } from "lucide-react";
+import { useAuthStore } from "@/features/onboarding/store/authStore";
+import { useOnboardingStore } from "@/features/onboarding/store/onboardingStore";
+import useBrandData from "@/features/brand/hooks/useBrandData";
+import { fetchVoucherTransactionOverview } from "@/features/transaction/services/transactionService";
+import { getVouchers } from "@/features/voucher/services/voucher/VoucherService";
 
 // ══════════════════════════════════════════════════════════════
 // DATA GENERATION
@@ -16,59 +23,123 @@ import {
 // ══════════════════════════════════════════════════════════════
 
 const RANGE_OPTIONS = [
-  { key: "7d", label: "7 Days", days: 7 },
-  { key: "30d", label: "30 Days", days: 30 },
-  { key: "90d", label: "90 Days", days: 90 },
+  { key: "today", label: "Today" },
+  { key: "yesterday", label: "Yesterday" },
+  { key: "week", label: "This Week" },
+  { key: "month", label: "This Month" },
+  { key: "year", label: "This Year" },
 ];
 
-function generateSeries(days) {
-  const today = new Date();
+// Real calendar start/end dates for the selected range — everything below
+// (the revenue trend, the recent-transactions filter) is driven off this
+// same {from, to} pair so they all agree on what "Today"/"This Month" etc.
+// actually mean.
+function getRangeDates(key) {
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  if (key === "yesterday") {
+    const day = new Date(startOfToday);
+    day.setDate(day.getDate() - 1);
+    return { from: day, to: day };
+  }
+  if (key === "week") {
+    const start = new Date(startOfToday);
+    start.setDate(start.getDate() - start.getDay()); // back to this week's Sunday
+    return { from: start, to: startOfToday };
+  }
+  if (key === "month") {
+    return { from: new Date(startOfToday.getFullYear(), startOfToday.getMonth(), 1), to: startOfToday };
+  }
+  if (key === "year") {
+    return { from: new Date(startOfToday.getFullYear(), 0, 1), to: startOfToday };
+  }
+  // "today"
+  return { from: startOfToday, to: startOfToday };
+}
+
+function isWithinRange(iso, range) {
+  if (!iso) return false;
+  const date = new Date(iso);
+  const end = new Date(range.to);
+  end.setHours(23, 59, 59, 999);
+  return date >= range.from && date <= end;
+}
+
+function generateSeries(range) {
+  const { from, to } = range;
+  const totalDays = Math.max(1, Math.round((to - from) / 86400000) + 1);
   const arr = [];
-  for (let i = days - 1; i >= 0; i--) {
-    const idx = days - 1 - i;
+  const cursor = new Date(from);
+  for (let idx = 0; idx < totalDays; idx += 1) {
     const wave = Math.sin(idx / 3) * 14 + Math.sin(idx / 9) * 7;
-    const trend = idx * (18 / days); // gentle upward trend across the range
+    const trend = idx * (18 / totalDays); // gentle upward trend across the range
     const spike = idx % 9 === 0 ? 12 : 0; // weekend-ish spikes
     const value = Math.max(8, Math.round(46 + wave + trend + spike));
-    const date = new Date(today);
-    date.setDate(date.getDate() - i);
     arr.push({
-      date,
-      label: date.toLocaleDateString("en-IN", { day: "2-digit", month: "short" }),
+      date: new Date(cursor),
+      label: cursor.toLocaleDateString("en-IN", { day: "2-digit", month: "short" }),
       revenue: value * 1000, // ₹ thousands/day
       orders: Math.round(value * 1.35),
     });
+    cursor.setDate(cursor.getDate() + 1);
   }
   return arr;
 }
 
-const RAW_PRODUCTS = [
-  { name: "Voucher — Weekend Special", revenue: 28400, orders: 312 },
-  { name: "Deal Pack — Family Combo", revenue: 19600, orders: 210 },
-  { name: "Membership — Gold", revenue: 15200, orders: 98 },
-  { name: "Voucher — Happy Hours", revenue: 11800, orders: 187 },
-  { name: "Deal Pack — Solo Saver", revenue: 9320, orders: 143 },
-];
-const maxProductRevenue = Math.max(...RAW_PRODUCTS.map((p) => p.revenue));
-const PRODUCTS = RAW_PRODUCTS.map((p) => ({
-  ...p,
-  share: Math.round((p.revenue / maxProductRevenue) * 100),
-}));
-
-const TRANSACTIONS = [
-  { id: "TXN48213", customer: "Rohan Mehta", product: "Weekend Special", amount: 649, status: "Success", time: "12 min ago" },
-  { id: "TXN48212", customer: "Priya Nair", product: "Gold Membership", amount: 1299, status: "Pending", time: "38 min ago" },
-  { id: "TXN48211", customer: "Aditya Rao", product: "Family Combo", amount: 899, status: "Success", time: "1 hr ago" },
-  { id: "TXN48210", customer: "Sneha Kapoor", product: "Happy Hours", amount: 449, status: "Refunded", time: "2 hr ago" },
-  { id: "TXN48209", customer: "Vikram Singh", product: "Solo Saver", amount: 299, status: "Success", time: "3 hr ago" },
-  { id: "TXN48208", customer: "Ananya Iyer", product: "Weekend Special", amount: 649, status: "Success", time: "5 hr ago" },
-];
-
-const STATUS_STYLES = {
-  Success: "bg-emerald-50 text-emerald-700",
-  Pending: "bg-amber-50 text-amber-700",
-  Refunded: "bg-red-50 text-red-600",
+// Status pill colors for the real voucher list below — same workflow
+// vocabulary as VoucherStatusBadge.jsx.
+const VOUCHER_STATUS_STYLES = {
+  DRAFT: "bg-gray-100 text-gray-600",
+  UNDER_REVIEW: "bg-amber-50 text-amber-600",
+  APPROVED: "bg-sky-50 text-sky-600",
+  REJECTED: "bg-rose-50 text-rose-500",
+  PUBLISHED: "bg-emerald-50 text-emerald-600",
+  EXPIRED: "bg-rose-50 text-rose-500",
+  ARCHIVED: "bg-gray-100 text-gray-400",
 };
+
+function formatVoucherDate(iso) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+function summarizeVoucherDiscount(offers) {
+  const offer = offers?.[0];
+  if (!offer) return "—";
+  return offer.title || `${offer.discountValue}${offer.discountType === "PERCENTAGE" ? "%" : "₹"} OFF`;
+}
+
+// "Recent Transactions" below is real data (GET /voucher-claims/payments,
+// same source Transactions.jsx uses) — no more dummy TRANSACTIONS array.
+// mapPaymentRow (inside fetchVoucherTransactionOverview) sets `status` to
+// "Paid" for a captured payment, or the raw Razorpay status capitalized
+// otherwise (Failed/Created/Authorized/...) — only Paid gets a dedicated
+// style, everything else falls back to a neutral pending-ish look rather
+// than guessing a color for statuses that were never confirmed.
+
+// Same deterministic per-customer avatar color as TransactionOverview.jsx's
+// table (this table is a like-for-like copy of that one).
+const AVATAR_RING_COLORS = [
+  { ring: "ring-emerald-200", bg: "bg-emerald-50", text: "text-emerald-700" },
+  { ring: "ring-rose-200", bg: "bg-rose-50", text: "text-rose-700" },
+  { ring: "ring-amber-200", bg: "bg-amber-50", text: "text-amber-700" },
+  { ring: "ring-sky-200", bg: "bg-sky-50", text: "text-sky-700" },
+  { ring: "ring-violet-200", bg: "bg-violet-50", text: "text-violet-700" },
+];
+
+function getInitials(name = "") {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function getAvatarColors(name = "") {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return AVATAR_RING_COLORS[Math.abs(hash) % AVATAR_RING_COLORS.length];
+}
 
 function formatINR(n) {
   return `₹ ${Math.round(n).toLocaleString("en-IN")}`;
@@ -84,26 +155,113 @@ function computeChange(series, key) {
   return ((second - first) / first) * 100;
 }
 
+// Small Prev/page-numbers/Next bar shared by the Top Performing Voucher and
+// Recent Transactions tables below — both paginate the same way (10 rows).
+function PaginationBar({ page, totalPages, onChange, count }) {
+  if (count === 0) return null;
+  return (
+    <div className="flex items-center justify-between border-t border-gray-100 px-5 py-3">
+      <span className="text-xs text-gray-400">Page {page} of {totalPages}</span>
+      <div className="flex items-center gap-1">
+        <button
+          onClick={() => onChange(Math.max(1, page - 1))}
+          disabled={page <= 1}
+          className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+        {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+          <button
+            key={p}
+            onClick={() => onChange(p)}
+            className={`h-7 w-7 rounded-lg text-xs font-medium transition-colors ${
+              p === page ? "bg-emerald-500 text-white" : "text-gray-500 hover:bg-gray-100"
+            }`}
+          >
+            {p}
+          </button>
+        ))}
+        <button
+          onClick={() => onChange(Math.min(totalPages, page + 1))}
+          disabled={page >= totalPages}
+          className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ══════════════════════════════════════════════════════════════
 // PAGE
 // ══════════════════════════════════════════════════════════════
 
 export default function AnalysisReport() {
-  const [rangeKey, setRangeKey] = useState("30d");
+  const [rangeKey, setRangeKey] = useState("month");
   const [hoveredDay, setHoveredDay] = useState(null);
-  const [productSearch, setProductSearch] = useState("");
-  const [sortKey, setSortKey] = useState("revenue");
-  const [sortDir, setSortDir] = useState("desc");
+  const [voucherSearch, setVoucherSearch] = useState("");
+  const [transactionSearch, setTransactionSearch] = useState("");
+
+  // "Recent Transactions" — real voucher claim payments, same
+  // brandId-resolution pattern as Transactions.jsx (onboarding/auth store,
+  // confirmed via GET /brands/get).
+  const onboardingBrandId = useOnboardingStore((s) => s.formData.brandId);
+  const authUserBrandId = useAuthStore((s) => s.user?.brandId);
+  const candidateBrandId = onboardingBrandId || authUserBrandId;
+  const { data: brand } = useBrandData(candidateBrandId);
+  const resolvedBrandId = brand?._id || candidateBrandId;
+
+  // "Vouchers" section below — real GET /vouchers/versions/get-all list,
+  // same service the Voucher management page uses.
+  const [vouchers, setVouchers] = useState([]);
+  const [vouchersError, setVouchersError] = useState("");
+  useEffect(() => {
+    if (!resolvedBrandId) return;
+    let cancelled = false;
+    getVouchers({ brandId: resolvedBrandId, page: 1, limit: 50 })
+      .then((res) => {
+        if (cancelled) return;
+        setVouchers(res?.data?.data ?? []);
+        setVouchersError("");
+      })
+      .catch((err) => setVouchersError(err.message || "Failed to load vouchers."));
+    return () => { cancelled = true; };
+  }, [resolvedBrandId]);
+
+  const [transactionRows, setTransactionRows] = useState([]);
+  const [transactionsError, setTransactionsError] = useState("");
+  const [transactionPage, setTransactionPage] = useState(1);
+  useEffect(() => {
+    if (!resolvedBrandId) return;
+    let cancelled = false;
+    fetchVoucherTransactionOverview({ brandId: resolvedBrandId })
+      .then((result) => {
+        if (cancelled) return;
+        setTransactionRows(result.rows);
+        setTransactionsError("");
+      })
+      .catch((err) => setTransactionsError(err.message || "Failed to load transactions."));
+    return () => { cancelled = true; };
+  }, [resolvedBrandId]);
+
+  // Changing the top date filter re-slices which transactions match, so
+  // whatever page you were on may no longer exist — back to page 1.
+  const changeRange = (key) => {
+    setRangeKey(key);
+    setTransactionPage(1);
+  };
 
   const range = RANGE_OPTIONS.find((r) => r.key === rangeKey);
-  const series = useMemo(() => generateSeries(range.days), [range.days]);
+  const rangeDates = useMemo(() => getRangeDates(rangeKey), [rangeKey]);
+  const series = useMemo(() => generateSeries(rangeDates), [rangeDates]);
   const maxRevenue = Math.max(...series.map((d) => d.revenue));
 
   // ── Derived KPIs (recompute whenever the date range changes) ──
   const totalRevenue = series.reduce((s, d) => s + d.revenue, 0);
   const totalOrders = series.reduce((s, d) => s + d.orders, 0);
   const avgOrderValue = totalOrders ? totalRevenue / totalOrders : 0;
-  const refundRate = 0.025 + (range.days % 7) * 0.0015;
+  const refundRate = 0.025 + (series.length % 7) * 0.0015;
   const refundsIssued = totalRevenue * refundRate;
 
   const revenueChange = computeChange(series, "revenue");
@@ -148,39 +306,45 @@ export default function AnalysisReport() {
     })
     .join(", ");
 
-  // ── Top products: search + sort ──
-  const filteredProducts = PRODUCTS.filter((p) =>
-    p.name.toLowerCase().includes(productSearch.trim().toLowerCase())
+  // ── Vouchers: only PUBLISHED ones show here ("Top Performing" means
+  // live for customers), client-side search over that subset, paginated. ──
+  const PAGE_SIZE = 10;
+  const [voucherPage, setVoucherPage] = useState(1);
+  const filteredVouchers = vouchers
+    .filter((v) => v.status === "PUBLISHED")
+    .filter((v) => (v.name || "").toLowerCase().includes(voucherSearch.trim().toLowerCase()));
+  const voucherTotalPages = Math.max(1, Math.ceil(filteredVouchers.length / PAGE_SIZE));
+  const pagedVouchers = filteredVouchers.slice((voucherPage - 1) * PAGE_SIZE, voucherPage * PAGE_SIZE);
+
+  // ── Recent Transactions: filtered by the same top-of-page date range
+  // plus a client-side search (order id / customer / voucher version id),
+  // then paginated 10 at a time. ──
+  const transactionSearchTerm = transactionSearch.trim().toLowerCase();
+  const filteredTransactionRows = transactionRows
+    .filter((row) => isWithinRange(row.raw?.createdAt, rangeDates))
+    .filter((row) =>
+      !transactionSearchTerm ||
+      [row.orderId, row.customerName, row.customerCode, row.refId]
+        .join(" ")
+        .toLowerCase()
+        .includes(transactionSearchTerm)
+    );
+  const transactionTotalPages = Math.max(1, Math.ceil(filteredTransactionRows.length / PAGE_SIZE));
+  const pagedTransactionRows = filteredTransactionRows.slice(
+    (transactionPage - 1) * PAGE_SIZE,
+    transactionPage * PAGE_SIZE
   );
-  const sortedProducts = [...filteredProducts].sort((a, b) => {
-    const dir = sortDir === "asc" ? 1 : -1;
-    return (a[sortKey] - b[sortKey]) * dir;
-  });
-
-  const toggleSort = (key) => {
-    if (sortKey === key) {
-      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    } else {
-      setSortKey(key);
-      setSortDir("desc");
-    }
-  };
-
-  const SortIcon = ({ colKey }) => {
-    if (sortKey !== colKey) return <ArrowUpDown size={12} className="text-gray-300" />;
-    return sortDir === "asc" ? <ArrowUp size={12} className="text-emerald-600" /> : <ArrowDown size={12} className="text-emerald-600" />;
-  };
 
   const exportCSV = () => {
-    const header = "Product,Revenue,Orders,Share %\n";
-    const rows = sortedProducts
-      .map((p) => `"${p.name}",${p.revenue},${p.orders},${p.share}`)
+    const header = "Voucher Name,Status,Valid From,Valid Till,Discount\n";
+    const rows = filteredVouchers
+      .map((v) => `"${v.name}","${v.status}","${v.startAt || ""}","${v.endAt || ""}","${summarizeVoucherDiscount(v.offers)}"`)
       .join("\n");
     const blob = new Blob([header + rows], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `top-products-${rangeKey}.csv`;
+    a.download = `vouchers-${rangeKey}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -201,20 +365,19 @@ export default function AnalysisReport() {
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="flex bg-white border border-gray-100 rounded-xl p-1">
-              {RANGE_OPTIONS.map((r) => (
-                <button
-                  key={r.key}
-                  onClick={() => setRangeKey(r.key)}
-                  className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                    rangeKey === r.key
-                      ? "bg-[#1a1a2e] text-white"
-                      : "text-gray-500 hover:text-gray-800"
-                  }`}
-                >
-                  {r.label}
-                </button>
-              ))}
+            <div className="flex items-center gap-1.5 bg-white border border-gray-100 rounded-xl px-3 py-2">
+              <CalendarDays size={14} className="text-gray-400" />
+              <select
+                value={rangeKey}
+                onChange={(e) => changeRange(e.target.value)}
+                className="bg-transparent text-xs font-semibold text-gray-700 outline-none"
+              >
+                {RANGE_OPTIONS.map((r) => (
+                  <option key={r.key} value={r.key}>
+                    {r.label}
+                  </option>
+                ))}
+              </select>
             </div>
             <button
               onClick={exportCSV}
@@ -283,160 +446,233 @@ export default function AnalysisReport() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-
-          {/* ── Order status donut ── */}
-          <div className="bg-white border border-gray-100 rounded-xl p-5">
-            <p className="text-sm font-semibold text-gray-700 mb-4">Order Status</p>
-            <div className="flex items-center gap-6">
-              <div
-                className="w-28 h-28 rounded-full shrink-0 relative"
-                style={{ background: `conic-gradient(${conicStops})` }}
-              >
-                <div className="absolute inset-[10px] bg-white rounded-full flex flex-col items-center justify-center">
-                  <span className="text-sm font-bold text-gray-900">{totalOrders.toLocaleString("en-IN")}</span>
-                  <span className="text-[9px] text-gray-400">orders</span>
-                </div>
-              </div>
-              <div className="flex flex-col gap-2">
-                {statusSplit.map((s) => (
-                  <div key={s.label} className="flex items-center gap-2 text-xs">
-                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
-                    <span className="text-gray-600 w-16">{s.label}</span>
-                    <span className="font-semibold text-gray-800">
-                      {Math.round((totalOrders * s.pct) / 100).toLocaleString("en-IN")}
-                    </span>
-                    <span className="text-gray-400">({s.pct}%)</span>
-                  </div>
-                ))}
+        {/* ── Order status donut ── */}
+        <div className="bg-white border border-gray-100 rounded-xl p-5 mb-4">
+          <p className="text-sm font-semibold text-gray-700 mb-4">Order Status</p>
+          <div className="flex items-center gap-6">
+            <div
+              className="w-28 h-28 rounded-full shrink-0 relative"
+              style={{ background: `conic-gradient(${conicStops})` }}
+            >
+              <div className="absolute inset-[10px] bg-white rounded-full flex flex-col items-center justify-center">
+                <span className="text-sm font-bold text-gray-900">{totalOrders.toLocaleString("en-IN")}</span>
+                <span className="text-[9px] text-gray-400">orders</span>
               </div>
             </div>
-          </div>
-
-          {/* ── Category split ── */}
-          <div className="bg-white border border-gray-100 rounded-xl p-5">
-            <p className="text-sm font-semibold text-gray-700 mb-4">Revenue by Category</p>
-            <div className="flex flex-col gap-3">
-              {[
-                { label: "Voucher", pct: 46, color: "bg-emerald-400" },
-                { label: "Deal Pack", pct: 31, color: "bg-purple-400" },
-                { label: "Membership", pct: 23, color: "bg-amber-400" },
-              ].map((c) => (
-                <div key={c.label}>
-                  <div className="flex justify-between text-xs text-gray-500 mb-1">
-                    <span>{c.label}</span>
-                    <span className="font-semibold text-gray-700">
-                      {formatINR((totalRevenue * c.pct) / 100)} · {c.pct}%
-                    </span>
-                  </div>
-                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <div className={`h-full rounded-full ${c.color}`} style={{ width: `${c.pct}%` }} />
-                  </div>
+            <div className="flex flex-col gap-2">
+              {statusSplit.map((s) => (
+                <div key={s.label} className="flex items-center gap-2 text-xs">
+                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
+                  <span className="text-gray-600 w-16">{s.label}</span>
+                  <span className="font-semibold text-gray-800">
+                    {Math.round((totalOrders * s.pct) / 100).toLocaleString("en-IN")}
+                  </span>
+                  <span className="text-gray-400">({s.pct}%)</span>
                 </div>
               ))}
             </div>
           </div>
-
         </div>
 
-        {/* ── Top products: searchable + sortable ── */}
+        {/* ── Vouchers: real GET /vouchers list, searchable ── */}
         <div className="bg-white border border-gray-100 rounded-xl overflow-hidden mb-4">
           <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 gap-3">
-            <p className="text-sm font-semibold text-gray-700 whitespace-nowrap">Top Performing Products</p>
-            <div className="relative w-full max-w-[220px]">
-              <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-300" />
-              <input
-                value={productSearch}
-                onChange={(e) => setProductSearch(e.target.value)}
-                placeholder="Search products…"
-                className="w-full text-xs border border-gray-200 rounded-lg pl-7 pr-3 py-1.5 outline-none focus:border-emerald-400 bg-gray-50 text-gray-700"
-              />
+            <p className="text-sm font-semibold text-gray-700 whitespace-nowrap">Top Performing Voucher</p>
+            <div className="flex items-center gap-2">
+              <div className="relative w-full max-w-[220px]">
+                <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-300" />
+                <input
+                  value={voucherSearch}
+                  onChange={(e) => { setVoucherSearch(e.target.value); setVoucherPage(1); }}
+                  placeholder="Search vouchers…"
+                  className="w-full text-xs border border-gray-200 rounded-lg pl-7 pr-3 py-1.5 outline-none focus:border-emerald-400 bg-gray-50 text-gray-700"
+                />
+              </div>
+              <Link
+                to="/vouchers"
+                className="whitespace-nowrap text-xs font-semibold text-emerald-600 hover:underline"
+              >
+                View All
+              </Link>
             </div>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-xs">
+            <table className="w-full text-left text-xs">
               <thead>
-                <tr className="border-b border-gray-50">
-                  <th className="text-left px-5 py-3 text-gray-400 font-medium">Product</th>
+                <tr className="bg-[#1a1a2e]">
                   {[
-                    { key: "revenue", label: "Revenue" },
-                    { key: "orders", label: "Orders" },
-                    { key: "share", label: "Share" },
-                  ].map((col) => (
-                    <th
-                      key={col.key}
-                      onClick={() => toggleSort(col.key)}
-                      className="text-left px-5 py-3 text-gray-400 font-medium cursor-pointer select-none hover:text-gray-600"
-                    >
-                      <span className="flex items-center gap-1">
-                        {col.label}
-                        <SortIcon colKey={col.key} />
-                      </span>
+                    "Banner", "Voucher Version Id", "Voucher Title", "Published Date", "Expired Date",
+                    "No of Offers", "Status",
+                  ].map((h) => (
+                    <th key={h} className="whitespace-nowrap px-3 py-2.5 text-[11px] font-bold uppercase tracking-wide text-white/80">
+                      {h}
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {sortedProducts.length === 0 ? (
+                {vouchersError ? (
                   <tr>
-                    <td colSpan={4} className="px-5 py-8 text-center text-gray-400">
-                      No products match "{productSearch}". Try a different search term.
+                    <td colSpan={7} className="px-4 py-8 text-center text-rose-500">
+                      {vouchersError}
+                    </td>
+                  </tr>
+                ) : filteredVouchers.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
+                      No vouchers match "{voucherSearch}". Try a different search term.
                     </td>
                   </tr>
                 ) : (
-                  sortedProducts.map((row) => (
-                    <tr key={row.name} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                      <td className="px-5 py-3.5 text-gray-700 font-medium">{row.name}</td>
-                      <td className="px-5 py-3.5 text-gray-700">{formatINR(row.revenue)}</td>
-                      <td className="px-5 py-3.5 text-gray-500">{row.orders}</td>
-                      <td className="px-5 py-3.5">
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden max-w-[80px]">
-                            <div className="h-full bg-emerald-400 rounded-full" style={{ width: `${row.share}%` }} />
+                  pagedVouchers.map((v) => {
+                    const thumbnail = v.images?.[0]?.url;
+                    const bannerUrl = v.voucher?.banner?.type === "IMAGE" ? v.voucher?.banner?.image?.url : null;
+                    return (
+                      <tr key={v._id} className="border-b border-gray-100 bg-white last:border-b-0 hover:bg-gray-50 transition-colors">
+                        <td className="px-3 py-2">
+                          {bannerUrl ? (
+                            <img src={bannerUrl} alt="" className="h-7 w-7 rounded-md border border-gray-100 object-cover" />
+                          ) : (
+                            <div className="flex h-7 w-7 items-center justify-center rounded-md border border-dashed border-gray-200 text-gray-300">
+                              <ImageIcon className="h-3.5 w-3.5" />
+                            </div>
+                          )}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-2 text-gray-500">{v.versionCode}</td>
+                        <td className="px-3 py-2">
+                          <div className="flex items-center gap-1.5">
+                            {thumbnail && (
+                              <img src={thumbnail} alt="" className="h-7 w-7 flex-shrink-0 rounded-md object-cover" />
+                            )}
+                            <span className="line-clamp-2 max-w-[180px] text-left font-medium leading-snug text-gray-700">
+                              {v.name}
+                            </span>
                           </div>
-                          <span className="text-gray-500 w-8 text-right">{row.share}%</span>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-2 text-gray-500">{formatVoucherDate(v.startAt)}</td>
+                        <td className="whitespace-nowrap px-3 py-2 text-gray-500">{formatVoucherDate(v.endAt)}</td>
+                        <td className="px-3 py-2 text-gray-600">{v.offers?.length ?? 0}</td>
+                        <td className="px-3 py-2">
+                          <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${VOUCHER_STATUS_STYLES[v.status] || "bg-gray-100 text-gray-500"}`}>
+                            {v.status}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
           </div>
+          <PaginationBar
+            page={voucherPage}
+            totalPages={voucherTotalPages}
+            onChange={setVoucherPage}
+            count={filteredVouchers.length}
+          />
         </div>
 
         {/* ── Recent transactions ── */}
         <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
-          <div className="px-5 py-3.5 border-b border-gray-100">
-            <p className="text-sm font-semibold text-gray-700">Recent Transactions</p>
+          <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 gap-3">
+            <p className="text-sm font-semibold text-gray-700 whitespace-nowrap">Recent Transactions</p>
+            <div className="relative w-full max-w-[220px]">
+              <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-300" />
+              <input
+                value={transactionSearch}
+                onChange={(e) => { setTransactionSearch(e.target.value); setTransactionPage(1); }}
+                placeholder="Search transactions…"
+                className="w-full text-xs border border-gray-200 rounded-lg pl-7 pr-3 py-1.5 outline-none focus:border-emerald-400 bg-gray-50 text-gray-700"
+              />
+            </div>
           </div>
+          {transactionsError && (
+            <p className="px-5 py-2.5 text-xs text-rose-600 bg-rose-50 border-b border-rose-100">
+              {transactionsError}
+            </p>
+          )}
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
-                <tr className="border-b border-gray-50">
-                  {["Txn ID", "Customer", "Product", "Amount", "Status", "Time"].map((h) => (
-                    <th key={h} className="text-left px-5 py-3 text-gray-400 font-medium">{h}</th>
+                <tr className="bg-[#1a1a2e]">
+                  {[
+                    "Order Id", "Customer detail", "Voucher Version ID", "Created on", "Outlet Store ID",
+                    "Bill Amount", "Offer Discount", "Net Bill", "Paid Amount", "Payment Method", "Status",
+                  ].map((h) => (
+                    <th key={h} className="text-left px-3 py-2.5 text-[11px] font-bold uppercase tracking-wide text-white/80 whitespace-nowrap">
+                      {h}
+                    </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {TRANSACTIONS.map((t) => (
-                  <tr key={t.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                    <td className="px-5 py-3.5 text-gray-400 font-mono">{t.id}</td>
-                    <td className="px-5 py-3.5 text-gray-700 font-medium">{t.customer}</td>
-                    <td className="px-5 py-3.5 text-gray-500">{t.product}</td>
-                    <td className="px-5 py-3.5 text-gray-700">{formatINR(t.amount)}</td>
-                    <td className="px-5 py-3.5">
-                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${STATUS_STYLES[t.status]}`}>
-                        {t.status}
-                      </span>
+                {filteredTransactionRows.length === 0 ? (
+                  <tr>
+                    <td colSpan={11} className="px-3 py-8 text-center text-gray-400">
+                      {transactionSearch
+                        ? `No transactions match "${transactionSearch}".`
+                        : `No transactions for ${range.label.toLowerCase()}.`}
                     </td>
-                    <td className="px-5 py-3.5 text-gray-400">{t.time}</td>
                   </tr>
-                ))}
+                ) : (
+                  pagedTransactionRows.map((row) => {
+                    const avatar = getAvatarColors(row.customerName);
+                    return (
+                      <tr key={row.orderId} className="border-b border-gray-100 bg-white last:border-b-0 hover:bg-gray-50 transition-colors">
+                        <td className="px-3 py-2 whitespace-nowrap">
+                          <Link
+                            to={`/transactions/order/${(row.txnId || row.orderId).replace(/^#/, "")}`}
+                            className="font-semibold text-blue-600 hover:underline"
+                          >
+                            {row.orderId}
+                          </Link>
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <div
+                              className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-semibold ring-1 flex-shrink-0
+                                ${avatar.bg} ${avatar.text} ${avatar.ring}`}
+                            >
+                              {getInitials(row.customerName)}
+                            </div>
+                            <div>
+                              <p className="text-gray-700 font-medium">{row.customerName}</p>
+                              <p className="text-blue-500">{row.customerCode}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-3 py-2 text-gray-700 whitespace-nowrap">{row.refId}</td>
+                        <td className="px-3 py-2 text-gray-500 whitespace-nowrap">{row.createdOn}</td>
+                        <td className="px-3 py-2 text-gray-500 whitespace-nowrap">{row.outlet}</td>
+                        <td className="px-3 py-2 text-gray-700 whitespace-nowrap">{row.billAmount}</td>
+                        <td className="px-3 py-2 text-rose-500 whitespace-nowrap">{row.offerDiscount}</td>
+                        <td className="px-3 py-2 text-gray-700 whitespace-nowrap">{row.netBill}</td>
+                        <td className="px-3 py-2 text-green-700 font-medium whitespace-nowrap">{row.amount}</td>
+                        <td className="px-3 py-2 text-gray-500 whitespace-nowrap capitalize">{row.paymentMethod}</td>
+                        <td className="px-3 py-2 whitespace-nowrap">
+                          <span
+                            className={`text-[11px] font-semibold px-2 py-0.5 rounded-full
+                              ${row.status === "Paid"
+                                ? "bg-emerald-100 text-emerald-700"
+                                : "bg-red-100 text-amber-700"
+                              }`}
+                          >
+                            {row.status}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>
+          <PaginationBar
+            page={transactionPage}
+            totalPages={transactionTotalPages}
+            onChange={setTransactionPage}
+            count={filteredTransactionRows.length}
+          />
         </div>
 
       </div>

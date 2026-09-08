@@ -34,7 +34,7 @@ export const TYPE_CONFIG = {
   voucher: {
     badgeLabel: "Voucher",
     sectionTitle: "VOUCHER INFORMATION",
-    idFieldLabel: "Voucher Id",
+    idFieldLabel: "Voucher Version Id",
     withViewPage: true,
     fields: [
       { label: "Voucher Name", key: "voucherName" },
@@ -42,6 +42,7 @@ export const TYPE_CONFIG = {
       { label: "Best Value", key: "bestValue" },
       { label: "Published Date", key: "publishedDate" },
       { label: "Expired", key: "expiredDate" },
+      { label: "Reminder Days", key: "reminderDays" },
       { label: "Tag Line", key: "tagLine" },
     ],
   },

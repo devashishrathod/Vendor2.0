@@ -1,38 +1,64 @@
 // src/components/voucher/VoucherOverview.jsx
-import React from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
-import VoucherStatCard from "./VoucherStatCard";
+import {
+  Wallet,
+  CircleDollarSign,
+  Tag,
+  ReceiptText,
+  BadgeCheck,
+  CalendarX,
+  Hourglass,
+} from "lucide-react";
 
 const formatCurrency = (value) =>
   `₹${Number(value ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
 
-export default function VoucherOverview({ stats, isLoading, isExpanded, onToggleExpanded }) {
+// Same card style as SettlementOverview.jsx's StatCard — icon + label
+// header, one large bold value, small note line below — instead of the
+// smaller plain label/value pairs VoucherStatCard.jsx uses elsewhere.
+function StatCard({ icon, label, value, note, valueClassName = "", isLast }) {
+  return (
+    <div className={`min-w-[170px] flex-1 px-6 py-4 ${!isLast ? "sm:border-r border-gray-100" : ""}`}>
+      <div className="flex items-center gap-2 text-gray-400">
+        {icon}
+        <span className="text-sm font-medium text-gray-500">{label}</span>
+      </div>
+      <p className={`mt-2 text-2xl font-semibold text-gray-900 ${valueClassName}`}>{value}</p>
+      {note && <p className="mt-1 text-xs text-gray-400">{note}</p>}
+    </div>
+  );
+}
+
+// Same shape as SettlementOverview.jsx's card — one header row (title +
+// Live Updates), one stats strip below it. No separate collapsible toggle
+// bar anymore; the voucher table below always shows.
+export default function VoucherOverview({ stats, isLoading }) {
   return (
     <div className="rounded-xl border border-gray-200 bg-white">
-      {/* Overall collection */}
       <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
-        <div>
-          <p className="text-xs text-gray-500">Overall Collection Amount</p>
-          <p className="text-2xl font-semibold text-gray-900">
-            {isLoading ? "—" : formatCurrency(stats?.overallCollectionAmount)}
-          </p>
-        </div>
+        <h3 className="text-sm font-semibold text-gray-700">Voucher Overview</h3>
         <button className="text-sm font-medium text-indigo-600 hover:underline">
           Live Updates
         </button>
       </div>
 
-      {/* Quick stats row */}
-      <div className="flex flex-wrap items-center gap-y-4 divide-x divide-gray-100 px-5 py-4">
-        <VoucherStatCard
+      <div className="flex flex-col sm:flex-row sm:flex-wrap divide-y sm:divide-y-0 divide-gray-100">
+        <StatCard
+          icon={<Wallet className="h-4 w-4" />}
+          label="Overall Collection Amount"
+          value={isLoading ? "—" : formatCurrency(stats?.overallCollectionAmount)}
+        />
+        <StatCard
+          icon={<CircleDollarSign className="h-4 w-4" />}
           label="Overall Paid Amount"
           value={isLoading ? "—" : formatCurrency(stats?.overallPaidAmount)}
         />
-        <VoucherStatCard
+        <StatCard
+          icon={<Tag className="h-4 w-4" />}
           label="Discount Amount"
           value={isLoading ? "—" : formatCurrency(stats?.discountAmount)}
         />
-        <VoucherStatCard
+        <StatCard
+          icon={<Tag className="h-4 w-4" />}
           label="Additional Discount"
           value={isLoading ? "—" : `-${formatCurrency(Math.abs(stats?.additionalDiscount ?? 0))}`}
           // Only tinted while there's a real negative amount to show — the
@@ -40,36 +66,31 @@ export default function VoucherOverview({ stats, isLoading, isExpanded, onToggle
           // oddly next to every other card's plain gray placeholder.
           valueClassName={isLoading ? undefined : "text-rose-500"}
         />
-        <VoucherStatCard
+        <StatCard
+          icon={<ReceiptText className="h-4 w-4" />}
           label="Gst Amount"
           value={isLoading ? "—" : formatCurrency(stats?.gstAmount)}
         />
-        <VoucherStatCard
+        <StatCard
+          icon={<BadgeCheck className="h-4 w-4" />}
           label="Active Voucher"
-          value={isLoading ? "—" : `No.of  Count :${stats?.activeVoucherCount}`}
+          value={isLoading ? "—" : stats?.activeVoucherCount ?? 0}
+          note={isLoading ? undefined : `No. of. Count : ${stats?.activeVoucherCount ?? 0}`}
         />
-        <VoucherStatCard
+        <StatCard
+          icon={<CalendarX className="h-4 w-4" />}
           label="Expired Voucher"
-          value={isLoading ? "—" : `No.of  Count :${stats?.expiredVoucherCount}`}
+          value={isLoading ? "—" : stats?.expiredVoucherCount ?? 0}
+          note={isLoading ? undefined : `No. of. Count : ${stats?.expiredVoucherCount ?? 0}`}
         />
-        <VoucherStatCard
+        <StatCard
+          icon={<Hourglass className="h-4 w-4" />}
           label="Pending Voucher"
-          value={isLoading ? "—" : `No.of  Count :${String(stats?.pendingVoucherCount).padStart(2, "0")}`}
+          value={isLoading ? "—" : stats?.pendingVoucherCount ?? 0}
+          note={isLoading ? undefined : `No. of. Count : ${stats?.pendingVoucherCount ?? 0}`}
+          isLast
         />
       </div>
-
-      {/* Collapsible header */}
-      <button
-        onClick={onToggleExpanded}
-        className="flex w-full items-center justify-between rounded-b-xl border-t border-gray-100 px-5 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
-      >
-        <span>Voucher Overview</span>
-        {isExpanded ? (
-          <ChevronUp className="h-4 w-4 text-gray-400" />
-        ) : (
-          <ChevronDown className="h-4 w-4 text-gray-400" />
-        )}
-      </button>
     </div>
   );
 }
