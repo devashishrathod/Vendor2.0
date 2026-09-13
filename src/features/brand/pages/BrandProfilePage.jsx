@@ -38,7 +38,7 @@ const BrandProfilePage = ({ brand, brandId, brandLoading, brandError, reload }) 
 
       <BrandProfileSection profile={brand} outletCount={outletCount} reload={reload} />
 
-      <hr className="border-gray-100" />
+      
 
       <CategoryInfoSection
         category={brand.category}

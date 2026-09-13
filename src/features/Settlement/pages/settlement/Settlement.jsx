@@ -1,5 +1,4 @@
 // src/pages/settlement/Settlement.jsx
-import React from "react";
 import { SettlementOverview, SettlementTable } from "../../components/settlement";
 import useSettlement from "../../hooks/useSettlement";
 
@@ -23,7 +22,11 @@ export default function Settlement() {
     totalPages,
     search,
     onSearchChange,
+    statusOptions,
+    statusFilter,
+    onStatusFilterChange,
     dateRange,
+    onDateRangeChange,
     expandedRow,
     toggleRow,
     loadingOverview,
@@ -68,7 +71,11 @@ export default function Settlement() {
             onPageSizeChange={onPageSizeChange}
             search={search}
             onSearchChange={onSearchChange}
+            statusOptions={statusOptions}
+            statusFilter={statusFilter}
+            onStatusFilterChange={onStatusFilterChange}
             dateRange={dateRange}
+            onDateRangeChange={onDateRangeChange}
             expandedRow={expandedRow}
             toggleRow={toggleRow}
             loading={loadingTable}

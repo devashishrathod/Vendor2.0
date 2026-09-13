@@ -8,6 +8,7 @@
 
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Tag, Store, Search, Image as ImageIcon, Percent, History } from "lucide-react";
 import { useOnboardingStore } from "../../../onboarding/store/onboardingStore";
 import { useAuthStore } from "../../../onboarding/store/authStore";
 import useBrandData from "../../../brand/hooks/useBrandData";
@@ -33,11 +34,23 @@ function formatDiscount(offer) {
     : `₹${offer.discountValue} off`;
 }
 
-function SectionHeading({ children }) {
+// Icon-tile card header (matching the pattern used across Outlet Details/
+// Settings/Subscription elsewhere in the app) instead of a bare uppercase
+// heading floating directly on the white background.
+function SectionCard({ icon: Icon, iconBg = "bg-emerald-50", iconText = "text-emerald-500", title, subtitle, children }) {
   return (
-    <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-gray-900">
-      {children}
-    </h2>
+    <section className="bg-white border border-gray-100 rounded-2xl p-5 sm:p-6">
+      <div className="flex items-center gap-3 mb-1">
+        <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${iconBg} ${iconText}`}>
+          <Icon className="w-4 h-4" />
+        </div>
+        <div>
+          <h2 className="text-sm font-bold text-gray-900">{title}</h2>
+          {subtitle && <p className="text-xs text-gray-400 mt-0.5">{subtitle}</p>}
+        </div>
+      </div>
+      <div className="mt-4">{children}</div>
+    </section>
   );
 }
 
@@ -112,11 +125,10 @@ export default function VoucherDetailsInfo({ voucher }) {
   const goToEdit = () => navigate(`/vouchers/${voucher.voucherId}/edit`);
 
   return (
-    <div className="divide-y divide-gray-100 bg-white">
+    <div className="space-y-4">
       {/* Voucher Information */}
-      <section className="p-6">
-        <SectionHeading>Voucher Information</SectionHeading>
-        <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-4">
+      <SectionCard icon={Tag} iconBg="bg-emerald-50" iconText="text-emerald-500" title="Voucher Information">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-4">
           <Field
             label="Voucher Id"
             value={voucher.voucherId ? `#${voucher.voucherId}` : NOT_FOUND}
@@ -141,12 +153,11 @@ export default function VoucherDetailsInfo({ voucher }) {
             }
           />
         </div>
-      </section>
+      </SectionCard>
 
       {/* Which Outlet Applied This Voucher? */}
-      <section className="p-6">
-        <SectionHeading>Which Outlet Applied This Voucher?</SectionHeading>
-        <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-4">
+      <SectionCard icon={Store} iconBg="bg-sky-50" iconText="text-sky-500" title="Which Outlet Applied This Voucher?">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-4">
           <Field
             label="Selected Brand - Outlet's / Sub - Brand"
             value={`Count - ${String(selectedOutletCount).padStart(2, "0")}`}
@@ -169,15 +180,17 @@ export default function VoucherDetailsInfo({ voucher }) {
             value={outletCounts ? `Count - ${String(outletCounts.franchise).padStart(2, "0")}` : NOT_FOUND}
           />
         </div>
-      </section>
+      </SectionCard>
 
       {/* Search Tag */}
-      <section className="p-6">
-        <SectionHeading>Search Tag</SectionHeading>
-        <p className="mt-1 text-xs text-gray-400">
-          Keywords that help users quickly find this item. Add keywords to improve search visibility.
-        </p>
-        <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-4">
+      <SectionCard
+        icon={Search}
+        iconBg="bg-violet-50"
+        iconText="text-violet-500"
+        title="Search Tag"
+        subtitle="Keywords that help users quickly find this item. Add keywords to improve search visibility."
+      >
+        <div className="grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-4">
           <Field
             label="Selected Brand - Outlet's / Sub - Brand"
             value={`Count - ${String(tags.length).padStart(2, "0")}`}
@@ -188,13 +201,12 @@ export default function VoucherDetailsInfo({ voucher }) {
             }
           />
         </div>
-      </section>
+      </SectionCard>
 
       {/* Banner & Gallery */}
       {(bannerUrl || images.length > 0) && (
-        <section className="p-6">
-          <SectionHeading>Banner &amp; Gallery</SectionHeading>
-          <div className="mt-4 flex flex-wrap gap-3">
+        <SectionCard icon={ImageIcon} iconBg="bg-amber-50" iconText="text-amber-500" title="Banner & Gallery">
+          <div className="flex flex-wrap gap-3">
             {bannerUrl && (
               <div className="relative">
                 <img
@@ -219,14 +231,13 @@ export default function VoucherDetailsInfo({ voucher }) {
                 />
               ))}
           </div>
-        </section>
+        </SectionCard>
       )}
 
       {/* Offers */}
       {offers.length > 0 && (
-        <section className="p-6">
-          <SectionHeading>Offers</SectionHeading>
-          <div className="mt-4 space-y-4">
+        <SectionCard icon={Percent} iconBg="bg-rose-50" iconText="text-rose-500" title="Offers">
+          <div className="space-y-4">
             {offers.map((offer) => (
               <div
                 key={offer._id}
@@ -242,13 +253,12 @@ export default function VoucherDetailsInfo({ voucher }) {
               </div>
             ))}
           </div>
-        </section>
+        </SectionCard>
       )}
 
       {/* Review Timeline */}
-      <section className="p-6">
-        <SectionHeading>Review Timeline</SectionHeading>
-        <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-4">
+      <SectionCard icon={History} iconBg="bg-emerald-50" iconText="text-emerald-500" title="Review Timeline">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-4">
           <ReviewStep label="Submitted" at={voucher.submittedAt} by={voucher.submittedByUser} />
           <ReviewStep label="Reviewed" at={voucher.reviewedAt} by={voucher.reviewedByUser} />
           <ReviewStep label="Approved" at={voucher.approvedAt} by={voucher.approvedByUser} colorClass="text-emerald-600" />
@@ -259,7 +269,7 @@ export default function VoucherDetailsInfo({ voucher }) {
             Rejection reason: {voucher.rejectionReason}
           </p>
         )}
-      </section>
+      </SectionCard>
     </div>
   );
 }

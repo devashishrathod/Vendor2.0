@@ -1,72 +1,38 @@
 import { useState } from 'react';
-import { InfoSection } from './InfoGrid';
+import { FileText } from 'lucide-react';
+import { InfoSection, InfoGrid } from './InfoGrid';
 import InvoiceModal from './InvoiceModal';
 import InvoiceHistoryModal from './InvoiceHistoryModal';
-import RaiseQueryModal from './RaiseQueryModal';
 
 export default function InvoiceInfo({ subscription }) {
-  const { orderId, ticketStatus, purchasedListLabel, history } = subscription;
+  const { orderId, purchasedListLabel, history } = subscription;
 
-  // Only one of these is ever open at a time, but they're independent
-  // booleans (rather than a single "activeModal" enum) so History can open
-  // Invoice on top of itself without them fighting over shared state.
   const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-  const [isQueryOpen, setIsQueryOpen] = useState(false);
   const [historyInvoiceOrderId, setHistoryInvoiceOrderId] = useState(orderId);
 
+  const items = [
+    {
+      icon: <FileText className="w-4 h-4" />,
+      iconBg: 'bg-blue-50',
+      iconText: 'text-blue-500',
+      label: 'Order ID',
+      value: orderId,
+      link: { text: 'View Invoice', onClick: () => { setHistoryInvoiceOrderId(orderId); setIsInvoiceOpen(true); } },
+    },
+    {
+      icon: <FileText className="w-4 h-4" />,
+      iconBg: 'bg-emerald-50',
+      iconText: 'text-emerald-500',
+      label: 'Subscription Invoice',
+      value: purchasedListLabel,
+      link: { text: 'View History', onClick: () => setIsHistoryOpen(true) },
+    },
+  ];
+
   return (
-    <InfoSection title="Invoice Information">
-      <dl className="sub-info-grid">
-        <div className="sub-info-item">
-          <dt>Order ID</dt>
-          <dd>
-            <span className="sub-sub-label">{orderId}</span>
-            <a
-              href="#view-invoice"
-              onClick={(e) => {
-                e.preventDefault();
-                setHistoryInvoiceOrderId(orderId);
-                setIsInvoiceOpen(true);
-              }}
-            >
-              View Invoice
-            </a>
-          </dd>
-        </div>
-
-        <div className="sub-info-item">
-          <dt>Create Ticket</dt>
-          <dd>
-            <span className="sub-sub-label">{ticketStatus}</span>
-            <a
-              href="#raise-query"
-              onClick={(e) => {
-                e.preventDefault();
-                setIsQueryOpen(true);
-              }}
-            >
-              Raise Query
-            </a>
-          </dd>
-        </div>
-
-        <div className="sub-info-item">
-          <dt>Subscription Invoice</dt>
-          <dd>
-            <span className="sub-sub-label">{purchasedListLabel}</span>
-            <a
-              href="#view-history"
-              onClick={(e) => {
-                e.preventDefault();
-                setIsHistoryOpen(true);
-              }}
-            >
-              View History
-            </a>
-          </dd>
-        </div>
-      </dl>
+    <InfoSection icon={<FileText className="w-5 h-5" />} title="Invoice Information" subtitle="Manage your invoices and billing documents">
+      <InfoGrid items={items} cols={2} />
 
       <InvoiceModal
         open={isInvoiceOpen}
@@ -86,8 +52,6 @@ export default function InvoiceInfo({ subscription }) {
           setIsInvoiceOpen(true);
         }}
       />
-
-      <RaiseQueryModal open={isQueryOpen} onClose={() => setIsQueryOpen(false)} orderId={orderId} />
     </InfoSection>
   );
 }

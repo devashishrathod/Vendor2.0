@@ -11,18 +11,15 @@ export { default as InvoiceHistoryPage } from './pages/InvoiceHistoryPage';
 // Modals
 export { default as InvoiceModal } from './components/InvoiceModal';
 export { default as InvoiceHistoryModal } from './components/InvoiceHistoryModal';
-export { default as RaiseQueryModal } from './components/RaiseQueryModal';
 export { default as PlanBenefitsModal } from './components/PlanBenefitsModal';
 
 export { useSubscription } from './hooks/useSubscription';
 export { useInvoice } from './hooks/useInvoice';
 export { useInvoiceHistory } from './hooks/useInvoiceHistory';
 export { usePlanBenefits } from './hooks/usePlanBenefits';
-export { useRaiseQuery } from './hooks/useRaiseQuery';
 
 export { getCurrentSubscription, mapSubscriptionResponse } from './services/subscriptionService';
 export { fetchInvoiceByOrderId, fetchInvoiceHistory } from './services/invoiceService';
 export { fetchPlanBenefits } from './services/planBenefitsService';
-export { submitQuery } from './services/queryService';
 
 export * from './constants/subscription.constants';

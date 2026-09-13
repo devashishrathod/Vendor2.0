@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { X, Plus, Pencil } from "lucide-react";
 
 /**
@@ -16,11 +16,16 @@ const AddShowcaseSectionModal = ({ mode = "add", section = null, onClose, onSubm
   const [description, setDescription] = useState(section?.description || "");
   const [files, setFiles] = useState([]);
   const [isShowInVideoClips, setIsShowInVideoClips] = useState(false);
+  const [thumbnail, setThumbnail] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState(null);
 
   const handleFilesChange = (e) => {
     setFiles(Array.from(e.target.files || []));
+  };
+
+  const handleThumbnailChange = (e) => {
+    setThumbnail(e.target.files?.[0] || null);
   };
 
   const handleSubmit = async (e) => {
@@ -42,6 +47,7 @@ const AddShowcaseSectionModal = ({ mode = "add", section = null, onClose, onSubm
           description: description.trim(),
           files,
           isShowInVideoClips,
+          thumbnail: isShowInVideoClips ? thumbnail : null,
         });
       }
       onClose();
@@ -146,6 +152,30 @@ const AddShowcaseSectionModal = ({ mode = "add", section = null, onClose, onSubm
                   Show in video clips
                 </label>
               </div>
+
+              {/* Only relevant once this batch is marked for video clips —
+                  a custom poster image for however that surface displays
+                  the clip, instead of an arbitrary auto-picked video frame.
+                  ⚠️ NOT CONFIRMED from Postman: no thumbnail field is
+                  documented on add-media yet, so this is sent as a
+                  best-effort "thumbnail" form field — verify the real
+                  request/response once tested. */}
+              {isShowInVideoClips && (
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-gray-600">
+                    Thumbnail for clips (optional)
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleThumbnailChange}
+                    className="w-full text-sm text-gray-600 file:mr-3 file:rounded-xl file:border-0 file:bg-emerald-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-emerald-700 hover:file:bg-emerald-100"
+                  />
+                  {thumbnail && (
+                    <p className="mt-1 text-xs text-gray-500">{thumbnail.name}</p>
+                  )}
+                </div>
+              )}
             </>
           )}
 

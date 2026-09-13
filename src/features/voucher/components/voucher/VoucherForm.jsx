@@ -5,7 +5,6 @@ import {
   ArrowLeft,
   ArrowRight,
   Calendar,
-  ImagePlus,
   Percent,
   Plus,
   Store,
@@ -214,6 +213,15 @@ export default function VoucherForm({
   const sessionBrandId = useAuthStore((s) => s.user?.brandId);
   const brandId = form.brandId || sessionBrandId;
 
+  // Edit mode has no banner section on this form at all (banners are
+  // managed by VoucherBannerModal instead), so it's never gated. Add mode
+  // requires a banner matching whichever bannerType is currently selected.
+  const isBannerUploaded =
+    isEdit ||
+    (form.bannerType === "IMAGE" && !!form.bannerImage) ||
+    (form.bannerType === "VIDEO" && !!form.bannerVideo?.trim()) ||
+    (form.bannerType === "GIF" && !!form.bannerGif?.trim());
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-6">
       {/* Header */}
@@ -261,9 +269,73 @@ export default function VoucherForm({
             />
           </div>
 
-          {/* Images — placed right below Description. Max 5 images total
-              (existing + newly picked), at least 3 required. */}
-          <div className="mt-4">
+          {/* Banner — add mode only, now placed ABOVE Voucher Images per
+              explicit instruction. Changing an existing voucher's banner is
+              handled entirely by VoucherBannerModal.jsx (opened from
+              VoucherTable), not by this form — editing a voucher never
+              shows this section. */}
+          {!isEdit && (
+            <div className="mt-4 border-t border-gray-100 pt-4">
+              <FieldLabel>Voucher Banner</FieldLabel>
+
+              <select
+                value={form.bannerType}
+                onChange={(e) => setField("bannerType", e.target.value)}
+                className={`${inputBase} mb-3 max-w-[160px]`}
+              >
+                <option value="IMAGE">Image</option>
+                <option value="VIDEO">Video</option>
+                <option value="GIF">GIF</option>
+              </select>
+
+              {form.bannerType === "IMAGE" && (
+                <div className="flex items-center gap-3">
+                  {form.bannerImage && (
+                    <div className="relative h-20 w-20 overflow-hidden rounded-xl border border-gray-100">
+                      <img
+                        src={URL.createObjectURL(form.bannerImage)}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                  )}
+                  <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-gray-200 text-gray-400 hover:border-emerald-400 hover:text-emerald-500 hover:bg-emerald-50/40">
+                    <Upload className="h-4 w-4" />
+                    <span className="text-[10px]">{form.bannerImage ? "Change" : "Add"}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => setField("bannerImage", e.target.files?.[0] || null)}
+                    />
+                  </label>
+                </div>
+              )}
+
+              {form.bannerType === "VIDEO" && (
+                <input
+                  value={form.bannerVideo}
+                  onChange={(e) => setField("bannerVideo", e.target.value)}
+                  placeholder="Banner video URL"
+                  className={inputBase}
+                />
+              )}
+
+              {form.bannerType === "GIF" && (
+                <input
+                  value={form.bannerGif}
+                  onChange={(e) => setField("bannerGif", e.target.value)}
+                  placeholder="Banner GIF URL"
+                  className={inputBase}
+                />
+              )}
+            </div>
+          )}
+
+          {/* Images — now placed BELOW Voucher Banner per explicit
+              instruction. Max 5 images total (existing + newly picked), at
+              least 3 required. */}
+          <div className="mt-5 border-t border-gray-100 pt-4">
             <FieldLabel>Voucher Images</FieldLabel>
             <p className="mb-2 text-xs text-gray-400">
               Upload 3 to 5 images for this voucher. At least 3 images are required.
@@ -323,68 +395,6 @@ export default function VoucherForm({
               <p className="mt-2 text-xs text-gray-400">Uploading… {uploadProgress}%</p>
             )}
           </div>
-
-          {/* Banner — add mode only. Changing an existing voucher's banner
-              is handled entirely by VoucherBannerModal.jsx (opened from
-              VoucherTable), not by this form — editing a voucher never
-              shows this section. */}
-          {!isEdit && (
-            <div className="mt-5 border-t border-gray-100 pt-4">
-              <FieldLabel>Voucher Banner</FieldLabel>
-
-              <select
-                value={form.bannerType}
-                onChange={(e) => setField("bannerType", e.target.value)}
-                className={`${inputBase} mb-3 max-w-[160px]`}
-              >
-                <option value="IMAGE">Image</option>
-                <option value="VIDEO">Video</option>
-                <option value="GIF">GIF</option>
-              </select>
-
-              {form.bannerType === "IMAGE" && (
-                <div className="flex items-center gap-3">
-                  {form.bannerImage && (
-                    <div className="relative h-20 w-20 overflow-hidden rounded-xl border border-gray-100">
-                      <img
-                        src={URL.createObjectURL(form.bannerImage)}
-                        alt=""
-                        className="h-full w-full object-cover"
-                      />
-                    </div>
-                  )}
-                  <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-gray-200 text-gray-400 hover:border-emerald-400 hover:text-emerald-500 hover:bg-emerald-50/40">
-                    <Upload className="h-4 w-4" />
-                    <span className="text-[10px]">{form.bannerImage ? "Change" : "Add"}</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => setField("bannerImage", e.target.files?.[0] || null)}
-                    />
-                  </label>
-                </div>
-              )}
-
-              {form.bannerType === "VIDEO" && (
-                <input
-                  value={form.bannerVideo}
-                  onChange={(e) => setField("bannerVideo", e.target.value)}
-                  placeholder="Banner video URL"
-                  className={inputBase}
-                />
-              )}
-
-              {form.bannerType === "GIF" && (
-                <input
-                  value={form.bannerGif}
-                  onChange={(e) => setField("bannerGif", e.target.value)}
-                  placeholder="Banner GIF URL"
-                  className={inputBase}
-                />
-              )}
-            </div>
-          )}
         </SectionCard>
 
         {/* Validity Date & Time */}
@@ -542,7 +552,8 @@ export default function VoucherForm({
           </div>
         </SectionCard>
 
-        {/* Save as draft */}
+        {/* Publishing (Save as draft) — commented out per explicit
+            instruction, not deleted, in case it needs to come back.
         <SectionCard icon={ImagePlus} title="Publishing">
           <label className="flex items-center gap-2 text-sm text-gray-600">
             <input
@@ -554,27 +565,37 @@ export default function VoucherForm({
             Save as draft instead of publishing immediately.
           </label>
         </SectionCard>
+        */}
 
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 py-3.5 text-sm font-bold tracking-wide text-white shadow-sm shadow-emerald-100 transition-all duration-200 hover:bg-emerald-600 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-300 disabled:shadow-none"
-        >
-          {isSubmitting ? (
-            <>
-              <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-              </svg>
-              Saving…
-            </>
-          ) : (
-            <>
-              Confirm &amp; Proceed
-              <ArrowRight className="h-4 w-4" />
-            </>
-          )}
-        </button>
+        {/* Final submit only appears once the voucher banner is uploaded
+            (add mode) — editing skips this gate since edit mode has no
+            banner section here at all (that's VoucherBannerModal's job). */}
+        {isBannerUploaded ? (
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 py-3.5 text-sm font-bold tracking-wide text-white shadow-sm shadow-emerald-100 transition-all duration-200 hover:bg-emerald-600 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-300 disabled:shadow-none"
+          >
+            {isSubmitting ? (
+              <>
+                <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                </svg>
+                Saving…
+              </>
+            ) : (
+              <>
+                Confirm &amp; Proceed
+                <ArrowRight className="h-4 w-4" />
+              </>
+            )}
+          </button>
+        ) : (
+          <p className="text-center text-xs text-gray-400">
+            Upload a voucher banner above to continue.
+          </p>
+        )}
       </form>
 
       <ErrorToast error={error ? { message: error } : null} onDismiss={clearError} />

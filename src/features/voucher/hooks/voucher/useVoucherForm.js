@@ -69,8 +69,13 @@ function createEmptyForm() {
 // day's evening instead of midnight).
 function toIsoDateTime(dateStr, timeStr) {
   if (!dateStr) return undefined;
-  const date = new Date(`${dateStr}T${timeStr || "00:00"}:00.000Z`);
+
+  const date = new Date(
+    `${dateStr}T${timeStr || "00:00"}:00`
+  );
+
   if (Number.isNaN(date.getTime())) return undefined;
+
   return date.toISOString();
 }
 
@@ -78,11 +83,20 @@ function toIsoDateTime(dateStr, timeStr) {
 // prefilling the form inputs in edit mode.
 function fromIsoDateTime(iso) {
   if (!iso) return { date: "", time: "" };
+
   const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return { date: "", time: "" };
+
+  if (Number.isNaN(date.getTime())) {
+    return { date: "", time: "" };
+  }
+
+  const pad = (value) => String(value).padStart(2, "0");
+
   return {
-    date: date.toISOString().slice(0, 10),
-    time: date.toISOString().slice(11, 16),
+    date: `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
+      date.getDate()
+    )}`,
+    time: `${pad(date.getHours())}:${pad(date.getMinutes())}`,
   };
 }
 

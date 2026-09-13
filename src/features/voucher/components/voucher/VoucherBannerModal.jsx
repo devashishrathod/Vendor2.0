@@ -3,7 +3,7 @@
 // update or delete an already-created voucher's banner via the dedicated
 // POST/DELETE /vouchers/:id/banner endpoints, without touching the rest
 // of the voucher.
-import { Loader2, Trash2, Upload, X } from "lucide-react";
+import { Upload, X } from "lucide-react";
 import useVoucherBanner from "../../hooks/voucher/useVoucherBanner";
 
 const inputBase =
@@ -21,10 +21,8 @@ export default function VoucherBannerModal({ voucher, onClose, onSaved }) {
     bannerGif,
     setBannerGif,
     isSaving,
-    isDeleting,
     error,
     save,
-    remove,
   } = useVoucherBanner(voucher);
 
   if (!voucher) return null;
@@ -39,15 +37,17 @@ export default function VoucherBannerModal({ voucher, onClose, onSaved }) {
     }
   };
 
-  const handleDelete = async () => {
-    try {
-      await remove();
-      onSaved?.(null);
-      onClose();
-    } catch {
-      // error is already surfaced via the hook's `error` state
-    }
-  };
+  // handleDelete commented out along with the Delete button below, per
+  // explicit instruction — not deleted, in case it needs to come back.
+  // const handleDelete = async () => {
+  //   try {
+  //     await remove();
+  //     onSaved?.(null);
+  //     onClose();
+  //   } catch {
+  //     // error is already surfaced via the hook's `error` state
+  //   }
+  // };
 
   // Confirmed real shape: voucher.voucher.banner.{type, image.url,
   // video.url, gif.url} — not a flat voucher.bannerImage field.
@@ -130,6 +130,8 @@ export default function VoucherBannerModal({ voucher, onClose, onSaved }) {
         </div>
 
         <div className="flex gap-2 border-t border-gray-100 px-6 py-4">
+          {/* Delete button commented out per explicit instruction, not
+              deleted, in case it needs to come back.
           <button
             type="button"
             onClick={handleDelete}
@@ -139,10 +141,11 @@ export default function VoucherBannerModal({ voucher, onClose, onSaved }) {
             {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
             Delete
           </button>
+          */}
           <button
             type="button"
             onClick={handleSave}
-            disabled={isSaving || isDeleting}
+            disabled={isSaving}
             className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-500 py-2.5 text-sm font-bold text-white transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-300"
           >
             {isSaving ? "Updating…" : "Update Banner"}

@@ -173,6 +173,9 @@ function mapPaymentRow(p) {
     paymentMethod: p.paymentMethod || "—",
     billAmount: formatINR(p.voucher?.billAmount),
     offerDiscount: formatINR(p.voucher?.offerDiscount),
+    // Real confirmed field (see the `voucher` object shape noted above) —
+    // the vendor's own promo cost, shown as its own "Promo Discount" column.
+    promoDiscount: formatINR(p.voucher?.vendorPromoCost),
     netBill: formatINR(p.voucher?.netBill),
     paidAmount: formatINR(p.amount),
     discountAmount: formatINR(-(p.voucher?.offerDiscount || 0)),

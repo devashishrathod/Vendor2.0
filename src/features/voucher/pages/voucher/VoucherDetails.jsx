@@ -79,7 +79,7 @@ export default function VoucherDetails() {
         <div className="mb-4 flex items-start justify-between gap-3">
           <div className="flex items-start gap-3">
             <button
-              onClick={() => navigate(-1)}
+              onClick={() => navigate("/vouchers")}
               className="mt-1 rounded-md p-1 text-gray-500 hover:bg-gray-100"
             >
               <ArrowLeft className="h-5 w-5" />

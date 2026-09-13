@@ -19,7 +19,17 @@ export default function useVoucherDetails(voucherId) {
       const version = res?.data?.data?.[0] ?? null;
       setVoucher(version);
     } catch (err) {
-      setError(err.message);
+      // Confirmed backend quirk (same as AnalysisReport.jsx's voucher
+      // list fetch): a version that doesn't exist gets an error-shaped
+      // response ("No any voucherversion found") instead of an empty
+      // result — that's not a real failure, so it falls through to the
+      // page's existing "Voucher not found." message instead of showing
+      // the raw backend string.
+      if (/no.*voucher.*found/i.test(err.message || "")) {
+        setVoucher(null);
+      } else {
+        setError(err.message);
+      }
     } finally {
       setIsLoading(false);
     }

@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import SummaryCards from "../components/SummaryCards";
-import TransactionTabs from "../components/TransactionTabs";
+// import TransactionTabs from "../components/TransactionTabs"; // not needed — see below
 import TransactionOverview from "../components/TransactionOverview";
 import { useAuthStore } from "@/features/onboarding/store/authStore";
 import { useOnboardingStore } from "@/features/onboarding/store/onboardingStore";
@@ -10,39 +10,21 @@ import { fetchVoucherTransactionOverview } from "../services/transactionService"
 const formatINR = (n) =>
   `₹ ${Number(n || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-const DATE_RANGE_OPTIONS = [
-  { key: "today", label: "Today" },
-  { key: "yesterday", label: "Yesterday" },
-  { key: "7days", label: "Last 7 Days" },
-];
-
-// Start-of-day boundary for the selected range, in local time.
-function getRangeStart(range) {
-  const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
-  if (range === "yesterday") {
-    const d = new Date(startOfToday);
-    d.setDate(d.getDate() - 1);
-    return d;
-  }
-  if (range === "7days") {
-    const d = new Date(startOfToday);
-    d.setDate(d.getDate() - 6);
-    return d;
-  }
-  return startOfToday; // "today"
-}
-
-function isWithinRange(iso, range) {
+// Plain {from, to} date-picker range — same shape/UX as the Voucher and
+// Settlements page toolbars (two native <input type="date"> values,
+// "YYYY-MM-DD" strings, either side optional; both empty means no filter).
+function isWithinRange(iso, { from, to }) {
   if (!iso) return false;
   const date = new Date(iso);
-  const start = getRangeStart(range);
-  if (range === "yesterday") {
-    const end = new Date(start);
-    end.setDate(end.getDate() + 1);
-    return date >= start && date < end;
+  if (from) {
+    const start = new Date(`${from}T00:00:00`);
+    if (date < start) return false;
   }
-  return date >= start;
+  if (to) {
+    const end = new Date(`${to}T23:59:59.999`);
+    if (date > end) return false;
+  }
+  return true;
 }
 
 // ─── Transactions Page (own feature — moved out of dashboard) ─────────────
@@ -58,21 +40,8 @@ function isWithinRange(iso, range) {
 // table below never disagree with each other. The Yesterday/Today/Last 7
 // Days dropdown filters that same real data by `raw.createdAt`.
 export default function Transactions() {
-  const [activeTxnTab, setActiveTxnTab] = useState("voucher");
-  const [dateRange, setDateRange] = useState("today");
-  const [rangeMenuOpen, setRangeMenuOpen] = useState(false);
-  const rangeMenuRef = useRef(null);
-
-  useEffect(() => {
-    if (!rangeMenuOpen) return;
-    const handleClickOutside = (e) => {
-      if (rangeMenuRef.current && !rangeMenuRef.current.contains(e.target)) {
-        setRangeMenuOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [rangeMenuOpen]);
+  const [activeTxnTab] = useState("voucher");
+  const [dateRange, setDateRange] = useState({ from: "", to: "" });
 
   // Same brandId-resolution pattern as useVoucher.js: prefer the
   // onboarding/auth-cached id, then round-trip through GET /brands/get so
@@ -85,6 +54,7 @@ export default function Transactions() {
 
   const [voucherData, setVoucherData] = useState(null);
   const [voucherError, setVoucherError] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     if (!resolvedBrandId) return;
@@ -102,17 +72,38 @@ export default function Transactions() {
     return () => { cancelled = true; };
   }, [resolvedBrandId]);
 
+  // Manual refresh (the card's "Refresh" button) — separate from the
+  // mount/brand-change effect above so it can drive its own spinner.
+  const handleRefresh = () => {
+    if (!resolvedBrandId) return;
+    setRefreshing(true);
+    fetchVoucherTransactionOverview({ brandId: resolvedBrandId })
+      .then((result) => {
+        setVoucherData(result);
+        setVoucherError("");
+      })
+      .catch((err) => {
+        setVoucherError(err.message || "Failed to load transactions.");
+        console.error("Failed to load voucher transactions:", err.message);
+      })
+      .finally(() => setRefreshing(false));
+  };
+
   // Re-filters the real voucher rows by the selected date range and
-  // recomputes the total/count from that filtered subset, so the header,
-  // the summary card, and the table below all agree.
+  // recomputes the total/count from that filtered subset, so the summary
+  // card and the table below always agree.
   const filteredVoucherData = useMemo(() => {
     if (!voucherData) return null;
-    const rows = voucherData.rows.filter((row) => isWithinRange(row.raw?.createdAt, dateRange));
+    const rows = !dateRange.from && !dateRange.to
+      ? voucherData.rows
+      : voucherData.rows.filter((row) => isWithinRange(row.raw?.createdAt, dateRange));
     const totalPaidAmount = rows.reduce((acc, row) => acc + Number(row.raw?.amount || 0), 0);
-    return { ...voucherData, rows, totalPaidAmount, count: rows.length };
+    // Real confirmed field on each row's raw payment record — see
+    // transactionService.js's mapPaymentRow comment (`voucher.offerDiscount`)
+    // — same source the Voucher Overview tab's own "Discount Amount" stat uses.
+    const totalDiscountAmount = rows.reduce((acc, row) => acc + Number(row.raw?.voucher?.offerDiscount || 0), 0);
+    return { ...voucherData, rows, totalPaidAmount, totalDiscountAmount, count: rows.length };
   }, [voucherData, dateRange]);
-
-  const activeRangeLabel = DATE_RANGE_OPTIONS.find((o) => o.key === dateRange)?.label;
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
@@ -134,62 +125,37 @@ export default function Transactions() {
           </p>
         )}
 
-        {/* Overall collection — voucher's real paid-amount total/count for
-            the selected date range (the only tab with a live API); deal
-            pack/membership don't have a backend endpoint yet so they
-            aren't folded into this total. */}
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <p className="text-xs text-gray-400 mb-0.5">Overall Collection Amount</p>
-            <p className="text-2xl font-bold text-gray-900">
-              {formatINR(filteredVoucherData?.totalPaidAmount)}
-            </p>
-          </div>
-          <div className="flex items-center gap-3 text-xs text-gray-400">
-            <span>
-              Nb Of Count: <strong className="text-gray-700">{filteredVoucherData?.count ?? 0}</strong>
-            </span>
-            <div className="relative" ref={rangeMenuRef}>
-              <button
-                onClick={() => setRangeMenuOpen((o) => !o)}
-                className="flex items-center gap-1 text-emerald-600 font-semibold hover:underline"
-              >
-                {activeRangeLabel}
-                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
-                  className={`transition-transform duration-150 ${rangeMenuOpen ? "rotate-180" : ""}`}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              {rangeMenuOpen && (
-                <div className="absolute right-0 top-full mt-1 w-32 bg-white border border-gray-200 rounded-lg shadow-lg z-10 py-1">
-                  {DATE_RANGE_OPTIONS.map((opt) => (
-                    <button
-                      key={opt.key}
-                      onClick={() => { setDateRange(opt.key); setRangeMenuOpen(false); }}
-                      className={`w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50
-                        ${dateRange === opt.key ? "text-emerald-600 font-semibold" : "text-gray-600"}`}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+        {/* Unified overview card — same visual language as the Settlement
+            page's "Settlement Overview" card. Voucher Collection always
+            shows the real total for the selected date range (even while
+            still ₹0.00 before the fetch resolves — never a fabricated
+            fallback number); GSI has no backend endpoint yet so it's an
+            honest "Not available" column instead. */}
+        <SummaryCards
+          voucherAmount={formatINR(filteredVoucherData?.totalPaidAmount)}
+          voucherCount={filteredVoucherData?.count ?? 0}
+          overallPaidAmount={formatINR(filteredVoucherData?.totalPaidAmount)}
+          discountAmount={formatINR(-(filteredVoucherData?.totalDiscountAmount || 0))}
+          onRefresh={handleRefresh}
+          refreshing={refreshing}
+        />
 
-        {/* Top 4 summary cards — Voucher card always shows the real total
-            (for the selected date range), even while still ₹0.00 before the
-            fetch resolves — never the old dummy fallback, so no fabricated
-            number ever flashes here. The rest stay static until their own
-            backend endpoints exist. */}
-        <SummaryCards voucherAmount={formatINR(filteredVoucherData?.totalPaidAmount)} />
-
-        {/* Tabs — controls activeTxnTab */}
+        {/* Tabs — commented out per instruction: with Deal Pack/Membership
+            still hidden (no backend yet), Voucher Transaction is the only
+            tab, so a tab bar with one option is unnecessary UI right now.
+            Re-enable once another tab has a real backend.
         <TransactionTabs activeTxnTab={activeTxnTab} setActiveTxnTab={setActiveTxnTab} />
+        */}
 
-        {/* Overview section — reacts to activeTxnTab */}
-        <TransactionOverview activeTxnTab={activeTxnTab} voucherData={filteredVoucherData} />
+        {/* Overview section — reacts to activeTxnTab; owns the toolbar
+            (search/status/date range/export) matching the Voucher and
+            Settlements pages' filter bar. */}
+        <TransactionOverview
+          activeTxnTab={activeTxnTab}
+          voucherData={filteredVoucherData}
+          dateRange={dateRange}
+          onDateRangeChange={setDateRange}
+        />
       </div>
     </div>
   );

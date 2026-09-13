@@ -44,10 +44,9 @@ export const API_ENDPOINTS = {
 };
 
 export const STATIC_TEXT = {
-  PAGE_TITLE: 'Subscription Page',
-  PAGE_SUBTITLE:
-    'Select a subscription plan to unlock premium features, exclusive offers, and additional benefits.',
+  PAGE_TITLE: 'Subscription Plan',
+  PAGE_SUBTITLE: 'Unlock premium features, exclusive offers, and grow your business with Trydood.',
   SECTION_TITLE: 'Plan & Billing',
   SECTION_SUBTITLE: 'Manage your subscription, view invoices, and explore upgrade options',
-  UPGRADE_LABEL: 'Upgrade',
+  UPGRADE_LABEL: 'Upgrade Now',
 };

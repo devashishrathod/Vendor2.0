@@ -93,6 +93,9 @@ export function mapSubscriptionResponse(res, brand) {
   return {
     status: sub.status || PLAN_STATUS.ACTIVE,
     planName: sub.plan?.name || 'Subscription Plan',
+    // Real confirmed field (plan.typeLabel, e.g. "Business"/"Starter") —
+    // used as the small decorative tag in the page header.
+    planTypeLabel: sub.plan?.typeLabel || sub.plan?.type || 'Plan',
     brandName: brand?.brandName || brand?.legalBusinessName || '—',
     nextRenewalDate: sub.endDate,
     createdOnDate: sub.startDate,
@@ -109,10 +112,8 @@ export function mapSubscriptionResponse(res, brand) {
       brand?.gst?.address?.location || brand?.firstSubBrand?.location?.formattedAddress || '—',
     gstDetails: brand?.gst?.gstNumber || '—',
     panDetails: brand?.pan?.pan || '—',
-    // No support-ticket data exists anywhere in the confirmed response —
-    // this is static copy for the "Create Ticket" row, same as
-    // purchasedListLabel.
-    ticketStatus: 'No Active Ticket',
+    // "Subscription Invoice" row's static copy — no confirmed endpoint
+    // for a real label here yet.
     purchasedListLabel: 'Purchased List',
     currentPlanBenefitsUrl: '/subscription/benefits/current',
     // Real per-plan feature flags/limits, marketing-style benefit bullets,

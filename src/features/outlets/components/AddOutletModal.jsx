@@ -647,6 +647,16 @@ export default function AddOutletModal({ onClose, onCreated }) {
     setOtpValue("");
     setOtpError("");
     setSubBrandId(null);
+    // Keep Mobile Number mirroring live while "Same as WhatsApp Number" is checked.
+    if (form.mobileSameAsWhatsapp) update("mobile", value);
+  };
+
+  // ── Mobile Number — checking this copies the current WhatsApp number in
+  // and keeps mirroring it (see handleOutletWhatsappChange); unchecking
+  // leaves whatever value was last mirrored, editable from there.
+  const handleMobileSameAsWhatsappChange = (checked) => {
+    update("mobileSameAsWhatsapp", checked);
+    if (checked) update("mobile", form.whatsapp.number);
   };
 
   // ── Real API: create the subBrand shell + trigger the WhatsApp OTP ──
@@ -869,6 +879,28 @@ export default function AddOutletModal({ onClose, onCreated }) {
             )}
 
             {otpError && !otpStage && <p className="text-xs text-rose-500 mt-2">{otpError}</p>}
+          </div>
+
+          {/* ── Mobile Number ── */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Mobile Number</label>
+            <input
+              type="tel"
+              value={form.mobile}
+              disabled={form.mobileSameAsWhatsapp}
+              onChange={(e) => update("mobile", e.target.value)}
+              placeholder="eg : 9876543210"
+              className={`${inputBase} ${form.mobileSameAsWhatsapp ? "bg-gray-50 text-gray-400 cursor-not-allowed" : ""}`}
+            />
+            <label className="flex items-center gap-2 mt-2 text-xs font-medium text-gray-600 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={form.mobileSameAsWhatsapp}
+                onChange={(e) => handleMobileSameAsWhatsappChange(e.target.checked)}
+                className="w-4 h-4 accent-emerald-600 cursor-pointer"
+              />
+              Same as WhatsApp Number
+            </label>
           </div>
 
           {/* ── Outlet Location ── */}

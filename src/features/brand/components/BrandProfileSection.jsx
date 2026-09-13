@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { IdCard, Store, Building2, Mail, Phone, CalendarDays, Tag as TagIcon, MapPin, Copy, Check, ShieldCheck } from "lucide-react";
+import { IdCard, Store, Building2, Mail, Phone, PhoneCall, CalendarDays, Tag as TagIcon, MapPin, Copy, Check, ShieldCheck, Info } from "lucide-react";
 import { formatMobileNumber } from "../utils/BrandHelpers";
 import EmailVerifyModal from "./EmailVerifyModal";
+import MobileVerifyModal from "./MobileVerifyModal";
 
 // Formats an ISO date string like "2026-08-15T14:08:09.215Z" → "15 Aug 2026"
 const formatJoinedDate = (isoDate) => {
@@ -36,7 +37,7 @@ function CopyButton({ text }) {
   );
 }
 
-function InfoTile({ icon, label, value, copyValue, action }) {
+function InfoTile({ icon, label, value, copyValue, action, note }) {
   return (
     <div className="flex items-start gap-3">
       <div className="flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -49,6 +50,7 @@ function InfoTile({ icon, label, value, copyValue, action }) {
           {copyValue && <CopyButton text={copyValue} />}
           {action}
         </div>
+        {note}
       </div>
     </div>
   );
@@ -56,10 +58,15 @@ function InfoTile({ icon, label, value, copyValue, action }) {
 
 const BrandProfileSection = ({ profile, outletCount, reload }) => {
   const [showEmailModal, setShowEmailModal] = useState(false);
+  const [showMobileModal, setShowMobileModal] = useState(false);
 
   if (!profile) return null;
 
   const isEmailVerified = !!profile.user?.isEmailVerified;
+  // ⚠️ Same caveat as profile.mobile above — isMobileVerified is not
+  // independently confirmed from a Postman sample yet; read the same way
+  // isEmailVerified already is, per explicit instruction.
+  const isMobileVerified = !!profile.user?.isMobileVerified;
 
   return (
     <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
@@ -117,6 +124,36 @@ const BrandProfileSection = ({ profile, outletCount, reload }) => {
             )
           }
         />
+        {/* ⚠️ profile.mobile is NOT independently confirmed from a Postman
+            sample for the brand GET response — CreateBrandOutlet.jsx already
+            sends `mobile` on brands/update per explicit instruction, so this
+            reads it back the same way; verify it displays the real saved
+            value once tested. */}
+        <InfoTile
+          icon={<PhoneCall className="w-4 h-4 text-emerald-500" strokeWidth={1.8} />}
+          label="Contact Number"
+          value={formatMobileNumber(profile.mobile) || "Not Provided"}
+          copyValue={profile.mobile}
+          action={
+            isMobileVerified ? (
+              <span
+                title="Mobile verified"
+                className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 flex-shrink-0"
+              >
+                <ShieldCheck size={13} />
+                Verified
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowMobileModal(true)}
+                className="text-xs font-medium text-emerald-600 hover:text-emerald-700 hover:underline flex-shrink-0"
+              >
+                Verify
+              </button>
+            )
+          }
+        />
         <InfoTile
           icon={<Phone className="w-4 h-4 text-emerald-500" strokeWidth={1.8} />}
           label="WhatsApp Number"
@@ -127,6 +164,14 @@ const BrandProfileSection = ({ profile, outletCount, reload }) => {
           icon={<MapPin className="w-4 h-4 text-emerald-500" strokeWidth={1.8} />}
           label="Outlet Count"
           value={outletCount != null ? outletCount : undefined}
+          note={
+            !outletCount ? (
+              <p className="mt-2 inline-flex items-start gap-1.5 rounded-md bg-sky-50 px-2.5 py-1.5 text-[11px] leading-snug text-sky-700">
+                <Info size={12} className="flex-shrink-0 mt-0.5" />
+                You can add more outlets from Sub Outlets &amp; Franchise section.
+              </p>
+            ) : null
+          }
         />
         <InfoTile
           icon={<TagIcon className="w-4 h-4 text-emerald-500" strokeWidth={1.8} />}
@@ -148,6 +193,17 @@ const BrandProfileSection = ({ profile, outletCount, reload }) => {
           onVerified={async () => {
             await reload?.();
             setShowEmailModal(false);
+          }}
+        />
+      )}
+
+      {showMobileModal && (
+        <MobileVerifyModal
+          currentMobile={profile.mobile}
+          onClose={() => setShowMobileModal(false)}
+          onVerified={async () => {
+            await reload?.();
+            setShowMobileModal(false);
           }}
         />
       )}

@@ -1,58 +1,111 @@
+import { useState } from "react";
+import {
+  Store,
+  MessageCircle,
+  FileText,
+  Hash,
+  BadgeCheck,
+  CalendarDays,
+  Clock,
+  MapPin,
+  Building2,
+  Copy,
+  Check,
+  Pencil,
+} from "lucide-react";
+import StatusBadge from "./StatusBadge";
+import { OUTLET_TYPES } from "../constants/outletConstants";
+import { cx } from "../utils/outletUtils";
+
 // Shows everything the confirmed brands/get + subBrands/get-all responses
-// carry beyond what OutletDetailsHeader already renders — outlet location
-// & description, and the brand-level verification/category/subscription
-// data, since there's no separate "outlet details" endpoint for any of this.
-// Laid out as an asymmetric "bento" grid instead of four uniform boxes —
-// Brand Verification (the richest card, badges + category) anchors it as
-// a tall card on the left; the other three fill the remaining cells.
-function InfoRow({ label, value }) {
+// carry beyond what OutletDetailsHeader already renders — the outlet's own
+// contact/description/type/status/dates, and its saved location (with a
+// real embedded map when coordinates exist). (Brand Verification and
+// Subscription used to show here too — removed, since this page is about
+// the OUTLET, not brand-level billing/verification.)
+
+function InfoRow({ icon: Icon, label, value, copyable, valueNode }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(String(value ?? ""));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1200);
+  };
+
   return (
-    <div className="flex items-start justify-between gap-4 py-2.5 border-b border-gray-50 last:border-0">
-      <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide shrink-0">{label}</span>
-      <span className="text-sm font-semibold text-gray-800 text-right break-words">{value ?? "—"}</span>
+    <div className="flex items-center justify-between gap-4 py-3 border-b border-gray-50 last:border-0">
+      <span className="flex items-center gap-2.5 text-sm text-gray-500 shrink-0">
+        <Icon className="w-4 h-4 text-gray-400" />
+        {label}
+      </span>
+      <span className="flex items-center gap-2 text-sm font-semibold text-gray-800 text-right break-words">
+        {valueNode ?? (value ?? "—")}
+        {copyable && value && (
+          <button
+            onClick={handleCopy}
+            className="text-gray-400 hover:text-emerald-500 transition-colors shrink-0"
+          >
+            {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+          </button>
+        )}
+      </span>
     </div>
   );
 }
 
-function VerificationPill({ label, isVerified }) {
+// Label and text start on the same top-aligned line (not label-above,
+// text-starting-below) — a "Read more"/"Read less" toggle handles long
+// descriptions instead of always showing the full text.
+function DescriptionRow({ icon: Icon, label, value }) {
+  const [expanded, setExpanded] = useState(false);
+  const text = value || "—";
+  const isLong = text.length > 140;
+  const shown = expanded || !isLong ? text : `${text.slice(0, 140)}…`;
+
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${
-        isVerified ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-gray-50 text-gray-400 border border-gray-100"
-      }`}
-    >
-      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-        {isVerified ? (
-          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-        ) : (
-          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+    <div className="flex items-start gap-2.5 py-3 border-b border-gray-50 last:border-0">
+      <span className="flex items-center gap-2.5 text-sm font-semibold text-gray-700 shrink-0">
+        <Icon className="w-4 h-4 text-gray-400 shrink-0" />
+        {label}
+      </span>
+      <p className="flex-1 text-sm font-normal text-gray-600 leading-relaxed break-words">
+        {shown}
+        {isLong && (
+          <button
+            onClick={() => setExpanded((e) => !e)}
+            className="ml-1.5 text-emerald-600 font-semibold hover:underline"
+          >
+            {expanded ? "Read less" : "Read more"}
+          </button>
         )}
-      </svg>
-      {label}
-    </span>
+      </p>
+    </div>
   );
 }
 
-// Per-card accent — a distinct icon color for each bento cell so the grid
-// reads as separate, scannable tiles instead of four identical boxes.
 const ACCENTS = {
-  emerald: { bg: "bg-emerald-50", border: "border-emerald-100", text: "text-emerald-500" },
-  sky: { bg: "bg-sky-50", border: "border-sky-100", text: "text-sky-500" },
-  indigo: { bg: "bg-indigo-50", border: "border-indigo-100", text: "text-indigo-500" },
-  amber: { bg: "bg-amber-50", border: "border-amber-100", text: "text-amber-500" },
+  emerald: { bg: "bg-emerald-50", text: "text-emerald-500" },
+  sky: { bg: "bg-sky-50", text: "text-sky-500" },
 };
 
-function SectionCard({ icon, title, accent = "emerald", span, children }) {
+function SectionCard({ icon, title, subtitle, accent = "emerald", action, children, className }) {
   const color = ACCENTS[accent];
   return (
-    <div className={`bg-white border border-gray-100 rounded-2xl shadow-sm p-5 flex flex-col ${span || ""}`}>
-      <div className="flex items-center gap-3 mb-3">
-        <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border ${color.border} ${color.bg}`}>
-          <span className={color.text}>{icon}</span>
+    <div className={cx("bg-white border border-gray-100 rounded-2xl p-5 sm:p-6 flex flex-col", className)}>
+      <div className="flex flex-wrap items-start justify-between gap-3 mb-1">
+        <div className="flex items-center gap-3">
+          <div className={cx("flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl", color.bg, color.text)}>
+            {icon}
+          </div>
+          <div>
+            <h3 className="text-base font-bold text-gray-900">{title}</h3>
+            {subtitle && <p className="text-xs text-gray-400 mt-0.5">{subtitle}</p>}
+          </div>
         </div>
-        <h3 className="text-sm font-bold text-gray-900">{title}</h3>
+        {action}
       </div>
-      <div className="flex-1">{children}</div>
+      <div className="flex-1 mt-2">{children}</div>
     </div>
   );
 }
@@ -65,89 +118,180 @@ function formatAddress(loc) {
   );
 }
 
-export default function OutletDetailsInfo({ outlet, brand }) {
+// Confirmed real shape (see subBrandApi.js's workHours/upsert body and the
+// subBrands/get-all response) — workHours.{monday..sunday}: { start, end,
+// isOpen }, keyed by lowercase weekday name.
+const WEEK_DAYS = [
+  { key: "monday", label: "Monday" },
+  { key: "tuesday", label: "Tuesday" },
+  { key: "wednesday", label: "Wednesday" },
+  { key: "thursday", label: "Thursday" },
+  { key: "friday", label: "Friday" },
+  { key: "saturday", label: "Saturday" },
+  { key: "sunday", label: "Sunday" },
+];
+// JS Date#getDay() is 0=Sunday..6=Saturday — this maps that index to the
+// matching WEEK_DAYS key, used only to highlight "today" in the list.
+const JS_DAY_KEYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+
+function formatTime12h(hhmm) {
+  if (!hhmm || typeof hhmm !== "string" || !hhmm.includes(":")) return "—";
+  const [h, m] = hhmm.split(":").map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) return hhmm;
+  const period = h >= 12 ? "PM" : "AM";
+  const hour12 = h % 12 === 0 ? 12 : h % 12;
+  return `${String(hour12).padStart(2, "0")}:${String(m).padStart(2, "0")} ${period}`;
+}
+
+function WorkHoursRow({ label, day, isToday }) {
+  const isOpen = !!day?.isOpen;
+  return (
+    <div
+      className={cx(
+        "flex items-center justify-between gap-4 px-3 py-2.5 rounded-lg",
+        isToday ? "bg-emerald-50" : ""
+      )}
+    >
+      <span className="flex items-center gap-2 text-sm text-gray-600">
+        <span className={cx("w-1.5 h-1.5 rounded-full shrink-0", isOpen ? "bg-emerald-500" : "bg-gray-300")} />
+        {label}
+        {isToday && (
+          <span className="text-[10px] font-bold uppercase tracking-wide text-emerald-600 bg-emerald-100 rounded-full px-1.5 py-0.5">
+            Today
+          </span>
+        )}
+      </span>
+      <span className={cx("text-sm font-semibold", isOpen ? "text-gray-800" : "text-gray-400")}>
+        {isOpen ? `${formatTime12h(day?.start)} – ${formatTime12h(day?.end)}` : "Closed"}
+      </span>
+    </div>
+  );
+}
+
+export default function OutletDetailsInfo({ outlet, brand, onEdit, onEditLocation }) {
   const doc = outlet?.raw;
   const location = doc?.location;
+  const workHours = doc?.workHours;
+  const todayKey = JS_DAY_KEYS[new Date().getDay()];
+  const [lng, lat] = location?.geo?.coordinates || [];
+  const hasCoords = typeof lat === "number" && typeof lng === "number";
+  const isFranchise = outlet?.outletType === OUTLET_TYPES.FRANCHISE;
+  // "Business Since" — the year the outlet joined (a real, derived value,
+  // not a separate field the backend tracks).
+  const businessSince = outlet?.joinedDate ? new Date(outlet.joinedDate).getFullYear() : "—";
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
-      <SectionCard
-        accent="indigo"
-        span="lg:col-span-1 lg:row-span-2"
-        icon={
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        }
-        title="Brand Verification"
-      >
-        <div className="flex flex-wrap gap-2 mb-3">
-          <VerificationPill label="PAN" isVerified={!!brand?.pan?.isVerified} />
-          <VerificationPill label="GST" isVerified={!!brand?.gst?.isVerified} />
-          <VerificationPill label="Bank" isVerified={!!brand?.bank?.isVerified} />
-          <VerificationPill label="Mobile" isVerified={!!brand?.user?.isMobileVerified} />
-        </div>
-        <InfoRow label="Category" value={brand?.category?.name} />
-        <InfoRow label="Sub Category" value={brand?.subCategory?.name} />
-      </SectionCard>
-
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <SectionCard
         accent="emerald"
-        span="sm:col-span-2 lg:col-span-2"
-        icon={
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-          </svg>
+        icon={<Store className="w-5 h-5" />}
+        title="Outlet Information"
+        subtitle="Basic information about this outlet."
+        action={
+          <button
+            onClick={onEdit}
+            className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 bg-emerald-50 rounded-lg px-3 py-1.5 hover:bg-emerald-100 transition-colors"
+          >
+            <Pencil className="w-3.5 h-3.5" />
+            Edit Details
+          </button>
         }
-        title="Outlet Details"
       >
-        <InfoRow label="WhatsApp Number" value={doc?.whatsappNumber || outlet?.whatsapp?.number} />
-        <InfoRow label="Description" value={doc?.description || "—"} />
-      </SectionCard>
+        <DescriptionRow icon={FileText} label="Description" value={doc?.description} />
+        <InfoRow icon={MessageCircle} label="WhatsApp Number" value={doc?.whatsappNumber || outlet?.whatsapp?.number} copyable />
+        <InfoRow icon={Hash} label="Store Id" value={outlet?.storeId} copyable />
+        <InfoRow icon={BadgeCheck} label="Outlet Type" value={isFranchise ? "Franchise" : "Outlet"} />
+        {/* <InfoRow icon={Clock} label="Status" valueNode={<StatusBadge status={outlet?.status} />} /> */}
+        <InfoRow icon={CalendarDays} label="Joining Date" value={outlet?.joinedDate ? new Date(outlet.joinedDate).toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" }) : "—"} />
+        {/* <InfoRow icon={Clock} label="Business Since" value={businessSince} /> */}
 
-      <SectionCard
-        accent="amber"
-        span="lg:col-span-1"
-        icon={
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V6m0 2v8m0 0v2m0-2c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        }
-        title="Subscription"
-      >
-        <InfoRow label="Plan Price" value={brand?.subscribed?.price != null ? `₹${brand.subscribed.price}` : null} />
-        <InfoRow label="Paid Amount" value={brand?.subscribed?.paidAmount != null ? `₹${brand.subscribed.paidAmount}` : null} />
-        <InfoRow
-          label="Valid Till"
-          value={
-            brand?.subscribed?.endDate
-              ? new Date(brand.subscribed.endDate).toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" })
-              : null
-          }
-        />
+        <div className="flex flex-wrap items-center justify-between gap-3 mt-4 bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-3">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-emerald-500 text-white flex items-center justify-center shrink-0">
+              <Store className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-800">{isFranchise ? "Franchise Outlet" : "Outlet"}</p>
+              <p className="text-xs text-gray-500">
+                {isFranchise
+                  ? `You are part of the ${brand?.brandName || "Trydood"} franchise network.`
+                  : `This outlet operates under ${brand?.brandName || "your brand"}.`}
+              </p>
+            </div>
+          </div>
+          <a href="mailto:support@trydood.com" className="text-xs font-semibold text-emerald-600 hover:underline whitespace-nowrap flex items-center gap-1">
+            Need help? Contact Support →
+          </a>
+        </div>
       </SectionCard>
 
       <SectionCard
         accent="sky"
-        span="sm:col-span-2 lg:col-span-3"
-        icon={
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
+        icon={<MapPin className="w-5 h-5" />}
+        title="Outlet Location"
+        subtitle="Complete address and map location."
+        action={
+          onEditLocation && (
+            <button
+              onClick={onEditLocation}
+              className="flex items-center gap-1.5 text-xs font-semibold text-sky-600 bg-sky-50 rounded-lg px-3 py-1.5 hover:bg-sky-100 transition-colors whitespace-nowrap"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+              Edit
+            </button>
+          )
         }
-        title="Location"
       >
         {location ? (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-6">
-            <div className="sm:col-span-3">
-              <InfoRow label="Address" value={formatAddress(location)} />
-            </div>
-            <InfoRow label="City / State" value={[location.city, location.state].filter(Boolean).join(", ")} />
-            <InfoRow label="Zipcode" value={location.zipcode} />
-          </div>
+          <>
+            <InfoRow icon={MapPin} label="Address" value={formatAddress(location)} />
+            <InfoRow icon={Building2} label="City / State" value={[location.city, location.state].filter(Boolean).join(", ")} />
+            <InfoRow icon={Hash} label="Pincode" value={location.zipcode} />
+
+            {hasCoords && (
+              <div className="relative mt-4 rounded-xl overflow-hidden border border-gray-100 h-56">
+                <div className="absolute left-3 top-3 z-10 flex items-center gap-2 bg-white rounded-lg shadow-md px-3 py-2">
+                  <div className="w-7 h-7 rounded-md bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                    <Store className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-gray-800 lowercase leading-none">
+                      {brand?.brandName || "Outlet"}
+                    </p>
+                    <p className="text-[11px] text-gray-400 leading-none mt-0.5">
+                      {[location.city].filter(Boolean).join(", ")}
+                    </p>
+                  </div>
+                </div>
+                <iframe
+                  title="Outlet location map"
+                  className="w-full h-full border-0"
+                  src={`https://maps.google.com/maps?q=${lat},${lng}&z=15&output=embed`}
+                  loading="lazy"
+                />
+              </div>
+            )}
+          </>
         ) : (
           <p className="text-xs text-gray-400">No location saved for this outlet yet.</p>
+        )}
+      </SectionCard>
+
+      <SectionCard
+        accent="emerald"
+        icon={<Clock className="w-5 h-5" />}
+        title="Working Hours"
+        subtitle="Open/close time for each day of the week."
+        className="lg:col-span-2"
+      >
+        {workHours ? (
+          <div className="divide-y divide-gray-50">
+            {WEEK_DAYS.map(({ key, label }) => (
+              <WorkHoursRow key={key} label={label} day={workHours[key]} isToday={key === todayKey} />
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs text-gray-400">No working hours saved for this outlet yet.</p>
         )}
       </SectionCard>
     </div>

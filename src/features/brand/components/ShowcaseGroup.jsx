@@ -2,10 +2,96 @@ import { useRef, useState } from "react";
 import { DragDropProvider } from "@dnd-kit/react";
 import { useSortable } from "@dnd-kit/react/sortable";
 import { move } from "@dnd-kit/helpers";
-import { Trash2, Plus, ListOrdered, GripVertical } from "lucide-react";
+import { Trash2, Plus, ListOrdered, GripVertical, X } from "lucide-react";
 import ShowcaseMediaRow from "./ShowcaseMediaRow";
 import { noDragRef } from "../utils/BrandHelpers";
 import ConfirmModal from "@/components/common/ConfirmModal";
+
+// Confirms the just-picked files before they upload — lets the vendor mark
+// this batch for video clips and, only then, attach a custom thumbnail for
+// however that surface displays them (an arbitrary auto-picked video frame
+// otherwise). ⚠️ NOT CONFIRMED from Postman: only isShowInVideoClips +
+// files are documented on add-media — thumbnail is sent as a best-effort
+// "thumbnail" form field (see addShowcaseMedia's comment).
+function UploadMediaModal({ files, onClose, onConfirm }) {
+  const [isShowInVideoClips, setIsShowInVideoClips] = useState(false);
+  const [thumbnail, setThumbnail] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleConfirm = async () => {
+    setSubmitting(true);
+    try {
+      await onConfirm({ isShowInVideoClips, thumbnail: isShowInVideoClips ? thumbnail : null });
+      onClose();
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" onClick={onClose}>
+      <div
+        className="w-full max-w-md rounded-2xl border border-gray-100 bg-white p-6 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="text-sm font-bold text-gray-900">Add Media</h3>
+          <button type="button" onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-600">
+            <X size={18} />
+          </button>
+        </div>
+
+        <p className="mb-4 text-xs text-gray-500">
+          {files.length} file{files.length > 1 ? "s" : ""} ready to upload.
+        </p>
+
+        <div className="flex items-center gap-2">
+          <input
+            id="rowIsShowInVideoClips"
+            type="checkbox"
+            checked={isShowInVideoClips}
+            onChange={(e) => setIsShowInVideoClips(e.target.checked)}
+            className="h-4 w-4 rounded border-gray-300 accent-emerald-600 focus:ring-emerald-400"
+          />
+          <label htmlFor="rowIsShowInVideoClips" className="text-sm text-gray-700">
+            Show in video clips
+          </label>
+        </div>
+
+        {isShowInVideoClips && (
+          <div className="mt-4">
+            <label className="mb-1 block text-xs font-medium text-gray-600">Thumbnail for clips (optional)</label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => setThumbnail(e.target.files?.[0] || null)}
+              className="w-full text-sm text-gray-600 file:mr-3 file:rounded-xl file:border-0 file:bg-emerald-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-emerald-700 hover:file:bg-emerald-100"
+            />
+            {thumbnail && <p className="mt-1 text-xs text-gray-500">{thumbnail.name}</p>}
+          </div>
+        )}
+
+        <div className="mt-5 flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleConfirm}
+            disabled={submitting}
+            className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-bold text-white shadow-sm shadow-emerald-100 transition-all duration-200 hover:bg-emerald-600 active:scale-[0.97] disabled:bg-gray-100 disabled:text-gray-300 disabled:shadow-none disabled:cursor-not-allowed"
+          >
+            {submitting ? "Uploading…" : "Upload"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // One draggable row inside the Order panel — same combined media array the
 // earlier number-input version reordered, just moved by dragging the
@@ -81,6 +167,7 @@ const ShowcaseGroup = ({
   onAddMedia,
   onDeleteMedia,
   onReplaceMedia,
+  onUpdateMediaDetails,
   onSetMediaOrder,
   onDeleteSection,
   onToggleVisibility,
@@ -89,6 +176,7 @@ const ShowcaseGroup = ({
   const fileInputRef = useRef(null);
   const [orderPanelOpen, setOrderPanelOpen] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [pendingFiles, setPendingFiles] = useState(null);
 
   // Registers this whole section as a sortable item within the parent
   // ShowcaseSection's DragDropProvider. The header row (title/subtitle area)
@@ -105,15 +193,18 @@ const ShowcaseGroup = ({
   // sequence directly instead of splitting into separate rows.
   const combinedMedias = group.medias || [];
 
-  // Whether new uploads show in video clips is now set per-video AFTER
-  // upload (each tile's "⋮" menu), not chosen upfront — avoids a second,
-  // confusingly-similarly-labeled "Show in clips" control in this header.
+  // Stages the picked files instead of uploading instantly — opens
+  // UploadMediaModal so the vendor can mark this batch for video clips
+  // (and, only then, attach a custom thumbnail) before it actually uploads.
   const handleFilesSelected = (e) => {
     const files = Array.from(e.target.files || []);
-    if (files.length && onAddMedia) {
-      onAddMedia(group.id, files, { isShowInVideoClips: false });
-    }
+    if (files.length) setPendingFiles(files);
     e.target.value = "";
+  };
+
+  const handleConfirmUpload = async ({ isShowInVideoClips, thumbnail }) => {
+    if (!pendingFiles?.length || !onAddMedia) return;
+    await onAddMedia(group.id, pendingFiles, { isShowInVideoClips, thumbnail });
   };
 
   // Drag-and-drop reorder for media within this section — computes the
@@ -232,6 +323,7 @@ const ShowcaseGroup = ({
           medias={combinedMedias}
           onDelete={(mediaId) => onDeleteMedia(group.id, mediaId)}
           onReplace={onReplaceMedia ? (mediaId, file) => onReplaceMedia(group.id, mediaId, file) : undefined}
+          onUpdateDetails={onUpdateMediaDetails ? (mediaId, patch) => onUpdateMediaDetails(group.id, mediaId, patch) : undefined}
           onReorder={onSetMediaOrder ? (mediaId, newPosition) => onSetMediaOrder(group.id, mediaId, newPosition) : undefined}
           onToggleClip={onToggleMediaClip ? (mediaId, next) => onToggleMediaClip(group.id, mediaId, next) : undefined}
         />
@@ -246,6 +338,14 @@ const ShowcaseGroup = ({
             onDeleteSection(group.id);
           }}
           onCancel={() => setConfirmingDelete(false)}
+        />
+      )}
+
+      {pendingFiles && (
+        <UploadMediaModal
+          files={pendingFiles}
+          onClose={() => setPendingFiles(null)}
+          onConfirm={handleConfirmUpload}
         />
       )}
     </div>

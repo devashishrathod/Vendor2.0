@@ -74,7 +74,11 @@ export default function SettlementTable({
   onPageSizeChange,
   search,
   onSearchChange,
+  statusOptions,
+  statusFilter,
+  onStatusFilterChange,
   dateRange,
+  onDateRangeChange,
   expandedRow,
   toggleRow,
   loading,
@@ -106,29 +110,61 @@ export default function SettlementTable({
           <span className="ml-1 pr-1 text-xs text-slate-400">Rows per page</span>
         </div>
 
-        <div className="flex flex-1 flex-wrap items-center gap-2 sm:justify-end">
-          <div className="relative flex-1 min-w-[220px] sm:max-w-xs">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        <div className="flex flex-1 flex-nowrap items-center gap-2 overflow-x-auto sm:justify-end">
+          <div className="flex w-44 flex-shrink-0 items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-400 transition-colors focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-100">
+            <Search className="h-4 w-4 flex-shrink-0" />
             <input
               value={search}
               onChange={(e) => onSearchChange(e.target.value)}
-              placeholder="Search Here - Settlement Id,Transaction Id,Amount,Status"
-              className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-xs text-slate-600 placeholder:text-slate-400 focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400"
+              placeholder="Search Here: Settlement, Txn Id"
+              className="w-full bg-transparent text-slate-700 outline-none placeholder:text-slate-400 truncate"
             />
           </div>
 
-          <button className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50">
-            <SlidersHorizontal className="h-3.5 w-3.5" />
-            Filter
-          </button>
+          <div className="flex flex-shrink-0 items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-600">
+            <SlidersHorizontal className="h-4 w-4 shrink-0 text-slate-400" />
+            <select
+              value={statusFilter}
+              onChange={(e) => onStatusFilterChange(e.target.value)}
+              className="bg-transparent text-sm text-slate-600 outline-none"
+            >
+              <option value="all">All Statuses</option>
+              {statusOptions.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+          </div>
 
-          <button className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50">
-            <CalendarDays className="h-3.5 w-3.5" />
-            {dateRange}
-          </button>
+          <div className="flex flex-shrink-0 items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-600">
+            <CalendarDays className="h-4 w-4 shrink-0 text-slate-400" />
+            <input
+              type="date"
+              value={dateRange.from}
+              onChange={(e) => onDateRangeChange({ ...dateRange, from: e.target.value })}
+              max={dateRange.to || undefined}
+              className="bg-transparent text-sm text-slate-600 outline-none"
+            />
+            <span className="text-slate-300">–</span>
+            <input
+              type="date"
+              value={dateRange.to}
+              onChange={(e) => onDateRangeChange({ ...dateRange, to: e.target.value })}
+              min={dateRange.from || undefined}
+              className="bg-transparent text-sm text-slate-600 outline-none"
+            />
+            {(dateRange.from || dateRange.to) && (
+              <button
+                type="button"
+                onClick={() => onDateRangeChange({ from: "", to: "" })}
+                className="text-xs text-slate-400 hover:text-indigo-600"
+              >
+                Clear
+              </button>
+            )}
+          </div>
 
-          <button className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-medium text-white hover:bg-indigo-700">
-            <Download className="h-3.5 w-3.5" />
+          <button className="flex flex-shrink-0 items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
+            <Download className="h-4 w-4" />
             Export Data
           </button>
         </div>

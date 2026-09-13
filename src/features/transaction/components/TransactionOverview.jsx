@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
+import { Search, SlidersHorizontal, CalendarDays, Download } from "lucide-react";
 import TxnIcon from "./TxnIcon";
 import { TRANSACTION_DATA, TRANSACTION_TABS } from "../data/transactionData";
 
@@ -25,6 +26,16 @@ function getAvatarColors(name = "") {
   return AVATAR_RING_COLORS[Math.abs(hash) % AVATAR_RING_COLORS.length];
 }
 
+// Fixed, confirmed status vocabulary (see mapPaymentRow in
+// transactionService.js) — "Paid" for a captured payment, Razorpay's own
+// other statuses ("failed"/"created"/"authorized"/"refunded") capitalized
+// otherwise, or "Pending" if the payment has no status at all. Listing
+// these up front (instead of only whatever happens to already be loaded)
+// means you can filter to "Failed" even when every row on screen right
+// now is "Paid" — the previous dynamic-from-rows list could never offer
+// an option for a status you hadn't already scrolled to.
+const STATUS_OPTIONS = ["Paid", "Failed", "Refunded", "Authorized", "Created", "Pending"];
+
 // Shown only until the real GET /voucher-claims/payments response lands —
 // zeroed out rather than reusing any dummy numbers, so nothing fabricated
 // ever flashes on screen even for a moment.
@@ -48,11 +59,12 @@ const EMPTY_VOUCHER_OVERVIEW = {
 // endpoint for those yet). `voucherData` is null until it resolves, so the
 // table's existing "no rows" empty state covers the loading moment too,
 // without adding any new loading UI.
-export default function TransactionOverview({ activeTxnTab, voucherData }) {
+export default function TransactionOverview({ activeTxnTab, voucherData, dateRange, onDateRangeChange }) {
   const [collapsed, setCollapsed] = useState(false);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   const data =
     activeTxnTab === "voucher"
@@ -60,17 +72,32 @@ export default function TransactionOverview({ activeTxnTab, voucherData }) {
       : TRANSACTION_DATA[activeTxnTab];
   const activeIcon = TRANSACTION_TABS.find((t) => t.key === activeTxnTab)?.icon;
 
-  // Search — Customer Name & ID, Voucher/Deal Pack/Membership Id, Outlet Details
+  // Voucher tab: the fixed, confirmed Razorpay-status vocabulary above.
+  // Any other tab (dealpack/membership, still dummy data): real statuses
+  // actually present in that tab's rows.
+  const statusOptions = useMemo(
+    () =>
+      activeTxnTab === "voucher"
+        ? STATUS_OPTIONS
+        : [...new Set(data.rows.map((r) => r.status).filter(Boolean))],
+    [activeTxnTab, data.rows]
+  );
+
+  // Search — Customer Name & ID, Voucher/Deal Pack/Membership Id, Outlet
+  // Details — plus the Status filter, both applied together.
   const filteredRows = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
-    if (!term) return data.rows;
-    return data.rows.filter((row) =>
-      [row.customerName, row.customerCode, row.refId, row.outlet, row.orderId]
-        .join(" ")
-        .toLowerCase()
-        .includes(term)
-    );
-  }, [data.rows, searchTerm]);
+    return data.rows.filter((row) => {
+      const matchesSearch =
+        !term ||
+        [row.customerName, row.customerCode, row.refId, row.outlet, row.orderId]
+          .join(" ")
+          .toLowerCase()
+          .includes(term);
+      const matchesStatus = statusFilter === "all" || row.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [data.rows, searchTerm, statusFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / rowsPerPage));
   const pageRows = filteredRows.slice(
@@ -82,12 +109,12 @@ export default function TransactionOverview({ activeTxnTab, voucherData }) {
   const handleExport = () => {
     const headers = [
       "Order Id", "Customer", "Customer Code", data.idLabel, "Razorpay Order Id", "Created On", "Outlet",
-      "Bill Amount", "Offer Discount", "Net Bill", "Amount", "Payment Method", "Status",
+      "Bill Amount", "Offer Discount", "Promo Discount", "Net Bill", "Amount", "Payment Method", "Status",
     ];
     const csvRows = filteredRows.map((r) =>
       [
         r.orderId, r.customerName, r.customerCode, r.refId, r.razorpayOrderId, r.createdOn, r.outlet,
-        r.billAmount, r.offerDiscount, r.netBill, r.amount, r.paymentMethod, r.status,
+        r.billAmount, r.offerDiscount, r.promoDiscount, r.netBill, r.amount, r.paymentMethod, r.status,
       ]
         .map((v) => `"${v}"`)
         .join(",")
@@ -127,7 +154,7 @@ export default function TransactionOverview({ activeTxnTab, voucherData }) {
 
       {!collapsed && (
         <>
-          {/* Stat strip */}
+          {/* Top Overview stat strip — removed per instruction, not needed.
           <div className="flex flex-wrap divide-x divide-gray-100 px-5 py-4 border-b border-gray-50">
             {data.overviewStats.map((stat) => (
               <div key={stat.label} className="px-6 first:pl-0 py-0.5">
@@ -138,6 +165,7 @@ export default function TransactionOverview({ activeTxnTab, voucherData }) {
               </div>
             ))}
           </div>
+          */}
 
           {/* Toolbar: rows-per-page + pagination (top), search + filter + date + export */}
           <div className="px-5 pt-4">
@@ -194,45 +222,72 @@ export default function TransactionOverview({ activeTxnTab, voucherData }) {
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3 pb-4">
+            <div className="flex flex-nowrap items-center gap-2 overflow-x-auto pb-4">
               {/* Search */}
-              <div className="flex items-center gap-2 flex-1 min-w-[260px] border border-gray-200 rounded-lg px-3 py-2">
-                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} className="text-gray-400 flex-shrink-0">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 10a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
+              <div className="flex w-52 flex-shrink-0 items-center gap-2 rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-400 transition-colors focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-100">
+                <Search className="h-4 w-4 flex-shrink-0" />
                 <input
                   type="text"
                   value={searchTerm}
                   onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                  placeholder={`Search Here - Customer Name & ID, ${data.idLabel}, Outlet Details.`}
-                  className="w-full text-xs text-gray-600 placeholder-gray-400 outline-none"
+                  placeholder={`Search Here: Customer, ${data.idLabel}`}
+                  className="w-full bg-transparent text-gray-700 outline-none placeholder:text-gray-400 truncate"
                 />
               </div>
 
-              {/* Filter — placeholder, wire up to real filter logic later */}
-              <button className="flex items-center gap-1.5 text-xs font-medium text-gray-600 border border-gray-200 rounded-lg px-3 py-2 hover:bg-gray-50">
-                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M7 6v3m0 0a1.5 1.5 0 100 0zM10 12h8M13 12v3m0 0a1.5 1.5 0 100 0zM4 18h10M12 18v3m0 0a1.5 1.5 0 100 0z" />
-                </svg>
-                Filter
-              </button>
+              {/* Status filter — real statuses present in this tab's rows,
+                  not a fixed/fabricated list. */}
+              <div className="flex flex-shrink-0 items-center gap-1.5 rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-600">
+                <SlidersHorizontal className="h-4 w-4 shrink-0 text-gray-400" />
+                <select
+                  value={statusFilter}
+                  onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+                  className="bg-transparent text-sm text-gray-600 outline-none"
+                >
+                  <option value="all">All Statuses</option>
+                  {statusOptions.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              </div>
 
-              {/* Date range — placeholder, wire up to a date-picker later */}
-              <button className="flex items-center gap-1.5 text-xs font-medium text-gray-600 border border-gray-200 rounded-lg px-3 py-2 hover:bg-gray-50 whitespace-nowrap">
-                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                Feb 17, 2026, 10:18 - Mar 9, 2026, 23:59
-              </button>
+              {/* Date range — real from/to, filters both the table below
+                  and the "Voucher Collection" stat above (Transactions.jsx
+                  owns this state so the two never disagree). */}
+              <div className="flex flex-shrink-0 items-center gap-1.5 rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-600">
+                <CalendarDays className="h-4 w-4 shrink-0 text-gray-400" />
+                <input
+                  type="date"
+                  value={dateRange.from}
+                  onChange={(e) => onDateRangeChange({ ...dateRange, from: e.target.value })}
+                  max={dateRange.to || undefined}
+                  className="bg-transparent text-sm text-gray-600 outline-none"
+                />
+                <span className="text-gray-300">–</span>
+                <input
+                  type="date"
+                  value={dateRange.to}
+                  onChange={(e) => onDateRangeChange({ ...dateRange, to: e.target.value })}
+                  min={dateRange.from || undefined}
+                  className="bg-transparent text-sm text-gray-600 outline-none"
+                />
+                {(dateRange.from || dateRange.to) && (
+                  <button
+                    type="button"
+                    onClick={() => onDateRangeChange({ from: "", to: "" })}
+                    className="text-xs text-gray-400 hover:text-emerald-600"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
 
               {/* Export */}
               <button
                 onClick={handleExport}
-                className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 border border-indigo-200 bg-indigo-50 rounded-lg px-3 py-2 hover:bg-indigo-100"
+                className="flex flex-shrink-0 items-center gap-1.5 rounded-xl border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
               >
-                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
-                </svg>
+                <Download className="h-4 w-4" />
                 Export Data
               </button>
             </div>
@@ -245,7 +300,7 @@ export default function TransactionOverview({ activeTxnTab, voucherData }) {
                 <tr className="bg-[#1a1a2e]">
                   {[
                     "Order Id", "Customer detail", "Voucher Version ID",  "Created on", "Outlet Store ID",
-                    "Bill Amount", "Offer Discount", "Net Bill", "Paid Amount", "Payment Method", "Status",
+                    "Bill Amount", "Offer Discount", "Promo Discount", "Net Bill", "Paid Amount", "Payment Method", "Status",
                   ].map((h) => (
                     <th key={h} className="text-left px-3 py-2.5 text-[11px] font-bold uppercase tracking-wide text-white/80 whitespace-nowrap">
                       {h}
@@ -256,7 +311,7 @@ export default function TransactionOverview({ activeTxnTab, voucherData }) {
               <tbody>
                 {pageRows.length === 0 ? (
                   <tr>
-                    <td colSpan={12} className="px-3 py-8 text-center text-gray-400">
+                    <td colSpan={13} className="px-3 py-8 text-center text-gray-400">
                       No {data.sectionTitle.replace(" Overview", "")} transactions found.
                     </td>
                   </tr>
@@ -299,6 +354,7 @@ export default function TransactionOverview({ activeTxnTab, voucherData }) {
                         <td className="px-3 py-2 text-gray-500 whitespace-nowrap">{row.outlet}</td>
                         <td className="px-3 py-2 text-gray-700 whitespace-nowrap">{row.billAmount}</td>
                         <td className="px-3 py-2 text-rose-500 whitespace-nowrap">{row.offerDiscount}</td>
+                        <td className="px-3 py-2 text-rose-500 whitespace-nowrap">{row.promoDiscount}</td>
                         <td className="px-3 py-2 text-gray-700 whitespace-nowrap">{row.netBill}</td>
                         <td className="px-3 py-2 text-gray-700 font-medium whitespace-nowrap">{row.amount}</td>
                         <td className="px-3 py-2 text-gray-500 whitespace-nowrap capitalize">{row.paymentMethod}</td>

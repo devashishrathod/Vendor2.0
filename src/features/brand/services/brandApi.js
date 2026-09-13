@@ -283,6 +283,33 @@ export async function verifyEmailOtp({ otp, email }) {
 }
 
 // ══════════════════════════════════════════════════════════════
+// MOBILE VERIFICATION
+// ══════════════════════════════════════════════════════════════
+// ⚠️ TEMPORARY MOCK — there is no confirmed real "send/verify mobile OTP"
+// backend endpoint yet, so these two just fake a network round-trip
+// (setTimeout) instead of calling `api.post(...)`. Wired up per explicit
+// instruction so the UI/UX can be built and tested now; swap the bodies
+// below for real `api.post('/auth/mobile/...')` calls once that endpoint
+// is confirmed — the function signatures are already shaped to match
+// sendEmailVerification/verifyEmailOtp above so that swap should be a
+// drop-in change.
+
+// ── Send Mobile Verification Code (MOCK) ───────────────────────
+export async function sendMobileVerification(mobile) {
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    return { data: { sentTo: mobile } };
+}
+
+// ── Verify Mobile OTP (MOCK) — accepts any non-empty OTP ───────
+export async function verifyMobileOtp({ otp, mobile }) {
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    if (!otp || !otp.trim()) {
+        throw new Error("Invalid or expired code. Please try again.");
+    }
+    return { data: { verified: true, mobile } };
+}
+
+// ══════════════════════════════════════════════════════════════
 // LISTING FEATURES (a.k.a. Brand Features)
 // ══════════════════════════════════════════════════════════════
 
@@ -481,13 +508,18 @@ export async function reorderShowcaseSections(brandId, sections = []) {
 // @param {File[]} files
 // @param {object} [options]
 // @param {boolean} [options.isShowInVideoClips=false]
+// @param {File} [options.thumbnail] - ⚠️ NOT CONFIRMED from Postman: only
+//        `isShowInVideoClips` + `files` are documented on this endpoint.
+//        Sent as a best-effort "thumbnail" file field when provided (only
+//        meaningful alongside isShowInVideoClips: true) — verify against a
+//        real response and correct the field name here if it's wrong.
 // @param {Record<string,string>} [options.extraFields] - e.g. a "month" tag
 //        for Ambience-style albums, if the backend accepts it per-upload.
 // @param {(percent:number)=>void} [onUploadProgress]
 export async function addShowcaseMedia(
     sectionId,
     files,
-    { isShowInVideoClips = false, extraFields = {} } = {},
+    { isShowInVideoClips = false, thumbnail = null, extraFields = {} } = {},
     onUploadProgress
 ) {
     try {
@@ -496,6 +528,7 @@ export async function addShowcaseMedia(
 
         const formData = new FormData();
         formData.append('isShowInVideoClips', String(isShowInVideoClips));
+        if (thumbnail) formData.append('thumbnail', thumbnail);
 
         Object.entries(extraFields).forEach(([key, value]) => {
             formData.append(key, value);
@@ -547,6 +580,37 @@ export async function replaceShowcaseMedia(sectionId, mediaId, { file, isShowInV
                     : undefined,
             }
         );
+        return data;
+    } catch (error) {
+        handleError(error);
+    }
+}
+
+// ── Update a Media Item's Details (title / alt text / thumbnail) ────────
+// PATCH {{TryDood2.0BaseUrl}}/showcase/section/:sectionId/media/update/:mediaId
+// (multipart/form-data) — for editing an existing item's metadata (works
+// for both PHOTO and VIDEO), as opposed to media/replace which swaps the
+// underlying file itself. `thumbnail` is only meaningful for a VIDEO item
+// (its poster image) — omit it for photos.
+// Confirmed real RESPONSE shape from Postman (full updated media doc:
+// _id, type, url, thumbnail, title, altText, sortOrder, isActive, storage,
+// metadata, createdAt, updatedAt) — the exact REQUEST body field names
+// were NOT shown in the Postman sample (only the response was), so
+// title/altText/thumbnail are sent per explicit instruction; verify
+// against a real request once tested and correct the field names here if
+// any of them turn out wrong.
+export async function updateShowcaseMediaDetails(sectionId, mediaId, { title, altText, thumbnail } = {}) {
+    try {
+        if (!sectionId) throw new Error('sectionId is required');
+        if (!mediaId) throw new Error('mediaId is required');
+
+        const formData = new FormData();
+        if (title !== undefined) formData.append('title', title);
+        if (altText !== undefined) formData.append('altText', altText);
+        if (thumbnail) formData.append('thumbnail', thumbnail);
+
+        // See updateBrandDetails's comment — no explicit Content-Type header.
+        const { data } = await api.patch(`/showcase/section/${sectionId}/media/update/${mediaId}`, formData);
         return data;
     } catch (error) {
         handleError(error);

@@ -12,6 +12,7 @@ import {
   reorderShowcaseSections,
   replaceShowcaseMedia,
   reorderShowcaseMedia,
+  updateShowcaseMediaDetails,
 } from "../services/brandApi";
 
 // Moves the item at `id` (matched by `idKey`) to 1-based `newPosition`
@@ -70,11 +71,11 @@ const ShowcasePage = ({ brandId }) => {
   };
 
   const handleAddMore = () => setShowAddModal(true);
-const handleCreateSection = async ({ title, description, files, isShowInVideoClips }) => {
+const handleCreateSection = async ({ title, description, files, isShowInVideoClips, thumbnail }) => {
   const { mediaError } = await createShowcaseSectionWithMedia(
     { title, description },
     files,
-    { isShowInVideoClips }   // ✅ ye add karo — mediaOptions ke through addShowcaseMedia tak jayega
+    { isShowInVideoClips, thumbnail }   // ✅ ye add karo — mediaOptions ke through addShowcaseMedia tak jayega
   );
   if (mediaError) {
     setActionError(mediaError.message);
@@ -155,6 +156,18 @@ const handleCreateSection = async ({ title, description, files, isShowInVideoCli
     }
   };
 
+  // "Edit" action on a media item's preview modal — title/altText for
+  // either type, plus a thumbnail (poster image) when editing a video.
+  const handleUpdateMediaDetails = async (sectionId, mediaId, { title, altText, thumbnail }) => {
+    setActionError(null);
+    try {
+      await updateShowcaseMediaDetails(sectionId, mediaId, { title, altText, thumbnail });
+      reload();
+    } catch (err) {
+      setActionError(err.message);
+    }
+  };
+
   // Video 3-dot menu's "Show in Video Clips" checkbox — flips one existing
   // media item's isShowInVideoClips flag (see replaceShowcaseMedia's
   // comment for why this reuses the replace-media endpoint).
@@ -205,6 +218,7 @@ const handleCreateSection = async ({ title, description, files, isShowInVideoCli
         onAddMedia={handleAddMedia}
         onDeleteMedia={handleDeleteMedia}
         onReplaceMedia={handleReplaceMedia}
+        onUpdateMediaDetails={handleUpdateMediaDetails}
         onSetMediaOrder={handleSetMediaOrder}
         onEditSection={handleEditSection}
         onDeleteSection={handleDeleteSection}

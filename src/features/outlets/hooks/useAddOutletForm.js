@@ -29,6 +29,16 @@ const initialState = {
     isBrandNumber: false,
     verified: false,
   },
+
+  // ── Mobile Number — separate contact number, optionally mirroring the
+  // WhatsApp number via the "Same as WhatsApp Number" checkbox. ⚠️ NOT
+  // independently confirmed from a Postman sample for subBrands/update
+  // (only email/outletType/joinedDate/description/isActive are documented
+  // there) — sent as a `mobile` key per explicit instruction; verify the
+  // real saved value once tested and correct the key name here if wrong.
+  mobile: "",
+  mobileSameAsWhatsapp: false,
+
   subBrandId: null,
   brandId: null, // set from useBrand() by the modal — used as an optional reference on the location payload
 
@@ -226,12 +236,15 @@ export function useAddOutletForm(onSuccess) {
         }
       }
 
-      // Final Save button only sends what the confirmed subBrands/update
-      // payload actually takes: outletType, description, isActive.
+      // Final Save button sends the confirmed subBrands/update fields
+      // (outletType, description, isActive) plus `mobile` — see the
+      // initialState comment above on why that key isn't independently
+      // Postman-confirmed yet.
       const subBrand = await updateSubBrand(form.subBrandId, {
         outletType: form.outletType.toUpperCase(),
         description: form.description || undefined,
         isActive: form.isActive,
+        mobile: form.mobile || undefined,
       });
 
       reset();

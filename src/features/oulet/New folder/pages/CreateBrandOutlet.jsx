@@ -49,6 +49,13 @@ export default function CreateBrandOutlet() {
   // ── Brand form state ──
   const [brandName, setBrandName] = useState("");
   const [brandEmail, setBrandEmail] = useState("");
+  // ⚠️ NOT independently confirmed from a Postman sample for
+  // brands/update (only brandName/email/description/subCategoryId/
+  // isOnboarding/showcaseSectionIds are documented there) — sent as a
+  // `mobile` key per explicit instruction; verify the saved value once
+  // tested and correct the key name here if it's wrong.
+  const [brandMobile, setBrandMobile] = useState("");
+  const [mobileSameAsWhatsapp, setMobileSameAsWhatsapp] = useState(false);
   const [brandDescription, setBrandDescription] = useState("");
   const [brandType, setBrandType] = useState("");
   const [brandSubType, setBrandSubType] = useState("");
@@ -124,6 +131,16 @@ export default function CreateBrandOutlet() {
     hydrateVerified,
     hydrateUnverifiedShell,
   } = useWhatsappOtp({ brandId: brand?._id, brandWhatsappNumber, isFirstOutlet: true });
+
+  // While "Same as Brand WhatsApp Number" is checked, the field displays
+  // (and saves) brandWhatsappNumber directly instead of a separately-stored
+  // copy, so it stays live if that number changes — with no extra
+  // state-sync effect needed. brandWhatsappNumber (not outletWhatsapp) is
+  // used here because it's already available from the fetched brand
+  // profile as soon as this Brand Details section renders, whereas
+  // outletWhatsapp is only filled in later, in the Outlet Details section
+  // further down this same page.
+  const effectiveMobile = mobileSameAsWhatsapp ? brandWhatsappNumber : brandMobile;
 
   // ── Verify button: Case-aware — if a subBrand shell already exists
   // (subBrandId is already known, from either hydrateVerified or
@@ -519,6 +536,12 @@ export default function CreateBrandOutlet() {
     const brandPayload = {
       brandName,
       email: brandEmail,
+      // ⚠️ NOT independently confirmed from a Postman sample for
+      // brands/update (only brandName/email/description/subCategoryId/
+      // isOnboarding/showcaseSectionIds are documented there) — sent as a
+      // `mobile` key per explicit instruction; verify the saved value once
+      // tested and correct the key name here if it's wrong.
+      mobile: effectiveMobile || undefined,
       description: brandDescription,
       subCategoryId: brandSubType,
       isOnboarding: true,
@@ -664,6 +687,29 @@ export default function CreateBrandOutlet() {
               placeholder="eg : hello@yourbrand.com"
               className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-emerald-400 bg-white text-gray-700"
             />
+          </SectionCard>
+
+          <SectionCard>
+            <SectionHeader title="Mobile Number" subtitle="A direct contact number for this brand." />
+            <input
+              type="tel"
+              value={effectiveMobile}
+              disabled={mobileSameAsWhatsapp}
+              onChange={(e) => setBrandMobile(e.target.value)}
+              placeholder="eg : 9876543210"
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-emerald-400 bg-white text-gray-700 disabled:bg-gray-50 disabled:text-gray-400"
+            />
+            <label className="flex items-center gap-2 mt-2 text-xs font-semibold text-gray-600 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={mobileSameAsWhatsapp}
+                disabled={!brandWhatsappNumber}
+                onChange={(e) => setMobileSameAsWhatsapp(e.target.checked)}
+                className="w-4 h-4 accent-emerald-600 cursor-pointer disabled:opacity-40"
+              />
+              Same as Brand WhatsApp Number
+              {brandWhatsappNumber ? ` (${brandWhatsappNumber})` : " (not available on your brand profile)"}
+            </label>
           </SectionCard>
 
           <SectionCard>

@@ -24,6 +24,7 @@ import MusicLayout from './features/music/pages/MusicLayout';
 import MusicPage from './features/music/pages/MusicPage';
 import CollectionPage from './features/music/pages/CollectionPage';
 import { SubscriptionPage } from './features/subscription';
+import SettingsPage from './features/settings/pages/SettingsPage';
 import BrandPage from './features/brand';
 import CreateBrandOutlet from './features/oulet/New folder/pages/CreateBrandOutlet';
 import UnderReview from './features/oulet/New folder/pages/Youroutlet';
@@ -137,6 +138,8 @@ function App() {
 
           {/* Subscription Page */}
           <Route path="/subscription-plan" element={<SubscriptionPage />} />
+
+          <Route path="/settings" element={<SettingsPage />} />
 
         </Route>
 

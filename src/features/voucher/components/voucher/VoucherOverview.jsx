@@ -4,9 +4,7 @@ import {
   CircleDollarSign,
   Tag,
   ReceiptText,
-  BadgeCheck,
   CalendarX,
-  Hourglass,
 } from "lucide-react";
 
 const formatCurrency = (value) =>
@@ -72,22 +70,10 @@ export default function VoucherOverview({ stats, isLoading }) {
           value={isLoading ? "—" : formatCurrency(stats?.gstAmount)}
         />
         <StatCard
-          icon={<BadgeCheck className="h-4 w-4" />}
-          label="Active Voucher"
-          value={isLoading ? "—" : stats?.activeVoucherCount ?? 0}
-          note={isLoading ? undefined : `No. of. Count : ${stats?.activeVoucherCount ?? 0}`}
-        />
-        <StatCard
           icon={<CalendarX className="h-4 w-4" />}
           label="Expired Voucher"
           value={isLoading ? "—" : stats?.expiredVoucherCount ?? 0}
           note={isLoading ? undefined : `No. of. Count : ${stats?.expiredVoucherCount ?? 0}`}
-        />
-        <StatCard
-          icon={<Hourglass className="h-4 w-4" />}
-          label="Pending Voucher"
-          value={isLoading ? "—" : stats?.pendingVoucherCount ?? 0}
-          note={isLoading ? undefined : `No. of. Count : ${stats?.pendingVoucherCount ?? 0}`}
           isLast
         />
       </div>

@@ -1,15 +1,20 @@
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import OutletDetailsHeader from "../components/OutletDetailsHeader";
 import OutletDetailsInfo from "../components/OutletDetailsInfo";
 import TransactionSummaryPanel from "../components/TransactionSummaryPanel";
+import EditOutletModal from "../components/EditOutletModal";
+import EditLocationModal from "../components/EditLocationModal";
 import { useOutletDetails } from "../hooks/useOutletDetails";
 
 export default function OutletDetailsPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { outlet, brand, transactions, loading, error } = useOutletDetails(id);
+  const { outlet, brand, transactions, loading, error, reload } = useOutletDetails(id);
+  const [editing, setEditing] = useState(false);
+  const [editingLocation, setEditingLocation] = useState(false);
 
-  const handleBack = () => navigate(-1);
+  const handleBack = () => navigate("/outlets");
 
   if (loading) {
     return (
@@ -40,13 +45,38 @@ export default function OutletDetailsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
-      <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="max-w-6xl mx-auto px-4 py-8 space-y-4">
         <OutletDetailsHeader outlet={outlet} brand={brand} onBack={handleBack} />
-        <OutletDetailsInfo outlet={outlet} brand={brand} />
-        <div className="mt-6">
-          <TransactionSummaryPanel transactions={transactions} />
-        </div>
+        <TransactionSummaryPanel transactions={transactions} />
+        <OutletDetailsInfo
+          outlet={outlet}
+          brand={brand}
+          onEdit={() => setEditing(true)}
+          onEditLocation={() => setEditingLocation(true)}
+        />
       </div>
+
+      {editing && (
+        <EditOutletModal
+          outlet={outlet}
+          onClose={() => setEditing(false)}
+          onUpdated={() => {
+            setEditing(false);
+            reload();
+          }}
+        />
+      )}
+
+      {editingLocation && (
+        <EditLocationModal
+          outlet={outlet}
+          onClose={() => setEditingLocation(false)}
+          onUpdated={() => {
+            setEditingLocation(false);
+            reload();
+          }}
+        />
+      )}
     </div>
   );
 }

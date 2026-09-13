@@ -83,7 +83,7 @@ export default function SettlementDetails() {
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => navigate(-1)}
+              onClick={() => navigate("/settlements")}
               className="rounded-full border border-slate-200 p-2 text-slate-500 hover:bg-slate-100"
             >
               <ArrowLeft className="h-4 w-4" />

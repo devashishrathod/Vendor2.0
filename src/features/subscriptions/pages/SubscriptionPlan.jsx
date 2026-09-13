@@ -319,6 +319,7 @@ export default function SubscriptionPlan({
             selectedId={selectedPlan}
             onPurchase={handlePurchase}
             loading={plansLoading}
+            currentPlanName={currentPlanName}
           />
         </div>
 

@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { ArrowLeft, Download, Wallet, Tag, ShoppingBag, CreditCard, User, Activity, LifeBuoy } from "lucide-react";
 // import RaiseTicketModal from "../components/RaiseTicketModal";
 import { getOrderById, TYPE_CONFIG } from "../data/transactionData";
 import { getVoucherClaimPaymentById, mapPaymentToOrderDetail } from "../services/transactionService";
 import { getVoucherById } from "@/features/voucher/services/voucher/VoucherService";
 import VoucherViewModal from "../components/VoucherViewModal";
+import ReceiptModal from "../components/ReceiptModal";
 
 function formatVoucherDate(iso) {
   if (!iso) return undefined;
@@ -60,16 +62,25 @@ function CopyButton({ text }) {
   );
 }
 
-// Section wrapper: uppercase, letter-spaced heading + white card, matches
-// "BILLING INFORMATION" / "VOUCHER INFORMATION" style in the reference design
-function Section({ title, subtitle, children }) {
+// Section wrapper: icon-tile card header (matching the icon+title pattern
+// used across Outlet Details/Settings/Subscription elsewhere in the app)
+// instead of a bare uppercase heading floating on the page background.
+function Section({ icon: Icon, iconBg = "bg-emerald-50", iconText = "text-emerald-500", title, subtitle, children }) {
   return (
-    <div className="mb-8">
-      <h2 className="text-xs font-bold tracking-[0.15em] text-gray-900 mb-1">{title}</h2>
-      {subtitle && <p className="text-xs text-blue-500 font-medium mb-4">{subtitle}</p>}
-      {!subtitle && <div className="mb-4" />}
+    <section className="bg-white border border-gray-100 rounded-2xl p-5 sm:p-6">
+      <div className="flex items-center gap-3 mb-4">
+        {Icon && (
+          <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${iconBg} ${iconText}`}>
+            <Icon className="w-4 h-4" />
+          </div>
+        )}
+        <div>
+          <h2 className="text-sm font-bold text-gray-900">{title}</h2>
+          {subtitle && <div className="text-xs text-gray-400 mt-0.5">{subtitle}</div>}
+        </div>
+      </div>
       {children}
-    </div>
+    </section>
   );
 }
 
@@ -146,6 +157,7 @@ export default function OrderDetail() {
   const [loading, setLoading] = useState(!dummyResult);
   const [notFound, setNotFound] = useState(false);
   const [showVoucherModal, setShowVoucherModal] = useState(false);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
 
   useEffect(() => {
     if (dummyResult) return;
@@ -216,7 +228,7 @@ export default function OrderDetail() {
         <div className="max-w-3xl mx-auto px-6 py-16 text-center">
           <p className="text-gray-500 mb-4">Order #{orderId} not found.</p>
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => navigate("/transactions")}
             className="text-emerald-600 font-semibold hover:underline text-sm"
           >
             ← Go back
@@ -228,257 +240,204 @@ export default function OrderDetail() {
 
   const { order, typeConfig } = result;
 
-  // Builds a plain-text receipt from the real data already loaded on this
-  // page — there's no confirmed backend "receipt PDF" endpoint, so this
-  // stays client-side (same approach as the CSV export on the Transactions
-  // table) instead of leaving the button unwired.
-  const handleDownloadReceipt = () => {
-    const lines = [
-      "TRYDOOD RETAIL PRIVATE LIMITED",
-      "Payment Receipt",
-      "",
-      `Order Id: ${order.orderId || "—"}`,
-      `${typeConfig.idFieldLabel}: ${order.refId || "—"}`,
-      order.voucherName && `Voucher Name: ${order.voucherName}`,
-      `Outlet Location: ${order.outlet || "—"}`,
-      order.storeId && `Store Id: ${order.storeId}`,
-      "",
-      `Bill Amount: ${order.billAmount || "—"}`,
-      `Discount Amount: ${order.discountAmount || "—"}`,
-      `Paid Amount: ${order.paidAmount || "—"}`,
-      "",
-      `Payment Method: ${order.paymentMethod || "—"}`,
-      `Payment Transaction Id: ${order.paymentTransactionId || "—"}`,
-      `Date & Time: ${order.paymentDateTime || "—"}`,
-    ].filter(Boolean).join("\n");
-
-    const blob = new Blob([lines], { type: "text/plain;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `receipt-${order.orderId || "order"}.txt`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
-
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
-      <div className="w-full mx-auto px-6 py-6">
-        {/* <div className="bg-white border border-gray-100 rounded-xl"> */}
-        <div className="">
-          {/* Header row: back, title, status badges, actions */}
-          <div className="flex flex-wrap items-center gap-4 px-6 py-5 border-b border-gray-100">
-            <button
-              onClick={() => navigate(-1)}
-              className="w-9 h-9 flex items-center justify-center rounded-full bg-blue-100 hover:bg-gray-200 text-gray-600 flex-shrink-0"
-            >
-              <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-4">
+        {/* Header card: back, title, status badges, actions */}
+        <div className="bg-white border border-gray-100 rounded-2xl flex flex-wrap items-center gap-4 px-5 sm:px-6 py-5">
+          <button
+            onClick={() => navigate("/transactions")}
+            className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 flex-shrink-0"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </button>
 
-            <div className="flex-1 min-w-[240px]">
-              <h1 className="text-lg font-bold text-gray-900 leading-tight">
-                {order.title || order.refId}
-              </h1>
-              {order.tagLine && (
-                <p className="text-xs text-gray-500 mt-0.5">{order.tagLine}</p>
-              )}
-              <div className="flex items-center gap-2 mt-1.5">
-                <span className="text-xs text-gray-500">Order Id</span>
-                <span className="text-xs font-semibold text-gray-700">{order.orderId}</span>
-                <CopyButton text={order.orderId} />
-                <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full ml-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                  {order.status || "Active"}
-                </span>
-                <span className="text-[11px] font-semibold text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full">
-                  {typeConfig.badgeLabel}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 ml-auto">
-              {/* Create Ticket — not needed right now, commented out. */}
-              {/* <button className="text-xs font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg px-4 py-2.5">
-                Create Ticket
-              </button> */}
-              <button
-                onClick={handleDownloadReceipt}
-                className="flex items-center gap-1.5 text-xs font-semibold text-white bg-gray-900 hover:bg-black rounded-lg px-4 py-2.5"
-              >
-                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
-                </svg>
-                Download Receipt
-              </button>
+          <div className="flex-1 min-w-[240px]">
+            <h1 className="text-lg font-bold text-gray-900 leading-tight">
+              {order.title || order.refId}
+            </h1>
+            {order.tagLine && (
+              <p className="text-xs text-gray-500 mt-0.5">{order.tagLine}</p>
+            )}
+            <div className="flex items-center gap-2 mt-1.5">
+              <span className="text-xs text-gray-500">Order Id</span>
+              <span className="text-xs font-semibold text-gray-700">{order.orderId}</span>
+              <CopyButton text={order.orderId} />
+              <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full ml-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                {order.status || "Active"}
+              </span>
+              <span className="text-[11px] font-semibold text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full">
+                {typeConfig.badgeLabel}
+              </span>
             </div>
           </div>
 
-          <div className="px-6 py-6">
-            {/* Billing Information */}
-            <Section title="BILLING INFORMATION">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-y-5 gap-x-6">
-                <div>
-                  <p className="text-xs font-semibold text-gray-900 mb-1">To Paid</p>
-                  <div className="flex items-center gap-1.5">
-                    <p className="text-xl font-bold text-gray-900">{order.paidAmount}</p>
-                    <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} className="text-gray-400">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
-                    </svg>
-                  </div>
-                  <p className="text-xs font-medium text-emerald-500 mt-1">Payment Successful!</p>
-                </div>
-                <Field label="Outlet Location" value={order.outlet} />
-                <Field label="Store Id" value={order.storeId} />
-                <Field label="Store Type" value={order.storeType} />
-              </div>
-            </Section>
-            <hr className="p-6" />
-
-            {/* Type Information — dynamic: Voucher / Deal Pack / Membership,
-                driven entirely by typeConfig so each transaction type shows
-                its own relevant fields under its own heading. */}
-            <Section title={typeConfig.sectionTitle}>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-y-5 gap-x-6">
-                <Field
-                  label={typeConfig.idFieldLabel}
-                  value={order.refId}
-                  action={
-                    typeConfig === TYPE_CONFIG.voucher && (
-                      <>
-                        <span className="text-gray-300">·</span>
-                        <button
-                          onClick={() => setShowVoucherModal(true)}
-                          className="text-xs text-blue-500 hover:underline font-medium"
-                        >
-                          View Page
-                        </button>
-                      </>
-                    )
-                  }
-                />
-                {typeConfig.fields.map((f) => (
-                  <Field key={f.key} label={f.label} value={order[f.key]} />
-                ))}
-              </div>
-            </Section>
-
-            <hr className="p-6" />
-
-            {/* Purchase Summary */}
-            <Section title="PURCHASE SUMMARY">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-y-5 gap-x-6">
-                <Field label="Bill Amount" value={order.billAmount} />
-                <Field label="Discount Amount" value={order.discountAmount} valueClass="text-gray-900" />
-                <Field label="Trydood Discount" value={order.trydoodDiscount} />
-                <Field label="Membership Discount" value={order.membershipDiscount} valueClass={order.membershipDiscount ? "text-emerald-500 font-semibold" : "text-gray-900"} />
-                <Field label="Coupon Code" value={order.couponCode} />
-                <Field label="Paid Amount" value={order.paidAmount} />
-              </div>
-            </Section>
-
-            <hr className="p-6" />
-
-            {/* Payments Information */}
-            <Section title="PAYMENTS INFORMATION">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-y-5 gap-x-6">
-                <Field label="Payment Method" value={order.paymentMethod} />
-                <Field label="Payment options" value={order.paymentOptions} />
-                <Field label="Payment Via" value={order.paymentVia} />
-              </div>
-            </Section>
-
-            <hr className="p-6" />
-
-            {/* Customer Information */}
-            {(order.customerName || order.customerCode || order.customerEmail || order.customerNote) && (
-              <Section title="CUSTOMER INFORMATION" subtitle={order.customerNote}>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-y-5 gap-x-6">
-                  {order.customerName && <Field label="Customer Name" value={order.customerName} />}
-                  {order.customerCode && <Field label="Customer Id" value={order.customerCode} />}
-                  {order.customerEmail && <Field label="Mail Id" value={order.customerEmail} />}
-                </div>
-              </Section>
-            )}
-
-            <hr className="p-6" />
-
-            {/* Transaction Information */}
-            <Section
-              title="TRANSACTION INFORMATION"
-              subtitle={
-                <button className="flex items-center gap-1 text-blue-500 hover:underline">
-                  <span>Time Line</span>
-                  <span className="text-gray-400 font-normal">(Track all activities and updates easily.)</span>
-                </button>
-              }
+          <div className="flex items-center gap-2 ml-auto">
+            {/* Create Ticket — not needed right now, commented out. */}
+            {/* <button className="text-xs font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg px-4 py-2.5">
+              Create Ticket
+            </button> */}
+            <button
+              onClick={() => setShowReceiptModal(true)}
+              className="flex items-center gap-1.5 text-xs font-semibold text-white bg-gray-900 hover:bg-black rounded-lg px-4 py-2.5"
             >
-              <div className="space-y-6">
-                {/* Payment transaction row */}
-                <div className="flex gap-3">
-                  <div className="w-7 h-7 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} className="text-emerald-500">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                  </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-y-5 gap-x-6 flex-1">
-                    <Field
-                      label="Payment Transaction Id"
-                      value={order.paymentTransactionId}
-                      action={<CopyButton text={order.paymentTransactionId} />}
-                    />
-                    <Field label="Date & Time" value={order.paymentDateTime} />
-                    <Field label="Pay Via" value={order.payVia} />
-                    <Field label="Recived Account Info" value={order.receivedAccountInfo} />
-                  </div>
-                </div>
-
-                {/* Settlement row — no settlement id/date/account exists yet
-                    on a real voucher claim's payment record, only on the
-                    still-dummy dealpack/membership entries, so this whole
-                    row is skipped rather than showing four blank fields. */}
-                {order.settlementId && (
-                  <div className="flex gap-3">
-                    <div className="w-7 h-7 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} className="text-emerald-500">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-y-5 gap-x-6 flex-1">
-                      <Field
-                        label="Settlement Done"
-                        value={order.settlementId}
-                        valueClass="text-blue-500 font-medium"
-                        action={<CopyButton text={order.settlementId} />}
-                      />
-                      <Field label="Date & Time" value={order.settlementDateTime} />
-                      <Field label="Settlement Transaction ID" value={order.settlementTransactionId} />
-                      <Field label="Settlement Account Info" value={order.settlementAccountInfo} />
-                    </div>
-                  </div>
-                )}
-              </div>
-            </Section>
-            <hr className="p-6" />
-
-            {/* Ticket Raise */}
-            {order.tickets?.length > 0 && (
-              <Section title="TICKET RAISE">
-                <div className="space-y-2">
-                  {order.tickets.map((t, i) => (
-                    <TicketItem key={i} ticket={t} />
-                  ))}
-                </div>
-              </Section>
-            )}
+              <Download className="w-3.5 h-3.5" />
+              Download Receipt
+            </button>
           </div>
         </div>
 
+        {/* Billing Information */}
+        <Section icon={Wallet} iconBg="bg-emerald-50" iconText="text-emerald-500" title="Billing Information">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-y-5 gap-x-6">
+            <div>
+              <p className="text-xs font-semibold text-gray-900 mb-1">To Paid</p>
+              <div className="flex items-center gap-1.5">
+                <p className="text-xl font-bold text-gray-900">{order.paidAmount}</p>
+                <Download className="w-3.5 h-3.5 text-gray-400" />
+              </div>
+              <p className="text-xs font-medium text-emerald-500 mt-1">Payment Successful!</p>
+            </div>
+            <Field label="Outlet Location" value={order.outlet} />
+            <Field label="Store Id" value={order.storeId} />
+            <Field label="Store Type" value={order.storeType} />
+          </div>
+        </Section>
+
+        {/* Type Information — dynamic: Voucher / Deal Pack / Membership,
+            driven entirely by typeConfig so each transaction type shows
+            its own relevant fields under its own heading. */}
+        <Section icon={Tag} iconBg="bg-blue-50" iconText="text-blue-500" title={typeConfig.sectionTitle}>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-y-5 gap-x-6">
+            <Field
+              label={typeConfig.idFieldLabel}
+              value={order.refId}
+              action={
+                typeConfig === TYPE_CONFIG.voucher && (
+                  <>
+                    <span className="text-gray-300">·</span>
+                    <button
+                      onClick={() => setShowVoucherModal(true)}
+                      className="text-xs text-blue-500 hover:underline font-medium"
+                    >
+                      View Page
+                    </button>
+                  </>
+                )
+              }
+            />
+            {typeConfig.fields.map((f) => (
+              <Field key={f.key} label={f.label} value={order[f.key]} />
+            ))}
+          </div>
+        </Section>
+
+        {/* Purchase Summary */}
+        <Section icon={ShoppingBag} iconBg="bg-violet-50" iconText="text-violet-500" title="Purchase Summary">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-y-5 gap-x-6">
+            <Field label="Bill Amount" value={order.billAmount} />
+            <Field label="Discount Amount" value={order.discountAmount} valueClass="text-gray-900" />
+            <Field label="Trydood Discount" value={order.trydoodDiscount} />
+            {/* <Field label="Membership Discount" value={order.membershipDiscount} valueClass={order.membershipDiscount ? "text-emerald-500 font-semibold" : "text-gray-900"} /> */}
+            <Field label="Coupon Code" value={order.couponCode} />
+            <Field label="Paid Amount" value={order.paidAmount} />
+          </div>
+        </Section>
+
+        {/* Payments Information */}
+        <Section icon={CreditCard} iconBg="bg-sky-50" iconText="text-sky-500" title="Payments Information">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-y-5 gap-x-6">
+            <Field label="Payment Method" value={order.paymentMethod} />
+            <Field label="Payment options" value={order.paymentOptions} />
+            <Field label="Payment Via" value={order.paymentVia} />
+          </div>
+        </Section>
+
+        {/* Customer Information */}
+        {(order.customerName || order.customerCode || order.customerEmail || order.customerNote) && (
+          <Section icon={User} iconBg="bg-amber-50" iconText="text-amber-500" title="Customer Information" subtitle={order.customerNote}>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-y-5 gap-x-6">
+              {order.customerName && <Field label="Customer Name" value={order.customerName} />}
+              {order.customerCode && <Field label="Customer Id" value={order.customerCode} />}
+              {order.customerEmail && <Field label="Mail Id" value={order.customerEmail} />}
+            </div>
+          </Section>
+        )}
+
+        {/* Transaction Information */}
+        <Section
+          icon={Activity}
+          iconBg="bg-emerald-50"
+          iconText="text-emerald-500"
+          title="Transaction Information"
+          subtitle={
+            <button className="flex items-center gap-1 text-blue-500 hover:underline">
+              <span>Time Line</span>
+              <span className="text-gray-400 font-normal">(Track all activities and updates easily.)</span>
+            </button>
+          }
+        >
+          <div className="space-y-6">
+            {/* Payment transaction row */}
+            <div className="flex gap-3">
+              <div className="w-7 h-7 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} className="text-emerald-500">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-y-5 gap-x-6 flex-1">
+                <Field
+                  label="Payment Transaction Id"
+                  value={order.paymentTransactionId}
+                  action={<CopyButton text={order.paymentTransactionId} />}
+                />
+                <Field label="Date & Time" value={order.paymentDateTime} />
+                <Field label="Pay Via" value={order.payVia} />
+                <Field label="Recived Account Info" value={order.receivedAccountInfo} />
+              </div>
+            </div>
+
+            {/* Settlement row — no settlement id/date/account exists yet
+                on a real voucher claim's payment record, only on the
+                still-dummy dealpack/membership entries, so this whole
+                row is skipped rather than showing four blank fields. */}
+            {order.settlementId && (
+              <div className="flex gap-3">
+                <div className="w-7 h-7 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} className="text-emerald-500">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-y-5 gap-x-6 flex-1">
+                  <Field
+                    label="Settlement Done"
+                    value={order.settlementId}
+                    valueClass="text-blue-500 font-medium"
+                    action={<CopyButton text={order.settlementId} />}
+                  />
+                  <Field label="Date & Time" value={order.settlementDateTime} />
+                  <Field label="Settlement Transaction ID" value={order.settlementTransactionId} />
+                  <Field label="Settlement Account Info" value={order.settlementAccountInfo} />
+                </div>
+              </div>
+            )}
+          </div>
+        </Section>
+
+        {/* Ticket Raise */}
+        {order.tickets?.length > 0 && (
+          <Section icon={LifeBuoy} iconBg="bg-rose-50" iconText="text-rose-500" title="Ticket Raise">
+            <div className="space-y-2">
+              {order.tickets.map((t, i) => (
+                <TicketItem key={i} ticket={t} />
+              ))}
+            </div>
+          </Section>
+        )}
+
         {/* Footer */}
-        <div className="mt-8 pt-6 border-t border-gray-200 flex flex-wrap items-center justify-between gap-3">
+        <div className="pt-2 flex flex-wrap items-center justify-between gap-3">
           <p className="text-xs font-bold tracking-[0.1em] text-gray-800">TRYDOOD RETAIL PRIVATE LIMITED</p>
           <div className="flex items-center gap-5 text-xs text-gray-400">
             <span>Copyright © 2026 Trydood. All rights reserved.</span>
@@ -493,6 +452,14 @@ export default function OrderDetail() {
         <VoucherViewModal
           voucherId={order.refId}
           onClose={() => setShowVoucherModal(false)}
+        />
+      )}
+
+      {showReceiptModal && (
+        <ReceiptModal
+          order={order}
+          typeConfig={typeConfig}
+          onClose={() => setShowReceiptModal(false)}
         />
       )}
     </div>

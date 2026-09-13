@@ -9,6 +9,7 @@ const ShowcaseSection = ({
   onAddMedia,
   onDeleteMedia,
   onReplaceMedia,
+  onUpdateMediaDetails,
   onSetMediaOrder,
   onEditSection,
   onDeleteSection,
@@ -85,6 +86,7 @@ const ShowcaseSection = ({
               onAddMedia={onAddMedia}
               onDeleteMedia={onDeleteMedia}
               onReplaceMedia={onReplaceMedia}
+              onUpdateMediaDetails={onUpdateMediaDetails}
               onSetMediaOrder={onSetMediaOrder}
               onEditSection={onEditSection}
               onDeleteSection={onDeleteSection}
