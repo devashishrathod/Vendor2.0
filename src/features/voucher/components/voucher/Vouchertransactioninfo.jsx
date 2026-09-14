@@ -6,14 +6,14 @@ const ROWS_PER_PAGE_OPTIONS = [10, 20, 50, 100];
 const FILTER_TABS = ["All", "Sub-Brand", "Franchise"];
 
 const AVATAR_COLORS = [
-    "bg-violet-200 text-violet-700",
+    "bg-emerald-200 text-emerald-700",
     "bg-emerald-200 text-emerald-700",
     "bg-amber-200 text-amber-700",
     "bg-sky-200 text-sky-700",
     "bg-rose-200 text-rose-700",
     "bg-teal-200 text-teal-700",
     "bg-orange-200 text-orange-700",
-    "bg-indigo-200 text-indigo-700",
+    "bg-emerald-200 text-emerald-700",
 ];
 
 const formatCurrency = (value) =>
@@ -99,7 +99,7 @@ export default function VoucherTransactionInfo({
                         <Calendar className="h-3.5 w-3.5" />
                         Filter by date
                     </button>
-                    <button className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 font-medium text-white hover:bg-indigo-700">
+                    <button className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 font-medium text-white hover:bg-emerald-700">
                         <Download className="h-3.5 w-3.5" />
                         Export Data
                     </button>
@@ -114,7 +114,7 @@ export default function VoucherTransactionInfo({
                     <SummaryStat
                         label="Overall Earnings"
                         value={formatCurrency(summary.overallEarnings)}
-                        valueClassName="text-indigo-600"
+                        valueClassName="text-emerald-600"
                     />
                     <SummaryStat
                         label="Overall Bill Amount"
@@ -123,7 +123,7 @@ export default function VoucherTransactionInfo({
                     <SummaryStat
                         label="Discount Amount"
                         value={formatCurrency(summary.discountAmount)}
-                        valueClassName="text-indigo-600"
+                        valueClassName="text-emerald-600"
                     />
                     <SummaryStat
                         label="Paid Amount"
@@ -171,7 +171,7 @@ export default function VoucherTransactionInfo({
                             <button
                                 key={p}
                                 onClick={() => setPage(p)}
-                                className={`h-7 w-7 rounded-md text-sm ${p === page ? "bg-indigo-600 text-white" : "hover:bg-gray-100"
+                                className={`h-7 w-7 rounded-md text-sm ${p === page ? "bg-emerald-600 text-white" : "hover:bg-gray-100"
                                     }`}
                             >
                                 {p}
@@ -245,7 +245,7 @@ export default function VoucherTransactionInfo({
                             ) : (
                                 paginatedRows.map((row, index) => (
                                     <tr key={`${row.orderId}-${index}`} className="border-t border-gray-50">
-                                        <td className="whitespace-nowrap px-3 py-3 font-medium text-indigo-600">
+                                        <td className="whitespace-nowrap px-3 py-3 font-medium text-emerald-600">
                                             #{row.orderId}
                                         </td>
                                         <td className="px-3 py-3">

@@ -32,7 +32,11 @@ const SUB_TOTALS = {
 const SCREEN_ROUTES = {
   SUBSCRIBE_PLAN: "/subscription",
   UNDER_REVIEW:   "/under-review",
-  DASHBOARD:      "/oulet",
+  // The /oulet route doesn't exist (it's commented out in App.jsx) — this
+  // was left stale from before DASHBOARD was repointed to Analysis Report,
+  // the dashboard group's new default page. PostAuthRouteGuard.jsx already
+  // has the correct "/analysis-report" mapping; this just matches it.
+  DASHBOARD:      "/analysis-report",
 };
 
 function getSubLabel(currentStep, currentSubStep) {

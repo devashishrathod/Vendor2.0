@@ -5,7 +5,7 @@ import { ChevronRight } from 'lucide-react';
  * out in a grid. `link` (optional) renders a small "View X →" action below
  * the value, e.g. Invoice Information's "View Invoice"/"Raise Query" rows.
  */
-export function InfoTile({ icon, iconBg = 'bg-blue-50', iconText = 'text-blue-500', label, value, valueNode, link, className = '' }) {
+export function InfoTile({ icon, iconBg = 'bg-blue-50', iconText = 'text-blue-500', label, value, valueClassName = '', valueNode, link, className = '' }) {
   return (
     <div className={`flex items-start gap-3 bg-gray-50 rounded-xl p-3.5 ${className}`}>
       <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${iconBg} ${iconText}`}>
@@ -13,7 +13,7 @@ export function InfoTile({ icon, iconBg = 'bg-blue-50', iconText = 'text-blue-50
       </div>
       <div className="min-w-0 flex-1">
         <p className="text-xs text-gray-400">{label}</p>
-        {valueNode ?? <p className="text-sm font-semibold text-gray-800 mt-0.5 break-words">{value ?? '—'}</p>}
+        {valueNode ?? <p className={`text-sm font-semibold text-gray-800 mt-0.5 break-words ${valueClassName}`}>{value ?? '—'}</p>}
         {link && (
           <button
             onClick={link.onClick}

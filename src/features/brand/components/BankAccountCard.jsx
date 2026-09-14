@@ -42,8 +42,8 @@ const BankAccountCard = ({ account, isSelected, onSelect }) => {
         >
           {isSelected && <span className="h-2 w-2 rounded-full bg-emerald-600" />}
         </span>
-        <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center flex-shrink-0">
-          <Landmark className="w-4 h-4 text-indigo-500" strokeWidth={1.8} />
+        <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center flex-shrink-0">
+          <Landmark className="w-4 h-4 text-emerald-500" strokeWidth={1.8} />
         </div>
         <div className="flex-1">
           <div className="flex items-center gap-2">

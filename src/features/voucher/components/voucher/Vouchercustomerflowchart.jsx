@@ -25,7 +25,7 @@ export default function VoucherCustomerFlowChart({ customerFlowWeekly }) {
             listing from first view to final conversion.
           </p>
         </div>
-        <button className="text-xs font-medium text-indigo-600 hover:underline">
+        <button className="text-xs font-medium text-emerald-600 hover:underline">
           Week Analysis
         </button>
       </div>

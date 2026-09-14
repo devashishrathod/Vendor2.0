@@ -7,7 +7,7 @@ const ACCENT_GRADIENTS = [
   "from-emerald-400 to-teal-500",
   "from-orange-400 to-rose-500",
   "from-sky-400 to-blue-500",
-  "from-purple-400 to-indigo-500",
+  "from-purple-400 to-emerald-500",
   "from-amber-400 to-orange-500",
   "from-pink-400 to-fuchsia-500",
 ];

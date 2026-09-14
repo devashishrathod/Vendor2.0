@@ -185,8 +185,8 @@ export default function VoucherDetailsInfo({ voucher }) {
       {/* Search Tag */}
       <SectionCard
         icon={Search}
-        iconBg="bg-violet-50"
-        iconText="text-violet-500"
+        iconBg="bg-emerald-50"
+        iconText="text-emerald-500"
         title="Search Tag"
         subtitle="Keywords that help users quickly find this item. Add keywords to improve search visibility."
       >
@@ -214,7 +214,7 @@ export default function VoucherDetailsInfo({ voucher }) {
                   alt="Banner"
                   className="h-24 w-24 rounded-xl border border-gray-100 object-cover"
                 />
-                <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-indigo-600 px-2 py-0.5 text-[10px] font-semibold text-white">
+                <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-semibold text-white">
                   Banner
                 </span>
               </div>

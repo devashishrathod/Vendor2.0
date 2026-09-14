@@ -343,7 +343,7 @@ export default function TransactionOverview({ activeTxnTab, voucherData, dateRan
                               {getInitials(row.customerName)}
                             </div>
                             <div>
-                              <p className="text-gray-700 font-medium">{row.customerName}</p>
+                              <p className="text-gray-700 font-medium capitalize">{row.customerName}</p>
                               <p className="text-blue-500">{row.customerCode}</p>
                             </div>
                           </div>

@@ -448,9 +448,9 @@ export default function WelcomePage({ orderData = null, asModal = true, onClose,
             <p className="text-base font-bold text-[#1a1a2e] capitalize mb-4">{brandData.companyName}</p>
 
             <div className={`flex flex-wrap gap-x-6 gap-y-2 mb-6 text-sm text-gray-700 ${asModal ? "flex-col sm:flex-row" : ""}`}>
-              <span>Merchant Token : <span className="text-indigo-500 font-medium">{brandData.merchantToken}</span></span>
-              <span>GST No : <span className="text-indigo-500 font-medium">{brandData.gstNo}</span></span>
-              <span>PAN No : <span className="text-indigo-500 font-medium">{brandData.panNo}</span></span>
+              <span>Merchant Token : <span className="text-emerald-500 font-medium">{brandData.merchantToken}</span></span>
+              <span>GST No : <span className="text-emerald-500 font-medium">{brandData.gstNo}</span></span>
+              <span>PAN No : <span className="text-emerald-500 font-medium">{brandData.panNo}</span></span>
             </div>
 
             <div className="flex justify-end mb-2">

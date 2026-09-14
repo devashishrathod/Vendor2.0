@@ -45,7 +45,7 @@ export const MOOD_COLLECTIONS = [
     id: "party",
     name: "Party Anthems",
     image: "https://cdn.pixabay.com/photo/2018/05/10/11/34/concert-3387324_1280.jpg",
-    gradient: "from-purple-400 to-indigo-500",
+    gradient: "from-purple-400 to-emerald-500",
     icon: PartyPopper,
     songs: [
       makeSong("Night Lights", "Weekend Crew"),
@@ -135,7 +135,7 @@ export const LANGUAGE_COLLECTIONS = [
     id: "english",
     label: "English",
     name: "English Favorites",
-    gradient: "from-blue-400 to-indigo-600",
+    gradient: "from-blue-400 to-emerald-600",
     icon: Mic2,
     songs: [makeSong("Golden Hour", "English Favorites"), makeSong("City Lights", "English Favorites")],
   },
@@ -174,7 +174,7 @@ export const ARTIST_COLLECTIONS = [
   {
     id: "akshay",
     name: "Akshay Kumar Hits",
-    gradient: "from-indigo-400 to-blue-600",
+    gradient: "from-emerald-400 to-blue-600",
     icon: Star,
     songs: [makeSong("Khiladi Groove", "Fan Tribute Mix"), makeSong("Action Anthem", "Fan Tribute Mix")],
   },

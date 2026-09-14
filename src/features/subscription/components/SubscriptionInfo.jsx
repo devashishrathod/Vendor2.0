@@ -19,7 +19,7 @@ export default function SubscriptionInfo({ subscription }) {
   } = subscription;
 
   const items = [
-    { icon: <Crown className="w-4 h-4" />, iconBg: 'bg-emerald-50', iconText: 'text-emerald-500', label: 'Plan Name', value: planName },
+    { icon: <Crown className="w-4 h-4" />, iconBg: 'bg-emerald-50', iconText: 'text-emerald-500', label: 'Plan Name', value: planName, valueClassName: 'capitalize' },
     { icon: <CalendarDays className="w-4 h-4" />, iconBg: 'bg-blue-50', iconText: 'text-blue-500', label: 'Created On', value: formatDateDMY(createdOnDate) },
     { icon: <Clock className="w-4 h-4" />, iconBg: 'bg-gray-100', iconText: 'text-gray-500', label: 'Subscription Term', value: `${subscriptionTermYears} Year${subscriptionTermYears === 1 ? '' : 's'}` },
     { icon: <Hourglass className="w-4 h-4" />, iconBg: 'bg-gray-100', iconText: 'text-gray-500', label: 'Expiration Status', value: getExpirationStatus(expirationDate) },

@@ -24,7 +24,7 @@ import { cx } from "../utils/outletUtils";
 // Subscription used to show here too — removed, since this page is about
 // the OUTLET, not brand-level billing/verification.)
 
-function InfoRow({ icon: Icon, label, value, copyable, valueNode }) {
+function InfoRow({ icon: Icon, label, value, copyable, valueNode, valueClassName = "" }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -39,7 +39,7 @@ function InfoRow({ icon: Icon, label, value, copyable, valueNode }) {
         <Icon className="w-4 h-4 text-gray-400" />
         {label}
       </span>
-      <span className="flex items-center gap-2 text-sm font-semibold text-gray-800 text-right break-words">
+      <span className={`flex items-center gap-2 text-sm font-semibold text-gray-800 text-right break-words ${valueClassName}`}>
         {valueNode ?? (value ?? "—")}
         {copyable && value && (
           <button
@@ -244,8 +244,8 @@ export default function OutletDetailsInfo({ outlet, brand, onEdit, onEditLocatio
       >
         {location ? (
           <>
-            <InfoRow icon={MapPin} label="Address" value={formatAddress(location)} />
-            <InfoRow icon={Building2} label="City / State" value={[location.city, location.state].filter(Boolean).join(", ")} />
+            <InfoRow icon={MapPin} label="Address" value={formatAddress(location)} valueClassName="capitalize" />
+            <InfoRow icon={Building2} label="City / State" value={[location.city, location.state].filter(Boolean).join(", ")} valueClassName="capitalize" />
             <InfoRow icon={Hash} label="Pincode" value={location.zipcode} />
 
             {hasCoords && (

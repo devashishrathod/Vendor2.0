@@ -37,7 +37,7 @@ function CopyButton({ text }) {
   );
 }
 
-function InfoTile({ icon, label, value, copyValue, action, note }) {
+function InfoTile({ icon, label, value, valueClassName = "", copyValue, action, note }) {
   return (
     <div className="flex items-start gap-3">
       <div className="flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -46,7 +46,7 @@ function InfoTile({ icon, label, value, copyValue, action, note }) {
       <div className="min-w-0">
         <p className="text-xs text-gray-400">{label}</p>
         <div className="mt-0.5 flex items-center gap-1.5">
-          <p className="text-sm font-semibold text-gray-900 truncate">{value || "—"}</p>
+          <p className={`text-sm font-semibold text-gray-900 truncate ${valueClassName}`}>{value || "—"}</p>
           {copyValue && <CopyButton text={copyValue} />}
           {action}
         </div>
@@ -91,12 +91,14 @@ const BrandProfileSection = ({ profile, outletCount, reload }) => {
           icon={<Store className="w-4 h-4 text-emerald-500" strokeWidth={1.8} />}
           label="Brand Name"
           value={profile.brandName}
+          valueClassName="capitalize"
           copyValue={profile.brandName}
         />
         <InfoTile
           icon={<Building2 className="w-4 h-4 text-emerald-500" strokeWidth={1.8} />}
           label="Legal Business Name"
           value={profile.legalBusinessName}
+          valueClassName="capitalize"
           copyValue={profile.legalBusinessName}
         />
         <InfoTile

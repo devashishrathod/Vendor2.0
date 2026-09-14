@@ -1274,7 +1274,7 @@ export default function UnderReview() {
                     value={bankFields.accountHolderName}
                     onChange={(e) => setBankFields((prev) => ({ ...prev, accountHolderName: e.target.value }))}
                     placeholder="Account holder name"
-                    className={`${inputBase} w-full`}
+                    className={`${inputBase} w-full capitalize`}
                   />
                   <button
                     type="button"

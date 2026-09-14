@@ -35,7 +35,7 @@
 //         <span className="text-gray-400 line-through text-sm">
 //           ₹ {fmt(plan.originalPrice)}
 //         </span>
-//         <span className="bg-violet-600 text-white text-xs font-bold px-3 py-1 rounded-md">
+//         <span className="bg-emerald-600 text-white text-xs font-bold px-3 py-1 rounded-md">
 //           {plan.discount} % Off
 //         </span>
 //       </div>
@@ -137,7 +137,7 @@ export default function PlanPriceCard({ plans = [], selectedId, onPurchase, load
             <span className="text-gray-400 line-through text-sm">₹ {fmt(strikeReference)}</span>
           )}
           {discountLabel && (
-            <span className="bg-indigo-600 text-white text-xs font-bold px-3 py-1 rounded-md">
+            <span className="bg-emerald-600 text-white text-xs font-bold px-3 py-1 rounded-md">
               {discountLabel}
             </span>
           )}

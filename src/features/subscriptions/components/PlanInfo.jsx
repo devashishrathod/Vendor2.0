@@ -48,7 +48,7 @@ export default function PlanInfo({ plan }) {
             <span className="text-gray-400 line-through text-sm">{formatINR(strikeReference)}</span>
           )}
           {discountLabel && (
-            <span className="bg-indigo-600 text-white text-xs font-bold px-3 py-1 rounded-md">
+            <span className="bg-emerald-600 text-white text-xs font-bold px-3 py-1 rounded-md">
               {discountLabel}
             </span>
           )}

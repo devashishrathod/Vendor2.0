@@ -24,7 +24,11 @@ const SCREEN_TO_STEP = {
   SUBSCRIBE_PLAN:           { redirect: "/subscription" },
   OUTLET_PAGE:              { redirect: "/brand-outlet" },
   UNDER_REVIEW:             { redirect: "/under-review" },
-  DASHBOARD:                { redirect: "/oulet" },
+  // The /oulet route doesn't exist (it's commented out in App.jsx) — this
+  // was left stale from before DASHBOARD was repointed to Analysis Report,
+  // the dashboard group's new default page. PostAuthRouteGuard.jsx already
+  // has the correct "/analysis-report" mapping; this just matches it.
+  DASHBOARD:                { redirect: "/analysis-report" },
 };
 
 function ErrorMessage({ message }) {

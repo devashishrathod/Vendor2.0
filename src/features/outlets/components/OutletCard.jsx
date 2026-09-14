@@ -6,11 +6,11 @@ import { formatJoinedDate, maskStoreId } from "../utils/outletUtils";
 // A single "Label   Value" row — used for every field in the card body so
 // they all line up consistently instead of each field getting its own
 // heading + paragraph.
-function InfoRow({ label, value }) {
+function InfoRow({ label, value, valueClassName = "" }) {
   return (
     <div className="flex items-start justify-between gap-4 py-2.5 border-b border-gray-50 last:border-0">
       <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide shrink-0">{label}</span>
-      <span className="text-sm font-semibold text-gray-800 text-right break-words">{value}</span>
+      <span className={`text-sm font-semibold text-gray-800 text-right break-words ${valueClassName}`}>{value}</span>
     </div>
   );
 }
@@ -59,7 +59,7 @@ export default function OutletCard({ outlet, selected, onSelect, onToggleStatus,
         />
         <InfoRow label="Outlet Type" value={OUTLET_TYPE_LABELS[outlet.outletType] || "—"} />
         <InfoRow label="Joined" value={formatJoinedDate(outlet.joinedDate)} />
-        {outlet.address && <InfoRow label="Address" value={outlet.address} />}
+        {outlet.address && <InfoRow label="Address" value={outlet.address} valueClassName="capitalize" />}
       </div>
 
       <div className="flex items-center justify-between gap-3 px-5 py-4 border-t border-gray-100 mt-2">

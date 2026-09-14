@@ -34,7 +34,7 @@ export default function VoucherOverview({ stats, isLoading }) {
     <div className="rounded-xl border border-gray-200 bg-white">
       <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
         <h3 className="text-sm font-semibold text-gray-700">Voucher Overview</h3>
-        <button className="text-sm font-medium text-indigo-600 hover:underline">
+        <button className="text-sm font-medium text-emerald-600 hover:underline">
           Live Updates
         </button>
       </div>

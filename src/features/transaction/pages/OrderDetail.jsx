@@ -358,7 +358,7 @@ export default function OrderDetail() {
         {(order.customerName || order.customerCode || order.customerEmail || order.customerNote) && (
           <Section icon={User} iconBg="bg-amber-50" iconText="text-amber-500" title="Customer Information" subtitle={order.customerNote}>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-y-5 gap-x-6">
-              {order.customerName && <Field label="Customer Name" value={order.customerName} />}
+              {order.customerName && <Field label="Customer Name" value={order.customerName} valueClass="text-gray-900 capitalize" />}
               {order.customerCode && <Field label="Customer Id" value={order.customerCode} />}
               {order.customerEmail && <Field label="Mail Id" value={order.customerEmail} />}
             </div>

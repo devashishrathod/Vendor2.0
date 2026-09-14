@@ -100,7 +100,7 @@ export default function SettlementTable({
               onClick={() => onPageSizeChange(size)}
               className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${
                 pageSize === size
-                  ? "bg-indigo-600 text-white shadow-sm"
+                  ? "bg-emerald-600 text-white shadow-sm"
                   : "text-slate-500 hover:text-slate-700"
               }`}
             >
@@ -111,7 +111,7 @@ export default function SettlementTable({
         </div>
 
         <div className="flex flex-1 flex-nowrap items-center gap-2 overflow-x-auto sm:justify-end">
-          <div className="flex w-44 flex-shrink-0 items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-400 transition-colors focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-100">
+          <div className="flex w-44 flex-shrink-0 items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-400 transition-colors focus-within:border-emerald-400 focus-within:ring-2 focus-within:ring-emerald-100">
             <Search className="h-4 w-4 flex-shrink-0" />
             <input
               value={search}
@@ -156,7 +156,7 @@ export default function SettlementTable({
               <button
                 type="button"
                 onClick={() => onDateRangeChange({ from: "", to: "" })}
-                className="text-xs text-slate-400 hover:text-indigo-600"
+                className="text-xs text-slate-400 hover:text-emerald-600"
               >
                 Clear
               </button>
@@ -211,7 +211,7 @@ export default function SettlementTable({
                       <td className="px-3 py-2">
                         <button
                           onClick={() => goToDetails(row.settlementId)}
-                          className="flex items-center gap-1.5 text-xs font-medium text-indigo-600 hover:underline"
+                          className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 hover:underline"
                         >
                           {row.settlementId}
                           <Copy className="h-3 w-3 text-slate-300" />
@@ -266,7 +266,7 @@ export default function SettlementTable({
               onClick={() => setPage(p)}
               className={`h-7 w-7 rounded-md text-xs font-medium transition ${
                 p === page
-                  ? "bg-indigo-600 text-white"
+                  ? "bg-emerald-600 text-white"
                   : "text-slate-500 hover:bg-slate-100"
               }`}
             >

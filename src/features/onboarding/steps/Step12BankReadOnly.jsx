@@ -396,7 +396,7 @@ goToStep(STEPS.SYSTEM_VERIFY); // ✅ turant, setTimeout hataya
             value={d.bank_name}
             iconBg="#EEF2FF"
             icon={
-              <svg className="w-3.5 h-3.5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21h18M5 21V7l8-4v18M13 21V11l6 3v7M9 9h.01M9 13h.01M9 17h.01" />
               </svg>
             }

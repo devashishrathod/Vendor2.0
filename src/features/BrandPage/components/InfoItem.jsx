@@ -5,14 +5,14 @@ import React from "react";
  * A small label + value pair (e.g. "Merchant Token" / "A4FGIWJOIUN20"),
  * optionally with a trailing action link like "Change".
  */
-const InfoItem = ({ label, value, action }) => {
+const InfoItem = ({ label, value, valueClassName = "", action }) => {
   return (
     <div>
       <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
         {label}
       </p>
       <div className="mt-1 flex items-center gap-2">
-        <p className="text-sm text-gray-800">{value}</p>
+        <p className={`text-sm text-gray-800 ${valueClassName}`}>{value}</p>
         {action && (
           <button
             type="button"

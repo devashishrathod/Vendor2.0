@@ -597,7 +597,7 @@ export default function Step11BankEnter({ onFetchSuccess }) {
                   value={fields.beneficiaryName}
                   onChange={handleChange("beneficiaryName")}
                   maxLength={80}
-                  className={`w-full pl-9 py-2.5 pr-10 bg-white border rounded-lg text-sm font-medium text-gray-800
+                  className={`w-full pl-9 py-2.5 pr-10 bg-white border rounded-lg text-sm font-medium text-gray-800 capitalize
                     placeholder:text-gray-300 placeholder:font-sans outline-none transition-all duration-200
                     ${!hasBeneficiaryInput
                       ? "border-gray-200 focus:border-emerald-300 focus:ring-2 focus:ring-emerald-50"

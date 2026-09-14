@@ -54,12 +54,23 @@ export default function VoucherDetails() {
   // just this voucher, lazily fetched once the Transaction Information tab
   // is actually opened.
   const [txnData, setTxnData] = useState(null);
+  const [txnError, setTxnError] = useState(null);
   useEffect(() => {
     if (activeTab !== "Transaction Information" || !voucher?.voucherId || !resolvedBrandId) return;
     let cancelled = false;
+
+    function resetTxnError() {
+      setTxnError(null);
+    }
+    resetTxnError();
+
     fetchVoucherTransactionsByVoucherId(voucher.voucherId, { brandId: resolvedBrandId })
       .then((result) => { if (!cancelled) setTxnData(result); })
-      .catch((err) => console.error("Failed to load voucher transactions:", err.message));
+      .catch((err) => {
+        if (cancelled) return;
+        console.error("Failed to load voucher transactions:", err.message);
+        setTxnError(err.message || "Failed to load transactions for this voucher.");
+      });
     return () => { cancelled = true; };
   }, [activeTab, voucher?.voucherId, resolvedBrandId]);
 
@@ -85,7 +96,7 @@ export default function VoucherDetails() {
               <ArrowLeft className="h-5 w-5" />
             </button>
             <div>
-              <h1 className="text-lg font-semibold text-gray-900">{voucher.name}</h1>
+              <h1 className="text-lg font-semibold text-gray-900 capitalize">{voucher.name}</h1>
               <p className="text-xs text-gray-400">Created Date: {formatDate(voucher.createdAt)}</p>
             </div>
           </div>
@@ -126,11 +137,18 @@ export default function VoucherDetails() {
           {activeTab === "Voucher Details" && <VoucherDetailsInfo voucher={voucher} />}
 
           {activeTab === "Transaction Information" && (
-            <VoucherTransactionInfo
-              voucherTitle={voucher.name}
-              summary={txnData?.summary}
-              transactions={txnData?.rows || []}
-            />
+            <>
+              {txnError && (
+                <p className="rounded-xl border border-red-100 bg-red-50 px-4 py-2.5 text-sm text-red-500">
+                  {txnError}
+                </p>
+              )}
+              <VoucherTransactionInfo
+                voucherTitle={voucher.name}
+                summary={txnData?.summary}
+                transactions={txnData?.rows || []}
+              />
+            </>
           )}
         </div>
       </div>

@@ -39,9 +39,9 @@ export default function PlanStatusBanner({ subscription, onUpgrade, onViewDetail
             >
               {copy.label}
             </span>
-            <h3 className="text-2xl font-bold text-gray-900">{planName}</h3>
+            <h3 className="text-2xl font-bold text-gray-900 capitalize">{planName}</h3>
             <p className="text-sm text-gray-500 mt-1 max-w-md">
-              Thank you, <strong className="text-gray-700">{brandName}</strong>! Your subscription {copy.verb}. You
+              Thank you, <strong className="text-gray-700 capitalize">{brandName}</strong>! Your subscription {copy.verb}. You
               now have full access to all {planName} features.
             </p>
           </div>

@@ -17,6 +17,12 @@ import CardPage from "../more/components/CardPage";
 import DashboardHeader from "../dashboard/components/DashboardHeader";
 
 // All card data lives here — edit this array to add/remove/reorder cards.
+// ⚠️ Several of these `to` paths are NOT registered in App.jsx's <Routes>
+// (only /account-information, /outlets and /subscription-plan actually
+// exist) — the rest previously linked to routes that don't exist and would
+// silently hit the app's catch-all "*" route and redirect to "/". Marked
+// `comingSoon: true` so they render as disabled, non-navigating cards
+// instead of a broken link, until each one's real page/route is built.
 const cards = [
   {
     icon: <UserCog size={20} />,
@@ -29,7 +35,7 @@ const cards = [
   },
   {
     icon: <Building2 size={20} />,
-    iconBg: "bg-gradient-to-br from-blue-400 to-indigo-500",
+    iconBg: "bg-gradient-to-br from-blue-400 to-emerald-500",
     heading: "Sub Outlets & Franchise",
     title: "Grow Your Visibility",
     description:
@@ -44,6 +50,7 @@ const cards = [
     description:
       "Enter your coupon code to get discounts and special offers on your purchase.",
     to: "/settings/coupon-code",
+    comingSoon: true,
   },
   {
     icon: <Rocket size={20} />,
@@ -62,6 +69,7 @@ const cards = [
     description:
       "A targeted promotional strategy to promote your products, or services and reach the right audience effectively.",
     to: "/settings/feature-campaign",
+    comingSoon: true,
   },
   {
     icon: <BadgeIndianRupee size={20} />,
@@ -71,6 +79,7 @@ const cards = [
     description:
       "Boost your visibility by running paid ads that appear prominently to targeted users within the platform.",
     to: "/settings/sponsored-ads",
+    comingSoon: true,
   },
   {
     icon: <Star size={20} />,
@@ -80,6 +89,7 @@ const cards = [
     description:
       "Users can share their feedback, ratings, and experience to help others make better decisions.",
     to: "/settings/review",
+    comingSoon: true,
   },
   {
     icon: <Bell size={20} />,
@@ -89,15 +99,17 @@ const cards = [
     description:
       "A new update is available. Please check your notification for complete details.",
     to: "/settings/notification",
+    comingSoon: true,
   },
   {
     icon: <MessageCircleQuestion size={20} />,
-    iconBg: "bg-gradient-to-br from-purple-500 to-indigo-500",
+    iconBg: "bg-gradient-to-br from-purple-500 to-emerald-500",
     heading: "Raise query",
     title: "Customer-friendly version",
     description:
       "If you are facing any issue or have any questions, use this option to raise your query.",
     to: "/settings/raise-query",
+    comingSoon: true,
   },
   {
     icon: <KeyRound size={20} />,
@@ -107,6 +119,7 @@ const cards = [
     description:
       "Enter your registered email or mobile number and password to access your account securely.",
     to: "/settings/login-credentials",
+    comingSoon: true,
   },
   {
     icon: <FileText size={20} />,
@@ -116,6 +129,7 @@ const cards = [
     description:
       "Users must provide accurate information while using the platform.",
     to: "/settings/terms-and-conditions",
+    comingSoon: true,
   },
   // {
   //   icon: <BookOpen size={20} />,
@@ -146,6 +160,7 @@ const More = () => {
               title={card.title}
               description={card.description}
               to={card.to}
+              comingSoon={card.comingSoon}
             />
           ))}
         </div>

@@ -301,7 +301,7 @@ export default function VoucherTable({
                         )}
                         <button
                           onClick={() => navigate(`/vouchers/${version.voucherId}`)}
-                          className="line-clamp-2 max-w-[180px] text-left text-xs font-medium leading-snug text-emerald-600 hover:underline"
+                          className="line-clamp-2 max-w-[180px] text-left text-xs font-medium leading-snug text-emerald-600 hover:underline capitalize"
                         >
                           {version.name}
                         </button>

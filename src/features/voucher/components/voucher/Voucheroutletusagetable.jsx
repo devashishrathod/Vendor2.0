@@ -26,7 +26,7 @@ export default function VoucherOutletUsageTable({ title, outletUsage }) {
             <Calendar className="h-3.5 w-3.5" />
             Feb 26, 2026
           </button>
-          <button className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 font-medium text-white hover:bg-indigo-700">
+          <button className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 font-medium text-white hover:bg-emerald-700">
             <Download className="h-3.5 w-3.5" />
             Export Data
           </button>
@@ -36,7 +36,7 @@ export default function VoucherOutletUsageTable({ title, outletUsage }) {
       <div className="mt-4 overflow-x-auto">
         <table className="w-full min-w-[720px] text-left text-xs">
           <tbody>
-            <tr className="bg-indigo-50 text-gray-700">
+            <tr className="bg-emerald-50 text-gray-700">
               <th className="whitespace-nowrap px-3 py-2 font-medium">Store Type</th>
               {outletIds.map((outletId, index) => (
                 <td key={`${outletId}-${index}`} className="whitespace-nowrap px-3 py-2 font-medium">
