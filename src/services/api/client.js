@@ -21,16 +21,20 @@ export const clearToken = () => {
 export const getBrandId = () => {
   try {
     const raw = localStorage.getItem("onboarding-store");
-
-    console.log("RAW:", raw);
-
     const parsed = JSON.parse(raw);
+    const onboardingBrandId = parsed?.state?.formData?.brandId || null;
+    if (onboardingBrandId) return onboardingBrandId;
 
-    console.log("PARSED:", parsed);
-
-    console.log("BrandId:", parsed?.state?.formData?.brandId);
-
-    return parsed?.state?.formData?.brandId || null;
+    // Falls back to the auth session's own brandId (persisted under
+    // "auth-storage", see authStore.js's partialize) — the onboarding-store
+    // value is only ever populated during the onboarding flow itself, so
+    // it's empty/stale for a vendor who's long past onboarding and just
+    // logged back in on a fresh session or a different device, even though
+    // they have a real brand. Without this fallback, every brand-dependent
+    // fetch (useBrand, and anything downstream of it) silently never fires.
+    const authRaw = localStorage.getItem("auth-storage");
+    const authParsed = JSON.parse(authRaw);
+    return authParsed?.state?.user?.brandId || null;
   } catch (err) {
     console.error(err);
     return null;

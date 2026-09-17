@@ -55,6 +55,7 @@ export default function SettlementDetails() {
   const {
     detail,
     loading,
+    tickets,
     expandedTicket,
     toggleTicket,
     submitTicket,
@@ -71,7 +72,7 @@ export default function SettlementDetails() {
     );
   }
 
-  const { breakup, transactionInfo, tickets } = detail;
+  const { breakup, transactionInfo } = detail;
 
   return (
    <div>
@@ -82,7 +83,7 @@ export default function SettlementDetails() {
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => navigate(-1)}
+              onClick={() => navigate("/settlements")}
               className="rounded-full border border-slate-200 p-2 text-slate-500 hover:bg-slate-100"
             >
               <ArrowLeft className="h-4 w-4" />
@@ -106,7 +107,7 @@ export default function SettlementDetails() {
               <PlusCircle className="h-3.5 w-3.5" />
               Create Ticket
             </button>
-            <button className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 py-2 text-xs font-medium text-white hover:bg-indigo-700">
+            <button className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-xs font-medium text-white hover:bg-emerald-700">
               <Download className="h-3.5 w-3.5" />
               Download Report
             </button>
@@ -156,7 +157,7 @@ export default function SettlementDetails() {
               <div className="col-span-2">
                 <p className="text-xs text-slate-400">Your Transfer Amount was less than expected</p>
                 {breakup.verified && (
-                  <span className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-indigo-600">
+                  <span className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-emerald-600">
                     <BadgeCheck className="h-3.5 w-3.5" />
                     Verified
                   </span>
@@ -169,14 +170,14 @@ export default function SettlementDetails() {
           <SectionCard
             title="Transaction Information"
             action={
-              <button className="text-xs font-medium text-indigo-600 hover:underline">
+              <button className="text-xs font-medium text-emerald-600 hover:underline">
                 Price List (Check all updates cost.)
               </button>
             }
           >
             <div className="space-y-5">
               <div className="flex items-start gap-3">
-                <span className="mt-0.5 rounded-full bg-indigo-50 p-2 text-indigo-600">
+                <span className="mt-0.5 rounded-full bg-emerald-50 p-2 text-emerald-600">
                   <CreditCard className="h-4 w-4" />
                 </span>
                 <div className="grid flex-1 grid-cols-1 gap-y-1 gap-x-6 sm:grid-cols-3">

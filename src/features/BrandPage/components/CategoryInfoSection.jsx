@@ -9,8 +9,8 @@ const CategoryInfoSection = ({ category }) => {
       </h2>
 
       <div className="mt-5 grid grid-cols-1 gap-x-10 gap-y-6 sm:grid-cols-2 lg:grid-cols-4">
-        <InfoItem label="Main Category" value={category.mainCategory} />
-        <InfoItem label="Sub - Category" value={category.subCategory} />
+        <InfoItem label="Main Category" value={category.mainCategory} valueClassName="capitalize" />
+        <InfoItem label="Sub - Category" value={category.subCategory} valueClassName="capitalize" />
       </div>
     </section>
   );

@@ -47,7 +47,7 @@ export default function OtpVerifyModal({
               }
             }}
             placeholder="Enter OTP"
-            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-center text-lg tracking-[0.3em] font-semibold outline-none focus:border-indigo-400 bg-white text-gray-800"
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-center text-lg tracking-[0.3em] font-semibold outline-none focus:border-emerald-400 bg-white text-gray-800"
           />
 
           {otpError && <p className="text-xs text-red-500 mt-2">{otpError}</p>}
@@ -55,7 +55,7 @@ export default function OtpVerifyModal({
           <button
             onClick={onResend}
             disabled={resending}
-            className="text-xs font-semibold text-indigo-600 hover:underline mt-3 disabled:opacity-50 disabled:no-underline"
+            className="text-xs font-semibold text-emerald-600 hover:underline mt-3 disabled:opacity-50 disabled:no-underline"
           >
             {resending ? "Resending…" : "Didn't get it? Resend OTP"}
           </button>

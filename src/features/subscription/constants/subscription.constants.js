@@ -4,7 +4,11 @@
 // hard-code magic strings inline.
 
 export const ROUTES = {
-  PLANS: '/plans', // Where the "Upgrade" button should take the user
+  // Where the "Upgrade" button takes the user — the real plan-selection
+  // page (features/subscriptions, plural) also used during onboarding
+  // checkout. '/plans' was never a registered route, so Upgrade previously
+  // hit the app's catch-all and bounced to the landing page.
+  PLANS: '/subscription',
   SUBSCRIPTION: '/subscription',
   INVOICE_DETAIL: '/invoices/:orderId', // Route pattern for router registration
   INVOICE_HISTORY: '/subscription/invoice-history',
@@ -40,10 +44,9 @@ export const API_ENDPOINTS = {
 };
 
 export const STATIC_TEXT = {
-  PAGE_TITLE: 'Subscription Page',
-  PAGE_SUBTITLE:
-    'Select a subscription plan to unlock premium features, exclusive offers, and additional benefits.',
+  PAGE_TITLE: 'Subscription Plan',
+  PAGE_SUBTITLE: 'Unlock premium features, exclusive offers, and grow your business with Trydood.',
   SECTION_TITLE: 'Plan & Billing',
   SECTION_SUBTITLE: 'Manage your subscription, view invoices, and explore upgrade options',
-  UPGRADE_LABEL: 'Upgrade',
+  UPGRADE_LABEL: 'Upgrade Now',
 };

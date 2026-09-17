@@ -20,7 +20,7 @@ function StatusBadge({ status }) {
   const isDone = status?.toLowerCase().includes("done");
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
+      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${
         isDone ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"
       }`}
     >
@@ -30,6 +30,10 @@ function StatusBadge({ status }) {
   );
 }
 
+// ⚠️ No confirmed response yet for GET /settlements includes a per-item
+// breakdown, so `row.breakup` (see useSettlement.js's mapSettlementRow)
+// comes through zeroed rather than fabricated non-zero numbers — the
+// original UI section stays exactly as it was.
 function BreakupRow({ breakup }) {
   const items = [
     { label: "Discount Summary", value: breakup.discountSummary, tone: "text-slate-700" },
@@ -70,7 +74,11 @@ export default function SettlementTable({
   onPageSizeChange,
   search,
   onSearchChange,
+  statusOptions,
+  statusFilter,
+  onStatusFilterChange,
   dateRange,
+  onDateRangeChange,
   expandedRow,
   toggleRow,
   loading,
@@ -92,7 +100,7 @@ export default function SettlementTable({
               onClick={() => onPageSizeChange(size)}
               className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${
                 pageSize === size
-                  ? "bg-indigo-600 text-white shadow-sm"
+                  ? "bg-emerald-600 text-white shadow-sm"
                   : "text-slate-500 hover:text-slate-700"
               }`}
             >
@@ -102,29 +110,61 @@ export default function SettlementTable({
           <span className="ml-1 pr-1 text-xs text-slate-400">Rows per page</span>
         </div>
 
-        <div className="flex flex-1 flex-wrap items-center gap-2 sm:justify-end">
-          <div className="relative flex-1 min-w-[220px] sm:max-w-xs">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        <div className="flex flex-1 flex-nowrap items-center gap-2 overflow-x-auto sm:justify-end">
+          <div className="flex w-44 flex-shrink-0 items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-400 transition-colors focus-within:border-emerald-400 focus-within:ring-2 focus-within:ring-emerald-100">
+            <Search className="h-4 w-4 flex-shrink-0" />
             <input
               value={search}
               onChange={(e) => onSearchChange(e.target.value)}
-              placeholder="Search Here - Settlement Id,Transaction Id,Amount,Status"
-              className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-xs text-slate-600 placeholder:text-slate-400 focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400"
+              placeholder="Search Here: Settlement, Txn Id"
+              className="w-full bg-transparent text-slate-700 outline-none placeholder:text-slate-400 truncate"
             />
           </div>
 
-          <button className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50">
-            <SlidersHorizontal className="h-3.5 w-3.5" />
-            Filter
-          </button>
+          <div className="flex flex-shrink-0 items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-600">
+            <SlidersHorizontal className="h-4 w-4 shrink-0 text-slate-400" />
+            <select
+              value={statusFilter}
+              onChange={(e) => onStatusFilterChange(e.target.value)}
+              className="bg-transparent text-sm text-slate-600 outline-none"
+            >
+              <option value="all">All Statuses</option>
+              {statusOptions.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+          </div>
 
-          <button className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50">
-            <CalendarDays className="h-3.5 w-3.5" />
-            {dateRange}
-          </button>
+          <div className="flex flex-shrink-0 items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-600">
+            <CalendarDays className="h-4 w-4 shrink-0 text-slate-400" />
+            <input
+              type="date"
+              value={dateRange.from}
+              onChange={(e) => onDateRangeChange({ ...dateRange, from: e.target.value })}
+              max={dateRange.to || undefined}
+              className="bg-transparent text-sm text-slate-600 outline-none"
+            />
+            <span className="text-slate-300">–</span>
+            <input
+              type="date"
+              value={dateRange.to}
+              onChange={(e) => onDateRangeChange({ ...dateRange, to: e.target.value })}
+              min={dateRange.from || undefined}
+              className="bg-transparent text-sm text-slate-600 outline-none"
+            />
+            {(dateRange.from || dateRange.to) && (
+              <button
+                type="button"
+                onClick={() => onDateRangeChange({ from: "", to: "" })}
+                className="text-xs text-slate-400 hover:text-emerald-600"
+              >
+                Clear
+              </button>
+            )}
+          </div>
 
-          <button className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-medium text-white hover:bg-indigo-700">
-            <Download className="h-3.5 w-3.5" />
+          <button className="flex flex-shrink-0 items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
+            <Download className="h-4 w-4" />
             Export Data
           </button>
         </div>
@@ -134,20 +174,20 @@ export default function SettlementTable({
       <div className="overflow-x-auto">
         <table className="w-full min-w-[820px] text-left text-sm">
           <thead>
-            <tr className="text-xs font-medium uppercase tracking-wide text-slate-400">
-              <th className="px-6 py-3">Settlement Id</th>
-              <th className="px-6 py-3">Payment Received Date</th>
-              <th className="px-6 py-3">Settlement On</th>
-              <th className="px-6 py-3">Transaction ID</th>
-              <th className="px-6 py-3">Amount</th>
-              <th className="px-6 py-3">Status</th>
-              <th className="px-6 py-3 text-right">Info</th>
+            <tr className="bg-[#1a1a2e]">
+              <th className="whitespace-nowrap px-3 py-2.5 text-[11px] font-bold uppercase tracking-wide text-white/80">Settlement Id</th>
+              <th className="whitespace-nowrap px-3 py-2.5 text-[11px] font-bold uppercase tracking-wide text-white/80">Payment Received Date</th>
+              <th className="whitespace-nowrap px-3 py-2.5 text-[11px] font-bold uppercase tracking-wide text-white/80">Settlement On</th>
+              <th className="whitespace-nowrap px-3 py-2.5 text-[11px] font-bold uppercase tracking-wide text-white/80">Transaction ID</th>
+              <th className="whitespace-nowrap px-3 py-2.5 text-[11px] font-bold uppercase tracking-wide text-white/80">Amount</th>
+              <th className="whitespace-nowrap px-3 py-2.5 text-[11px] font-bold uppercase tracking-wide text-white/80">Status</th>
+              <th className="whitespace-nowrap px-3 py-2.5 text-right text-[11px] font-bold uppercase tracking-wide text-white/80">Info</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody>
             {loading && (
               <tr>
-                <td colSpan={7} className="px-6 py-8 text-center text-sm text-slate-400">
+                <td colSpan={7} className="px-3 py-8 text-center text-sm text-slate-400">
                   Loading settlements…
                 </td>
               </tr>
@@ -155,7 +195,7 @@ export default function SettlementTable({
 
             {!loading && rows.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-6 py-8 text-center text-sm text-slate-400">
+                <td colSpan={7} className="px-3 py-8 text-center text-sm text-slate-400">
                   No settlements match your search.
                 </td>
               </tr>
@@ -167,26 +207,26 @@ export default function SettlementTable({
                 const rowKey = row.settlementId + row.transactionId;
                 return (
                   <React.Fragment key={rowKey}>
-                    <tr className="hover:bg-slate-50/60">
-                      <td className="px-6 py-4">
+                    <tr className="border-b border-slate-100 bg-white last:border-b-0 hover:bg-slate-50/60">
+                      <td className="px-3 py-2">
                         <button
                           onClick={() => goToDetails(row.settlementId)}
-                          className="flex items-center gap-1.5 font-medium text-indigo-600 hover:underline"
+                          className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 hover:underline"
                         >
                           {row.settlementId}
                           <Copy className="h-3 w-3 text-slate-300" />
                         </button>
                       </td>
-                      <td className="px-6 py-4 text-slate-600">{row.paymentReceivedDate}</td>
-                      <td className="px-6 py-4 text-slate-600">{row.settlementOn}</td>
-                      <td className="px-6 py-4 text-slate-600">{row.transactionId}</td>
-                      <td className="px-6 py-4 font-medium text-slate-800">
+                      <td className="whitespace-nowrap px-3 py-2 text-xs text-slate-600">{row.paymentReceivedDate}</td>
+                      <td className="whitespace-nowrap px-3 py-2 text-xs text-slate-600">{row.settlementOn}</td>
+                      <td className="whitespace-nowrap px-3 py-2 text-xs text-slate-600">{row.transactionId}</td>
+                      <td className="whitespace-nowrap px-3 py-2 text-xs font-medium text-slate-800">
                         {currency(row.amount)}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-3 py-2">
                         <StatusBadge status={row.status} />
                       </td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-3 py-2 text-right">
                         <button
                           onClick={() => toggleRow(rowKey)}
                           className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
@@ -226,7 +266,7 @@ export default function SettlementTable({
               onClick={() => setPage(p)}
               className={`h-7 w-7 rounded-md text-xs font-medium transition ${
                 p === page
-                  ? "bg-indigo-600 text-white"
+                  ? "bg-emerald-600 text-white"
                   : "text-slate-500 hover:bg-slate-100"
               }`}
             >

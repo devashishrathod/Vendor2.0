@@ -10,6 +10,7 @@ import {
 } from "@/features/onboarding/store/onboardingStore";
 import { STEPS } from "@/features/onboarding/constants/steps";
 import { ROLES } from "@/constants";
+import { registerCurrentDevice } from "@/features/onboarding/services/api/deviceToken.api";
 
 const SCREEN_TO_STEP = {
   BUSINESS_NAME:            { step: STEPS.BASIC_DETAILS,         subStep: BASIC_SUB.BUSINESS_NAME },
@@ -23,7 +24,11 @@ const SCREEN_TO_STEP = {
   SUBSCRIBE_PLAN:           { redirect: "/subscription" },
   OUTLET_PAGE:              { redirect: "/brand-outlet" },
   UNDER_REVIEW:             { redirect: "/under-review" },
-  DASHBOARD:                { redirect: "/oulet" },
+  // The /oulet route doesn't exist (it's commented out in App.jsx) — this
+  // was left stale from before DASHBOARD was repointed to Analysis Report,
+  // the dashboard group's new default page. PostAuthRouteGuard.jsx already
+  // has the correct "/analysis-report" mapping; this just matches it.
+  DASHBOARD:                { redirect: "/analysis-report" },
 };
 
 function ErrorMessage({ message }) {
@@ -68,14 +73,14 @@ export default function Step2VerifyOTP({ isOpen, onClose, phoneNumber, onVerifie
   const { goToStep, setBrandId } = useOnboardingStore();
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [error, setError] = useState(null);
-  const [resendTimer, setResendTimer] = useState(30);
+  const [resendTimer, setResendTimer] = useState(60);
   const [canResend, setCanResend] = useState(false);
   const inputRefs = useRef([]);
   const navigate = useNavigate();
 
   useEffect(() => {
     if (!isOpen) return;
-    setResendTimer(30);
+    setResendTimer(60);
     setCanResend(false);
     const interval = setInterval(() => {
       setResendTimer((t) => {
@@ -135,6 +140,14 @@ export default function Step2VerifyOTP({ isOpen, onClose, phoneNumber, onVerifie
         console.log('✅ brandId saved:', brandId);
       }
 
+      // Register this device for push notifications now that the vendor
+      // has a valid session — failures here shouldn't block onboarding,
+      // just log and move on.
+      registerCurrentDevice().catch((err) => {
+        console.error('[OTP] registerCurrentDevice failed — FCM token generated: false');
+        console.error('[OTP] registerCurrentDevice error:', err);
+      });
+
       const currentScreen = res?.data?.user?.currentScreen ?? "BUSINESS_NAME";
       const mapped = SCREEN_TO_STEP[currentScreen];
       console.log('[OTP] mapped:', mapped);
@@ -159,7 +172,7 @@ export default function Step2VerifyOTP({ isOpen, onClose, phoneNumber, onVerifie
     setOtp(["", "", "", "", "", ""]);
     setError(null);
     setCanResend(false);
-    setResendTimer(30);
+    setResendTimer(60);
     try {
       await sendOTP(phoneNumber, "VENDOR");
     } catch (e) {
@@ -215,7 +228,7 @@ export default function Step2VerifyOTP({ isOpen, onClose, phoneNumber, onVerifie
               </svg>
             </div>
             <h2 className="text-xl font-bold text-gray-900 mb-1">Verify OTP</h2>
-            <p className="text-xs text-gray-400 leading-relaxed">
+            <p className="text-xs text-gray-500 leading-relaxed">
               We have sent a 6-digit OTP on<br />
               <span className="text-gray-600 font-semibold">{maskedNumber}</span>
             </p>
@@ -264,7 +277,7 @@ export default function Step2VerifyOTP({ isOpen, onClose, phoneNumber, onVerifie
             {loading ? "Verifying…" : "Continue →"}
           </PrimaryButton>
 
-          <p className="text-center text-xs text-gray-400 mt-4">
+          <p className="text-center text-xs text-gray-500 mt-4">
             🔒 We will never share your number with anyone.
           </p>
         </div>

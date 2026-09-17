@@ -24,7 +24,7 @@ export default function WorkingHoursEditor({ hours, onChange, onSave, saving = f
         <button
           onClick={copyMondayToAll}
           type="button"
-          className="text-xs font-semibold text-indigo-600 hover:underline whitespace-nowrap"
+          className="text-xs font-semibold text-emerald-600 hover:underline whitespace-nowrap"
         >
           Copy Monday to all days
         </button>
@@ -43,7 +43,7 @@ export default function WorkingHoursEditor({ hours, onChange, onSave, saving = f
                   type="checkbox"
                   checked={!!value.isOpen}
                   onChange={(e) => updateDay(day.key, { isOpen: e.target.checked })}
-                  className="w-4 h-4 accent-indigo-600 cursor-pointer"
+                  className="w-4 h-4 accent-emerald-600 cursor-pointer"
                 />
                 <span className={`text-sm font-semibold ${value.isOpen ? "text-gray-800" : "text-gray-400"}`}>
                   {day.label}
@@ -56,7 +56,7 @@ export default function WorkingHoursEditor({ hours, onChange, onSave, saving = f
                   value={value.start || ""}
                   onChange={(e) => updateDay(day.key, { start: e.target.value })}
                   disabled={!value.isOpen}
-                  className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-indigo-400 bg-white text-gray-700 disabled:opacity-40 disabled:bg-gray-100"
+                  className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-emerald-400 bg-white text-gray-700 disabled:opacity-40 disabled:bg-gray-100"
                 />
                 <span className="text-xs text-gray-400">to</span>
                 <input
@@ -64,7 +64,7 @@ export default function WorkingHoursEditor({ hours, onChange, onSave, saving = f
                   value={value.end || ""}
                   onChange={(e) => updateDay(day.key, { end: e.target.value })}
                   disabled={!value.isOpen}
-                  className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-indigo-400 bg-white text-gray-700 disabled:opacity-40 disabled:bg-gray-100"
+                  className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-emerald-400 bg-white text-gray-700 disabled:opacity-40 disabled:bg-gray-100"
                 />
               </div>
 
@@ -77,14 +77,16 @@ export default function WorkingHoursEditor({ hours, onChange, onSave, saving = f
       </div>
 
       {onSave && (
-        <button
-          type="button"
-          onClick={onSave}
-          disabled={saving}
-          className="mt-4 w-full bg-indigo-600 text-white font-semibold py-2.5 rounded-xl text-sm hover:bg-indigo-700 active:scale-[0.99] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {saving ? "Saving…" : "Save Working Hours"}
-        </button>
+        <div className="mt-4 flex justify-end">
+          <button
+            type="button"
+            onClick={onSave}
+            disabled={saving}
+            className="bg-emerald-500 text-white font-semibold px-6 py-2.5 rounded-xl text-sm hover:bg-emerald-600 active:scale-[0.99] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {saving ? "Saving…" : "Save Working Hours"}
+          </button>
+        </div>
       )}
     </div>
   );

@@ -14,7 +14,7 @@ export default function PrimaryButton({
         ${
           disabled || loading
             ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-            : "bg-indigo-600 hover:bg-indigo-700 text-white active:scale-[0.98] shadow-sm shadow-indigo-200"
+            : "bg-emerald-600 hover:bg-emerald-700 text-white active:scale-[0.98] shadow-sm shadow-emerald-200"
         } ${className}`}
     >
       {loading && (

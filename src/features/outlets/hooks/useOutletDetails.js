@@ -22,10 +22,10 @@ export function useOutletDetails(id) {
   const [transactions, setTransactions] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const brandId = brand?._id;
 
   useEffect(() => {
     let cancelled = false;
-    const brandId = brand?._id;
 
     async function load() {
       if (!id || !brandId) return;
@@ -59,7 +59,30 @@ export function useOutletDetails(id) {
     return () => {
       cancelled = true;
     };
-  }, [id, brand?._id, brandLoading]);
+  }, [id, brandId, brandLoading]);
+
+  // Manual reload (used after the Edit Outlet modal saves) — separate from
+  // the mount/brand-change effect above so it can be called on demand.
+  const reload = () => {
+    if (!id || !brandId) return;
+    setLoading(true);
+    setError("");
+    Promise.all([getSubBrandsByBrandId(brandId), fetchOutletTransactions(id)])
+      .then(([subBrandsRes, txData]) => {
+        const list = subBrandsRes?.data?.data ?? subBrandsRes?.data ?? [];
+        const docs = Array.isArray(list) ? list : [];
+        const doc = docs.find((d) => d._id === id);
+        if (!doc) {
+          setError("Outlet not found.");
+          setOutlet(null);
+        } else {
+          setOutlet({ ...mapSubBrandToOutlet(doc), raw: doc });
+          setTransactions(txData);
+        }
+      })
+      .catch((err) => setError(err?.message || "Couldn't load this outlet's details."))
+      .finally(() => setLoading(false));
+  };
 
   return {
     outlet,
@@ -67,5 +90,6 @@ export function useOutletDetails(id) {
     transactions,
     loading: loading || brandLoading,
     error: error || (brandLoading ? "" : brandError),
+    reload,
   };
 }

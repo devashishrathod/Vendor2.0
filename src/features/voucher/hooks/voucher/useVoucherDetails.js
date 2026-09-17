@@ -12,12 +12,24 @@ export default function useVoucherDetails(voucherId) {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await getVoucherById(voucherId);
-      // NOTE: if the API wraps the voucher in an envelope (e.g. { data: {...} }),
-      // unwrap it here: setVoucher(data?.data ?? data);
-      setVoucher(data);
+      const res = await getVoucherById(voucherId);
+      // Confirmed envelope: { success, message, data: { total, totalPages,
+      // page, limit, data: [...] } } — same shape as getVouchers(); the
+      // single version we asked for (limit: 1) is data.data.data[0].
+      const version = res?.data?.data?.[0] ?? null;
+      setVoucher(version);
     } catch (err) {
-      setError(err.message);
+      // Confirmed backend quirk (same as AnalysisReport.jsx's voucher
+      // list fetch): a version that doesn't exist gets an error-shaped
+      // response ("No any voucherversion found") instead of an empty
+      // result — that's not a real failure, so it falls through to the
+      // page's existing "Voucher not found." message instead of showing
+      // the raw backend string.
+      if (/no.*voucher.*found/i.test(err.message || "")) {
+        setVoucher(null);
+      } else {
+        setError(err.message);
+      }
     } finally {
       setIsLoading(false);
     }

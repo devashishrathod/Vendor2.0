@@ -51,6 +51,13 @@ function createEmptyForm() {
     images: [], // newly-picked File objects, pending upload
     existingImageUrls: [], // already-uploaded urls (edit mode only)
     isSaveAsDraft: false,
+    // Banner — add mode only. Changing an existing voucher's banner is a
+    // separate flow (VoucherBannerModal.jsx, opened from VoucherTable),
+    // not part of this form at all.
+    bannerType: "IMAGE",
+    bannerImage: null, // newly-picked File, pending upload
+    bannerVideo: "",
+    bannerGif: "",
   };
 }
 
@@ -62,8 +69,13 @@ function createEmptyForm() {
 // day's evening instead of midnight).
 function toIsoDateTime(dateStr, timeStr) {
   if (!dateStr) return undefined;
-  const date = new Date(`${dateStr}T${timeStr || "00:00"}:00.000Z`);
+
+  const date = new Date(
+    `${dateStr}T${timeStr || "00:00"}:00`
+  );
+
   if (Number.isNaN(date.getTime())) return undefined;
+
   return date.toISOString();
 }
 
@@ -71,11 +83,20 @@ function toIsoDateTime(dateStr, timeStr) {
 // prefilling the form inputs in edit mode.
 function fromIsoDateTime(iso) {
   if (!iso) return { date: "", time: "" };
+
   const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return { date: "", time: "" };
+
+  if (Number.isNaN(date.getTime())) {
+    return { date: "", time: "" };
+  }
+
+  const pad = (value) => String(value).padStart(2, "0");
+
   return {
-    date: date.toISOString().slice(0, 10),
-    time: date.toISOString().slice(11, 16),
+    date: `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
+      date.getDate()
+    )}`,
+    time: `${pad(date.getHours())}:${pad(date.getMinutes())}`,
   };
 }
 
@@ -156,6 +177,10 @@ const FinalSearchTags = Array.isArray(form.searchTags)
     })),
     images: form.images,
     existingImageUrls: form.existingImageUrls,
+    bannerType: form.bannerType,
+    bannerImage: form.bannerImage,
+    bannerVideo: form.bannerVideo,
+    bannerGif: form.bannerGif,
   };
 }
 
@@ -332,8 +357,10 @@ export default function useVoucherForm(voucherId) {
 
   // ── Images ───────────────────────────────────────────────────
   // Max 5 images total (existing + newly picked); extra picks beyond the
-  // limit are dropped with an inline error.
+  // limit are dropped with an inline error. At least MIN_IMAGES is required
+  // to submit at all (enforced in submit() below).
   const MAX_IMAGES = 5;
+  const MIN_IMAGES = 3;
 
   const addImages = useCallback((fileList) => {
     const files = Array.from(fileList || []);
@@ -401,8 +428,8 @@ export default function useVoucherForm(voucherId) {
   const submit = useCallback(
     async (e) => {
       e?.preventDefault?.();
-      if (form.existingImageUrls.length + form.images.length === 0) {
-        setError("Please upload at least one voucher image.");
+      if (form.existingImageUrls.length + form.images.length < MIN_IMAGES) {
+        setError(`Please upload at least ${MIN_IMAGES} voucher images.`);
         return;
       }
       if (form.selectedOutletIds.length === 0) {
