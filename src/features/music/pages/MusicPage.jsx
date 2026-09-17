@@ -41,10 +41,10 @@ export default function MusicPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans pb-28">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 font-sans pb-28">
       <div className="max-w-6xl mx-auto px-6 py-6">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Music</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Music</h1>
           <p className="text-xs text-gray-400 mt-1">Set the perfect mood for your customers</p>
         </div>
 
@@ -53,7 +53,7 @@ export default function MusicPage() {
         {loading ? (
           <div className="space-y-6">
             {[0, 1, 2].map((i) => (
-              <div key={i} className="h-32 rounded-2xl bg-gray-100 animate-pulse" />
+              <div key={i} className="h-32 rounded-2xl bg-gray-100 dark:bg-gray-700 animate-pulse" />
             ))}
           </div>
         ) : (

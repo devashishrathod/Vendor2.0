@@ -192,8 +192,8 @@ function useSubmitAction(submitFn) {
 
 function FieldCard({ title, children }) {
   return (
-    <div className="bg-white border border-gray-100 rounded-xl p-4 mb-3">
-      <p className="text-xs font-semibold text-gray-700 mb-2">{title}</p>
+    <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-4 mb-3">
+      <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">{title}</p>
       {children}
     </div>
   );
@@ -212,14 +212,14 @@ function AccordionFieldCard({ title, summary, defaultOpen = false, collapseSigna
     if (collapseSignal) setOpen(false);
   }, [collapseSignal]);
   return (
-    <div className="bg-white border border-gray-100 rounded-xl mb-3 overflow-hidden">
+    <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl mb-3 overflow-hidden">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
         className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left"
       >
         <div className="flex items-center gap-2 min-w-0">
-          <span className="text-xs font-semibold text-gray-700 shrink-0">{title}</span>
+          <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 shrink-0">{title}</span>
           {summary && <span className="text-xs text-gray-400 truncate">{summary}</span>}
         </div>
         <svg
@@ -232,13 +232,13 @@ function AccordionFieldCard({ title, summary, defaultOpen = false, collapseSigna
           <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
         </svg>
       </button>
-      {open && <div className="px-4 pb-4 pt-1 border-t border-gray-100">{children}</div>}
+      {open && <div className="px-4 pb-4 pt-1 border-t border-gray-100 dark:border-gray-700">{children}</div>}
     </div>
   );
 }
 
 const inputBase =
-  "flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none transition-colors " +
+  "flex-1 text-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 outline-none transition-colors dark:bg-gray-800 dark:text-gray-100 " +
   "focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100";
 
 // Just the input (or a custom control via `children`, e.g. a <select>)
@@ -275,7 +275,7 @@ function SaveButton({ onSave, saving, isDirty = true, className = "" }) {
       className={
         (isDirty
           ? "px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          : "w-9 h-9 flex items-center justify-center rounded-lg bg-gray-100 text-gray-400 cursor-not-allowed") +
+          : "w-9 h-9 flex items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed") +
         " " + className
       }
     >
@@ -342,7 +342,7 @@ function VerifiedDetailCard({ rows, onChangeDetails, onSave, saving, saveError }
           {visibleRows.map((r) => (
             <div key={r.label} className="flex items-start justify-between gap-3">
               <span className="text-xs text-gray-400 shrink-0">{r.label}</span>
-              <span className="text-xs font-semibold text-gray-800 text-right max-w-[60%] break-words">
+              <span className="text-xs font-semibold text-gray-800 dark:text-gray-100 text-right max-w-[60%] break-words">
                 {r.value}
               </span>
             </div>
@@ -357,7 +357,7 @@ function VerifiedDetailCard({ rows, onChangeDetails, onSave, saving, saveError }
           type="button"
           onClick={onChangeDetails}
           disabled={saving}
-          className="flex-1 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 text-xs font-semibold transition-colors disabled:opacity-50"
+          className="flex-1 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs font-semibold transition-colors disabled:opacity-50"
         >
           Change Details
         </button>
@@ -699,16 +699,16 @@ export default function UnderReview() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <p className="text-sm text-gray-400">Loading review status…</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 font-sans">
       {/* ── Navbar ── */}
-      <nav className="bg-white border-b border-gray-100 px-6 h-14 flex items-center justify-between sticky top-0 z-10">
+      <nav className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-6 h-14 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-2">
           <div className="w-12 h-12 flex items-center justify-center overflow-hidden">
             <img
@@ -733,7 +733,7 @@ export default function UnderReview() {
 
       {/* ── Content ── */}
       <div className="max-w-4xl mx-auto px-6 py-8">
-        <h1 className="text-xl font-bold text-gray-900 mb-1">Your Outlet</h1>
+        <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">Your Outlet</h1>
         <p className="text-xs mb-6 flex items-center gap-1.5">
           <span className="font-semibold text-emerald-600">Overview</span>
           <ChevronRight className="w-3 h-3 text-gray-300" />
@@ -810,13 +810,13 @@ export default function UnderReview() {
           ];
 
           return (
-            <div className="bg-white border border-gray-100 rounded-xl px-4 py-4 mb-5">
-              <p className="text-xs font-bold text-gray-700 uppercase tracking-wide mb-4">
+            <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl px-4 py-4 mb-5">
+              <p className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide mb-4">
                 Status History
               </p>
 
               <div className="relative">
-                <div className="absolute left-[5px] top-2 bottom-2 w-px bg-gray-200" />
+                <div className="absolute left-[5px] top-2 bottom-2 w-px bg-gray-200 dark:bg-gray-700" />
                 <div className="space-y-5">
                   {timelineItems.map((item) => (
                     <div key={item.id} className="relative flex items-start gap-3">
@@ -826,10 +826,10 @@ export default function UnderReview() {
                       <div className="flex-1 min-w-0 flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           {item.title ? (
-                            <p className="text-sm font-medium text-gray-800">{item.title}</p>
+                            <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{item.title}</p>
                           ) : (
                             <div className="flex flex-wrap items-center gap-1.5">
-                              <span className="text-sm font-medium text-gray-800">
+                              <span className="text-sm font-medium text-gray-800 dark:text-gray-100">
                                 {item.actionLabel}
                               </span>
                               {item.statusLabel && (
@@ -886,7 +886,7 @@ export default function UnderReview() {
 
         {/* Alert banner */}
         {isApproved ? (
-          <div className="relative overflow-hidden rounded-2xl mb-5 bg-white border border-gray-100 shadow-sm px-6 py-10 sm:px-10">
+          <div className="relative overflow-hidden rounded-2xl mb-5 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm px-6 py-10 sm:px-10">
             <style>{`
               @keyframes reviewBadgePop {
                 0%   { transform: scale(0.5); opacity: 0; }
@@ -981,7 +981,7 @@ export default function UnderReview() {
                 className="text-2xl sm:text-3xl font-bold flex items-center gap-2"
                 style={{ animation: "reviewFadeUp 0.4s 0.15s ease both", opacity: 0 }}
               >
-                <span className="text-gray-900">You're</span>{" "}
+                <span className="text-gray-900 dark:text-gray-100">You're</span>{" "}
                 <span className="text-emerald-600">approved!</span>{" "}
                 <PartyPopper className="w-6 h-6 sm:w-7 sm:h-7 text-emerald-500" />
               </h2>
@@ -996,11 +996,11 @@ export default function UnderReview() {
             </div>
 
             <div
-              className="relative mt-7 bg-white rounded-xl border border-gray-100 px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-4"
+              className="relative mt-7 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-4"
               style={{ animation: "reviewFadeUp 0.4s 0.35s ease both", opacity: 0 }}
             >
               <div className="flex items-center gap-4 flex-1 min-w-0">
-                <div className="w-12 h-16 flex items-center justify-center overflow-hidden rounded-md bg-gray-50 shrink-0">
+                <div className="w-12 h-16 flex items-center justify-center overflow-hidden rounded-md bg-gray-50 dark:bg-gray-700 shrink-0">
                   <img
                     src={brandData.logo}
                     alt="Trydood"
@@ -1013,7 +1013,7 @@ export default function UnderReview() {
                   <span className="text-emerald-400 text-xs font-bold hidden">T</span>
                 </div>
                 <div className="flex-1 min-w-0 text-left">
-                  <p className="text-sm font-semibold text-gray-900 truncate">{brandData.companyName}</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{brandData.companyName}</p>
                   <p className="text-xs text-gray-400 mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
                     <span className="inline-flex items-center gap-1.5">
                       <Ticket className="w-3.5 h-3.5 text-emerald-500" /> {brandData.merchantToken}
@@ -1053,11 +1053,11 @@ export default function UnderReview() {
                 { icon: Headset, title: "Need Help?", desc: "Our support team is here for you." },
               ].map(({ icon: Icon, title, desc }) => (
                 <div key={title} className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0">
-                    <Icon className="w-4.5 h-4.5 text-emerald-600" />
+                  <div className="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
+                    <Icon className="w-4.5 h-4.5 text-emerald-600 dark:text-emerald-400" />
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-gray-800">{title}</p>
+                    <p className="text-sm font-bold text-gray-800 dark:text-gray-100">{title}</p>
                     <p className="text-xs text-gray-400 mt-0.5">{desc}</p>
                   </div>
                 </div>
@@ -1083,7 +1083,7 @@ export default function UnderReview() {
             celebratory hero above, so this plain card is only for
             pending/rejected states. */}
         {!isApproved && (
-          <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden">
             <div className="flex items-center gap-4 px-5 py-4">
               <div className="w-12 h-16 flex items-center justify-center overflow-hidden">
                 <img
@@ -1099,7 +1099,7 @@ export default function UnderReview() {
               </div>
 
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-gray-900 truncate">
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
                   {brandData.companyName}
                 </p>
                 <p className="text-xs text-gray-400 mt-0.5">
@@ -1111,8 +1111,8 @@ export default function UnderReview() {
               <button
                 onClick={handleRecheck}
                 disabled={refreshing}
-                className="flex-shrink-0 px-4 py-2 border border-gray-200 rounded-lg bg-white
-                  hover:bg-gray-50 text-gray-600 text-xs font-semibold
+                className="flex-shrink-0 px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800
+                  hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs font-semibold
                   transition-all duration-150 active:scale-[0.97] disabled:opacity-50"
               >
                 {refreshing ? "Checking…" : "Recheck"}

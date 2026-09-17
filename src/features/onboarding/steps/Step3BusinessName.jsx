@@ -155,7 +155,7 @@ export default function Step3BusinessName() {
         <div className="flex gap-5 items-start flex-wrap">
 
           {/* ── Form card ── */}
-          <div className="flex-1 min-w-0 bg-white border border-gray-50 rounded-2xl mt-4 sm:mt-8
+          <div className="flex-1 min-w-0 bg-white dark:bg-gray-800 border border-gray-50 rounded-2xl mt-4 sm:mt-8
             shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-4 sm:p-6 step-in" style={{ animationDelay: "0s" }}>
 
             {/* Header */}

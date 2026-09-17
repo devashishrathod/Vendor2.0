@@ -12,7 +12,7 @@ const ListingFeaturesSection = ({
     <section>
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-xs font-bold uppercase tracking-wide text-gray-700">
+          <h2 className="text-xs font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300">
             Listing Features
           </h2>
           <p className="mt-1 text-sm text-gray-500">
@@ -28,10 +28,10 @@ const ListingFeaturesSection = ({
         </button>
       </div>
 
-      <div className="mt-5 overflow-x-auto rounded-xl border border-gray-100">
+      <div className="mt-5 overflow-x-auto no-scrollbar rounded-xl border border-gray-100 dark:border-gray-700">
         <table className="w-full min-w-[640px] text-left text-sm">
           <thead>
-            <tr className="border-b border-gray-100 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+            <tr className="border-b border-gray-100 text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:border-gray-700">
               <th className="px-5 py-3">S.NO</th>
               <th className="px-5 py-3">Icon Png</th>
               <th className="px-5 py-3">LF Name</th>
@@ -45,9 +45,9 @@ const ListingFeaturesSection = ({
                 key={feature.id}
                 className="border-b border-gray-50 last:border-b-0"
               >
-                <td className="px-5 py-4 text-gray-800">{feature.sNo}</td>
+                <td className="px-5 py-4 text-gray-800 dark:text-gray-100">{feature.sNo}</td>
                 <td className="px-5 py-4">
-                  <span className="text-gray-800">{feature.iconFileName}</span>{" "}
+                  <span className="text-gray-800 dark:text-gray-100">{feature.iconFileName}</span>{" "}
                   <button
                     type="button"
                     onClick={() => onView(feature.id)}
@@ -56,7 +56,7 @@ const ListingFeaturesSection = ({
                     · View
                   </button>
                 </td>
-                <td className="px-5 py-4 text-gray-800">{feature.lfName}</td>
+                <td className="px-5 py-4 text-gray-800 dark:text-gray-100">{feature.lfName}</td>
                 <td className="px-5 py-4 text-gray-500">
                   {feature.createdOn}
                 </td>

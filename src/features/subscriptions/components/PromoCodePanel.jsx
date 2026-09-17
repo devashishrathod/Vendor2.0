@@ -23,7 +23,7 @@ export default function PromoCodePanel({ onApply, applying, error, initialOpen =
   return (
     <div className="mb-5">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-gray-700">
+        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
           Have a promo code?
         </span>
         <button
@@ -43,7 +43,7 @@ export default function PromoCodePanel({ onApply, applying, error, initialOpen =
               onChange={(e) => setCode(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleApply()}
               placeholder="Have a promo code? Type here"
-              className="flex-1 text-sm border border-gray-300 rounded-lg px-4 py-2.5 outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent transition"
+              className="flex-1 text-sm border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-lg px-4 py-2.5 outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent transition"
             />
             <button
               onClick={handleApply}
@@ -57,7 +57,7 @@ export default function PromoCodePanel({ onApply, applying, error, initialOpen =
                 setOpen(false);
                 setCode("");
               }}
-              className="w-10 h-10 flex items-center justify-center border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
+              className="w-10 h-10 flex items-center justify-center border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             >
               <svg
                 className="w-4 h-4 text-gray-500"

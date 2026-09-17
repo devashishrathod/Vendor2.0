@@ -56,8 +56,11 @@ function createEmptyForm() {
     // not part of this form at all.
     bannerType: "IMAGE",
     bannerImage: null, // newly-picked File, pending upload
-    bannerVideo: "",
-    bannerGif: "",
+    // ⚠️ Also newly-picked Files now, not URL strings — see
+    // VoucherService.js's comment on why this deviates from what was
+    // actually confirmed from Postman for these two fields.
+    bannerVideo: null,
+    bannerGif: null,
   };
 }
 

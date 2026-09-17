@@ -26,7 +26,7 @@ function DetailTile({ icon, iconBg, label, value, wide }) {
     return null;
   return (
     <div
-      className={`rounded-xl border border-gray-100 bg-gray-50/60 p-3 flex flex-col gap-1.5
+      className={`rounded-xl border border-gray-100 dark:border-gray-700 bg-gray-50/60 dark:bg-gray-700/40 p-3 flex flex-col gap-1.5
         ${wide ? "col-span-2" : ""}`}
     >
       <div className="flex items-center gap-2">
@@ -35,7 +35,7 @@ function DetailTile({ icon, iconBg, label, value, wide }) {
           {label}
         </span>
       </div>
-      <span className="text-sm font-bold text-gray-800 leading-snug">
+      <span className="text-sm font-bold text-gray-800 dark:text-gray-100 leading-snug">
         {value}
       </span>
     </div>
@@ -281,7 +281,7 @@ export default function Step9GSTReadOnly() {
         {/* ── Header ── */}
         <div className="flex items-start justify-between mb-4">
           <div>
-            <h2 className="text-lg font-bold text-gray-900 leading-tight">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 leading-tight">
               GST Verified
             </h2>
             <p className="text-xs text-gray-500 mt-0.5">
@@ -445,8 +445,8 @@ export default function Step9GSTReadOnly() {
             // onClick={() => setSubStep(BIZ_SUB.GST_VERIFICATION)}
             onClick={() => setShowConfirm(true)}
             disabled={posting}
-            className="flex-1 py-2.5 rounded-xl border border-gray-200 bg-white
-              hover:border-gray-300 hover:bg-gray-50 text-gray-600 text-sm font-semibold
+            className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800
+              hover:border-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 text-sm font-semibold
               transition-all duration-200 active:scale-[0.98] flex items-center justify-center
               gap-2 disabled:opacity-50"
           >

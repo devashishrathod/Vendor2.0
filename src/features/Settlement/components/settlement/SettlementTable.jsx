@@ -16,8 +16,58 @@ import {
 const currency = (n) =>
   `₹${Number(n || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
 
+// Exports every real field on each currently-loaded settlement row as a
+// CSV file — client side, since there's no confirmed "export" endpoint
+// from Postman. Real fields confirmed from a GET /settlements sample
+// (settlementNumber/period/net payable/the full commission+adjustment
+// breakup), matching useSettlement.js's mapSettlementRow exactly.
+function exportSettlementsToCsv(rows) {
+  const headers = [
+    "Settlement Number", "Period Start", "Period End", "Cycle Type", "Created At", "Approved At", "Paid At",
+    "Transaction Count", "Bank", "Net Payable", "Status",
+    "Gross Collected", "Vendor Promo Cost", "Commission Amount", "Commission Tax",
+    "Commission Deduction", "Refund Adjustment", "Chargeback Adjustment", "Reserve Held",
+  ];
+  const csvRows = rows.map((r) => [
+    r.settlementNumber,
+    r.periodStart,
+    r.periodEnd,
+    r.cycleType,
+    r.createdAt,
+    r.approvedAt,
+    r.paidAt,
+    r.transactionCount,
+    r.bankLast4 !== "—" ? `${r.bankName} •••• ${r.bankLast4}` : r.bankName,
+    r.netPayable,
+    r.statusLabel,
+    r.breakup?.grossCollected ?? 0,
+    r.breakup?.vendorPromoCost ?? 0,
+    r.breakup?.commissionAmount ?? 0,
+    r.breakup?.commissionTax ?? 0,
+    r.breakup?.commissionDeduction ?? 0,
+    r.breakup?.refundAdjustment ?? 0,
+    r.breakup?.chargebackAdjustment ?? 0,
+    r.breakup?.reserveHeld ?? 0,
+  ]);
+  const csv = [headers, ...csvRows]
+    .map((row) => row.map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(","))
+    .join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "settlements.csv";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+// Real confirmed lifecycle: DRAFT → PENDING_APPROVAL → APPROVED →
+// PROCESSING → PAID (see mapSettlementRow's comment) — "Paid" is the one
+// success/settled state, everything else is still in flight.
 function StatusBadge({ status }) {
-  const isDone = status?.toLowerCase().includes("done");
+  const isDone = status?.toLowerCase() === "paid";
   return (
     <span
       className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${
@@ -30,23 +80,29 @@ function StatusBadge({ status }) {
   );
 }
 
-// ⚠️ No confirmed response yet for GET /settlements includes a per-item
-// breakdown, so `row.breakup` (see useSettlement.js's mapSettlementRow)
-// comes through zeroed rather than fabricated non-zero numbers — the
-// original UI section stays exactly as it was.
+// Real confirmed per-row breakup (same fields the Settlement Details
+// page's "Amount Breakup Information" section shows) — see
+// useSettlement.js's mapSettlementRow comment.
 function BreakupRow({ breakup }) {
   const items = [
-    { label: "Discount Summary", value: breakup.discountSummary, tone: "text-slate-700" },
-    { label: "Best Pack Summary", value: breakup.bestPackSummary, tone: "text-slate-700" },
-    { label: "Membership Summary", value: breakup.membershipSummary, tone: "text-slate-700" },
-    { label: "GST Summary", value: breakup.gstSummary, tone: "text-slate-700" },
-    { label: "Processing Fee", value: breakup.processingFee, tone: "text-rose-500" },
-    { label: "Service Charge", value: breakup.serviceCharge, tone: "text-rose-500" },
-    { label: "Paid Amount", value: breakup.paidAmount, tone: "text-slate-900 font-semibold" },
+    { label: "Gross Collected", value: breakup.grossCollected, tone: "text-slate-700 dark:text-gray-300" },
+    { label: "Vendor Promo Cost", value: breakup.vendorPromoCost, tone: "text-rose-500" },
+    { label: "Commission Amount", value: breakup.commissionAmount, tone: "text-rose-500" },
+    { label: "Commission Tax", value: breakup.commissionTax, tone: "text-rose-500" },
+    { label: "Commission Deduction", value: breakup.commissionDeduction, tone: "text-rose-500" },
+    { label: "Refund Adjustment", value: breakup.refundAdjustment, tone: "text-rose-500" },
+    { label: "Chargeback Adjustment", value: breakup.chargebackAdjustment, tone: "text-rose-500" },
+    {
+      label: "Reserve Held",
+      value: breakup.reserveHeld,
+      tone: "text-slate-700 dark:text-gray-300",
+      note: breakup.reserveReason === "DISABLED" ? "Not applicable" : `${breakup.reservePercent}%`,
+    },
+    { label: "Net Payable", value: breakup.netPayable, tone: "text-slate-900 dark:text-gray-100 font-semibold" },
   ];
   return (
-    <tr className="bg-slate-50">
-      <td colSpan={7} className="px-6 py-4">
+    <tr className="bg-slate-50 dark:bg-gray-700/60">
+      <td colSpan={9} className="px-6 py-4">
         <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
           Amount Breakup
         </p>
@@ -54,7 +110,9 @@ function BreakupRow({ breakup }) {
           {items.map((item) => (
             <div key={item.label}>
               <p className="text-xs text-slate-400">{item.label}</p>
-              <p className={`mt-0.5 text-sm ${item.tone}`}>{currency(item.value)}</p>
+              <p className={`mt-0.5 text-sm ${item.tone}`}>
+                {item.note || currency(item.value)}
+              </p>
             </div>
           ))}
         </div>
@@ -85,15 +143,15 @@ export default function SettlementTable({
 }) {
   const navigate = useNavigate();
 
-  const goToDetails = (settlementId) => {
-    navigate(`/settlement/${settlementId}`);
+  const goToDetails = (id) => {
+    navigate(`/settlement/${id}`);
   };
 
   return (
-    <div className="rounded-2xl border border-slate-100 bg-white shadow-sm">
+    <div className="rounded-2xl border border-slate-100 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
       {/* Toolbar */}
-      <div className="flex flex-col gap-3 border-b border-slate-100 p-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-1 rounded-lg bg-slate-100 p-1">
+      <div className="flex flex-col gap-3 border-b border-slate-100 dark:border-gray-700 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-1 rounded-lg bg-slate-100 dark:bg-gray-700 p-1">
           {pageSizes.map((size) => (
             <button
               key={size}
@@ -101,7 +159,7 @@ export default function SettlementTable({
               className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${
                 pageSize === size
                   ? "bg-emerald-600 text-white shadow-sm"
-                  : "text-slate-500 hover:text-slate-700"
+                  : "text-slate-500 hover:text-slate-700 dark:hover:text-gray-100"
               }`}
             >
               {size}
@@ -111,22 +169,22 @@ export default function SettlementTable({
         </div>
 
         <div className="flex flex-1 flex-nowrap items-center gap-2 overflow-x-auto sm:justify-end">
-          <div className="flex w-44 flex-shrink-0 items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-400 transition-colors focus-within:border-emerald-400 focus-within:ring-2 focus-within:ring-emerald-100">
+          <div className="flex w-44 flex-shrink-0 items-center gap-2 rounded-xl border border-slate-200 dark:border-gray-700 px-3 py-2 text-sm text-slate-400 transition-colors focus-within:border-emerald-400 focus-within:ring-2 focus-within:ring-emerald-100">
             <Search className="h-4 w-4 flex-shrink-0" />
             <input
               value={search}
               onChange={(e) => onSearchChange(e.target.value)}
-              placeholder="Search Here: Settlement, Txn Id"
-              className="w-full bg-transparent text-slate-700 outline-none placeholder:text-slate-400 truncate"
+              placeholder="Search Here: Settlement Number"
+              className="w-full bg-transparent text-slate-700 dark:text-gray-100 outline-none placeholder:text-slate-400 truncate"
             />
           </div>
 
-          <div className="flex flex-shrink-0 items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-600">
+          <div className="flex flex-shrink-0 items-center gap-1.5 rounded-xl border border-slate-200 dark:border-gray-700 px-3 py-2 text-sm text-slate-600 dark:text-gray-300">
             <SlidersHorizontal className="h-4 w-4 shrink-0 text-slate-400" />
             <select
               value={statusFilter}
               onChange={(e) => onStatusFilterChange(e.target.value)}
-              className="bg-transparent text-sm text-slate-600 outline-none"
+              className="bg-transparent text-sm text-slate-600 dark:text-gray-300 outline-none"
             >
               <option value="all">All Statuses</option>
               {statusOptions.map((s) => (
@@ -135,14 +193,14 @@ export default function SettlementTable({
             </select>
           </div>
 
-          <div className="flex flex-shrink-0 items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-600">
+          <div className="flex flex-shrink-0 items-center gap-1.5 rounded-xl border border-slate-200 dark:border-gray-700 px-3 py-2 text-sm text-slate-600 dark:text-gray-300">
             <CalendarDays className="h-4 w-4 shrink-0 text-slate-400" />
             <input
               type="date"
               value={dateRange.from}
               onChange={(e) => onDateRangeChange({ ...dateRange, from: e.target.value })}
               max={dateRange.to || undefined}
-              className="bg-transparent text-sm text-slate-600 outline-none"
+              className="bg-transparent text-sm text-slate-600 dark:text-gray-300 outline-none"
             />
             <span className="text-slate-300">–</span>
             <input
@@ -150,7 +208,7 @@ export default function SettlementTable({
               value={dateRange.to}
               onChange={(e) => onDateRangeChange({ ...dateRange, to: e.target.value })}
               min={dateRange.from || undefined}
-              className="bg-transparent text-sm text-slate-600 outline-none"
+              className="bg-transparent text-sm text-slate-600 dark:text-gray-300 outline-none"
             />
             {(dateRange.from || dateRange.to) && (
               <button
@@ -163,7 +221,12 @@ export default function SettlementTable({
             )}
           </div>
 
-          <button className="flex flex-shrink-0 items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
+          <button
+            type="button"
+            disabled={rows.length === 0}
+            onClick={() => exportSettlementsToCsv(rows)}
+            className="flex flex-shrink-0 items-center gap-1.5 rounded-xl border border-slate-200 dark:border-gray-700 px-3 py-2 text-sm font-medium text-slate-600 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-40"
+          >
             <Download className="h-4 w-4" />
             Export Data
           </button>
@@ -171,15 +234,17 @@ export default function SettlementTable({
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto no-scrollbar">
         <table className="w-full min-w-[820px] text-left text-sm">
           <thead>
             <tr className="bg-[#1a1a2e]">
-              <th className="whitespace-nowrap px-3 py-2.5 text-[11px] font-bold uppercase tracking-wide text-white/80">Settlement Id</th>
-              <th className="whitespace-nowrap px-3 py-2.5 text-[11px] font-bold uppercase tracking-wide text-white/80">Payment Received Date</th>
-              <th className="whitespace-nowrap px-3 py-2.5 text-[11px] font-bold uppercase tracking-wide text-white/80">Settlement On</th>
-              <th className="whitespace-nowrap px-3 py-2.5 text-[11px] font-bold uppercase tracking-wide text-white/80">Transaction ID</th>
-              <th className="whitespace-nowrap px-3 py-2.5 text-[11px] font-bold uppercase tracking-wide text-white/80">Amount</th>
+              <th className="whitespace-nowrap px-3 py-2.5 text-[11px] font-bold uppercase tracking-wide text-white/80">Settlement Number</th>
+              <th className="whitespace-nowrap px-3 py-2.5 text-[11px] font-bold uppercase tracking-wide text-white/80">Period Start</th>
+              <th className="whitespace-nowrap px-3 py-2.5 text-[11px] font-bold uppercase tracking-wide text-white/80">Period End</th>
+              <th className="whitespace-nowrap px-3 py-2.5 text-[11px] font-bold uppercase tracking-wide text-white/80">Cycle</th>
+              <th className="whitespace-nowrap px-3 py-2.5 text-[11px] font-bold uppercase tracking-wide text-white/80">Paid At</th>
+              <th className="whitespace-nowrap px-3 py-2.5 text-[11px] font-bold uppercase tracking-wide text-white/80">Transactions</th>
+              <th className="whitespace-nowrap px-3 py-2.5 text-[11px] font-bold uppercase tracking-wide text-white/80">Net Payable</th>
               <th className="whitespace-nowrap px-3 py-2.5 text-[11px] font-bold uppercase tracking-wide text-white/80">Status</th>
               <th className="whitespace-nowrap px-3 py-2.5 text-right text-[11px] font-bold uppercase tracking-wide text-white/80">Info</th>
             </tr>
@@ -187,7 +252,7 @@ export default function SettlementTable({
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={7} className="px-3 py-8 text-center text-sm text-slate-400">
+                <td colSpan={9} className="px-3 py-8 text-center text-sm text-slate-400">
                   Loading settlements…
                 </td>
               </tr>
@@ -195,7 +260,7 @@ export default function SettlementTable({
 
             {!loading && rows.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-3 py-8 text-center text-sm text-slate-400">
+                <td colSpan={9} className="px-3 py-8 text-center text-sm text-slate-400">
                   No settlements match your search.
                 </td>
               </tr>
@@ -203,33 +268,34 @@ export default function SettlementTable({
 
             {!loading &&
               rows.map((row) => {
-                const isOpen = expandedRow === row.settlementId + row.transactionId;
-                const rowKey = row.settlementId + row.transactionId;
+                const isOpen = expandedRow === row.id;
                 return (
-                  <React.Fragment key={rowKey}>
-                    <tr className="border-b border-slate-100 bg-white last:border-b-0 hover:bg-slate-50/60">
+                  <React.Fragment key={row.id}>
+                    <tr className="border-b border-slate-100 dark:border-gray-700 bg-white dark:bg-gray-800 last:border-b-0 hover:bg-slate-50/60 dark:hover:bg-gray-700/60">
                       <td className="px-3 py-2">
                         <button
-                          onClick={() => goToDetails(row.settlementId)}
+                          onClick={() => goToDetails(row.id)}
                           className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 hover:underline"
                         >
-                          {row.settlementId}
+                          {row.settlementNumber}
                           <Copy className="h-3 w-3 text-slate-300" />
                         </button>
                       </td>
-                      <td className="whitespace-nowrap px-3 py-2 text-xs text-slate-600">{row.paymentReceivedDate}</td>
-                      <td className="whitespace-nowrap px-3 py-2 text-xs text-slate-600">{row.settlementOn}</td>
-                      <td className="whitespace-nowrap px-3 py-2 text-xs text-slate-600">{row.transactionId}</td>
-                      <td className="whitespace-nowrap px-3 py-2 text-xs font-medium text-slate-800">
-                        {currency(row.amount)}
+                      <td className="whitespace-nowrap px-3 py-2 text-xs text-slate-600 dark:text-gray-300">{row.periodStart}</td>
+                      <td className="whitespace-nowrap px-3 py-2 text-xs text-slate-600 dark:text-gray-300">{row.periodEnd}</td>
+                      <td className="whitespace-nowrap px-3 py-2 text-xs text-slate-600 dark:text-gray-300">{row.cycleType}</td>
+                      <td className="whitespace-nowrap px-3 py-2 text-xs text-slate-600 dark:text-gray-300">{row.paidAt}</td>
+                      <td className="whitespace-nowrap px-3 py-2 text-xs text-slate-600 dark:text-gray-300">{row.transactionCount}</td>
+                      <td className="whitespace-nowrap px-3 py-2 text-xs font-medium text-slate-800 dark:text-gray-100">
+                        {currency(row.netPayable)}
                       </td>
                       <td className="px-3 py-2">
-                        <StatusBadge status={row.status} />
+                        <StatusBadge status={row.statusLabel} />
                       </td>
                       <td className="px-3 py-2 text-right">
                         <button
-                          onClick={() => toggleRow(rowKey)}
-                          className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                          onClick={() => toggleRow(row.id)}
+                          className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-gray-700 hover:text-slate-600 dark:hover:text-gray-100"
                         >
                           {isOpen ? (
                             <ChevronUp className="h-4 w-4" />
@@ -248,7 +314,7 @@ export default function SettlementTable({
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center justify-between border-t border-slate-100 px-6 py-4">
+      <div className="flex items-center justify-between border-t border-slate-100 dark:border-gray-700 px-6 py-4">
         <p className="text-xs text-slate-400">
           Showing {rows.length} of {total} settlements
         </p>
@@ -256,7 +322,7 @@ export default function SettlementTable({
           <button
             onClick={() => setPage(Math.max(1, page - 1))}
             disabled={page <= 1}
-            className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 disabled:opacity-30"
+            className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-gray-700 disabled:opacity-30"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
@@ -267,7 +333,7 @@ export default function SettlementTable({
               className={`h-7 w-7 rounded-md text-xs font-medium transition ${
                 p === page
                   ? "bg-emerald-600 text-white"
-                  : "text-slate-500 hover:bg-slate-100"
+                  : "text-slate-500 hover:bg-slate-100 dark:hover:bg-gray-700"
               }`}
             >
               {p}
@@ -276,7 +342,7 @@ export default function SettlementTable({
           <button
             onClick={() => setPage(Math.min(totalPages, page + 1))}
             disabled={page >= totalPages}
-            className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 disabled:opacity-30"
+            className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-gray-700 disabled:opacity-30"
           >
             <ChevronRight className="h-4 w-4" />
           </button>

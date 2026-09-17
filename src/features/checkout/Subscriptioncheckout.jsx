@@ -47,7 +47,7 @@ const fmt = (amount) =>
 
 function TrustBar({ badges }) {
   return (
-    <div className="w-full bg-gray-50 border border-gray-200 rounded-xl px-8 py-3 mb-6">
+    <div className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-xl px-8 py-3 mb-6">
       <div className="flex items-center justify-center gap-6 divide-x divide-gray-300 overflow-x-auto">
         {badges.map((b, i) => (
           <div
@@ -55,7 +55,7 @@ function TrustBar({ badges }) {
             className="flex items-center gap-2 px-4 first:pl-0 last:pr-0 shrink-0"
           >
             <span className="text-lg">{b.icon}</span>
-            <span className="text-sm font-medium text-gray-700 whitespace-nowrap">
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
               {b.label}
             </span>
             {b.rating && (
@@ -85,12 +85,12 @@ function TrustBar({ badges }) {
 
 function PlanInfo({ plan }) {
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-6">
-      <h2 className="text-lg font-bold text-gray-800 mb-4 pb-4 border-b border-gray-100">
+    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6">
+      <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-4 pb-4 border-b border-gray-100 dark:border-gray-700">
         Subscribe to {plan.name}
       </h2>
       <div className="flex items-center gap-3 mb-6">
-        <span className="text-3xl font-extrabold text-gray-900">
+        <span className="text-3xl font-extrabold text-gray-900 dark:text-gray-100">
           {fmt(plan.yearlyPrice)}
         </span>
         <span className="text-gray-500 font-medium">/ {plan.billingCycle}</span>
@@ -99,10 +99,10 @@ function PlanInfo({ plan }) {
         </span>
       </div>
       <div className="mb-4">
-        <p className="text-sm font-bold text-gray-800 mb-1">Plan Duration</p>
-        <p className="text-sm text-gray-600">{plan.duration}</p>
+        <p className="text-sm font-bold text-gray-800 dark:text-gray-100 mb-1">Plan Duration</p>
+        <p className="text-sm text-gray-600 dark:text-gray-300">{plan.duration}</p>
       </div>
-      <p className="text-sm text-gray-600">
+      <p className="text-sm text-gray-600 dark:text-gray-300">
         Your renewal{" "}
         <span className="font-semibold">
           {plan.renewalDate} for {fmt(plan.yearlyPrice)}
@@ -141,21 +141,21 @@ function BillingDetailsCard({ details, onSave }) {
     setDraft((prev) => ({ ...prev, [key]: val }));
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-      <div className="bg-gray-50 px-6 py-3 border-b border-gray-200 flex items-center justify-between">
-        <h3 className="text-sm font-bold text-gray-800">Billing Details</h3>
-        
-          
-      
+    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+      <div className="bg-gray-50 dark:bg-gray-700 px-6 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+        <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100">Billing Details</h3>
+
+
+
       </div>
 
-      <div className="divide-y divide-gray-100">
+      <div className="divide-y divide-gray-100 dark:divide-gray-700">
         {BILLING_FIELDS.map(({ key, label, type }) => (
           <div
             key={key}
             className="px-6 py-4 grid grid-cols-3 capitalize gap-4 items-start"
           >
-            <span className="text-sm font-semibold  text-gray-700 col-span-1 pt-1">
+            <span className="text-sm font-semibold  text-gray-700 dark:text-gray-300 col-span-1 pt-1">
               {label}
             </span>
             <div className="col-span-2">
@@ -165,18 +165,18 @@ function BillingDetailsCard({ details, onSave }) {
                     rows={3}
                     value={draft[key]}
                     onChange={(e) => handleChange(key, e.target.value)}
-                    className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent resize-none transition"
+                    className="w-full text-sm border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent resize-none transition"
                   />
                 ) : (
                   <input
                     type="text"
                     value={draft[key]}
                     onChange={(e) => handleChange(key, e.target.value)}
-                    className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2  outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent transition"
+                    className="w-full text-sm border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-lg px-3 py-2  outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent transition"
                   />
                 )
               ) : (
-                <span className="text-sm text-gray-600">{details[key]}</span>
+                <span className="text-sm text-gray-600 dark:text-gray-300">{details[key]}</span>
               )}
             </div>
           </div>
@@ -187,7 +187,7 @@ function BillingDetailsCard({ details, onSave }) {
         <div className="px-6 py-4 bg-teal-50 border-t border-teal-100 flex justify-end gap-3">
           <button
             onClick={handleCancel}
-            className="px-5 py-2 text-sm font-medium text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
+            className="px-5 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 border border-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
           >
             Cancel
           </button>
@@ -230,7 +230,7 @@ function PromoCodePanel({ appliedCode, appliedPct, onApply, onRemove }) {
   return (
     <div className="mb-5">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-gray-700">
+        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
           Have a promo code?
         </span>
         {!appliedCode && (
@@ -258,7 +258,7 @@ function PromoCodePanel({ appliedCode, appliedPct, onApply, onRemove }) {
               }}
               onKeyDown={(e) => e.key === "Enter" && handleApply()}
               placeholder="Have a promo code? Type here"
-              className="flex-1 text-sm border border-gray-300 rounded-lg px-4 py-2.5 outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent transition"
+              className="flex-1 text-sm border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-lg px-4 py-2.5 outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent transition"
             />
             <button
               onClick={handleApply}
@@ -272,7 +272,7 @@ function PromoCodePanel({ appliedCode, appliedPct, onApply, onRemove }) {
                 setError("");
                 setCode("");
               }}
-              className="w-10 h-10 flex items-center justify-center border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
+              className="w-10 h-10 flex items-center justify-center border border-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             >
               <svg
                 className="w-4 h-4 text-gray-500"
@@ -298,15 +298,15 @@ function PromoCodePanel({ appliedCode, appliedPct, onApply, onRemove }) {
 
 function SummaryRow({ label, value, muted, accent, sub }) {
   return (
-    <div className="border-b border-gray-100 pb-4">
+    <div className="border-b border-gray-100 dark:border-gray-700 pb-4">
       <div className="flex items-center justify-between">
         <span
-          className={`text-sm ${muted ? "text-gray-500" : "text-gray-700"}`}
+          className={`text-sm ${muted ? "text-gray-500" : "text-gray-700 dark:text-gray-300"}`}
         >
           {label}
         </span>
         <span
-          className={`text-sm font-semibold ${muted ? "text-gray-500" : accent ? "text-teal-600" : "text-gray-800"}`}
+          className={`text-sm font-semibold ${muted ? "text-gray-500" : accent ? "text-teal-600" : "text-gray-800 dark:text-gray-100"}`}
         >
           {value}
         </span>
@@ -353,8 +353,8 @@ function OrderSummary({ plan }) {
   const handleCheckout = () => navigate("/oulet");
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-6 sticky top-4">
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">Order Summary</h2>
+    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 sticky top-4">
+      <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">Order Summary</h2>
 
       <div className="space-y-4 mb-5">
         <SummaryRow
@@ -377,10 +377,10 @@ function OrderSummary({ plan }) {
         )}
       </div>
 
-      <div className="border-t border-dashed border-gray-200 pt-4 mb-2">
+      <div className="border-t border-dashed border-gray-200 dark:border-gray-700 pt-4 mb-2">
         <div className="flex items-center justify-between">
-          <span className="text-base font-bold text-gray-900">You'll Pay</span>
-          <span className="text-xl font-extrabold text-gray-900">
+          <span className="text-base font-bold text-gray-900 dark:text-gray-100">You'll Pay</span>
+          <span className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
             {fmt(totalPayable)}
           </span>
         </div>
@@ -393,7 +393,7 @@ function OrderSummary({ plan }) {
         </p>
       </div>
 
-      <div className="border-t border-gray-100 my-5" />
+      <div className="border-t border-gray-100 dark:border-gray-700 my-5" />
 
       <PromoCodePanel
         appliedCode={appliedCode}
@@ -421,7 +421,7 @@ function OrderSummary({ plan }) {
       </button>
 
       <div className="text-center">
-        <p className="text-xs font-semibold text-gray-600 mb-1">
+        <p className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">
           🔒 100% Secure payment
         </p>
         <p className="text-xs text-gray-500">
@@ -478,7 +478,7 @@ useEffect(() => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4 md:p-8">
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
         <TrustBar badges={TRUST_BADGES} />
 

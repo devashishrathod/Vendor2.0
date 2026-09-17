@@ -10,7 +10,7 @@ const PAGE_SIZES = [10, 20, 50];
 // entirely client-side over that batch. `from`/`to` ARE confirmed real
 // query params on this endpoint, so the date range itself is applied
 // server-side for real, not faked.
-const FETCH_LIMIT = 200;
+const FETCH_LIMIT = 100;
 
 // Plain {from, to} date-picker range — same shape/UX as the Voucher page's
 // toolbar (two native <input type="date"> values, "YYYY-MM-DD" strings,
@@ -33,58 +33,72 @@ const formatDate = (iso) =>
       })
     : "—";
 
-// No confirmed endpoint returns these account-wide totals (only the 3
-// GET /settlements* endpoints exist) — shown as zero/"Not available"
-// rather than the old hardcoded mock numbers, per instruction: keep the
-// original UI section, just don't fabricate specific figures for it.
-const ZERO_OVERVIEW = {
-  previousSettlement: { amount: 0, note: "Not available" },
-  todaySettlement: { amount: 0, note: "Not available" },
-  availableBalance: { amount: 0, note: "Not available", count: 0 },
-  gstBalance: { amount: 0, note: "Not available", count: 0 },
+// Date-only (no time) — used for the table's "Period" column, since
+// showing both periodStart AND periodEnd with a full timestamp each made
+// that one cell far wider than every other column.
+const formatDateOnly = (iso) =>
+  iso
+    ? new Date(iso).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
+    : "—";
+
+const isSameDay = (iso, reference) => {
+  if (!iso) return false;
+  const d = new Date(iso);
+  return (
+    d.getFullYear() === reference.getFullYear() &&
+    d.getMonth() === reference.getMonth() &&
+    d.getDate() === reference.getDate()
+  );
 };
 
-// Unlike Transactions' Razorpay status vocabulary (confirmed, fixed list),
-// there's no confirmed sample response for GET /settlements — `status`
-// below falls back to deriving "Open"/"Not found" from the real `open`
-// boolean query param when the backend sends no `status` string of its
-// own. So "Open"/"Not found" are guaranteed baseline options (the only two
-// outputs mapSettlementRow's fallback can ever produce); any other real
-// `status` string the backend does send gets added on top, dynamically.
-const BASE_STATUS_OPTIONS = ["Open", "Not found"];
+// Confirmed real statuses (from a real GET /settlements sample, and
+// matching the lifecycle a settlement's own `timeline` walks through on
+// the details page: DRAFT → PENDING_APPROVAL → APPROVED → PROCESSING →
+// PAID). Shown as friendly labels here and matched against each row's own
+// `statusLabel` below, rather than the raw enum string.
+const BASE_STATUS_OPTIONS = ["Draft", "Pending Approval", "Approved", "Processing", "Paid"];
 
-// ⚠️ Field names below are a best-effort mapping — no sample JSON response
-// was shared for GET /settlements yet, only the request/params. This
-// assumes the same envelope every other confirmed endpoint in this app
-// uses ({ success, message, data: { total, totalPages, page, limit, data:
-// [...] } }), and guesses at common field names with fallbacks. Paste a
-// real response to correct any of this.
+// Confirmed real shape for GET /settlements — each item is the same
+// settlement doc the details page's GET /settlements/:id returns (just
+// without that endpoint's extra `legs`/`timeline`/`viewer`), so this reuses
+// the exact same real fields useSettlementDetails.js's mapSettlementDetail
+// does — grossCollected/commission*/refundAdjustment/.../netPayable,
+// bankSnapshot, statusLabel — instead of the previous best-effort guess.
 function mapSettlementRow(s) {
   return {
-    settlementId: s.settlementId || s._id || "—",
-    paymentReceivedDate: formatDate(s.paymentReceivedDate || s.createdAt),
-    settlementOn: formatDate(s.settlementOn || s.settledAt),
-    transactionId: s.transactionId || s.payoutId || "—",
-    amount: s.amount ?? s.totalAmount ?? 0,
-    status: s.status || (s.open ? "Open" : "Not found"),
-    // Old UI's per-row "Amount Breakup" — GET /settlements (list) has no
-    // confirmed per-item breakdown, so this stays zeroed rather than
-    // guessed until a real response confirms these fields.
+    id: s._id,
+    settlementNumber: s.settlementNumber || "—",
+    status: s.status || "—",
+    statusLabel: s.statusLabel || s.status || "—",
+    cycleType: s.cycleType || "—",
+    periodStart: formatDateOnly(s.periodStart),
+    periodEnd: formatDateOnly(s.periodEnd),
+    createdAt: formatDate(s.createdAt),
+    approvedAt: formatDate(s.approvedAt),
+    paidAt: formatDate(s.paidAt),
+    transactionCount: s.transactionCount ?? 0,
+    bankName: s.bankSnapshot?.bankName || "—",
+    bankLast4: s.bankSnapshot?.accountLast4Digits || "—",
+    netPayable: s.netPayable ?? 0,
     breakup: {
-      discountSummary: s.breakup?.discountSummary ?? 0,
-      bestPackSummary: s.breakup?.bestPackSummary ?? 0,
-      membershipSummary: s.breakup?.membershipSummary ?? 0,
-      gstSummary: s.breakup?.gstSummary ?? 0,
-      processingFee: s.breakup?.processingFee ?? 0,
-      serviceCharge: s.breakup?.serviceCharge ?? 0,
-      paidAmount: s.breakup?.paidAmount ?? s.amount ?? 0,
+      grossCollected: s.grossCollected ?? 0,
+      vendorPromoCost: s.vendorPromoCost ?? 0,
+      commissionAmount: s.commissionAmount ?? 0,
+      commissionTax: s.commissionTax ?? 0,
+      commissionDeduction: s.commissionDeduction ?? 0,
+      refundAdjustment: s.refundAdjustment ?? 0,
+      chargebackAdjustment: s.chargebackAdjustment ?? 0,
+      reserveHeld: s.reserveHeld ?? 0,
+      reservePercent: s.reservePercent ?? 0,
+      reserveReleased: s.reserveReleased ?? 0,
+      reserveReason: s.reserveBasis?.reason || null,
+      netPayable: s.netPayable ?? 0,
     },
     raw: s,
   };
 }
 
 export default function useSettlement() {
-  const [overview] = useState(ZERO_OVERVIEW);
   const [banner] = useState(null);
   const [holidayNotice] = useState(null);
   const [showHolidayNotice, setShowHolidayNotice] = useState(true);
@@ -153,12 +167,51 @@ export default function useSettlement() {
     }
   }, [dateRange]);
 
-  // Baseline "Open"/"Not found" (guaranteed reachable, see
-  // BASE_STATUS_OPTIONS above) plus any other real status string actually
+  // Real overview, derived from the same fetched batch the table shows —
+  // no dedicated "account totals" endpoint is confirmed, so this is built
+  // from real per-settlement fields instead of the old hardcoded
+  // ZERO_OVERVIEW placeholder. "Available balance" = still-unpaid
+  // settlements' netPayable, summed (a genuine derived real number, not a
+  // fabricated one). "GST balance" has no real source anywhere on this
+  // object (commissionTax is platform commission, not customer-facing
+  // GST) — stays an honest "Not available" rather than reusing that field.
+  const overview = useMemo(() => {
+    const now = new Date();
+    const paidRows = rows.filter((r) => r.status === "PAID" && r.raw?.paidAt);
+    const sortedByPaidAt = [...paidRows].sort(
+      (a, b) => new Date(b.raw.paidAt) - new Date(a.raw.paidAt)
+    );
+    const todaySettlement = sortedByPaidAt.find((r) => isSameDay(r.raw.paidAt, now));
+    const previousSettlement = sortedByPaidAt.find((r) => !isSameDay(r.raw.paidAt, now));
+    const unpaidRows = rows.filter((r) => r.status !== "PAID");
+    const availableBalance = unpaidRows.reduce((sum, r) => sum + (r.netPayable || 0), 0);
+
+    return {
+      previousSettlement: previousSettlement
+        ? { amount: previousSettlement.netPayable, note: previousSettlement.paidAt }
+        : { amount: 0, note: "Not available" },
+      todaySettlement: todaySettlement
+        ? { amount: todaySettlement.netPayable, note: todaySettlement.paidAt }
+        : { amount: 0, note: "Not settled yet" },
+      availableBalance: {
+        amount: availableBalance,
+        note: unpaidRows.length ? "Awaiting payout" : "Not available",
+        count: unpaidRows.length,
+      },
+      // ⚠️ No confirmed GST field exists anywhere on the real settlement
+      // object — commissionTax is the platform's own commission tax, not
+      // a customer-facing GST balance, so this stays honest rather than
+      // reusing that field.
+      gstBalance: { amount: 0, note: "Not available", count: 0 },
+    };
+  }, [rows]);
+
+  // Baseline lifecycle labels (guaranteed reachable, see
+  // BASE_STATUS_OPTIONS above) plus any other real statusLabel actually
   // present in the fetched batch — so a status doesn't have to already be
   // on screen to be filterable, without inventing values that aren't real.
   const statusOptions = useMemo(
-    () => [...new Set([...BASE_STATUS_OPTIONS, ...rows.map((r) => r.status).filter(Boolean)])],
+    () => [...new Set([...BASE_STATUS_OPTIONS, ...rows.map((r) => r.statusLabel).filter(Boolean)])],
     [rows]
   );
 
@@ -169,11 +222,11 @@ export default function useSettlement() {
     return rows.filter((r) => {
       const matchesSearch =
         !term ||
-        [r.settlementId, r.transactionId, r.status, String(r.amount)]
+        [r.settlementNumber, r.statusLabel, String(r.netPayable)]
           .join(" ")
           .toLowerCase()
           .includes(term);
-      const matchesStatus = statusFilter === "all" || r.status === statusFilter;
+      const matchesStatus = statusFilter === "all" || r.statusLabel === statusFilter;
       return matchesSearch && matchesStatus;
     });
   }, [rows, search, statusFilter]);

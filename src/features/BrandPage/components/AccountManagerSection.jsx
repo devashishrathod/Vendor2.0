@@ -4,7 +4,7 @@ import InfoItem from "./InfoItem";
 const AccountManagerSection = ({ accountSetupManager }) => {
   return (
     <section>
-      <h2 className="text-xs font-bold uppercase tracking-wide text-gray-700">
+      <h2 className="text-xs font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300">
         Account Setup Manager
       </h2>
 

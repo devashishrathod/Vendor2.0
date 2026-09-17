@@ -10,17 +10,17 @@ const BankAccountSection = ({
 }) => {
   return (
     <section>
-      <h2 className="text-xs font-bold uppercase tracking-wide text-gray-700">
+      <h2 className="text-xs font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300">
         Bank Account Details
       </h2>
       <p className="mt-1 text-sm text-gray-500">
         {bankAccountDetails.subtitle}
       </p>
 
-      <div className="mt-6 rounded-xl border border-gray-100 p-5">
+      <div className="mt-6 rounded-xl border border-gray-100 p-5 dark:border-gray-700">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h3 className="text-sm font-semibold text-gray-900">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
               Active bank account
             </h3>
             <p className="mt-1 text-xs text-gray-500">

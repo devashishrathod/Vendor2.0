@@ -49,7 +49,7 @@ export default function Step1WhatsApp() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row relative overflow-hidden bg-white">
+    <div className="min-h-screen flex flex-col md:flex-row relative overflow-hidden bg-white dark:bg-gray-800">
       {/* ── Glow ── */}
       <div
         className="absolute bottom-0 left-0 w-[500px] h-[500px] pointer-events-none"
@@ -74,7 +74,7 @@ export default function Step1WhatsApp() {
           className="w-48 sm:w-64 md:w-full md:max-w-md h-auto object-contain drop-shadow-sm"
         />
         <div className="text-center max-w-xs px-4">
-          <p className="text-gray-700 text-sm md:text-md font-medium leading-relaxed">
+          <p className="text-gray-700 dark:text-gray-300 text-sm md:text-md font-medium leading-relaxed">
             Grow your business with ease on <br />
             <span className="text-emerald-500 font-bold">Trydood.</span>
           </p>
@@ -88,7 +88,7 @@ export default function Step1WhatsApp() {
 
       {/* ── Divider (mobile only) ── */}
       <div className="block md:hidden w-full px-8">
-        <div className="border-t border-gray-100" />
+        <div className="border-t border-gray-100 dark:border-gray-700" />
       </div>
 
       {/* ── Right Panel ── */}
@@ -105,7 +105,7 @@ export default function Step1WhatsApp() {
 
           {/* Heading */}
           <div className="text-center mb-6">
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
               Welcome <span className="text-emerald-500">Back!</span>
             </h2>
             <p className="text-sm text-gray-500">
@@ -132,7 +132,7 @@ export default function Step1WhatsApp() {
                 }}
                 onKeyDown={handleKeyDown}
                 maxLength={10}
-                className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/30 focus:border-emerald-400 transition duration-200"
+                className="w-full pl-12 pr-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-800 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/30 focus:border-emerald-400 transition duration-200"
               />
             </div>
 
@@ -199,11 +199,11 @@ export default function Step1WhatsApp() {
           </div>
 
           {/* Footer */}
-          <div className="mt-8 pt-5 border-t border-gray-100 flex items-center justify-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0">
+          <div className="mt-8 pt-5 border-t border-gray-100 dark:border-gray-700 flex items-center justify-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="w-4 h-4 text-emerald-500"
+                className="w-4 h-4 text-emerald-500 dark:text-emerald-400"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Mail, Bell, MessageCircle, SlidersHorizontal, Palette, Sun, Moon } from "lucide-react";
 import { getNotificationPreferences, updateNotificationPreference } from "@/services/api/notificationApi";
-import { useThemeStore } from "@/store/themeStore";
+import { useTheme } from "@/context/ThemeContext";
 
 const CHANNELS = [
   { key: "email", label: "Email Notifications", icon: Mail },
@@ -15,19 +15,16 @@ const THEME_OPTIONS = [
 ];
 
 // Settings page — real notification-preference toggles (GET/PUT
-// /trydood/v1/notifications/preferences) plus a local Appearance
-// (light/dark) choice. There's no dark-mode styling anywhere else in the
-// app yet, so the theme choice only live-previews on this page itself —
-// see themeStore.js's comment.
+// /trydood/v1/notifications/preferences) plus the app-wide Appearance
+// (light/dark) choice, via ThemeContext — this now actually applies
+// everywhere else in the app too, not just a preview on this page.
 export default function SettingsPage() {
   const [channels, setChannels] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [savingChannel, setSavingChannel] = useState(null);
 
-  const theme = useThemeStore((s) => s.theme);
-  const setTheme = useThemeStore((s) => s.setTheme);
-  const isDark = theme === "dark";
+  const { theme, setTheme, isDark } = useTheme();
 
   useEffect(() => {
     let cancelled = false;
@@ -180,8 +177,7 @@ export default function SettingsPage() {
           </div>
 
           <p className={`text-xs mt-3 ${subText}`}>
-            Your choice is saved on this device. Right now it only previews here — the rest of the Vendor Panel
-            doesn't support dark mode yet.
+            Your choice is saved on this device and applies across the whole Vendor Panel.
           </p>
         </section>
       </div>

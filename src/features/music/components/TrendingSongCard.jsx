@@ -38,7 +38,7 @@ export default function TrendingSongCard({ song, isActive, isPlaying, duration, 
           </span>
         </div>
       </div>
-      <p className="mt-2 text-xs font-semibold text-gray-800 truncate">{song.title}</p>
+      <p className="mt-2 text-xs font-semibold text-gray-800 dark:text-gray-100 truncate">{song.title}</p>
       <p className="text-[11px] text-gray-400 truncate">{song.subtitle}</p>
       <p className="text-[10px] text-gray-300">{duration != null ? formatTime(duration) : "--:--"}</p>
     </button>

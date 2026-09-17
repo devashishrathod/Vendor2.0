@@ -9,7 +9,7 @@ function formatAmount(amount) {
 // One icon + accent color per transaction type, matching the reference
 // design's three separate cards instead of one joined divide-x strip.
 const TYPE_STYLES = {
-  overall: { icon: Wallet, iconBg: "bg-emerald-50", iconText: "text-emerald-600", spark: "#10b981" },
+  overall: { icon: Wallet, iconBg: "bg-emerald-50 dark:bg-emerald-500/10", iconText: "text-emerald-600 dark:text-emerald-400", spark: "#10b981" },
   voucher: { icon: Tag, iconBg: "bg-blue-50", iconText: "text-blue-600", spark: "#3b82f6" },
   gst: { icon: ReceiptText, iconBg: "bg-violet-50", iconText: "text-violet-600", spark: "#8b5cf6" },
 };
@@ -37,7 +37,7 @@ function MiniSparkline({ deltaPercent, color }) {
 
 export default function TransactionSummaryPanel({ transactions }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {TRANSACTION_TYPES.map((type) => {
         const stat = transactions?.[type.value];
         const style = TYPE_STYLES[type.value] || TYPE_STYLES.overall;
@@ -45,7 +45,7 @@ export default function TransactionSummaryPanel({ transactions }) {
         return (
           <div
             key={type.value}
-            className="bg-white border border-gray-100 rounded-2xl p-5 flex items-start justify-between gap-3"
+            className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl p-5 flex items-start justify-between gap-3"
           >
             <div>
               <div className="flex items-center gap-2.5">
@@ -54,7 +54,7 @@ export default function TransactionSummaryPanel({ transactions }) {
                 </div>
                 <span className="text-sm font-medium text-gray-500">{type.label}</span>
               </div>
-              <p className="mt-3 text-2xl font-bold text-gray-900">
+              <p className="mt-3 text-2xl font-bold text-gray-900 dark:text-gray-100">
                 {stat ? `₹ ${formatAmount(stat.amount)}` : "—"}
               </p>
               {stat && (

@@ -14,12 +14,15 @@ export default function useVoucherBanner(voucher) {
   const existingBanner = voucher?.voucher?.banner;
   const [bannerType, setBannerType] = useState(existingBanner?.type || "IMAGE");
   const [bannerImage, setBannerImage] = useState(null); // newly-picked File, pending upload
-  const [bannerVideo, setBannerVideo] = useState(
-    existingBanner?.type === "VIDEO" ? existingBanner?.video?.url || "" : ""
-  );
-  const [bannerGif, setBannerGif] = useState(
-    existingBanner?.type === "GIF" ? existingBanner?.gif?.url || "" : ""
-  );
+  // ⚠️ Both now hold a newly-picked File, same as bannerImage — NOT a URL
+  // string anymore, per explicit instruction to give video/gif the same
+  // file-upload UX as image. This deviates from the one thing actually
+  // confirmed from Postman (see VoucherService.js's comment: "bannerVideo/
+  // bannerGif are plain URL strings") — verify the real saved value once
+  // tested, and switch back to a URL-string flow if the backend rejects a
+  // raw file upload on these two fields.
+  const [bannerVideo, setBannerVideo] = useState(null);
+  const [bannerGif, setBannerGif] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState(null);

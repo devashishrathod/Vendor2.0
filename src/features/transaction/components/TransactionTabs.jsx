@@ -5,7 +5,7 @@ import { TRANSACTION_TABS } from "../data/transactionData";
 export default function TransactionTabs({ activeTxnTab, setActiveTxnTab }) {
   return (
     <div className="flex justify-center mb-5">
-      <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1 flex-wrap">
+      <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 rounded-xl p-1 flex-wrap">
         {TRANSACTION_TABS.map(({ key, label, icon }, index) => (
           <div key={key} className="flex items-center">
             {/* Divider before the last tab, like in the reference design —
@@ -18,7 +18,7 @@ export default function TransactionTabs({ activeTxnTab, setActiveTxnTab }) {
               className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold
                 transition-all duration-150
                 ${activeTxnTab === key
-                  ? "bg-white text-gray-900 shadow-sm"
+                  ? "bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm"
                   : "bg-transparent text-gray-500 hover:text-gray-700"
                 }`}
             >

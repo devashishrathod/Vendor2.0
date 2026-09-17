@@ -106,7 +106,7 @@ const BusinessHoursPage = ({ brand, brandId, brandLoading, brandError }) => {
           type="button"
           onClick={handleSave}
           disabled={saving}
-          className="rounded-xl bg-emerald-500 px-5 py-2.5 text-sm font-bold text-white shadow-sm shadow-emerald-100 transition-all duration-200 hover:bg-emerald-600 active:scale-[0.97] disabled:bg-gray-100 disabled:text-gray-300 disabled:cursor-not-allowed disabled:shadow-none"
+          className="rounded-xl bg-emerald-500 px-5 py-2.5 text-sm font-bold text-white shadow-sm shadow-emerald-100 transition-all duration-200 hover:bg-emerald-600 active:scale-[0.97] disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:text-gray-300 disabled:cursor-not-allowed disabled:shadow-none"
         >
           {saving ? "Saving…" : "Save changes"}
         </button>

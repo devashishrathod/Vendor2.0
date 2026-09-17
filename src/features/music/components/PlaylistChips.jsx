@@ -5,12 +5,12 @@ export default function PlaylistChips({ playlists, requests }) {
 
   return (
     <div className="mb-8">
-      <p className="text-sm font-semibold text-gray-700 mb-3">Your playlists</p>
+      <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Your playlists</p>
       <div className="flex flex-wrap gap-2">
         {playlists.map((p) => (
           <span
             key={p.id}
-            className="inline-flex items-center gap-1.5 bg-white border border-gray-100 rounded-full px-3 py-1.5 text-xs text-gray-600"
+            className="inline-flex items-center gap-1.5 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-full px-3 py-1.5 text-xs text-gray-600 dark:text-gray-300"
           >
             <Music2 size={12} className="text-emerald-500" /> {p.name}
           </span>

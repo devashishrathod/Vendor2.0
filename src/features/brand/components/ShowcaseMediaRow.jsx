@@ -90,7 +90,7 @@ function ModalActions({ type, onReplace, onDelete, onEdit, onToggleClip, isShowI
       {type === "video" && onToggleClip && (
         <label
           title={isShowInVideoClips ? "Hide from video clips" : "Show in video clips"}
-          className="flex cursor-pointer items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-100"
+          className="flex cursor-pointer items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
         >
           <input
             type="checkbox"
@@ -105,7 +105,7 @@ function ModalActions({ type, onReplace, onDelete, onEdit, onToggleClip, isShowI
         <button
           type="button"
           onClick={onEdit}
-          className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-100"
+          className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
         >
           <Pencil size={13} /> Edit
         </button>
@@ -122,7 +122,7 @@ function ModalActions({ type, onReplace, onDelete, onEdit, onToggleClip, isShowI
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-100"
+            className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
           >
             <Upload size={13} /> Replace
           </button>
@@ -149,10 +149,10 @@ const VideoModal = ({ src, title, onClose, onReplace, onDelete, onEdit, onToggle
     onClick={onClose}
   >
     <div
-      className="relative w-full max-w-lg overflow-hidden rounded-2xl bg-white"
+      className="relative w-full max-w-lg overflow-hidden rounded-2xl bg-white dark:bg-gray-800"
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="flex items-center justify-end gap-1.5 border-b border-gray-100 p-3">
+      <div className="flex items-center justify-end gap-1.5 border-b border-gray-100 dark:border-gray-700 p-3">
         <ModalActions
           type="video"
           onReplace={onReplace}
@@ -165,12 +165,12 @@ const VideoModal = ({ src, title, onClose, onReplace, onDelete, onEdit, onToggle
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="flex h-7 w-7 items-center justify-center rounded-full text-gray-500 transition-colors hover:bg-gray-100"
+          className="flex h-7 w-7 items-center justify-center rounded-full text-gray-500 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
         >
           <X size={16} />
         </button>
       </div>
-      <div className="flex justify-center bg-gray-50 p-5">
+      <div className="flex justify-center bg-gray-50 dark:bg-gray-700 p-5">
         <video src={src} controls autoPlay className="max-h-[50vh] rounded-xl">
           Your browser doesn't support video playback.
         </video>
@@ -190,21 +190,21 @@ const ImageModal = ({ src, title, onClose, onReplace, onDelete, onEdit }) => (
     onClick={onClose}
   >
     <div
-      className="relative w-full max-w-2xl overflow-hidden rounded-2xl bg-white"
+      className="relative w-full max-w-2xl overflow-hidden rounded-2xl bg-white dark:bg-gray-800"
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="flex items-center justify-end gap-1.5 border-b border-gray-100 p-3">
+      <div className="flex items-center justify-end gap-1.5 border-b border-gray-100 dark:border-gray-700 p-3">
         <ModalActions type="image" onReplace={onReplace} onDelete={onDelete} onEdit={onEdit} />
         <button
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="flex h-7 w-7 items-center justify-center rounded-full text-gray-500 transition-colors hover:bg-gray-100"
+          className="flex h-7 w-7 items-center justify-center rounded-full text-gray-500 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
         >
           <X size={16} />
         </button>
       </div>
-      <div className="flex justify-center bg-gray-50 p-5">
+      <div className="flex justify-center bg-gray-50 dark:bg-gray-700 p-5">
         <img
           src={src}
           alt={title || "Preview"}
@@ -250,11 +250,11 @@ function EditMediaModal({ media, onClose, onSave }) {
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-2xl border border-gray-100 bg-white p-6 shadow-xl"
+        className="w-full max-w-md rounded-2xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-sm font-bold text-gray-900">Edit {isVideo ? "Video" : "Photo"}</h3>
+          <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">Edit {isVideo ? "Video" : "Photo"}</h3>
           <button type="button" onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-600">
             <X size={18} />
           </button>
@@ -262,30 +262,30 @@ function EditMediaModal({ media, onClose, onSave }) {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-600">Title</label>
+            <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">Title</label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Ambience photo"
-              className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm text-gray-700 outline-none transition-colors placeholder:text-gray-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+              className="w-full rounded-xl border border-gray-200 dark:border-gray-700 px-3.5 py-2.5 text-sm text-gray-700 dark:bg-gray-800 dark:text-gray-100 outline-none transition-colors placeholder:text-gray-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-600">Alt Text</label>
+            <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">Alt Text</label>
             <input
               type="text"
               value={altText}
               onChange={(e) => setAltText(e.target.value)}
               placeholder="Short description for accessibility"
-              className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm text-gray-700 outline-none transition-colors placeholder:text-gray-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+              className="w-full rounded-xl border border-gray-200 dark:border-gray-700 px-3.5 py-2.5 text-sm text-gray-700 dark:bg-gray-800 dark:text-gray-100 outline-none transition-colors placeholder:text-gray-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
             />
           </div>
 
           {isVideo && (
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-600">Thumbnail (optional)</label>
+              <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">Thumbnail (optional)</label>
               <input
                 type="file"
                 accept="image/*"
@@ -295,7 +295,7 @@ function EditMediaModal({ media, onClose, onSave }) {
               {thumbnail ? (
                 <p className="mt-1 text-xs text-gray-500">{thumbnail.name}</p>
               ) : media?.thumbnail ? (
-                <img src={media.thumbnail} alt="" className="mt-2 h-14 w-14 rounded-lg border border-gray-100 object-cover" />
+                <img src={media.thumbnail} alt="" className="mt-2 h-14 w-14 rounded-lg border border-gray-100 dark:border-gray-700 object-cover" />
               ) : null}
             </div>
           )}
@@ -304,7 +304,7 @@ function EditMediaModal({ media, onClose, onSave }) {
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50"
+              className="rounded-xl border border-gray-200 dark:border-gray-700 px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
             >
               Cancel
             </button>
@@ -344,7 +344,7 @@ function MediaTile({ media, index, onPlay, onPreview, onEdit }) {
     <div
       ref={mergeRefs(ref, handleRef, clickRef)}
       style={{ opacity: isDragging ? 0.4 : 1 }}
-      className="group relative aspect-square cursor-grab touch-none overflow-hidden rounded-xl border border-gray-100 bg-gray-100 transition-opacity active:cursor-grabbing"
+      className="group relative aspect-square cursor-grab touch-none overflow-hidden rounded-xl border border-gray-100 dark:border-gray-700 bg-gray-100 dark:bg-gray-700 transition-opacity active:cursor-grabbing"
     >
       <span className="absolute left-1.5 top-1.5 z-10 flex h-4 min-w-4 items-center justify-center rounded-full bg-gray-900/80 px-1 text-[9px] font-bold text-white">
         {index + 1}

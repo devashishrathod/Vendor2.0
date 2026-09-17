@@ -312,19 +312,19 @@ function TypeCard({ type, selected, onClick }) {
         transition-all duration-200 w-full text-left
         ${isActive
           ? "border-2 border-emerald-500 bg-emerald-50/50 shadow-sm shadow-emerald-100"
-          : "border border-gray-200 bg-white hover:border-emerald-200 hover:bg-gray-50/50"
+          : "border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-emerald-200 hover:bg-gray-50/50"
         }`}
     >
       <div className="flex items-start justify-between w-full">
         <div
           className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-200
-          ${isActive ? "bg-emerald-100" : "bg-gray-100"}`}
+          ${isActive ? "bg-emerald-100" : "bg-gray-100 dark:bg-gray-700"}`}
         >
           {type.icon(isActive)}
         </div>
         <div
           className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center transition-all duration-200
-          ${isActive ? "border-emerald-500 bg-emerald-500" : "border-gray-300 bg-white"}`}
+          ${isActive ? "border-emerald-500 bg-emerald-500" : "border-gray-300 bg-white dark:bg-gray-800"}`}
         >
           {isActive && <div className="w-1 h-1 rounded-full bg-white" />}
         </div>
@@ -333,7 +333,7 @@ function TypeCard({ type, selected, onClick }) {
       <div className="flex flex-col gap-0.5">
         <span
           className={`text-[13px] font-semibold leading-tight transition-colors duration-200
-          ${isActive ? "text-emerald-700" : "text-gray-800"}`}
+          ${isActive ? "text-emerald-700" : "text-gray-800 dark:text-gray-100"}`}
         >
           {type.label}
         </span>
@@ -425,7 +425,7 @@ function RightInfoPanel({ info }) {
 
       <div className=" flex flex-col gap-3">
         <div>
-          <p className="text-[13px] font-semibold text-gray-800">
+          <p className="text-[13px] font-semibold text-gray-800 dark:text-gray-100">
             {info.title}
           </p>
           <p className="text-[11px] text-gray-400 mt-1 leading-snug">
@@ -442,7 +442,7 @@ function RightInfoPanel({ info }) {
               <div className="w-5 h-5 rounded-md bg-emerald-100 text-emerald-600 flex items-center justify-center">
                 {FeatureIcon[f.icon]}
               </div>
-              <p className="text-[10.5px] font-semibold text-gray-700 leading-tight">
+              <p className="text-[10.5px] font-semibold text-gray-700 dark:text-gray-300 leading-tight">
                 {f.title}
               </p>
               <p className="text-[9.5px] text-gray-400 leading-snug">
@@ -460,7 +460,7 @@ function RightInfoPanel({ info }) {
             {info.documents.map((d, i) => (
               <span
                 key={i}
-                className="text-[9.5px] font-medium px-2 py-1 rounded-full bg-gray-100 text-gray-600"
+                className="text-[9.5px] font-medium px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
               >
                 {d}
               </span>
@@ -540,7 +540,7 @@ goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_VERIFICATION);
                   </svg>
                 </div>
                 <div>
-                  <h2 className="text-base md:text-lg font-bold text-gray-900 mb-0.5">
+                  <h2 className="text-base md:text-lg font-bold text-gray-900 dark:text-gray-100 mb-0.5">
                     Select your business type
                   </h2>
                   <p className="text-xs text-gray-500">
@@ -611,7 +611,7 @@ goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_VERIFICATION);
               </div>
 
               {/* Footer */}
-              <div className="flex items-center justify-between border-t border-gray-100 pt-3 mt-1">
+              <div className="flex items-center justify-between border-t border-gray-100 dark:border-gray-700 pt-3 mt-1">
                 <PrimaryButton
                   onClick={handleContinue}
                   disabled={!selected}

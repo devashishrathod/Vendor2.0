@@ -49,9 +49,9 @@ export default function OutletsPage() {
 
   return (
     <div>
-      <div className="min-h-screen bg-gray-50 font-sans">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 font-sans">
         <div className="max-w-7xl mx-auto px-4 py-8">
-          <h1 className="text-xl font-bold text-gray-900 mb-6">Own Outlet's &amp; Franchise Outlet's information</h1>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6">Own Outlet's &amp; Franchise Outlet's information</h1>
 
           <OutletsToolbar
             search={search}

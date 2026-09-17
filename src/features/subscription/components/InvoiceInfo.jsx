@@ -22,8 +22,8 @@ export default function InvoiceInfo({ subscription }) {
     },
     {
       icon: <FileText className="w-4 h-4" />,
-      iconBg: 'bg-emerald-50',
-      iconText: 'text-emerald-500',
+      iconBg: 'bg-emerald-50 dark:bg-emerald-500/10',
+      iconText: 'text-emerald-500 dark:text-emerald-400',
       label: 'Subscription Invoice',
       value: purchasedListLabel,
       link: { text: 'View History', onClick: () => setIsHistoryOpen(true) },

@@ -20,10 +20,10 @@ function formatVoucherDate(iso) {
 // Falls back to "Not Found" for a genuinely missing value instead of
 // rendering an empty cell — the field itself always shows, per the
 // as-it-was layout, rather than being hidden when the API has no data.
-function Field({ label, value, valueClass = "text-gray-900", action }) {
+function Field({ label, value, valueClass = "text-gray-900 dark:text-gray-100", action }) {
   return (
     <div>
-      <p className="text-xs font-semibold text-gray-900 mb-1">{label}</p>
+      <p className="text-xs font-semibold text-gray-900 dark:text-gray-100 mb-1">{label}</p>
       <div className="flex items-center gap-1.5">
         <p className={`text-sm ${valueClass} whitespace-pre-line`}>{value ?? "Not Found"}</p>
         {action}
@@ -65,9 +65,9 @@ function CopyButton({ text }) {
 // Section wrapper: icon-tile card header (matching the icon+title pattern
 // used across Outlet Details/Settings/Subscription elsewhere in the app)
 // instead of a bare uppercase heading floating on the page background.
-function Section({ icon: Icon, iconBg = "bg-emerald-50", iconText = "text-emerald-500", title, subtitle, children }) {
+function Section({ icon: Icon, iconBg = "bg-emerald-50 dark:bg-emerald-500/10", iconText = "text-emerald-500 dark:text-emerald-400", title, subtitle, children }) {
   return (
-    <section className="bg-white border border-gray-100 rounded-2xl p-5 sm:p-6">
+    <section className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl p-5 sm:p-6">
       <div className="flex items-center gap-3 mb-4">
         {Icon && (
           <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${iconBg} ${iconText}`}>
@@ -75,7 +75,7 @@ function Section({ icon: Icon, iconBg = "bg-emerald-50", iconText = "text-emeral
           </div>
         )}
         <div>
-          <h2 className="text-sm font-bold text-gray-900">{title}</h2>
+          <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100">{title}</h2>
           {subtitle && <div className="text-xs text-gray-400 mt-0.5">{subtitle}</div>}
         </div>
       </div>
@@ -89,7 +89,7 @@ function Section({ icon: Icon, iconBg = "bg-emerald-50", iconText = "text-emeral
 function TicketItem({ ticket }) {
   const [open, setOpen] = useState(!!ticket.open);
   return (
-    <div className="bg-gray-50 rounded-lg overflow-hidden">
+    <div className="bg-gray-50 dark:bg-gray-700 rounded-lg overflow-hidden">
       <button
         onClick={() => setOpen((o) => !o)}
         className="w-full flex items-center gap-2 px-4 py-3 text-left"
@@ -100,7 +100,7 @@ function TicketItem({ ticket }) {
         >
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
         </svg>
-        <span className="text-sm text-gray-700">
+        <span className="text-sm text-gray-700 dark:text-gray-300">
           Ticket Id : <span className="font-medium">{ticket.id}</span>{" "}
           <span className="text-gray-400">({ticket.date})</span>
         </span>
@@ -108,21 +108,21 @@ function TicketItem({ ticket }) {
 
       {open && ticket.subject && (
         <div className="px-4 pb-5 pl-10 space-y-4">
-          <p className="text-sm font-bold text-gray-900">{ticket.subject}</p>
-          <p className="text-sm text-gray-700">{ticket.description}</p>
-          <p className="text-sm text-gray-600 leading-relaxed">{ticket.details}</p>
+          <p className="text-sm font-bold text-gray-900 dark:text-gray-100">{ticket.subject}</p>
+          <p className="text-sm text-gray-700 dark:text-gray-300">{ticket.description}</p>
+          <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">{ticket.details}</p>
 
           <div>
-            <p className="text-sm font-bold text-gray-900 mb-1">Next Steps</p>
-            <p className="text-sm text-gray-600 leading-relaxed">{ticket.nextSteps}</p>
+            <p className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-1">Next Steps</p>
+            <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">{ticket.nextSteps}</p>
           </div>
 
           <div>
-            <p className="text-sm font-bold text-gray-900 mb-1">Resources</p>
-            <p className="text-sm text-gray-600 leading-relaxed mb-2">{ticket.resources}</p>
+            <p className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-1">Resources</p>
+            <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed mb-2">{ticket.resources}</p>
             <div className="space-y-1">
               {ticket.attachments?.map((a, i) => (
-                <p key={i} className="text-sm text-gray-600">
+                <p key={i} className="text-sm text-gray-600 dark:text-gray-300">
                   {a.label}{" "}
                   <button className="text-blue-500 hover:underline font-medium">{a.fileLabel}</button>
                 </p>
@@ -214,7 +214,7 @@ export default function OrderDetail() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 font-sans">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 font-sans">
         <div className="max-w-3xl mx-auto px-6 py-16 text-center">
           <p className="text-gray-400 text-sm">Loading order details…</p>
         </div>
@@ -224,7 +224,7 @@ export default function OrderDetail() {
 
   if (!result || notFound) {
     return (
-      <div className="min-h-screen bg-gray-50 font-sans">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 font-sans">
         <div className="max-w-3xl mx-auto px-6 py-16 text-center">
           <p className="text-gray-500 mb-4">Order #{orderId} not found.</p>
           <button
@@ -241,19 +241,19 @@ export default function OrderDetail() {
   const { order, typeConfig } = result;
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 font-sans">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-4">
         {/* Header card: back, title, status badges, actions */}
-        <div className="bg-white border border-gray-100 rounded-2xl flex flex-wrap items-center gap-4 px-5 sm:px-6 py-5">
+        <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl flex flex-wrap items-center gap-4 px-5 sm:px-6 py-5">
           <button
             onClick={() => navigate("/transactions")}
-            className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 flex-shrink-0"
+            className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 flex-shrink-0"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
 
           <div className="flex-1 min-w-[240px]">
-            <h1 className="text-lg font-bold text-gray-900 leading-tight">
+            <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100 leading-tight">
               {order.title || order.refId}
             </h1>
             {order.tagLine && (
@@ -261,13 +261,13 @@ export default function OrderDetail() {
             )}
             <div className="flex items-center gap-2 mt-1.5">
               <span className="text-xs text-gray-500">Order Id</span>
-              <span className="text-xs font-semibold text-gray-700">{order.orderId}</span>
+              <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">{order.orderId}</span>
               <CopyButton text={order.orderId} />
-              <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full ml-1">
+              <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 dark:text-emerald-400 px-2.5 py-1 rounded-full ml-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                 {order.status || "Active"}
               </span>
-              <span className="text-[11px] font-semibold text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full">
+              <span className="text-[11px] font-semibold text-gray-500 bg-gray-100 dark:bg-gray-700 px-2.5 py-1 rounded-full">
                 {typeConfig.badgeLabel}
               </span>
             </div>
@@ -289,12 +289,12 @@ export default function OrderDetail() {
         </div>
 
         {/* Billing Information */}
-        <Section icon={Wallet} iconBg="bg-emerald-50" iconText="text-emerald-500" title="Billing Information">
+        <Section icon={Wallet} iconBg="bg-emerald-50 dark:bg-emerald-500/10" iconText="text-emerald-500 dark:text-emerald-400" title="Billing Information">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-y-5 gap-x-6">
             <div>
-              <p className="text-xs font-semibold text-gray-900 mb-1">To Paid</p>
+              <p className="text-xs font-semibold text-gray-900 dark:text-gray-100 mb-1">To Paid</p>
               <div className="flex items-center gap-1.5">
-                <p className="text-xl font-bold text-gray-900">{order.paidAmount}</p>
+                <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{order.paidAmount}</p>
                 <Download className="w-3.5 h-3.5 text-gray-400" />
               </div>
               <p className="text-xs font-medium text-emerald-500 mt-1">Payment Successful!</p>
@@ -337,7 +337,7 @@ export default function OrderDetail() {
         <Section icon={ShoppingBag} iconBg="bg-violet-50" iconText="text-violet-500" title="Purchase Summary">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-y-5 gap-x-6">
             <Field label="Bill Amount" value={order.billAmount} />
-            <Field label="Discount Amount" value={order.discountAmount} valueClass="text-gray-900" />
+            <Field label="Discount Amount" value={order.discountAmount} valueClass="text-gray-900 dark:text-gray-100" />
             <Field label="Trydood Discount" value={order.trydoodDiscount} />
             {/* <Field label="Membership Discount" value={order.membershipDiscount} valueClass={order.membershipDiscount ? "text-emerald-500 font-semibold" : "text-gray-900"} /> */}
             <Field label="Coupon Code" value={order.couponCode} />
@@ -358,7 +358,7 @@ export default function OrderDetail() {
         {(order.customerName || order.customerCode || order.customerEmail || order.customerNote) && (
           <Section icon={User} iconBg="bg-amber-50" iconText="text-amber-500" title="Customer Information" subtitle={order.customerNote}>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-y-5 gap-x-6">
-              {order.customerName && <Field label="Customer Name" value={order.customerName} valueClass="text-gray-900 capitalize" />}
+              {order.customerName && <Field label="Customer Name" value={order.customerName} valueClass="text-gray-900 dark:text-gray-100 capitalize" />}
               {order.customerCode && <Field label="Customer Id" value={order.customerCode} />}
               {order.customerEmail && <Field label="Mail Id" value={order.customerEmail} />}
             </div>
@@ -368,8 +368,8 @@ export default function OrderDetail() {
         {/* Transaction Information */}
         <Section
           icon={Activity}
-          iconBg="bg-emerald-50"
-          iconText="text-emerald-500"
+          iconBg="bg-emerald-50 dark:bg-emerald-500/10"
+          iconText="text-emerald-500 dark:text-emerald-400"
           title="Transaction Information"
           subtitle={
             <button className="flex items-center gap-1 text-blue-500 hover:underline">
@@ -381,7 +381,7 @@ export default function OrderDetail() {
           <div className="space-y-6">
             {/* Payment transaction row */}
             <div className="flex gap-3">
-              <div className="w-7 h-7 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+              <div className="w-7 h-7 rounded-full bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center flex-shrink-0 mt-0.5">
                 <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} className="text-emerald-500">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
@@ -404,7 +404,7 @@ export default function OrderDetail() {
                 row is skipped rather than showing four blank fields. */}
             {order.settlementId && (
               <div className="flex gap-3">
-                <div className="w-7 h-7 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <div className="w-7 h-7 rounded-full bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center flex-shrink-0 mt-0.5">
                   <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} className="text-emerald-500">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                   </svg>
@@ -438,7 +438,7 @@ export default function OrderDetail() {
 
         {/* Footer */}
         <div className="pt-2 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-xs font-bold tracking-[0.1em] text-gray-800">TRYDOOD RETAIL PRIVATE LIMITED</p>
+          <p className="text-xs font-bold tracking-[0.1em] text-gray-800 dark:text-gray-100">TRYDOOD RETAIL PRIVATE LIMITED</p>
           <div className="flex items-center gap-5 text-xs text-gray-400">
             <span>Copyright © 2026 Trydood. All rights reserved.</span>
             <button className="hover:text-gray-600">Terms of Service</button>

@@ -5,7 +5,7 @@ const TABS = ["Analysis Report", "Voucher Details", "Transaction Information"];
 
 export default function VoucherTabs({ activeTab, onChange }) {
   return (
-    <div className="flex gap-6 border-b border-gray-200 text-sm">
+    <div className="flex gap-6 border-b border-gray-200 dark:border-gray-700 text-sm">
       {TABS.map((tab) => (
         <button
           key={tab}
@@ -13,7 +13,7 @@ export default function VoucherTabs({ activeTab, onChange }) {
           className={`-mb-px border-b-2 px-1 py-3 font-medium ${
             activeTab === tab
               ? "border-emerald-600 text-emerald-600"
-              : "border-transparent text-gray-500 hover:text-gray-700"
+              : "border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
           }`}
         >
           {tab}

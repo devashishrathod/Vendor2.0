@@ -28,18 +28,18 @@ const CardPage = ({ icon, iconBg, title, heading, description, to = "/", comingS
           >
             {icon}
           </span>
-          <h3 className="text-[15px] font-semibold text-gray-900">
+          <h3 className="text-[15px] font-semibold text-gray-900 dark:text-gray-100">
             {heading}
           </h3>
           {comingSoon && (
-            <span className="ml-auto flex-shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-gray-500">
+            <span className="ml-auto flex-shrink-0 rounded-full bg-gray-100 dark:bg-gray-700 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-gray-500">
               Coming Soon
             </span>
           )}
         </div>
 
         <div className="mt-4">
-          <p className="text-sm font-semibold text-gray-800">{title}</p>
+          <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{title}</p>
           <p className="mt-1 text-sm leading-relaxed text-gray-500">
             {description}
           </p>
@@ -47,7 +47,7 @@ const CardPage = ({ icon, iconBg, title, heading, description, to = "/", comingS
       </div>
 
       <div className="mt-4 flex justify-end">
-        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-50 text-gray-400 transition-colors duration-200 group-hover:bg-emerald-50 group-hover:text-emerald-600">
+        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-50 dark:bg-gray-700 text-gray-400 transition-colors duration-200 group-hover:bg-emerald-50 group-hover:text-emerald-600 dark:group-hover:bg-emerald-500/10 dark:group-hover:text-emerald-400">
           <ArrowRight size={16} />
         </span>
       </div>
@@ -59,7 +59,7 @@ const CardPage = ({ icon, iconBg, title, heading, description, to = "/", comingS
       <div
         aria-disabled="true"
         title="Coming soon"
-        className="group flex cursor-not-allowed flex-col justify-between rounded-xl border border-gray-200 bg-white p-5 opacity-70"
+        className="group flex cursor-not-allowed flex-col justify-between rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 opacity-70"
       >
         {content}
       </div>
@@ -69,7 +69,7 @@ const CardPage = ({ icon, iconBg, title, heading, description, to = "/", comingS
   return (
     <Link
       to={to}
-      className="group flex flex-col justify-between rounded-xl border border-gray-200 bg-white p-5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+      className="group flex flex-col justify-between rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-400"
     >
       {content}
     </Link>

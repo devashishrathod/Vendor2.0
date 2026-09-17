@@ -58,36 +58,36 @@ export default function TimePickerAmPm({ value, onChange, className = "" }) {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between gap-2 rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none transition-colors focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+        className="flex w-full items-center justify-between gap-2 rounded-xl border border-gray-200 dark:border-gray-700 px-3 py-2.5 text-sm outline-none transition-colors focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
       >
-        <span className={value ? "text-gray-700" : "text-gray-400"}>{displayLabel}</span>
+        <span className={value ? "text-gray-700 dark:text-gray-300" : "text-gray-400"}>{displayLabel}</span>
         <Clock className="h-4 w-4 flex-shrink-0 text-gray-400" />
       </button>
 
       {open && (
-        <div className="absolute z-30 mt-1 flex overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg">
-          <div className="max-h-48 w-14 overflow-y-auto border-r border-gray-100">
+        <div className="absolute z-30 mt-1 flex overflow-hidden rounded-xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg">
+          <div className="max-h-48 w-14 overflow-y-auto border-r border-gray-100 dark:border-gray-700">
             {HOURS.map((h) => (
               <button
                 key={h}
                 type="button"
                 onClick={() => pick(h, minute, period)}
                 className={`block w-full px-3 py-1.5 text-center text-sm transition-colors ${
-                  h === hour12 ? "bg-emerald-500 font-bold text-white" : "text-gray-600 hover:bg-emerald-50"
+                  h === hour12 ? "bg-emerald-500 font-bold text-white" : "text-gray-600 dark:text-gray-300 hover:bg-emerald-50 dark:hover:bg-emerald-500/10"
                 }`}
               >
                 {String(h).padStart(2, "0")}
               </button>
             ))}
           </div>
-          <div className="max-h-48 w-14 overflow-y-auto border-r border-gray-100">
+          <div className="max-h-48 w-14 overflow-y-auto border-r border-gray-100 dark:border-gray-700">
             {MINUTES.map((m) => (
               <button
                 key={m}
                 type="button"
                 onClick={() => pick(hour12, m, period)}
                 className={`block w-full px-3 py-1.5 text-center text-sm transition-colors ${
-                  m === minute ? "bg-emerald-500 font-bold text-white" : "text-gray-600 hover:bg-emerald-50"
+                  m === minute ? "bg-emerald-500 font-bold text-white" : "text-gray-600 dark:text-gray-300 hover:bg-emerald-50 dark:hover:bg-emerald-500/10"
                 }`}
               >
                 {String(m).padStart(2, "0")}
@@ -104,7 +104,7 @@ export default function TimePickerAmPm({ value, onChange, className = "" }) {
                   setOpen(false);
                 }}
                 className={`block w-full px-3 py-1.5 text-center text-sm transition-colors ${
-                  p === period ? "bg-emerald-500 font-bold text-white" : "text-gray-600 hover:bg-emerald-50"
+                  p === period ? "bg-emerald-500 font-bold text-white" : "text-gray-600 dark:text-gray-300 hover:bg-emerald-50 dark:hover:bg-emerald-500/10"
                 }`}
               >
                 {p}

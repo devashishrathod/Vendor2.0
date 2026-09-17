@@ -54,7 +54,13 @@ export function useSubscriptionPlans({ page = 1, limit = 10 } = {}) {
         createdAt: p.createdAt,
       }));
 
-      setPlans(normalized);
+      // Sorted lowest → highest price — the API's own order isn't
+      // guaranteed to be price-ordered, so every consumer (PlanTabs,
+      // PlanPriceCard, PlanComparisonTable) gets a consistent, predictable
+      // order straight from the source instead of each needing its own sort.
+      const sorted = [...normalized].sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
+
+      setPlans(sorted);
       setMeta({
         total: payload?.total ?? normalized.length,
         totalPages: payload?.totalPages ?? 1,

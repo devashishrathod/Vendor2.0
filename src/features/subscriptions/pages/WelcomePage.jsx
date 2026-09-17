@@ -63,7 +63,7 @@ function DownloadInvoiceButton({ invoiceUrl, className = "" }) {
       onClick={() => invoiceUrl && window.open(invoiceUrl, "_blank", "noopener,noreferrer")}
       disabled={!invoiceUrl}
       title={invoiceUrl ? "Download invoice" : "Invoice not available yet"}
-      className={`inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 bg-white text-gray-700 text-xs font-semibold rounded-lg hover:bg-gray-50 active:scale-[0.97] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white flex-shrink-0 ${className}`}
+      className={`inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-semibold rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 active:scale-[0.97] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white dark:disabled:hover:bg-gray-800 flex-shrink-0 ${className}`}
     >
       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
@@ -109,13 +109,13 @@ function PlanSummaryCard({ planName, orderSummary, strikePrice, defaultOpen = fa
   if (rows.length === 0) return null;
 
   return (
-    <div className="border border-gray-200 rounded-xl overflow-hidden mb-6 bg-white">
+    <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden mb-6 bg-white dark:bg-gray-800">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center justify-between px-5 py-3 bg-gray-50 border-b border-gray-200 hover:bg-gray-100 transition-colors"
+        className="w-full flex items-center justify-between px-5 py-3 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
       >
-        <p className="text-sm font-semibold text-gray-700">Plan Name : {planName}</p>
+        <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Plan Name : {planName}</p>
         <ChevronIcon open={open} />
       </button>
 
@@ -130,10 +130,10 @@ function PlanSummaryCard({ planName, orderSummary, strikePrice, defaultOpen = fa
             const value = isOriginal && strikePrice > 0 ? fmt(strikePrice) : row.display;
             return (
               <div key={row.key} className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">{truncatePercentInLabel(row.label)}</span>
+                <span className="text-sm text-gray-600 dark:text-gray-300">{truncatePercentInLabel(row.label)}</span>
                 <span
                   className={`text-sm font-semibold ${
-                    isDiscount ? "text-teal-600" : isOriginal ? "text-gray-400 line-through" : "text-gray-800"
+                    isDiscount ? "text-teal-600" : isOriginal ? "text-gray-400 line-through" : "text-gray-800 dark:text-gray-100"
                   }`}
                 >
                   {value}
@@ -142,9 +142,9 @@ function PlanSummaryCard({ planName, orderSummary, strikePrice, defaultOpen = fa
             );
           })}
           {payable && (
-            <div className="flex items-center justify-between pt-2 border-t border-dashed border-gray-200">
-              <span className="text-sm font-bold text-gray-900">{payable.label || "Total Paid"}</span>
-              <span className="text-base font-extrabold text-gray-900">{payable.display}</span>
+            <div className="flex items-center justify-between pt-2 border-t border-dashed border-gray-200 dark:border-gray-700">
+              <span className="text-sm font-bold text-gray-900 dark:text-gray-100">{payable.label || "Total Paid"}</span>
+              <span className="text-base font-extrabold text-gray-900 dark:text-gray-100">{payable.display}</span>
             </div>
           )}
         </div>
@@ -176,9 +176,9 @@ function CurrentSubscriptionCard({ sub }) {
   const isActive = subscription.status === "ACTIVE";
 
   return (
-    <div className="border border-gray-200 rounded-xl overflow-hidden mb-6 bg-white">
-      <div className="flex items-center justify-between gap-3 px-5 py-3 bg-gray-50 border-b border-gray-200">
-        <p className="text-sm font-semibold text-gray-700 min-w-0 truncate">
+    <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden mb-6 bg-white dark:bg-gray-800">
+      <div className="flex items-center justify-between gap-3 px-5 py-3 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-700">
+        <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 min-w-0 truncate">
           Current Plan : {plan.name || "—"}
           {plan.typeLabel ? ` (${plan.typeLabel})` : ""}
         </p>
@@ -196,33 +196,33 @@ function CurrentSubscriptionCard({ sub }) {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
           <div>
             <p className="text-xs text-gray-400">Valid From</p>
-            <p className="text-sm font-semibold text-gray-800 mt-0.5">{formatDate(subscription.startDate)}</p>
+            <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 mt-0.5">{formatDate(subscription.startDate)}</p>
           </div>
           <div>
             <p className="text-xs text-gray-400">Valid Until</p>
-            <p className="text-sm font-semibold text-gray-800 mt-0.5">{formatDate(subscription.endDate)}</p>
+            <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 mt-0.5">{formatDate(subscription.endDate)}</p>
           </div>
           <div>
             <p className="text-xs text-gray-400">Days Remaining</p>
-            <p className="text-sm font-semibold text-gray-800 mt-0.5">{subscription.daysRemaining ?? "—"}</p>
+            <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 mt-0.5">{subscription.daysRemaining ?? "—"}</p>
           </div>
           <div>
             <p className="text-xs text-gray-400">Duration</p>
-            <p className="text-sm font-semibold text-gray-800 mt-0.5">{subscription.durationLabel || "—"}</p>
+            <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 mt-0.5">{subscription.durationLabel || "—"}</p>
           </div>
         </div>
 
         {/* Pricing breakdown */}
-        <div className="space-y-2 pt-3 border-t border-dashed border-gray-200">
+        <div className="space-y-2 pt-3 border-t border-dashed border-gray-200 dark:border-gray-700">
           {pricing.listPrice != null && (
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">List Price</span>
+              <span className="text-sm text-gray-600 dark:text-gray-300">List Price</span>
               <span className="text-sm font-semibold text-gray-400 line-through">{fmt(pricing.listPrice)}</span>
             </div>
           )}
           {pricing.discountAmount > 0 && (
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">
+              <span className="text-sm text-gray-600 dark:text-gray-300">
                 Discount ({Math.floor(pricing.discountPercent || 0)}% off)
               </span>
               <span className="text-sm font-semibold text-teal-600">-{fmt(pricing.discountAmount)}</span>
@@ -230,15 +230,15 @@ function CurrentSubscriptionCard({ sub }) {
           )}
           {pricing.gstAmount > 0 && (
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">
+              <span className="text-sm text-gray-600 dark:text-gray-300">
                 GST{pricing.gstPercentage != null ? ` (${pricing.gstPercentage}%)` : ""}
               </span>
-              <span className="text-sm font-semibold text-gray-800">{fmt(pricing.gstAmount)}</span>
+              <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">{fmt(pricing.gstAmount)}</span>
             </div>
           )}
-          <div className="flex items-center justify-between pt-2 border-t border-dashed border-gray-200">
-            <span className="text-sm font-bold text-gray-900">Total Paid</span>
-            <span className="text-base font-extrabold text-gray-900">
+          <div className="flex items-center justify-between pt-2 border-t border-dashed border-gray-200 dark:border-gray-700">
+            <span className="text-sm font-bold text-gray-900 dark:text-gray-100">Total Paid</span>
+            <span className="text-base font-extrabold text-gray-900 dark:text-gray-100">
               {fmt(subscription.paidAmount ?? pricing.totalPayable)}
             </span>
           </div>
@@ -251,13 +251,13 @@ function CurrentSubscriptionCard({ sub }) {
 
         {/* Plan features */}
         {plan.features?.length > 0 && (
-          <div className="mt-4 pt-4 border-t border-dashed border-gray-200">
+          <div className="mt-4 pt-4 border-t border-dashed border-gray-200 dark:border-gray-700">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Plan Features</p>
             <div className="grid grid-cols-2 gap-x-6 gap-y-1.5">
               {plan.features.map((f) => (
                 <div key={f.title} className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">{f.title}</span>
-                  <span className={`font-medium ${f.available ? "text-gray-800" : "text-gray-300"}`}>
+                  <span className="text-gray-600 dark:text-gray-300">{f.title}</span>
+                  <span className={`font-medium ${f.available ? "text-gray-800 dark:text-gray-100" : "text-gray-300"}`}>
                     {f.value}
                   </span>
                 </div>
@@ -268,11 +268,11 @@ function CurrentSubscriptionCard({ sub }) {
 
         {/* Benefits */}
         {plan.benefits?.length > 0 && (
-          <div className="mt-4 pt-4 border-t border-dashed border-gray-200">
+          <div className="mt-4 pt-4 border-t border-dashed border-gray-200 dark:border-gray-700">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Benefits</p>
             <ul className="space-y-1">
               {plan.benefits.map((b) => (
-                <li key={b} className="flex items-start gap-2 text-sm text-gray-700">
+                <li key={b} className="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300">
                   <span className="text-teal-500 mt-0.5">✓</span>
                   {b}
                 </li>
@@ -283,7 +283,7 @@ function CurrentSubscriptionCard({ sub }) {
 
         {/* Usage */}
         {Object.keys(usage).length > 0 && (
-          <div className="mt-4 pt-4 border-t border-dashed border-gray-200">
+          <div className="mt-4 pt-4 border-t border-dashed border-gray-200 dark:border-gray-700">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Usage</p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {USAGE_KEYS.map((key) => {
@@ -292,7 +292,7 @@ function CurrentSubscriptionCard({ sub }) {
                 return (
                   <div key={key}>
                     <p className="text-xs text-gray-400 capitalize">{u.label || key}</p>
-                    <p className="text-sm font-semibold text-gray-800 mt-0.5">
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 mt-0.5">
                       {u.used ?? 0}
                       {u.isUnlimited ? " / Unlimited" : u.limit != null ? ` / ${u.limit}` : ""}
                     </p>
@@ -363,7 +363,7 @@ export default function WelcomePage({ orderData = null, asModal = true, onClose,
       className={
         asModal
           ? "fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-          : "relative min-h-screen bg-white"
+          : "relative min-h-screen bg-white dark:bg-gray-800"
       }
     >
       {/*
@@ -385,7 +385,7 @@ export default function WelcomePage({ orderData = null, asModal = true, onClose,
       <div
         className={
           asModal
-            ? "relative w-full max-w-3xl max-h-[90vh] overflow-y-auto bg-white rounded-2xl shadow-2xl"
+            ? "relative w-full max-w-3xl max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-800 rounded-2xl shadow-2xl"
             : "relative w-full overflow-hidden font-sans"
         }
       >
@@ -430,7 +430,7 @@ export default function WelcomePage({ orderData = null, asModal = true, onClose,
             className={
               asModal
                 ? "bg-white"
-                : "max-w-5xl mx-auto bg-white border border-gray-200 rounded-2xl p-8 shadow-sm"
+                : "max-w-5xl mx-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-8 shadow-sm"
             }
           >
             {!asModal && (
@@ -440,14 +440,14 @@ export default function WelcomePage({ orderData = null, asModal = true, onClose,
                   Register your outlet to showcase your products, services, and offers.
                   Reach more customers and grow your business easily.
                 </p>
-                <hr className="border-gray-200 mb-6" />
+                <hr className="border-gray-200 dark:border-gray-700 mb-6" />
               </>
             )}
 
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Brand Details</p>
             <p className="text-base font-bold text-[#1a1a2e] capitalize mb-4">{brandData.companyName}</p>
 
-            <div className={`flex flex-wrap gap-x-6 gap-y-2 mb-6 text-sm text-gray-700 ${asModal ? "flex-col sm:flex-row" : ""}`}>
+            <div className={`flex flex-wrap gap-x-6 gap-y-2 mb-6 text-sm text-gray-700 dark:text-gray-300 ${asModal ? "flex-col sm:flex-row" : ""}`}>
               <span>Merchant Token : <span className="text-emerald-500 font-medium">{brandData.merchantToken}</span></span>
               <span>GST No : <span className="text-emerald-500 font-medium">{brandData.gstNo}</span></span>
               <span>PAN No : <span className="text-emerald-500 font-medium">{brandData.panNo}</span></span>

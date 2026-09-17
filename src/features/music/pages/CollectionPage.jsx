@@ -21,9 +21,9 @@ export default function CollectionPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 pb-28">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-28">
         <div className="max-w-4xl mx-auto px-6 py-10">
-          <div className="h-40 rounded-2xl bg-gray-100 animate-pulse" />
+          <div className="h-40 rounded-2xl bg-gray-100 dark:bg-gray-700 animate-pulse" />
         </div>
       </div>
     );
@@ -31,12 +31,12 @@ export default function CollectionPage() {
 
   if (!collection) {
     return (
-      <div className="min-h-screen bg-gray-50 pb-28">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-28">
         <div className="max-w-4xl mx-auto px-6 py-10">
           <button
             type="button"
             onClick={handleBack}
-            className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors mb-4"
+            className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 dark:hover:text-gray-100 transition-colors mb-4"
           >
             <ArrowLeft size={16} /> Back to Music
           </button>
@@ -49,7 +49,7 @@ export default function CollectionPage() {
   const Icon = collection.icon;
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-28">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-28">
       <div className={`relative overflow-hidden bg-gradient-to-br ${collection.gradient} px-6 pt-8 pb-10 sm:px-10`}>
         {collection.image && (
           <img src={collection.image} alt="" className="absolute inset-0 h-full w-full object-cover opacity-30" />
@@ -87,27 +87,27 @@ export default function CollectionPage() {
           <Play size={16} fill="currentColor" /> Play
         </button>
 
-        <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden">
           {collection.songs.map((song, i) => {
             const isActive = player.activeSong?.id === song.id;
             return (
               <div
                 key={song.id}
                 onClick={() => player.playSongInCollection(collection, i)}
-                className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors border-b border-gray-50 last:border-b-0 ${
-                  isActive ? "bg-emerald-50" : "hover:bg-gray-50"
+                className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors border-b border-gray-50 dark:border-gray-700 last:border-b-0 ${
+                  isActive ? "bg-emerald-50 dark:bg-emerald-500/10" : "hover:bg-gray-50 dark:hover:bg-gray-700"
                 }`}
               >
                 <span className="w-6 text-center flex-shrink-0">
                   {isActive && player.isPlaying ? (
-                    <Pause size={13} className="text-emerald-600 mx-auto" fill="currentColor" />
+                    <Pause size={13} className="text-emerald-600 dark:text-emerald-400 mx-auto" fill="currentColor" />
                   ) : (
                     <span className="text-xs text-gray-400">{i + 1}</span>
                   )}
                 </span>
 
                 <div className="min-w-0 flex-1">
-                  <p className={`text-sm font-medium truncate ${isActive ? "text-emerald-700" : "text-gray-800"}`}>
+                  <p className={`text-sm font-medium truncate ${isActive ? "text-emerald-700 dark:text-emerald-400" : "text-gray-800 dark:text-gray-100"}`}>
                     {song.title}
                   </p>
                   <p className="text-xs text-gray-400 truncate">{song.subtitle}</p>

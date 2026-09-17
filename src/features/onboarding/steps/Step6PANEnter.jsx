@@ -18,7 +18,7 @@ function RuleRow({ label, passed, touched }) {
       ? "text-emerald-600"
       : "text-red-500";
   const bg = !touched
-    ? "bg-gray-100"
+    ? "bg-gray-100 dark:bg-gray-700"
     : passed
       ? "bg-emerald-100"
       : "bg-red-100";
@@ -150,7 +150,7 @@ goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_READONLY); // turant
         .step-in { animation: stepIn 0.3s cubic-bezier(0.34,1.2,0.64,1) both; }
       `}</style>
 
-      <div className="bg-white border border-gray-50 rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-4 sm:p-5">
+      <div className="bg-white dark:bg-gray-800 border border-gray-50 dark:border-gray-700 rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-4 sm:p-5">
 
       {/* ── Header ── */}
       <div className="flex items-center gap-4 mb-4 step-in">
@@ -173,7 +173,7 @@ goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_READONLY); // turant
           </svg>
         </div>
         <div>
-          <h2 className="text-lg font-extrabold text-gray-900 leading-tight tracking-tight">
+          <h2 className="text-lg font-extrabold text-gray-900 dark:text-gray-100 leading-tight tracking-tight">
             Enter Your Business PAN Number
           </h2>
           <p className="text-xs text-gray-500 mt-0.5">
@@ -334,7 +334,7 @@ goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_READONLY); // turant
         </div>
 
         {/* RIGHT — Validation checklist */}
-        <div className="bg-gray-50/80 border border-gray-100 rounded-xl px-4 py-4 flex flex-col justify-center">
+        <div className="bg-gray-50/80 dark:bg-gray-700/40 border border-gray-100 dark:border-gray-700 rounded-xl px-4 py-4 flex flex-col justify-center">
           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">
             Validation Rules
           </p>
@@ -353,11 +353,11 @@ goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_READONLY); // turant
 
       {/* Tips — compact card */}
       <div
-        className="bg-gray-50 border border-gray-100 rounded-xl px-4 py-2.5 mb-3 step-in"
+        className="bg-gray-50 dark:bg-gray-700/40 border border-gray-100 dark:border-gray-700 rounded-xl px-4 py-2.5 mb-3 step-in"
         style={{ animationDelay: "0.1s" }}
       >
         <p
-          className="text-[10px] font-bold text-gray-600 uppercase tracking-widest
+          className="text-[10px] font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest
           flex items-center gap-1.5 mb-2"
         >
           <svg
@@ -383,7 +383,7 @@ goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_READONLY); // turant
           ].map((tip, i) => (
             <div key={i} className="flex items-start gap-1.5">
               <span className="w-1 h-1 rounded-full bg-gray-400 flex-shrink-0 mt-1.5" />
-              <span className="text-[11px] text-gray-600 leading-snug">
+              <span className="text-[11px] text-gray-600 dark:text-gray-300 leading-snug">
                 {tip}
               </span>
             </div>
@@ -400,14 +400,14 @@ goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_READONLY); // turant
         <div className="flex-1 min-w-0 order-2 sm:order-1">
           {upper.trim() ? (
             <div
-              className="flex items-center gap-2 bg-gray-50 border border-gray-100
+              className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700/40 border border-gray-100 dark:border-gray-700
               rounded-xl px-4 py-2.5 overflow-hidden"
             >
               <span className="text-[9px] font-bold text-gray-300 uppercase tracking-widest flex-shrink-0">
                 PAN
               </span>
               <span className="w-px h-3 bg-gray-200 flex-shrink-0" />
-              <span className="text-sm font-mono font-bold text-gray-800 tracking-widest">
+              <span className="text-sm font-mono font-bold text-gray-800 dark:text-gray-100 tracking-widest">
                 {upper}
               </span>
               {isValid && (
@@ -434,7 +434,7 @@ goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_READONLY); // turant
             tracking-wide transition-all duration-200 flex-shrink-0 order-1 sm:order-2 w-full sm:w-auto
             ${isValid && !fetching
               ? "bg-emerald-500 hover:bg-emerald-600 active:scale-[0.97] text-white shadow-sm shadow-emerald-100"
-              : "bg-gray-100 text-gray-300 cursor-not-allowed"
+              : "bg-gray-100 dark:bg-gray-700 text-gray-300 cursor-not-allowed"
             }`}
         >
           {fetching ? (

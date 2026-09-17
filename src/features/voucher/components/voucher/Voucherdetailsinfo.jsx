@@ -39,13 +39,13 @@ function formatDiscount(offer) {
 // heading floating directly on the white background.
 function SectionCard({ icon: Icon, iconBg = "bg-emerald-50", iconText = "text-emerald-500", title, subtitle, children }) {
   return (
-    <section className="bg-white border border-gray-100 rounded-2xl p-5 sm:p-6">
+    <section className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl p-5 sm:p-6">
       <div className="flex items-center gap-3 mb-1">
         <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${iconBg} ${iconText}`}>
           <Icon className="w-4 h-4" />
         </div>
         <div>
-          <h2 className="text-sm font-bold text-gray-900">{title}</h2>
+          <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100">{title}</h2>
           {subtitle && <p className="text-xs text-gray-400 mt-0.5">{subtitle}</p>}
         </div>
       </div>
@@ -57,14 +57,14 @@ function SectionCard({ icon: Icon, iconBg = "bg-emerald-50", iconText = "text-em
 function Field({ label, value, action }) {
   return (
     <div className="min-w-0">
-      <p className="text-xs font-semibold text-gray-900 mb-1">{label}</p>
-      <p className="text-sm text-gray-900 break-all">{value ?? NOT_FOUND}</p>
+      <p className="text-xs font-semibold text-gray-900 dark:text-gray-100 mb-1">{label}</p>
+      <p className="text-sm text-gray-900 dark:text-gray-100 break-all">{value ?? NOT_FOUND}</p>
       {action && <div className="mt-1 flex items-center gap-1.5">{action}</div>}
     </div>
   );
 }
 
-function ReviewStep({ label, at, by, colorClass = "text-gray-900" }) {
+function ReviewStep({ label, at, by, colorClass = "text-gray-900 dark:text-gray-100" }) {
   if (!at) return null;
   return (
     <div>
@@ -127,7 +127,7 @@ export default function VoucherDetailsInfo({ voucher }) {
   return (
     <div className="space-y-4">
       {/* Voucher Information */}
-      <SectionCard icon={Tag} iconBg="bg-emerald-50" iconText="text-emerald-500" title="Voucher Information">
+      <SectionCard icon={Tag} iconBg="bg-emerald-50 dark:bg-emerald-500/10" iconText="text-emerald-500 dark:text-emerald-400" title="Voucher Information">
         <div className="grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-4">
           <Field
             label="Voucher Id"
@@ -185,8 +185,8 @@ export default function VoucherDetailsInfo({ voucher }) {
       {/* Search Tag */}
       <SectionCard
         icon={Search}
-        iconBg="bg-emerald-50"
-        iconText="text-emerald-500"
+        iconBg="bg-emerald-50 dark:bg-emerald-500/10"
+        iconText="text-emerald-500 dark:text-emerald-400"
         title="Search Tag"
         subtitle="Keywords that help users quickly find this item. Add keywords to improve search visibility."
       >
@@ -212,7 +212,7 @@ export default function VoucherDetailsInfo({ voucher }) {
                 <img
                   src={bannerUrl}
                   alt="Banner"
-                  className="h-24 w-24 rounded-xl border border-gray-100 object-cover"
+                  className="h-24 w-24 rounded-xl border border-gray-100 dark:border-gray-700 object-cover"
                 />
                 <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-semibold text-white">
                   Banner
@@ -227,7 +227,7 @@ export default function VoucherDetailsInfo({ voucher }) {
                   key={img._id}
                   src={img.url}
                   alt=""
-                  className="h-24 w-24 rounded-xl border border-gray-100 object-cover"
+                  className="h-24 w-24 rounded-xl border border-gray-100 dark:border-gray-700 object-cover"
                 />
               ))}
           </div>
@@ -241,7 +241,7 @@ export default function VoucherDetailsInfo({ voucher }) {
             {offers.map((offer) => (
               <div
                 key={offer._id}
-                className="rounded-xl border border-gray-100 p-4 grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4"
+                className="rounded-xl border border-gray-100 dark:border-gray-700 p-4 grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4"
               >
                 <Field label="Title" value={offer.title} />
                 <Field label="Discount" value={formatDiscount(offer)} />
@@ -257,7 +257,7 @@ export default function VoucherDetailsInfo({ voucher }) {
       )}
 
       {/* Review Timeline */}
-      <SectionCard icon={History} iconBg="bg-emerald-50" iconText="text-emerald-500" title="Review Timeline">
+      <SectionCard icon={History} iconBg="bg-emerald-50 dark:bg-emerald-500/10" iconText="text-emerald-500 dark:text-emerald-400" title="Review Timeline">
         <div className="grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-4">
           <ReviewStep label="Submitted" at={voucher.submittedAt} by={voucher.submittedByUser} />
           <ReviewStep label="Reviewed" at={voucher.reviewedAt} by={voucher.reviewedByUser} />

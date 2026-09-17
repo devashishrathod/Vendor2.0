@@ -30,13 +30,13 @@ export default function WorkingHoursEditor({ hours, onChange, onSave, saving = f
         </button>
       </div>
 
-      <div className="divide-y divide-gray-100 border border-gray-200 rounded-xl overflow-hidden">
+      <div className="divide-y divide-gray-100 dark:divide-gray-700 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
         {WEEK_DAYS.map((day) => {
           const value = hours[day.key] || { start: "", end: "", isOpen: false };
           return (
             <div
               key={day.key}
-              className={`flex flex-wrap items-center gap-4 px-4 py-3 ${value.isOpen ? "bg-white" : "bg-gray-50"}`}
+              className={`flex flex-wrap items-center gap-4 px-4 py-3 ${value.isOpen ? "bg-white dark:bg-gray-800" : "bg-gray-50 dark:bg-gray-700/40"}`}
             >
               <label className="flex items-center gap-2 w-32 shrink-0 cursor-pointer">
                 <input
@@ -45,7 +45,7 @@ export default function WorkingHoursEditor({ hours, onChange, onSave, saving = f
                   onChange={(e) => updateDay(day.key, { isOpen: e.target.checked })}
                   className="w-4 h-4 accent-emerald-600 cursor-pointer"
                 />
-                <span className={`text-sm font-semibold ${value.isOpen ? "text-gray-800" : "text-gray-400"}`}>
+                <span className={`text-sm font-semibold ${value.isOpen ? "text-gray-800 dark:text-gray-100" : "text-gray-400"}`}>
                   {day.label}
                 </span>
               </label>
@@ -56,7 +56,7 @@ export default function WorkingHoursEditor({ hours, onChange, onSave, saving = f
                   value={value.start || ""}
                   onChange={(e) => updateDay(day.key, { start: e.target.value })}
                   disabled={!value.isOpen}
-                  className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-emerald-400 bg-white text-gray-700 disabled:opacity-40 disabled:bg-gray-100"
+                  className="border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-emerald-400 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-100 disabled:opacity-40 disabled:bg-gray-100 dark:disabled:bg-gray-700"
                 />
                 <span className="text-xs text-gray-400">to</span>
                 <input
@@ -64,7 +64,7 @@ export default function WorkingHoursEditor({ hours, onChange, onSave, saving = f
                   value={value.end || ""}
                   onChange={(e) => updateDay(day.key, { end: e.target.value })}
                   disabled={!value.isOpen}
-                  className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-emerald-400 bg-white text-gray-700 disabled:opacity-40 disabled:bg-gray-100"
+                  className="border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-emerald-400 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-100 disabled:opacity-40 disabled:bg-gray-100 dark:disabled:bg-gray-700"
                 />
               </div>
 

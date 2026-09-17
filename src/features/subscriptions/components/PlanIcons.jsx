@@ -1,13 +1,17 @@
-export const PieIcon = ({ fill = 0.5, size = 28, active = false }) => {
+// `isDark` only swaps the INACTIVE fill colors to white — those were
+// near-black/navy hex values that blended into the dark tab background,
+// making the icon nearly invisible in dark mode (per explicit instruction:
+// white for dark mode, light mode stays exactly as it was).
+export const PieIcon = ({ fill = 0.5, size = 28, active = false, isDark = false }) => {
   // fill: 0.25 = quarter, 0.5 = half, 0.75 = three-quarter, 1 = full
   const r = 10;
   const cx = 14;
   const cy = 14;
 
   const activeColor = "#16A34A"; // green when tab is active
-  const fullColor = active ? activeColor : "#1f1b5c";
-  const halfColor = active ? activeColor : "#000000";
-  const otherColor = active ? activeColor : "#1e1b4b";
+  const fullColor = active ? activeColor : isDark ? "#ffffff" : "#1f1b5c";
+  const halfColor = active ? activeColor : isDark ? "#ffffff" : "#000000";
+  const otherColor = active ? activeColor : isDark ? "#ffffff" : "#1e1b4b";
   const strokeColor = active ? activeColor : "#d1d5db";
 
   if (fill >= 1) {

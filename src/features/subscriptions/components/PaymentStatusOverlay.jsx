@@ -72,7 +72,7 @@ export default function PaymentStatusOverlay({
         }
       `}</style>
 
-      <div className="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl px-8 py-10 overflow-hidden text-center">
+      <div className="relative w-full max-w-sm bg-white dark:bg-gray-800 rounded-2xl shadow-2xl px-8 py-10 overflow-hidden text-center">
         {/* ---------- PROCESSING ---------- */}
         {status === "processing" && (
           <>
@@ -101,7 +101,7 @@ export default function PaymentStatusOverlay({
                   style={{ borderTopColor: "#09B285", animation: "ring-spin 0.9s linear infinite" }}
                 />
               </div>
-              <h2 className="text-lg font-bold text-gray-900 mb-1">Verifying your payment…</h2>
+              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">Verifying your payment…</h2>
               <p className="text-sm text-gray-500">This usually takes just a few seconds. Please don't close this window.</p>
             </div>
           </>
@@ -126,7 +126,7 @@ export default function PaymentStatusOverlay({
                 />
               </svg>
             </div>
-            <h2 className="text-lg font-bold text-gray-900 mb-1">Payment Successful!</h2>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">Payment Successful!</h2>
             <p className="text-sm text-gray-500">Setting up your welcome page…</p>
           </div>
         )}
@@ -140,14 +140,14 @@ export default function PaymentStatusOverlay({
                 <path d="M14 14l12 12M26 14L14 26" stroke="#ef4444" strokeWidth="3" strokeLinecap="round" />
               </svg>
             </div>
-            <h2 className="text-lg font-bold text-gray-900 mb-1">Payment Failed</h2>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">Payment Failed</h2>
             <p className="text-sm text-gray-500 mb-6">
               {errorMessage || "Your payment couldn't be completed. No amount has been deducted, or it will be refunded automatically."}
             </p>
             <div className="flex gap-3">
               <button
                 onClick={onCancel}
-                className="flex-1 py-3 rounded-xl border border-gray-200 text-gray-700 font-semibold hover:bg-gray-50 transition-colors"
+                className="flex-1 py-3 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               >
                 Cancel
               </button>

@@ -99,7 +99,7 @@ export default function Dashboard() {
   const sectionTitle = activeTxnTab.replace(" Transaction", " Overview");
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 font-sans">
 
       {/* ── Header — alag component, kabhi nahi badlega ── */}
    
@@ -109,7 +109,7 @@ export default function Dashboard() {
 
         {/* Page heading */}
         <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Transaction's Overview</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Transaction's Overview</h1>
           <p className="text-xs text-gray-400 mt-1">
             "Fast, safe, and effortless payments." This information will be automatically deleted after 24 hours.
           </p>
@@ -119,11 +119,11 @@ export default function Dashboard() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <p className="text-xs text-gray-400 mb-0.5">Overall Collection Amount</p>
-            <p className="text-2xl font-bold text-gray-900">₹ 19,078.00</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">₹ 19,078.00</p>
           </div>
           <div className="flex items-center gap-3 text-xs text-gray-400">
             <span>
-              Nb Of Count: <strong className="text-gray-700">16</strong>
+              Nb Of Count: <strong className="text-gray-700 dark:text-gray-300">16</strong>
             </span>
             <button className="text-emerald-600 font-semibold hover:underline">
               Today
@@ -136,13 +136,13 @@ export default function Dashboard() {
           {SUMMARY_CARDS.map((card) => (
             <div
               key={card.label}
-              className="bg-white border border-gray-100 rounded-xl px-4 py-3 flex flex-col gap-2"
+              className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl px-4 py-3 flex flex-col gap-2"
             >
               <div className="flex items-center justify-between">
                 <p className="text-xs text-gray-400 font-medium">{card.label}</p>
                 <span className="text-gray-300">{card.icon}</span>
               </div>
-              <p className="text-lg font-bold text-gray-900">{card.amount}</p>
+              <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{card.amount}</p>
               <span
                 className={`self-start text-[11px] font-semibold px-2 py-0.5 rounded-full
                   ${card.positive
@@ -166,7 +166,7 @@ export default function Dashboard() {
                 border transition-all duration-150
                 ${activeTxnTab === key
                   ? "bg-gray-900 text-white border-gray-900"
-                  : "bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                  : "bg-white dark:bg-gray-800 text-gray-500 border-gray-200 dark:border-gray-700 hover:border-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                 }`}
             >
               <TxnIcon type={icon} />
@@ -176,11 +176,11 @@ export default function Dashboard() {
         </div>
 
         {/* Overview section */}
-        <div className="bg-white border border-gray-100 rounded-xl overflow-hidden mb-4">
+        <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden mb-4">
 
           {/* Section header */}
-          <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100">
-            <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+          <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 dark:border-gray-700">
+            <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
               <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
               </svg>
@@ -204,10 +204,10 @@ export default function Dashboard() {
           {/* Table — collapse/expand */}
           {!collapsed && (
             <>
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto no-scrollbar">
                 <table className="w-full text-xs">
                   <thead>
-                    <tr className="border-b border-gray-50">
+                    <tr className="border-b border-gray-50 dark:border-gray-700">
                       {["Overall Bill Amount", "Coupon Paid Amount", "Discount Amount", "Additional discount", "Got Amount"].map((h) => (
                         <th key={h} className="text-left px-5 py-3 text-gray-400 font-medium whitespace-nowrap">
                           {h}
@@ -217,12 +217,12 @@ export default function Dashboard() {
                   </thead>
                   <tbody>
                     {VOUCHER_ROWS.map((row, i) => (
-                      <tr key={i} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                        <td className="px-5 py-3.5 text-gray-700 font-medium">{row.bill}</td>
-                        <td className="px-5 py-3.5 text-gray-700">{row.paid}</td>
+                      <tr key={i} className="border-b border-gray-50 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                        <td className="px-5 py-3.5 text-gray-700 dark:text-gray-300 font-medium">{row.bill}</td>
+                        <td className="px-5 py-3.5 text-gray-700 dark:text-gray-300">{row.paid}</td>
                         <td className="px-5 py-3.5 text-red-500">{row.discount}</td>
                         <td className="px-5 py-3.5 text-red-500">{row.additional}</td>
-                        <td className="px-5 py-3.5 text-gray-700">{row.got}</td>
+                        <td className="px-5 py-3.5 text-gray-700 dark:text-gray-300">{row.got}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -230,7 +230,7 @@ export default function Dashboard() {
               </div>
 
               {/* Pagination */}
-              <div className="flex items-center justify-between px-5 py-3 border-t border-gray-50">
+              <div className="flex items-center justify-between px-5 py-3 border-t border-gray-50 dark:border-gray-700">
                 {/* Rows per page */}
                 <div className="flex items-center gap-2 text-xs text-gray-400">
                   <span>Rows per page:</span>
@@ -241,7 +241,7 @@ export default function Dashboard() {
                       className={`w-7 h-7 rounded-md text-xs font-semibold transition-colors
                         ${rowsPerPage === n
                           ? "bg-emerald-500 text-white"
-                          : "text-gray-500 hover:bg-gray-100"
+                          : "text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
                         }`}
                     >
                       {n}
@@ -254,7 +254,7 @@ export default function Dashboard() {
                   <button
                     onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                     disabled={currentPage === 1}
-                    className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-gray-100 text-gray-400 disabled:opacity-30"
+                    className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 disabled:opacity-30"
                   >
                     <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -268,7 +268,7 @@ export default function Dashboard() {
                       className={`w-7 h-7 rounded-md text-xs font-semibold transition-colors
                         ${currentPage === page
                           ? "bg-emerald-500 text-white"
-                          : "text-gray-500 hover:bg-gray-100"
+                          : "text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
                         }`}
                     >
                       {page}
@@ -278,7 +278,7 @@ export default function Dashboard() {
                   <button
                     onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                     disabled={currentPage === totalPages}
-                    className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-gray-100 text-gray-400 disabled:opacity-30"
+                    className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 disabled:opacity-30"
                   >
                     <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />

@@ -21,7 +21,7 @@ const BANK_ACCOUNT_TYPES = Object.freeze({
 
 function RuleRow({ label, passed, touched }) {
   const color = !touched ? "text-gray-400" : passed ? "text-emerald-600" : "text-red-500";
-  const bg = !touched ? "bg-gray-100" : passed ? "bg-emerald-100" : "bg-red-100";
+  const bg = !touched ? "bg-gray-100 dark:bg-gray-700" : passed ? "bg-emerald-100" : "bg-red-100";
   return (
     <div className="flex items-center gap-2 transition-all duration-200">
       <div className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 ${bg}`}>
@@ -152,11 +152,11 @@ function AccountTypeSelect({ value, onChange, required }) {
         <select
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className={`w-full pl-9 py-2.5 pr-10 bg-white border rounded-lg text-sm font-medium
+          className={`w-full pl-9 py-2.5 pr-10 bg-white dark:bg-gray-800 border rounded-lg text-sm font-medium
             outline-none transition-all duration-200 appearance-none cursor-pointer
             ${value
-              ? "border-emerald-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50 text-gray-800"
-              : "border-gray-200 focus:border-emerald-300 focus:ring-2 focus:ring-emerald-50 text-gray-300"
+              ? "border-emerald-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50 text-gray-800 dark:text-gray-100"
+              : "border-gray-200 dark:border-gray-700 focus:border-emerald-300 focus:ring-2 focus:ring-emerald-50 text-gray-300"
             }`}
         >
           <option value="" disabled className="text-gray-300 font-sans">Select account type</option>
@@ -479,7 +479,7 @@ export default function Step11BankEnter({ onFetchSuccess }) {
           .step-in { animation: stepIn 0.3s cubic-bezier(0.34,1.2,0.64,1) both; }
         `}</style>
 
-        <div className="bg-white border border-gray-50 rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-3 sm:p-4">
+        <div className="bg-white dark:bg-gray-800 border border-gray-50 dark:border-gray-700 rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-3 sm:p-4">
 
         {/* Header */}
         <div className="flex items-center gap-3 mb-3 step-in">
@@ -490,7 +490,7 @@ export default function Step11BankEnter({ onFetchSuccess }) {
             </svg>
           </div>
           <div>
-            <h2 className="text-base font-extrabold text-gray-900 leading-tight tracking-tight">
+            <h2 className="text-base font-extrabold text-gray-900 dark:text-gray-100 leading-tight tracking-tight">
               Enter Your Business Bank Details
             </h2>
             <p className="text-xs text-gray-500 mt-0.5">
@@ -597,10 +597,10 @@ export default function Step11BankEnter({ onFetchSuccess }) {
                   value={fields.beneficiaryName}
                   onChange={handleChange("beneficiaryName")}
                   maxLength={80}
-                  className={`w-full pl-9 py-2.5 pr-10 bg-white border rounded-lg text-sm font-medium text-gray-800 capitalize
+                  className={`w-full pl-9 py-2.5 pr-10 bg-white dark:bg-gray-800 border rounded-lg text-sm font-medium text-gray-800 dark:text-gray-100 capitalize
                     placeholder:text-gray-300 placeholder:font-sans outline-none transition-all duration-200
                     ${!hasBeneficiaryInput
-                      ? "border-gray-200 focus:border-emerald-300 focus:ring-2 focus:ring-emerald-50"
+                      ? "border-gray-200 dark:border-gray-700 focus:border-emerald-300 focus:ring-2 focus:ring-emerald-50"
                       : isBeneficiaryValid
                         ? "border-emerald-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50"
                         : "border-red-200 bg-red-50/30 focus:border-red-300 focus:ring-2 focus:ring-red-50"
@@ -637,7 +637,7 @@ export default function Step11BankEnter({ onFetchSuccess }) {
           </div>
 
           {/* RIGHT — Validation checklist (unchanged) */}
-          <div className="bg-gray-50/80 border border-gray-100 rounded-xl px-4 py-3 flex flex-col justify-between">
+          <div className="bg-gray-50/80 dark:bg-gray-700/40 border border-gray-100 dark:border-gray-700 rounded-xl px-4 py-3 flex flex-col justify-between">
             <div>
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2.5">Validation Rules</p>
               <div className="space-y-2">
@@ -653,15 +653,15 @@ export default function Step11BankEnter({ onFetchSuccess }) {
                 <RuleRow label="Account type selected" passed={!!accountType} touched={!!accountType} />
               </div>
             </div>
-            <p className="text-[11px] text-gray-500 leading-relaxed mt-3 pt-3 border-t border-gray-100">
+            <p className="text-[11px] text-gray-500 leading-relaxed mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
               Your account will be verified via penny drop. Ensure it's active and belongs to the registered business.
             </p>
           </div>
         </div>
 
         {/* Tips */}
-        <div className="bg-gray-50 border border-gray-100 rounded-xl px-4 py-2 mb-2.5 step-in" style={{ animationDelay: "0.1s" }}>
-          <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest flex items-center gap-1.5 mb-2">
+        <div className="bg-gray-50 dark:bg-gray-700/40 border border-gray-100 dark:border-gray-700 rounded-xl px-4 py-2 mb-2.5 step-in" style={{ animationDelay: "0.1s" }}>
+          <p className="text-[10px] font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest flex items-center gap-1.5 mb-2">
             <svg className="w-3 h-3 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                 d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -676,7 +676,7 @@ export default function Step11BankEnter({ onFetchSuccess }) {
             ].map((tip, i) => (
               <div key={i} className="flex items-start gap-1.5">
                 <span className="w-1 h-1 rounded-full bg-gray-400 flex-shrink-0 mt-1.5" />
-                <span className="text-[11px] text-gray-600 leading-snug">{tip}</span>
+                <span className="text-[11px] text-gray-600 dark:text-gray-300 leading-snug">{tip}</span>
               </div>
             ))}
           </div>
@@ -686,11 +686,11 @@ export default function Step11BankEnter({ onFetchSuccess }) {
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 step-in" style={{ animationDelay: "0.15s" }}>
           <div className="flex-1 min-w-0 order-2 sm:order-1">
             {anyTouched && (normalised.accountNumber || normalised.ifscCode || fields.beneficiaryName) ? (
-              <div className="flex items-center gap-2 bg-gray-50 border border-gray-100 rounded-xl px-4 py-2.5 overflow-hidden">
+              <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700/40 border border-gray-100 dark:border-gray-700 rounded-xl px-4 py-2.5 overflow-hidden">
                 <span className="text-[9px] font-bold text-gray-300 uppercase tracking-widest flex-shrink-0">Bank</span>
                 <span className="w-px h-3 bg-gray-200 flex-shrink-0" />
                 {normalised.accountNumber && (
-                  <span className="text-sm font-mono font-bold text-gray-800 tracking-widest flex-shrink-0">{maskedAccount}</span>
+                  <span className="text-sm font-mono font-bold text-gray-800 dark:text-gray-100 tracking-widest flex-shrink-0">{maskedAccount}</span>
                 )}
                 {normalised.ifscCode && (
                   <>
@@ -723,7 +723,7 @@ export default function Step11BankEnter({ onFetchSuccess }) {
               tracking-wide transition-all duration-200 flex-shrink-0 order-1 sm:order-2 w-full sm:w-auto
               ${isFormValid && !fetching && !fetchDone
                 ? "bg-emerald-500 hover:bg-emerald-600 active:scale-[0.97] text-white shadow-sm shadow-emerald-100"
-                : "bg-gray-100 text-gray-300 cursor-not-allowed"
+                : "bg-gray-100 dark:bg-gray-700 text-gray-300 cursor-not-allowed"
               }`}
           >
             {fetching ? (

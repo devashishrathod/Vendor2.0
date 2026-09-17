@@ -7,7 +7,7 @@ export default function StepCard({
 }) {
   return (
     <div
-      className={`bg-white rounded-2xl shadow-sm border border-gray-100 p-6 w-full max-w-sm mx-auto ${className}`}
+      className={`bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 w-full max-w-sm mx-auto ${className}`}
       style={{ animation: "stepIn 0.3s ease both" }}
     >
       <style>{`
@@ -17,7 +17,7 @@ export default function StepCard({
         }
       `}</style>
       {title && (
-        <h2 className="text-base font-bold text-gray-900 mb-1">{title}</h2>
+        <h2 className="text-base font-bold text-gray-900 dark:text-gray-100 mb-1">{title}</h2>
       )}
       {subtitle && (
         <p className="text-xs text-gray-400 mb-4 leading-relaxed">{subtitle}</p>

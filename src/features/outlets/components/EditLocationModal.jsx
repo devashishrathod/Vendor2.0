@@ -12,7 +12,7 @@ import ErrorToast from "@/components/common/ErrorToast";
 import SuccessToast from "@/components/common/SuccessToast";
 
 const inputBase =
-  "w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-700 outline-none transition-colors " +
+  "w-full rounded-xl border border-gray-200 dark:border-gray-700 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-100 dark:bg-gray-800 outline-none transition-colors " +
   "placeholder:text-gray-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100";
 
 // Same key/loader as AddOutletModal/EditOutletModal — duplicated on
@@ -155,7 +155,7 @@ function LocationSearch({ location, onSelectPlace }) {
           disabled={searching || !query.trim()}
           className={`shrink-0 px-5 py-2.5 rounded-xl text-sm font-bold transition-colors ${
             searching || !query.trim()
-              ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+              ? "bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed"
               : "bg-emerald-500 text-white hover:bg-emerald-600"
           }`}
         >
@@ -166,7 +166,7 @@ function LocationSearch({ location, onSelectPlace }) {
       {error && <p className="text-xs text-rose-500 mb-3">{error}</p>}
 
       {results.length > 0 && (
-        <div className="mb-4 max-h-56 overflow-y-auto rounded-xl border border-gray-100 divide-y divide-gray-100">
+        <div className="mb-4 max-h-56 overflow-y-auto rounded-xl border border-gray-100 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
           {results.map((place) => (
             <button
               key={place.place_id}
@@ -175,7 +175,7 @@ function LocationSearch({ location, onSelectPlace }) {
               disabled={detailsLoading}
               className="w-full text-left px-4 py-3 hover:bg-emerald-50/50 transition-colors disabled:opacity-60"
             >
-              <span className="block text-sm font-semibold text-gray-800">{place.name}</span>
+              <span className="block text-sm font-semibold text-gray-800 dark:text-gray-100">{place.name}</span>
               <span className="block text-xs text-gray-500 mt-0.5">{place.formatted_address}</span>
             </button>
           ))}
@@ -192,14 +192,14 @@ function LocationSearch({ location, onSelectPlace }) {
         <p className="text-xs text-gray-400 mb-3">No matches found. Try a different search term.</p>
       )}
 
-      <div className="bg-gray-50/60 rounded-xl border border-gray-100 p-4">
+      <div className="bg-gray-50/60 dark:bg-gray-700 rounded-xl border border-gray-100 dark:border-gray-700 p-4">
         <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">
           {location?.source === "existing" ? "Current Location" : "New Location"}
         </p>
         {location ? (
           <>
-            <p className="text-sm font-bold text-gray-900">{location.name}</p>
-            <p className="text-sm text-gray-600 mt-0.5">{location.address}</p>
+            <p className="text-sm font-bold text-gray-900 dark:text-gray-100">{location.name}</p>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mt-0.5">{location.address}</p>
           </>
         ) : (
           <p className="text-xs text-gray-400">No location saved for this outlet yet.</p>
@@ -216,15 +216,15 @@ export default function EditLocationModal({ outlet, onClose, onUpdated }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+        className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-100 sticky top-0 bg-white rounded-t-2xl">
+        <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-100 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 rounded-t-2xl">
           <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-sky-100 bg-sky-50">
             <MapPin className="w-5 h-5 text-sky-500" />
           </div>
-          <h3 className="flex-1 text-base font-bold text-gray-900">Edit Location</h3>
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100">
+          <h3 className="flex-1 text-base font-bold text-gray-900 dark:text-gray-100">Edit Location</h3>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
             <X className="w-4 h-4 text-gray-500" />
           </button>
         </div>
@@ -233,17 +233,17 @@ export default function EditLocationModal({ outlet, onClose, onUpdated }) {
           <LocationSearch location={location} onSelectPlace={setLocation} />
         </div>
 
-        <div className="px-6 py-4 border-t border-gray-100 flex gap-3">
+        <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-700 flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 border border-gray-200 text-gray-600 font-semibold py-2.5 rounded-xl text-sm hover:bg-gray-50"
+            className="flex-1 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 font-semibold py-2.5 rounded-xl text-sm hover:bg-gray-50 dark:hover:bg-gray-700"
           >
             Cancel
           </button>
           <button
             onClick={submit}
             disabled={submitting || !locationChanged}
-            className="flex-1 flex items-center justify-center gap-2 bg-emerald-500 text-white font-bold py-2.5 rounded-xl text-sm tracking-wide shadow-sm shadow-emerald-100 hover:bg-emerald-600 transition-colors disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-300 disabled:shadow-none"
+            className="flex-1 flex items-center justify-center gap-2 bg-emerald-500 text-white font-bold py-2.5 rounded-xl text-sm tracking-wide shadow-sm shadow-emerald-100 hover:bg-emerald-600 transition-colors disabled:cursor-not-allowed disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:text-gray-300 disabled:shadow-none"
           >
             {submitting ? (
               <>

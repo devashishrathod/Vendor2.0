@@ -599,7 +599,7 @@ export default function CreateBrandOutlet() {
       )}
 
       {/* Navbar */}
-      <nav className="bg-white border-b border-gray-100 px-6 h-14 flex items-center justify-between sticky top-0 z-10">
+      <nav className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-6 h-14 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-2">
           <div className="w-12 h-12 flex items-center justify-center overflow-hidden">
             <img
@@ -635,12 +635,12 @@ export default function CreateBrandOutlet() {
           <div className="flex items-center gap-3">
             <div className="w-1 h-9 rounded-full bg-emerald-500 flex-shrink-0" />
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 leading-tight">Create Your Brand Outlet</h1>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 leading-tight">Create Your Brand Outlet</h1>
               <p className="text-sm text-gray-500 mt-1">You are just a few steps away from listing your event on Trydood!</p>
             </div>
           </div>
-          <div className="border border-emerald-100 rounded-xl px-6 py-3 bg-emerald-50 text-sm font-semibold text-gray-700 whitespace-nowrap">
-            Merchant Token : <span className="text-gray-900">{merchantToken}</span>
+          <div className="border border-emerald-100 rounded-xl px-6 py-3 bg-emerald-50 dark:bg-emerald-500/10 text-sm font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">
+            Merchant Token : <span className="text-gray-900 dark:text-gray-100">{merchantToken}</span>
           </div>
         </div>
 
@@ -663,7 +663,7 @@ export default function CreateBrandOutlet() {
                 <img
                   src={existingLogoUrl}
                   alt="Current brand logo"
-                  className="w-16 h-16 rounded-lg object-cover border border-gray-200"
+                  className="w-16 h-16 rounded-lg object-cover border border-gray-200 dark:border-gray-700"
                 />
                 <span className="text-xs text-gray-500">Current logo — upload a new file below to replace it.</span>
               </div>
@@ -685,7 +685,7 @@ export default function CreateBrandOutlet() {
               value={brandEmail}
               onChange={(e) => setBrandEmail(e.target.value)}
               placeholder="eg : hello@yourbrand.com"
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-emerald-400 bg-white text-gray-700"
+              className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-emerald-400 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-100"
             />
           </SectionCard>
 
@@ -697,9 +697,9 @@ export default function CreateBrandOutlet() {
               disabled={mobileSameAsWhatsapp}
               onChange={(e) => setBrandMobile(e.target.value)}
               placeholder="eg : 9876543210"
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-emerald-400 bg-white text-gray-700 disabled:bg-gray-50 disabled:text-gray-400"
+              className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-emerald-400 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-100 disabled:bg-gray-50 dark:disabled:bg-gray-700 disabled:text-gray-400"
             />
-            <label className="flex items-center gap-2 mt-2 text-xs font-semibold text-gray-600 cursor-pointer">
+            <label className="flex items-center gap-2 mt-2 text-xs font-semibold text-gray-600 dark:text-gray-300 cursor-pointer">
               <input
                 type="checkbox"
                 checked={mobileSameAsWhatsapp}
@@ -714,7 +714,7 @@ export default function CreateBrandOutlet() {
 
           <SectionCard>
             <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-semibold text-gray-700">Brand Description</label>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">Brand Description</label>
               <button onClick={() => openGuideline("brandDescription")} className="text-sm text-emerald-600 hover:underline whitespace-nowrap flex items-center gap-1">
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -728,7 +728,7 @@ export default function CreateBrandOutlet() {
               placeholder="eg : A cosy neighbourhood cafe known for its wood-fired pizzas and weekend live music."
               rows={4}
               maxLength={300}
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-400 transition-colors bg-white text-gray-800 resize-none"
+              className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-400 transition-colors bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 resize-none"
             />
             <p className="text-xs text-gray-400 mt-1 text-right">{brandDescription.length}/300</p>
           </SectionCard>
@@ -737,13 +737,13 @@ export default function CreateBrandOutlet() {
             <SectionHeader title="Brand Type" subtitle="Add category and sub-category tags to help the right audience discover your event." />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Category *</label>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Category *</label>
                 <div className="relative">
                   <select
                     value={brandType}
                     onChange={handleCategoryChange}
                     disabled={categoriesLoading}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-400 appearance-none bg-white text-gray-700 disabled:opacity-50"
+                    className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-400 appearance-none bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-100 disabled:opacity-50"
                   >
                     <option value="">{categoriesLoading ? "Loading categories…" : "eg : Food & Drinks"}</option>
                     {categories.map((c) => (<option key={c._id} value={c._id}>{c.name}</option>))}
@@ -758,13 +758,13 @@ export default function CreateBrandOutlet() {
                 )}
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Sub-Category</label>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Sub-Category</label>
                 <div className="relative">
                   <select
                     value={brandSubType}
                     onChange={(e) => setBrandSubType(e.target.value)}
                     disabled={!brandType || subCategoriesLoading}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-400 appearance-none bg-white text-gray-700 disabled:opacity-50"
+                    className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-400 appearance-none bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-100 disabled:opacity-50"
                   >
                     <option value="">{subCategoriesLoading ? "Loading…" : "eg : buffet restaurants"}</option>
                     {subCategories.map((s) => (<option key={s._id} value={s._id}>{s.name}</option>))}
@@ -804,7 +804,7 @@ export default function CreateBrandOutlet() {
 
         {/* ══════════════════════ OUTLET FORM ══════════════════════ */}
         {/* Order: WhatsApp Number (+ Outlet Type) → Location → Working Hours */}
-        <div className="outlet-form-section bg-white border border-gray-200 rounded-3xl p-4 sm:p-6 mb-8">
+        <div className="outlet-form-section bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-3xl p-4 sm:p-6 mb-8">
           <FormDivider
             title="Outlet Details"
             subtitle="Details specific to this particular outlet's location and presentation."
@@ -818,8 +818,8 @@ export default function CreateBrandOutlet() {
           {/* ── 1. Outlet WhatsApp Number ── */}
           <SectionCard>
             <SectionHeader title="Outlet WhatsApp Number" subtitle="Customers will reach this outlet on WhatsApp using this verified number." />
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Outlet WhatsApp Number *</label>
-            <label className="flex items-center gap-2 text-xs font-semibold text-gray-600 mb-3 cursor-pointer">
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Outlet WhatsApp Number *</label>
+            <label className="flex items-center gap-2 text-xs font-semibold text-gray-600 dark:text-gray-300 mb-3 cursor-pointer">
               <input
                 type="checkbox"
                 checked={useBrandNumber}
@@ -832,12 +832,12 @@ export default function CreateBrandOutlet() {
             </label>
             {!whatsappVerified && !subBrandId && (
               <div className="max-w-sm mb-3">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Outlet Type *</label>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Outlet Type *</label>
                 <div className="relative">
                   <select
                     value={outletType}
                     onChange={(e) => setOutletType(e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-400 appearance-none bg-white text-gray-700"
+                    className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-400 appearance-none bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-100"
                   >
                     <option value="">eg : Outlet</option>
                     {OUTLET_TYPE_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
@@ -855,7 +855,7 @@ export default function CreateBrandOutlet() {
                 onChange={(e) => handleOutletWhatsappChange(e.target.value)}
                 disabled={useBrandNumber || whatsappVerified}
                 placeholder="eg : 9876543210"
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-emerald-400 bg-white text-gray-700 disabled:bg-gray-100 disabled:text-gray-500"
+                className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-emerald-400 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-100 disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:text-gray-500"
               />
               {!whatsappVerified && (
                 <button
@@ -926,7 +926,7 @@ export default function CreateBrandOutlet() {
 
             <div onClick={() => notifyBlocked("Verify your outlet's WhatsApp number above before setting a location.")}>
               <div className={outletSectionsBlocked ? "opacity-50 pointer-events-none" : ""}>
-                <div className="border border-gray-200 rounded-xl p-4 mb-5">
+                <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 mb-5">
                   <div className="flex items-start gap-3 mb-4">
                     <input
                       type="checkbox"

@@ -9,6 +9,8 @@ export default function Voucher() {
 
   const {
     stats,
+    statsRefreshing,
+    refreshStats,
     vouchers,
     total,
     totalPages,
@@ -37,13 +39,18 @@ export default function Voucher() {
       <div className="mx-auto max-w-6xl px-4 py-6">
       {/* Header */}
       <div className="mb-6 text-center">
-        <h1 className="text-xl font-semibold text-gray-900">
+        <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
           Voucher & Discount Overview
         </h1>
         <p className="text-sm text-gray-500">Attract More Customers to your Store</p>
       </div>
 
-      <VoucherOverview stats={stats} isLoading={!stats} />
+      <VoucherOverview
+        stats={stats}
+        isLoading={!stats}
+        refreshing={statsRefreshing}
+        onRefresh={refreshStats}
+      />
 
       {actionError && (
         <p className="mt-3 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-500">{actionError}</p>

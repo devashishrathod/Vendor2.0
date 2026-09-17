@@ -23,7 +23,7 @@ import { fetchVoucherTransactionsByVoucherId } from "../../../transaction/servic
 // reviewedAt fields the API also returns. Anything else falls back to the
 // plain gray badge below rather than guessing further enum values.
 const STATUS_BADGE = {
-  DRAFT: "bg-gray-100 text-gray-600",
+  DRAFT: "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300",
   UNDER_REVIEW: "bg-amber-50 text-amber-600",
   APPROVED: "bg-emerald-50 text-emerald-600",
   PUBLISHED: "bg-emerald-50 text-emerald-600",
@@ -91,25 +91,25 @@ export default function VoucherDetails() {
           <div className="flex items-start gap-3">
             <button
               onClick={() => navigate("/vouchers")}
-              className="mt-1 rounded-md p-1 text-gray-500 hover:bg-gray-100"
+              className="mt-1 rounded-md p-1 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
             >
               <ArrowLeft className="h-5 w-5" />
             </button>
             <div>
-              <h1 className="text-lg font-semibold text-gray-900 capitalize">{voucher.name}</h1>
+              <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100 capitalize">{voucher.name}</h1>
               <p className="text-xs text-gray-400">Created Date: {formatDate(voucher.createdAt)}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <span
-              className={`rounded-full px-3 py-1 text-xs font-medium ${STATUS_BADGE[voucher.status] || "bg-gray-100 text-gray-500"
+              className={`rounded-full px-3 py-1 text-xs font-medium ${STATUS_BADGE[voucher.status] || "bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400"
                 }`}
             >
               {voucher.status}
             </span>
             <button
               onClick={() => navigate(`/vouchers/${voucher.voucherId}/edit`)}
-              className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
+              className="rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
             >
               Edit Voucher
             </button>

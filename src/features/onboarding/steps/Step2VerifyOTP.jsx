@@ -203,7 +203,7 @@ export default function Step2VerifyOTP({ isOpen, onClose, phoneNumber, onVerifie
 
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ pointerEvents: "none" }}>
         <div
-          className="bg-white rounded-2xl shadow-2xl border border-gray-100 p-8 w-full max-w-sm relative"
+          className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 p-8 w-full max-w-sm relative"
           style={{ animation: "slideUp 0.3s cubic-bezier(0.34,1.56,0.64,1) both", pointerEvents: "auto" }}
         >
           <style>{`
@@ -213,7 +213,7 @@ export default function Step2VerifyOTP({ isOpen, onClose, phoneNumber, onVerifie
 
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 transition"
+            className="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 flex items-center justify-center text-gray-500 transition"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -221,16 +221,16 @@ export default function Step2VerifyOTP({ isOpen, onClose, phoneNumber, onVerifie
           </button>
 
           <div className="text-center mb-6">
-            <div className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto mb-4">
-              <svg className="w-7 h-7 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="w-14 h-14 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center mx-auto mb-4">
+              <svg className="w-7 h-7 text-emerald-500 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
                   d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
               </svg>
             </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-1">Verify OTP</h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">Verify OTP</h2>
             <p className="text-xs text-gray-500 leading-relaxed">
               We have sent a 6-digit OTP on<br />
-              <span className="text-gray-600 font-semibold">{maskedNumber}</span>
+              <span className="text-gray-600 dark:text-gray-300 font-semibold">{maskedNumber}</span>
             </p>
           </div>
 
@@ -246,7 +246,7 @@ export default function Step2VerifyOTP({ isOpen, onClose, phoneNumber, onVerifie
                 onChange={(e) => handleChange(i, e.target.value)}
                 onKeyDown={(e) => handleKeyDown(i, e)}
                 className={`w-11 h-12 text-center text-lg font-bold rounded-xl border-2 outline-none transition-all duration-150
-                  ${digit ? "border-emerald-400 bg-emerald-50 text-emerald-700" : "border-gray-200 bg-gray-50 text-gray-800"}
+                  ${digit ? "border-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" : "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-100"}
                   focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100`}
               />
             ))}

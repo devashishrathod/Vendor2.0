@@ -30,7 +30,7 @@ export default function OutletCollectionCard({ collection, onOpen, onQuickPlay }
           <Play size={13} fill="black" className="text-black ml-0.5" />
         </div>
       </div>
-      <p className="mt-2 text-xs font-semibold text-gray-800 truncate">{collection.name}</p>
+      <p className="mt-2 text-xs font-semibold text-gray-800 dark:text-gray-100 truncate">{collection.name}</p>
       <p className="text-[11px] text-gray-400 truncate">{collection.songs.length} songs</p>
     </button>
   );

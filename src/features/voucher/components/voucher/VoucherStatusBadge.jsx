@@ -1,12 +1,12 @@
 // src/components/voucher/VoucherStatusBadge.jsx
 const STATUS_STYLES = {
-  DRAFT: "bg-gray-100 text-gray-600",
+  DRAFT: "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300",
   UNDER_REVIEW: "bg-amber-50 text-amber-600",
   APPROVED: "bg-sky-50 text-sky-600",
   REJECTED: "bg-rose-50 text-rose-500",
   PUBLISHED: "bg-emerald-50 text-emerald-600",
   EXPIRED: "bg-rose-50 text-rose-500",
-  ARCHIVED: "bg-gray-100 text-gray-400",
+  ARCHIVED: "bg-gray-100 text-gray-400 dark:bg-gray-700",
   // Legacy display-only values (older mock data)
   Active: "bg-emerald-50 text-emerald-600",
   Expired: "bg-rose-50 text-rose-500",
@@ -23,7 +23,7 @@ function toLabel(status) {
 }
 
 export default function VoucherStatusBadge({ status, tooltip }) {
-  const className = STATUS_STYLES[status] || "bg-gray-100 text-gray-500";
+  const className = STATUS_STYLES[status] || "bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400";
 
   if (!tooltip) {
     return (
@@ -46,15 +46,15 @@ export default function VoucherStatusBadge({ status, tooltip }) {
 
       <div
         role="tooltip"
-        className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-64 -translate-x-1/2 rounded-xl border border-rose-100 bg-white p-3 text-left opacity-0 shadow-lg shadow-rose-100/50 transition-opacity duration-150 group-hover:opacity-100"
+        className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-64 -translate-x-1/2 rounded-xl border border-rose-100 bg-white dark:bg-gray-800 p-3 text-left opacity-0 shadow-lg shadow-rose-100/50 transition-opacity duration-150 group-hover:opacity-100"
       >
         <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-rose-500">
           Rejection reason
         </p>
-        <p className="whitespace-pre-wrap break-words text-xs leading-relaxed text-gray-700">
+        <p className="whitespace-pre-wrap break-words text-xs leading-relaxed text-gray-700 dark:text-gray-300">
           {tooltip}
         </p>
-        <span className="absolute left-1/2 top-full h-2 w-2 -translate-x-1/2 -translate-y-1/2 rotate-45 border-b border-r border-rose-100 bg-white" />
+        <span className="absolute left-1/2 top-full h-2 w-2 -translate-x-1/2 -translate-y-1/2 rotate-45 border-b border-r border-rose-100 bg-white dark:bg-gray-800" />
       </div>
     </span>
   );

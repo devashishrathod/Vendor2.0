@@ -9,29 +9,22 @@ const BankAccountSection = ({
   onAddBankAccount,
 }) => {
   return (
-    <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+    <section className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6">
       <div className="flex items-center gap-3 mb-1">
-        <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center flex-shrink-0">
-          <CreditCard className="w-5 h-5 text-emerald-500" strokeWidth={1.8} />
+        <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 flex items-center justify-center flex-shrink-0">
+          <CreditCard className="w-5 h-5 text-emerald-500 dark:text-emerald-400" strokeWidth={1.8} />
         </div>
         <div>
-          <h2 className="text-sm font-bold text-gray-900">Bank Account Details</h2>
+          <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100">Bank Account Details</h2>
           <p className="text-xs text-gray-400 mt-0.5">
             {bankAccountDetails.subtitle}
           </p>
         </div>
       </div>
 
-      <div className="mt-6 rounded-xl border border-gray-100 p-5">
+      <div className=" rounded-xl  dark:border-gray-700 p-5">
         <div className="flex items-start justify-between gap-4">
-          <div>
-            <h3 className="text-sm font-semibold text-gray-900">
-              Active bank account
-            </h3>
-            <p className="mt-1 text-xs text-gray-500">
-              {bankAccountDetails.activeAccountSubtitle}
-            </p>
-          </div>
+          
           {/* <button
             type="button"
             onClick={onAddBankAccount}

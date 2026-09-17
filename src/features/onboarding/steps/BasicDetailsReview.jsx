@@ -56,7 +56,7 @@ const ReviewRow = ({ label, value, showEdit = true, onSave, onNavigate, validato
   };
 
   return (
-    <div className="flex items-start justify-between py-3 border-b border-gray-100 last:border-0 min-h-[52px]">
+    <div className="flex items-start justify-between py-3 border-b border-gray-100 dark:border-gray-700 last:border-0 min-h-[52px]">
       <div className="flex-1 min-w-0 pr-3">
         <p className="text-[10px] text-gray-400 font-medium mb-0.5 uppercase tracking-wide">{label}</p>
         {isEditing ? (
@@ -78,7 +78,7 @@ const ReviewRow = ({ label, value, showEdit = true, onSave, onNavigate, validato
             )}
           </>
         ) : (
-          <p className="text-sm font-semibold text-gray-800 truncate">{value || "—"}</p>
+          <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{value || "—"}</p>
         )}
       </div>
 
@@ -129,12 +129,12 @@ export default function BasicDetailsReview({ onNavigate }) {
           </span>
           <p className="text-xs font-semibold text-emerald-500 uppercase tracking-widest">Basic Details</p>
         </div>
-        <h1 className="text-2xl font-extrabold text-gray-700 leading-tight">Review /&nbsp;Edit</h1>
+        <h1 className="text-2xl font-extrabold text-gray-700 dark:text-gray-100 leading-tight">Review /&nbsp;Edit</h1>
         <p className="text-base font-bold text-gray-500 leading-tight">Business Details</p>
       </div>
 
       {/* Rows */}
-      <div className="w-full bg-white px-4 divide-y divide-gray-100">
+      <div className="w-full bg-white dark:bg-gray-800 px-4 divide-y divide-gray-100 dark:divide-gray-700">
 
         {/* Business Number — read only */}
         <ReviewRow

@@ -73,6 +73,16 @@ function buildVoucherFormData({
     // create — bannerVideo/bannerGif are sent here for symmetry with the
     // dedicated banner endpoint's contract (same 4 fields), since the add
     // form now offers all three banner types up front.
+    // ⚠️ Both are now File objects (picked via a real file input, same UX
+    // as bannerImage), NOT the "plain URL string" the banner endpoint's
+    // contract actually confirmed (see updateVoucherBanner's comment
+    // below) — sent per explicit instruction to give video/gif the same
+    // upload UX as image. FormData.append happily accepts either a string
+    // or a File under the same field name, so this at least reaches the
+    // backend as a real file part; verify the saved result once tested,
+    // and switch back to a URL-string flow (upload elsewhere, paste the
+    // resulting link here) if the backend actually rejects a raw file on
+    // these two fields.
     bannerVideo,
     bannerGif,
 } = {}) {
@@ -359,8 +369,12 @@ export async function updateVoucher(voucherId, patch, onUploadProgress) {
 // POST {{TryDood2.0BaseUrl}}/vouchers/:id/banner   (multipart/form-data)
 // Confirmed from Postman — lets a vendor change just the banner of an
 // already-created voucher without resending the whole form. bannerType is
-// one of IMAGE/VIDEO/GIF; bannerImage is a File, bannerVideo/bannerGif are
-// plain URL strings.
+// one of IMAGE/VIDEO/GIF; bannerImage is a File. bannerVideo/bannerGif
+// were CONFIRMED as plain URL strings in that same Postman sample, but are
+// now sent as Files instead (per explicit instruction — VoucherBannerModal.jsx
+// gives them the same file-upload UX as bannerImage). ⚠️ Not re-verified
+// against a real response since that change — confirm the backend actually
+// accepts a raw file on these two fields, and revert to URL strings if not.
 function buildVoucherBannerFormData({ bannerType, bannerImage, bannerVideo, bannerGif } = {}) {
     const formData = new FormData();
     if (bannerType) formData.append('bannerType', bannerType);

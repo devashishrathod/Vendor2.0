@@ -6,14 +6,14 @@ const GstPanSection = ({ gstPanInformation }) => {
 
   return (
     <section>
-      <h2 className="text-xs font-bold uppercase tracking-wide text-gray-700">
+      <h2 className="text-xs font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300">
         GST &amp; PAN Information
       </h2>
       <p className="mt-1 text-sm text-gray-500">
         {gstPanInformation.subtitle}
       </p>
 
-      <div className="mt-5 rounded-xl border border-gray-100 p-5">
+      <div className="mt-5 rounded-xl border border-gray-100 p-5 dark:border-gray-700">
         <div className="grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-6">
           <InfoItem label="Brand name" value={gstPanInformation.brandName} valueClassName="capitalize" />
           <div className="lg:col-span-2">

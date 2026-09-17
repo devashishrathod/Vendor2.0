@@ -105,15 +105,16 @@ export default function TransactionOverview({ activeTxnTab, voucherData, dateRan
     currentPage * rowsPerPage
   );
 
-  // Export current filtered rows as CSV
+  // Export current filtered rows as CSV — every real field on each row
+  // (not just what the table itself shows), per explicit instruction.
   const handleExport = () => {
     const headers = [
-      "Order Id", "Customer", "Customer Code", data.idLabel, "Razorpay Order Id", "Created On", "Outlet",
+      "Order Id", "Txn Id", "Customer", "Customer Code", data.idLabel, "Razorpay Order Id", "Created On", "Outlet",
       "Bill Amount", "Offer Discount", "Promo Discount", "Net Bill", "Amount", "Payment Method", "Status",
     ];
     const csvRows = filteredRows.map((r) =>
       [
-        r.orderId, r.customerName, r.customerCode, r.refId, r.razorpayOrderId, r.createdOn, r.outlet,
+        r.orderId, r.txnId, r.customerName, r.customerCode, r.refId, r.razorpayOrderId, r.createdOn, r.outlet,
         r.billAmount, r.offerDiscount, r.promoDiscount, r.netBill, r.amount, r.paymentMethod, r.status,
       ]
         .map((v) => `"${v}"`)
@@ -130,10 +131,10 @@ export default function TransactionOverview({ activeTxnTab, voucherData, dateRan
   };
 
   return (
-    <div className="bg-white border border-gray-100 rounded-xl overflow-hidden mb-4">
+    <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden mb-4">
       {/* Section header */}
-      <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100">
-        <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+      <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 dark:border-gray-700">
+        <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
           <TxnIcon type={activeIcon} />
           {data.sectionTitle}
         </div>
@@ -179,7 +180,7 @@ export default function TransactionOverview({ activeTxnTab, voucherData, dateRan
                     className={`w-7 h-7 rounded-md text-xs font-semibold transition-colors border
                       ${rowsPerPage === n
                         ? "bg-gray-900 text-white border-gray-900"
-                        : "text-gray-500 border-gray-200 hover:bg-gray-50"
+                        : "text-gray-500 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"
                       }`}
                   >
                     {n}
@@ -191,7 +192,7 @@ export default function TransactionOverview({ activeTxnTab, voucherData, dateRan
                 <button
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
-                  className="w-7 h-7 flex items-center justify-center rounded-md border border-gray-200 hover:bg-gray-50 text-gray-400 disabled:opacity-30"
+                  className="w-7 h-7 flex items-center justify-center rounded-md border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-400 disabled:opacity-30"
                 >
                   <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -204,7 +205,7 @@ export default function TransactionOverview({ activeTxnTab, voucherData, dateRan
                     className={`w-7 h-7 rounded-md text-xs font-semibold transition-colors
                       ${currentPage === page
                         ? "bg-blue-50 text-blue-700"
-                        : "text-gray-500 hover:bg-gray-100"
+                        : "text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
                       }`}
                   >
                     {page}
@@ -213,7 +214,7 @@ export default function TransactionOverview({ activeTxnTab, voucherData, dateRan
                 <button
                   onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
-                  className="w-7 h-7 flex items-center justify-center rounded-md border border-gray-200 hover:bg-gray-50 text-gray-400 disabled:opacity-30"
+                  className="w-7 h-7 flex items-center justify-center rounded-md border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-400 disabled:opacity-30"
                 >
                   <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
@@ -224,25 +225,25 @@ export default function TransactionOverview({ activeTxnTab, voucherData, dateRan
 
             <div className="flex flex-nowrap items-center gap-2 overflow-x-auto pb-4">
               {/* Search */}
-              <div className="flex w-52 flex-shrink-0 items-center gap-2 rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-400 transition-colors focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-100">
+              <div className="flex w-52 flex-shrink-0 items-center gap-2 rounded-xl border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm text-gray-400 transition-colors focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-100">
                 <Search className="h-4 w-4 flex-shrink-0" />
                 <input
                   type="text"
                   value={searchTerm}
                   onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
                   placeholder={`Search Here: Customer, ${data.idLabel}`}
-                  className="w-full bg-transparent text-gray-700 outline-none placeholder:text-gray-400 truncate"
+                  className="w-full bg-transparent text-gray-700 dark:text-gray-100 outline-none placeholder:text-gray-400 truncate"
                 />
               </div>
 
               {/* Status filter — real statuses present in this tab's rows,
                   not a fixed/fabricated list. */}
-              <div className="flex flex-shrink-0 items-center gap-1.5 rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-600">
+              <div className="flex flex-shrink-0 items-center gap-1.5 rounded-xl border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm text-gray-600 dark:text-gray-300">
                 <SlidersHorizontal className="h-4 w-4 shrink-0 text-gray-400" />
                 <select
                   value={statusFilter}
                   onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-                  className="bg-transparent text-sm text-gray-600 outline-none"
+                  className="bg-transparent text-sm text-gray-600 dark:text-gray-300 outline-none"
                 >
                   <option value="all">All Statuses</option>
                   {statusOptions.map((s) => (
@@ -254,14 +255,14 @@ export default function TransactionOverview({ activeTxnTab, voucherData, dateRan
               {/* Date range — real from/to, filters both the table below
                   and the "Voucher Collection" stat above (Transactions.jsx
                   owns this state so the two never disagree). */}
-              <div className="flex flex-shrink-0 items-center gap-1.5 rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-600">
+              <div className="flex flex-shrink-0 items-center gap-1.5 rounded-xl border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm text-gray-600 dark:text-gray-300">
                 <CalendarDays className="h-4 w-4 shrink-0 text-gray-400" />
                 <input
                   type="date"
                   value={dateRange.from}
                   onChange={(e) => onDateRangeChange({ ...dateRange, from: e.target.value })}
                   max={dateRange.to || undefined}
-                  className="bg-transparent text-sm text-gray-600 outline-none"
+                  className="bg-transparent text-sm text-gray-600 dark:text-gray-300 outline-none"
                 />
                 <span className="text-gray-300">–</span>
                 <input
@@ -269,7 +270,7 @@ export default function TransactionOverview({ activeTxnTab, voucherData, dateRan
                   value={dateRange.to}
                   onChange={(e) => onDateRangeChange({ ...dateRange, to: e.target.value })}
                   min={dateRange.from || undefined}
-                  className="bg-transparent text-sm text-gray-600 outline-none"
+                  className="bg-transparent text-sm text-gray-600 dark:text-gray-300 outline-none"
                 />
                 {(dateRange.from || dateRange.to) && (
                   <button
@@ -285,7 +286,7 @@ export default function TransactionOverview({ activeTxnTab, voucherData, dateRan
               {/* Export */}
               <button
                 onClick={handleExport}
-                className="flex flex-shrink-0 items-center gap-1.5 rounded-xl border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
+                className="flex flex-shrink-0 items-center gap-1.5 rounded-xl border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
               >
                 <Download className="h-4 w-4" />
                 Export Data
@@ -294,7 +295,7 @@ export default function TransactionOverview({ activeTxnTab, voucherData, dateRan
           </div>
 
           {/* Table */}
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto no-scrollbar">
             <table className="w-full text-xs">
               <thead>
                 <tr className="bg-[#1a1a2e]">
@@ -319,7 +320,7 @@ export default function TransactionOverview({ activeTxnTab, voucherData, dateRan
                   pageRows.map((row) => {
                     const avatar = getAvatarColors(row.customerName);
                     return (
-                      <tr key={row.orderId} className="border-b border-gray-100 bg-white last:border-b-0 hover:bg-gray-50 transition-colors">
+                      <tr key={row.orderId} className="border-b border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 last:border-b-0 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                         <td className="px-3 py-2 whitespace-nowrap">
                           {/* Order Id click → detail page. Routes on the
                               real payment _id (row.txnId) when present —
@@ -343,20 +344,20 @@ export default function TransactionOverview({ activeTxnTab, voucherData, dateRan
                               {getInitials(row.customerName)}
                             </div>
                             <div>
-                              <p className="text-gray-700 font-medium capitalize">{row.customerName}</p>
+                              <p className="text-gray-700 dark:text-gray-300 font-medium capitalize">{row.customerName}</p>
                               <p className="text-blue-500">{row.customerCode}</p>
                             </div>
                           </div>
                         </td>
-                        <td className="px-3 py-2 text-gray-700 whitespace-nowrap">{row.refId}</td>
+                        <td className="px-3 py-2 text-gray-700 dark:text-gray-300 whitespace-nowrap">{row.refId}</td>
                         {/* <td className="px-3 py-2 text-gray-500 whitespace-nowrap">{row.razorpayOrderId}</td> */}
                         <td className="px-3 py-2 text-gray-500 whitespace-nowrap">{row.createdOn}</td>
                         <td className="px-3 py-2 text-gray-500 whitespace-nowrap">{row.outlet}</td>
-                        <td className="px-3 py-2 text-gray-700 whitespace-nowrap">{row.billAmount}</td>
+                        <td className="px-3 py-2 text-gray-700 dark:text-gray-300 whitespace-nowrap">{row.billAmount}</td>
                         <td className="px-3 py-2 text-rose-500 whitespace-nowrap">{row.offerDiscount}</td>
                         <td className="px-3 py-2 text-rose-500 whitespace-nowrap">{row.promoDiscount}</td>
-                        <td className="px-3 py-2 text-gray-700 whitespace-nowrap">{row.netBill}</td>
-                        <td className="px-3 py-2 text-gray-700 font-medium whitespace-nowrap">{row.amount}</td>
+                        <td className="px-3 py-2 text-gray-700 dark:text-gray-300 whitespace-nowrap">{row.netBill}</td>
+                        <td className="px-3 py-2 text-gray-700 dark:text-gray-300 font-medium whitespace-nowrap">{row.amount}</td>
                         <td className="px-3 py-2 text-gray-500 whitespace-nowrap capitalize">{row.paymentMethod}</td>
                         <td className="px-3 py-2 whitespace-nowrap">
                           <span

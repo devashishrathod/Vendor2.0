@@ -4,7 +4,7 @@ import InfoItem from "./InfoItem";
 const OutletAddressSection = ({ locationAndAddress }) => {
   return (
     <section>
-      <h2 className="text-xs font-bold uppercase tracking-wide text-gray-700">
+      <h2 className="text-xs font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300">
         Outlet Location &amp; Address
       </h2>
 

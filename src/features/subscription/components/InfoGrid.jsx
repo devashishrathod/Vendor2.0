@@ -7,13 +7,13 @@ import { ChevronRight } from 'lucide-react';
  */
 export function InfoTile({ icon, iconBg = 'bg-blue-50', iconText = 'text-blue-500', label, value, valueClassName = '', valueNode, link, className = '' }) {
   return (
-    <div className={`flex items-start gap-3 bg-gray-50 rounded-xl p-3.5 ${className}`}>
+    <div className={`flex items-start gap-3 bg-gray-50 dark:bg-gray-700 rounded-xl p-3.5 ${className}`}>
       <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${iconBg} ${iconText}`}>
         {icon}
       </div>
       <div className="min-w-0 flex-1">
         <p className="text-xs text-gray-400">{label}</p>
-        {valueNode ?? <p className={`text-sm font-semibold text-gray-800 mt-0.5 break-words ${valueClassName}`}>{value ?? '—'}</p>}
+        {valueNode ?? <p className={`text-sm font-semibold text-gray-800 dark:text-gray-100 mt-0.5 break-words ${valueClassName}`}>{value ?? '—'}</p>}
         {link && (
           <button
             onClick={link.onClick}
@@ -48,14 +48,14 @@ export function InfoGrid({ items, cols = 4 }) {
 
 export function InfoSection({ icon, title, subtitle, action, children }) {
   return (
-    <section className="bg-white border border-gray-100 rounded-2xl p-5 sm:p-6">
+    <section className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl p-5 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
             {icon}
           </div>
           <div>
-            <h4 className="text-base font-bold text-gray-900">{title}</h4>
+            <h4 className="text-base font-bold text-gray-900 dark:text-gray-100">{title}</h4>
             {subtitle && <p className="text-xs text-gray-400 mt-0.5">{subtitle}</p>}
           </div>
         </div>

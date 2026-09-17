@@ -14,12 +14,12 @@ const currency = (n) =>
 
 function StatCard({ icon, label, amount, note, showBreakup, count, isLast }) {
   return (
-    <div className={`flex-1 px-6 py-4 ${!isLast ? "sm:border-r border-slate-100" : ""}`}>
+    <div className={`flex-1 px-6 py-4 ${!isLast ? "sm:border-r border-slate-100 dark:border-gray-700" : ""}`}>
       <div className="flex items-center gap-2 text-slate-400">
         {icon}
         <span className="text-sm font-medium text-slate-500">{label}</span>
       </div>
-      <p className="mt-2 text-2xl font-semibold text-slate-800">{currency(amount)}</p>
+      <p className="mt-2 text-2xl font-semibold text-slate-800 dark:text-gray-100">{currency(amount)}</p>
       <p className="mt-1 text-xs text-slate-400">{note}</p>
       {showBreakup && (
         <button className="mt-1 text-xs font-medium text-emerald-600 underline underline-offset-2 hover:text-emerald-700">
@@ -47,9 +47,9 @@ export default function SettlementOverview({
   return (
     <div className="space-y-4">
       {/* Summary card */}
-      <div className="rounded-2xl border border-slate-100 bg-white shadow-sm">
+      <div className="rounded-2xl border border-slate-100 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
         <div className="flex items-center justify-between px-6 pt-5 pb-1">
-          <h3 className="text-sm font-semibold text-slate-700">Settlement Overview</h3>
+          <h3 className="text-sm font-semibold text-slate-700 dark:text-gray-300">Settlement Overview</h3>
           <button
             onClick={onRefresh}
             className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-emerald-600"
@@ -59,7 +59,7 @@ export default function SettlementOverview({
           </button>
         </div>
 
-        <div className="flex flex-col sm:flex-row divide-y sm:divide-y-0 divide-slate-100">
+        <div className="flex flex-col sm:flex-row divide-y sm:divide-y-0 divide-slate-100 dark:divide-gray-700">
           <StatCard
             icon={<Wallet className="h-4 w-4" />}
             label="Previous settlement"

@@ -46,14 +46,14 @@ const ShowcaseSection = ({
     <section>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center flex-shrink-0">
-            <svg className="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 flex items-center justify-center flex-shrink-0">
+            <svg className="w-5 h-5 text-emerald-500 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
                 d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14M4 8h16M4 4h16a1 1 0 011 1v14a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1z" />
             </svg>
           </div>
           <div>
-            <h2 className="text-sm font-bold text-gray-900">
+            <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100">
               Showcase
             </h2>
             <p className="text-xs text-gray-400 mt-0.5">{showcase.subtitle}</p>
@@ -62,7 +62,7 @@ const ShowcaseSection = ({
 
         <div className="flex items-center gap-3">
           {(totalPhotos > 0 || totalVideos > 0) && (
-            <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700">
+            <span className="rounded-full bg-emerald-50 dark:bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
               {totalPhotos} Photo{totalPhotos !== 1 ? "s" : ""} · {totalVideos} Video{totalVideos !== 1 ? "s" : ""}
             </span>
           )}

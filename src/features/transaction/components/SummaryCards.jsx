@@ -2,12 +2,12 @@ import { RefreshCcw, Tag, Wallet, Percent, ReceiptText } from "lucide-react";
 
 function StatCard({ icon, label, amount, note, showBreakup, count, isLast }) {
   return (
-    <div className={`flex-1 px-6 py-4 ${!isLast ? "sm:border-r border-gray-100" : ""}`}>
+    <div className={`flex-1 px-6 py-4 ${!isLast ? "sm:border-r border-gray-100 dark:border-gray-700" : ""}`}>
       <div className="flex items-center gap-2 text-gray-400">
         {icon}
         <span className="text-sm font-medium text-gray-500">{label}</span>
       </div>
-      <p className="mt-2 text-2xl font-semibold text-gray-800">{amount}</p>
+      <p className="mt-2 text-2xl font-semibold text-gray-800 dark:text-gray-100">{amount}</p>
       <p className="mt-1 text-xs text-gray-400">{note}</p>
       {showBreakup && (
         <button className="mt-1 text-xs font-medium text-emerald-600 underline underline-offset-2 hover:text-emerald-700">
@@ -43,9 +43,9 @@ export default function SummaryCards({
   refreshing,
 }) {
   return (
-    <div className="rounded-2xl border border-gray-100 bg-white shadow-sm mb-6">
+    <div className="rounded-2xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm mb-6">
       <div className="flex items-center justify-between px-6 pt-5 pb-1">
-        <h3 className="text-sm font-semibold text-gray-700">Transaction Overview</h3>
+        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Transaction Overview</h3>
         <button
           onClick={onRefresh}
           className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-emerald-600"
@@ -55,7 +55,7 @@ export default function SummaryCards({
         </button>
       </div>
 
-      <div className="flex flex-col sm:flex-row divide-y sm:divide-y-0 divide-gray-100">
+      <div className="flex flex-col sm:flex-row divide-y sm:divide-y-0 divide-gray-100 dark:divide-gray-700">
         <StatCard
           icon={<Tag className="h-4 w-4" />}
           label="Voucher Collection"

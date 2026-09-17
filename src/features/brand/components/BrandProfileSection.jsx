@@ -46,7 +46,7 @@ function InfoTile({ icon, label, value, valueClassName = "", copyValue, action, 
       <div className="min-w-0">
         <p className="text-xs text-gray-400">{label}</p>
         <div className="mt-0.5 flex items-center gap-1.5">
-          <p className={`text-sm font-semibold text-gray-900 truncate ${valueClassName}`}>{value || "—"}</p>
+          <p className={`text-sm font-semibold text-gray-900 dark:text-gray-100 truncate ${valueClassName}`}>{value || "—"}</p>
           {copyValue && <CopyButton text={copyValue} />}
           {action}
         </div>
@@ -69,40 +69,40 @@ const BrandProfileSection = ({ profile, outletCount, reload }) => {
   const isMobileVerified = !!profile.user?.isMobileVerified;
 
   return (
-    <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+    <section className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6">
       <div className="flex items-center gap-3 mb-6">
-        <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center flex-shrink-0">
-          <Store className="w-4 h-4 text-emerald-500" strokeWidth={1.8} />
+        <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 flex items-center justify-center flex-shrink-0">
+          <Store className="w-4 h-4 text-emerald-500 dark:text-emerald-400" strokeWidth={1.8} />
         </div>
         <div className="flex-1">
-          <h2 className="text-sm font-bold text-gray-900 leading-tight">General Details</h2>
+          <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100 leading-tight">General Details</h2>
           <p className="text-xs text-gray-400 mt-0.5">Your basic information helps us verify and contact you.</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
         <InfoTile
-          icon={<IdCard className="w-4 h-4 text-emerald-500" strokeWidth={1.8} />}
+          icon={<IdCard className="w-4 h-4 text-emerald-500 dark:text-emerald-400" strokeWidth={1.8} />}
           label="Merchant ID"
           value={profile.merchantId}
           copyValue={profile.merchantId}
         />
         <InfoTile
-          icon={<Store className="w-4 h-4 text-emerald-500" strokeWidth={1.8} />}
+          icon={<Store className="w-4 h-4 text-emerald-500 dark:text-emerald-400" strokeWidth={1.8} />}
           label="Brand Name"
           value={profile.brandName}
           valueClassName="capitalize"
           copyValue={profile.brandName}
         />
         <InfoTile
-          icon={<Building2 className="w-4 h-4 text-emerald-500" strokeWidth={1.8} />}
+          icon={<Building2 className="w-4 h-4 text-emerald-500 dark:text-emerald-400" strokeWidth={1.8} />}
           label="Legal Business Name"
           value={profile.legalBusinessName}
           valueClassName="capitalize"
           copyValue={profile.legalBusinessName}
         />
         <InfoTile
-          icon={<Mail className="w-4 h-4 text-emerald-500" strokeWidth={1.8} />}
+          icon={<Mail className="w-4 h-4 text-emerald-500 dark:text-emerald-400" strokeWidth={1.8} />}
           label="Email ID"
           value={profile.email || "Email Not Provided"}
           copyValue={profile.email}
@@ -132,7 +132,7 @@ const BrandProfileSection = ({ profile, outletCount, reload }) => {
             reads it back the same way; verify it displays the real saved
             value once tested. */}
         <InfoTile
-          icon={<PhoneCall className="w-4 h-4 text-emerald-500" strokeWidth={1.8} />}
+          icon={<PhoneCall className="w-4 h-4 text-emerald-500 dark:text-emerald-400" strokeWidth={1.8} />}
           label="Contact Number"
           value={formatMobileNumber(profile.mobile) || "Not Provided"}
           copyValue={profile.mobile}
@@ -157,13 +157,13 @@ const BrandProfileSection = ({ profile, outletCount, reload }) => {
           }
         />
         <InfoTile
-          icon={<Phone className="w-4 h-4 text-emerald-500" strokeWidth={1.8} />}
+          icon={<Phone className="w-4 h-4 text-emerald-500 dark:text-emerald-400" strokeWidth={1.8} />}
           label="WhatsApp Number"
           value={formatMobileNumber(profile.whatsappNumber)}
           copyValue={profile.whatsappNumber}
         />
         <InfoTile
-          icon={<MapPin className="w-4 h-4 text-emerald-500" strokeWidth={1.8} />}
+          icon={<MapPin className="w-4 h-4 text-emerald-500 dark:text-emerald-400" strokeWidth={1.8} />}
           label="Outlet Count"
           value={outletCount != null ? outletCount : undefined}
           note={
@@ -176,13 +176,13 @@ const BrandProfileSection = ({ profile, outletCount, reload }) => {
           }
         />
         <InfoTile
-          icon={<TagIcon className="w-4 h-4 text-emerald-500" strokeWidth={1.8} />}
+          icon={<TagIcon className="w-4 h-4 text-emerald-500 dark:text-emerald-400" strokeWidth={1.8} />}
           label="Refer Code"
           value={profile.user?.referralCode}
           copyValue={profile.user?.referralCode}
         />
         <InfoTile
-          icon={<CalendarDays className="w-4 h-4 text-emerald-500" strokeWidth={1.8} />}
+          icon={<CalendarDays className="w-4 h-4 text-emerald-500 dark:text-emerald-400" strokeWidth={1.8} />}
           label="Joining Date"
           value={formatJoinedDate(profile.joinedDate)}
         />

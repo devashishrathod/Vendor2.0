@@ -6,11 +6,11 @@ import { useAuthStore } from "../../../onboarding/store/authStore";
 import { useOnboardingStore } from "../../../onboarding/store/onboardingStore";
 import useBrandData from "../../../brand/hooks/useBrandData";
 import {
-  getVoucherStats,
   getVouchers,
   submitVoucherForReview,
   publishVoucher,
 } from "../../services/voucher/VoucherService";
+import { fetchVoucherTransactionOverview } from "../../../transaction/services/transactionService";
 
 // This is the Vendor Panel — the voucher list is always the logged-in
 // vendor's own vouchers, so brandId defaults to their own brand rather
@@ -57,17 +57,51 @@ export default function useVoucher(brandId) {
   // broken/flaky even though each individual request was correct.
   const requestIdRef = useRef(0);
 
+  const [statsRefreshing, setStatsRefreshing] = useState(false);
+
+  // Real data only — GET /vouchers/stats was never confirmed from Postman
+  // and 404s in practice (see the old getVoucherStats comment in
+  // VoucherService.js), which is why this card used to be permanently
+  // stuck on "—" placeholders. Built instead from the SAME confirmed
+  // sources Transactions.jsx/AnalysisReport.jsx already use: real voucher-
+  // claim payments for the collection/discount amounts, and a real
+  // GET /vouchers/versions/get-all?status=EXPIRED count for expired
+  // vouchers (limit:1 — only its `total` is needed, not the rows).
   const loadStats = useCallback(async () => {
+    if (!resolvedBrandId) return;
     try {
-      const data = await getVoucherStats({ brandId: resolvedBrandId });
-      // NOTE: getVoucherStats' real response shape isn't confirmed from
-      // Postman (see VoucherService.js). Adjust this mapping once you know
-      // the actual keys — falling back to `data` as-is for now.
-      setStats(data);
+      const [overview, expiredRes] = await Promise.all([
+        fetchVoucherTransactionOverview({ brandId: resolvedBrandId }),
+        getVouchers({ brandId: resolvedBrandId, status: "EXPIRED", page: 1, limit: 1 }),
+      ]);
+      const discountAmount = overview.rows.reduce(
+        (sum, r) => sum + Number(r.raw?.voucher?.offerDiscount || 0),
+        0
+      );
+      setStats({
+        overallCollectionAmount: overview.totalPaidAmount,
+        transactionCount: overview.count,
+        discountAmount: -discountAmount,
+        // ⚠️ No confirmed GST field exists anywhere on the real voucher-
+        // claim payment shape yet — an honest zero, matching the same
+        // "Not available" GSI Collection column on the Transactions page,
+        // never fabricated.
+        gstAmount: 0,
+        expiredVoucherCount: expiredRes?.data?.total ?? 0,
+      });
     } catch (err) {
       setError(err.message);
     }
   }, [resolvedBrandId]);
+
+  const refreshStats = useCallback(async () => {
+    setStatsRefreshing(true);
+    try {
+      await loadStats();
+    } finally {
+      setStatsRefreshing(false);
+    }
+  }, [loadStats]);
 
   const loadVouchers = useCallback(async () => {
     const requestId = ++requestIdRef.current;
@@ -187,6 +221,8 @@ export default function useVoucher(brandId) {
 
   return {
     stats,
+    statsRefreshing,
+    refreshStats,
     vouchers,
     total,
     totalPages,

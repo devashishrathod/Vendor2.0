@@ -42,17 +42,48 @@ const STATUS_FILTER_OPTIONS = [
   { value: "ARCHIVED", label: "Archived" },
 ];
 
+// Every real offer field on this voucher (see VoucherForm.jsx's OfferCard
+// and VoucherService.js's confirmed `offers` shape), one offer per
+// semicolon-joined entry, instead of only the first offer's headline.
+function summarizeAllOffers(offers) {
+  if (!offers?.length) return "—";
+  return offers
+    .map((o) => {
+      const discount = o.discountType === "PERCENTAGE" ? `${o.discountValue}%` : `₹${o.discountValue}`;
+      const parts = [
+        o.title || "Untitled offer",
+        `${discount} off`,
+        o.minBillAmount != null ? `min bill ₹${o.minBillAmount}` : null,
+        o.maxDiscountAmount != null ? `max ₹${o.maxDiscountAmount}` : null,
+        o.usageType,
+        o.discountApplicableOn,
+        o.isActive === false ? "inactive" : null,
+      ].filter(Boolean);
+      return parts.join(" / ");
+    })
+    .join("; ");
+}
+
 // Exports the currently-loaded page of vouchers as a CSV file — client
-// side, since there's no confirmed "export" endpoint from Postman.
+// side, since there's no confirmed "export" endpoint from Postman. Every
+// real field available on each voucher version is included (not just the
+// summary columns the table itself shows), per explicit instruction.
 function exportVouchersToCsv(vouchers) {
-  const headers = ["Name", "Version Code", "Start Date", "End Date", "Discount", "Status"];
+  const headers = [
+    "Voucher Id", "Version Code", "Name", "Status", "Start Date", "End Date",
+    "No. of Offers", "Offers Detail", "Banner Type", "No. of Images",
+  ];
   const rows = vouchers.map((v) => [
-    v.name,
+    v.voucherId,
     v.versionCode,
+    v.name,
+    v.status,
     v.startAt,
     v.endAt,
-    summarizeDiscount(v.offers),
-    v.status,
+    v.offers?.length ?? 0,
+    summarizeAllOffers(v.offers),
+    v.voucher?.banner?.type || "—",
+    v.images?.length ?? 0,
   ]);
   const csv = [headers, ...rows]
     .map((row) => row.map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(","))
@@ -83,12 +114,6 @@ function formatDateTime(iso) {
   });
 }
 
-function summarizeDiscount(offers) {
-  const offer = offers?.[0];
-  if (!offer) return "—";
-  return offer.title || `${offer.discountValue}${offer.discountType === "PERCENTAGE" ? "%" : "₹"} OFF`;
-}
-
 function buildPageList(page, totalPages) {
   const pages = [];
   for (let i = 1; i <= totalPages; i += 1) pages.push(i);
@@ -105,7 +130,7 @@ function ActionIconButton({ icon: Icon, label, isLoading, onClick }) {
       aria-label={label}
       disabled={isLoading}
       onClick={onClick}
-      className="flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 transition-colors hover:bg-gray-50 disabled:opacity-50"
+      className="flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-500 transition-colors hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
     >
       {isLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Icon className="h-3.5 w-3.5" />}
     </button>
@@ -138,28 +163,28 @@ export default function VoucherTable({
   const [editWarningVoucher, setEditWarningVoucher] = useState(null);
 
   return (
-    <div className="mt-4 rounded-2xl border border-gray-100 bg-white shadow-sm">
+    <div className="mt-4 rounded-2xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
       {/* Toolbar — search/filters/export/Add Voucher, one single row (rows-
           per-page now lives in the footer, next to pagination, instead of
           here). */}
-      <div className="flex flex-col gap-3 border-b border-gray-100 p-4 sm:flex-row sm:items-center sm:justify-end">
+      <div className="flex flex-col gap-3 border-b border-gray-100 dark:border-gray-700 p-4 sm:flex-row sm:items-center sm:justify-end">
         <div className="flex flex-1 flex-nowrap items-center gap-2 overflow-x-auto sm:justify-end">
-          <div className="flex w-44 flex-shrink-0 items-center gap-2 rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-400 transition-colors focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-100">
+          <div className="flex w-44 flex-shrink-0 items-center gap-2 rounded-xl border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm text-gray-400 transition-colors focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-100">
             <Search className="h-4 w-4 flex-shrink-0" />
             <input
               value={search}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder="Search Here: Voucher Id/Title Na"
-              className="w-full bg-transparent text-gray-700 outline-none placeholder:text-gray-400 truncate"
+              className="w-full bg-transparent text-gray-700 dark:text-gray-100 outline-none placeholder:text-gray-400 truncate"
             />
           </div>
 
-          <div className="flex flex-shrink-0 items-center gap-1.5 rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-600">
+          <div className="flex flex-shrink-0 items-center gap-1.5 rounded-xl border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm text-gray-600">
             <SlidersHorizontal className="h-4 w-4 shrink-0 text-gray-400" />
             <select
               value={statusFilter}
               onChange={(e) => onStatusFilterChange?.(e.target.value)}
-              className="bg-transparent text-sm text-gray-600 outline-none"
+              className="bg-transparent text-sm text-gray-600 dark:text-gray-300 outline-none"
             >
               {STATUS_FILTER_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -169,20 +194,20 @@ export default function VoucherTable({
             </select>
           </div>
 
-          <div className="flex flex-shrink-0 items-center gap-1.5 rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-600">
+          <div className="flex flex-shrink-0 items-center gap-1.5 rounded-xl border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm text-gray-600">
             <Calendar className="h-4 w-4 shrink-0 text-gray-400" />
             <input
               type="date"
               value={dateRange.from}
               onChange={(e) => onDateRangeChange?.({ ...dateRange, from: e.target.value })}
-              className="bg-transparent text-sm text-gray-600 outline-none"
+              className="bg-transparent text-sm text-gray-600 dark:text-gray-300 outline-none"
             />
             <span className="text-gray-300">–</span>
             <input
               type="date"
               value={dateRange.to}
               onChange={(e) => onDateRangeChange?.({ ...dateRange, to: e.target.value })}
-              className="bg-transparent text-sm text-gray-600 outline-none"
+              className="bg-transparent text-sm text-gray-600 dark:text-gray-300 outline-none"
             />
             {(dateRange.from || dateRange.to) && (
               <button
@@ -199,7 +224,7 @@ export default function VoucherTable({
             type="button"
             disabled={vouchers.length === 0}
             onClick={() => exportVouchersToCsv(vouchers)}
-            className="flex flex-shrink-0 items-center gap-1.5 rounded-xl border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex flex-shrink-0 items-center gap-1.5 rounded-xl border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <Download className="h-4 w-4" />
             Export Data
@@ -216,14 +241,16 @@ export default function VoucherTable({
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto border-t border-gray-100">
+      <div className="overflow-x-auto no-scrollbar border-t border-gray-100 dark:border-gray-700">
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="bg-[#1a1a2e]">
               {TABLE_HEAD.map((head) => (
                 <th
                   key={head}
-                  className="whitespace-nowrap px-3 py-2.5 text-[11px] font-bold uppercase tracking-wide text-white/80"
+                  className={`whitespace-nowrap px-3 py-2.5 text-[11px] font-bold uppercase tracking-wide text-white/80 ${
+                    head === "No of Offers" ? "text-center" : ""
+                  }`}
                 >
                   {head}
                 </th>
@@ -260,7 +287,7 @@ export default function VoucherTable({
                 return (
                   <tr
                     key={version._id}
-                    className="border-b border-gray-100 bg-white last:border-b-0"
+                    className="border-b border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 last:border-b-0"
                   >
                     <td className="px-3 py-2">
                       <div className="flex items-center gap-1.5">
@@ -273,10 +300,10 @@ export default function VoucherTable({
                           <img
                             src={version.voucher.banner.image.url}
                             alt=""
-                            className="h-7 w-7 rounded-md border border-gray-100 object-cover"
+                            className="h-7 w-7 rounded-md border border-gray-100 dark:border-gray-700 object-cover"
                           />
                         ) : (
-                          <div className="flex h-7 w-7 items-center justify-center rounded-md border border-dashed border-gray-200 text-gray-300">
+                          <div className="flex h-7 w-7 items-center justify-center rounded-md border border-dashed border-gray-200 dark:border-gray-700 text-gray-300">
                             <ImageIcon className="h-3.5 w-3.5" />
                           </div>
                         )}
@@ -307,13 +334,13 @@ export default function VoucherTable({
                         </button>
                       </div>
                     </td>
-                    <td className="whitespace-nowrap px-3 py-2 text-xs text-gray-600">
+                    <td className="whitespace-nowrap px-3 py-2 text-xs text-gray-600 dark:text-gray-300">
                       {formatDateTime(version.startAt)}
                     </td>
-                    <td className="whitespace-nowrap px-3 py-2 text-xs text-gray-600">
+                    <td className="whitespace-nowrap px-3 py-2 text-xs text-gray-600 dark:text-gray-300">
                       {formatDateTime(version.endAt)}
                     </td>
-                    <td className="px-3 py-2 text-xs text-gray-600">
+                    <td className="px-3 py-2 text-center text-xs text-gray-600 dark:text-gray-300">
                       {version.offers?.length ?? 0}
                     </td>
                     <td className="px-3 py-2">
@@ -373,14 +400,14 @@ export default function VoucherTable({
       {/* Footer — summary text + pagination together in one row, same
           arrangement as SettlementTable's bottom bar (pagination used to
           sit up in the toolbar instead). */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 px-5 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 dark:border-gray-700 px-5 py-3">
         <span className="text-xs text-gray-400">
           Showing {stateSummary.rangeStart}-{stateSummary.rangeEnd} of {vouchers.length ? stateSummary.rangeEnd : 0}
         </span>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 text-sm text-gray-500">
             <span className="text-xs text-gray-400">Rows:</span>
-            <div className="flex overflow-hidden rounded-xl border border-gray-200">
+            <div className="flex overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700">
               {ROWS_PER_PAGE_OPTIONS.map((option) => (
                 <button
                   key={option}
@@ -388,7 +415,7 @@ export default function VoucherTable({
                   className={`px-3 py-1.5 text-sm font-medium transition-colors ${
                     rowsPerPage === option
                       ? "bg-emerald-500 text-white"
-                      : "bg-white text-gray-600 hover:bg-gray-50"
+                      : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                   }`}
                 >
                   {option}
@@ -400,7 +427,7 @@ export default function VoucherTable({
           <button
             onClick={() => onPageChange(page - 1)}
             disabled={page <= 1}
-            className="rounded-lg p-1.5 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-lg p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
@@ -409,7 +436,7 @@ export default function VoucherTable({
               key={p}
               onClick={() => onPageChange(p)}
               className={`h-7 w-7 rounded-lg text-sm font-medium transition-colors ${
-                p === page ? "bg-emerald-500 text-white" : "hover:bg-gray-100"
+                p === page ? "bg-emerald-500 text-white" : "hover:bg-gray-100 dark:hover:bg-gray-700"
               }`}
             >
               {p}
@@ -418,7 +445,7 @@ export default function VoucherTable({
           <button
             onClick={() => onPageChange(page + 1)}
             disabled={page >= totalPages}
-            className="rounded-lg p-1.5 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-lg p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <ChevronRight className="h-4 w-4" />
           </button>

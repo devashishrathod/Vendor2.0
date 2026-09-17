@@ -21,10 +21,10 @@ function PrimaryButton({
   const variants = {
     emerald:
       disabled || loading
-        ? "bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200"
+        ? "bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed border border-gray-200 dark:border-gray-700"
         : "bg-emerald-500 hover:bg-emerald-600 text-white active:scale-[0.98]",
     danger: "bg-red-500 hover:bg-red-600 text-white active:scale-[0.98]",
-    ghost: "bg-gray-100 hover:bg-gray-200 text-gray-600 active:scale-[0.98]",
+    ghost: "bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 active:scale-[0.98]",
   };
   return (
     <button
@@ -71,32 +71,32 @@ function OptionCard({
     emerald: {
       card: selected
         ? "border-2 border-emerald-400 bg-emerald-50/50 shadow-sm shadow-emerald-100"
-        : "border border-gray-200 bg-white hover:border-emerald-200 hover:bg-gray-50/40",
-      iconWrap: selected ? "bg-emerald-100" : "bg-gray-100",
+        : "border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-emerald-200 hover:bg-gray-50/40",
+      iconWrap: selected ? "bg-emerald-100" : "bg-gray-100 dark:bg-gray-700",
       iconColor: selected ? "text-emerald-600" : "text-gray-400",
-      title: selected ? "text-emerald-700" : "text-gray-700",
+      title: selected ? "text-emerald-700" : "text-gray-700 dark:text-gray-300",
       radio: selected
         ? "border-emerald-500 bg-emerald-500"
-        : "border-gray-300 bg-white",
+        : "border-gray-300 bg-white dark:bg-gray-800",
       badge: selected
         ? "bg-emerald-100 text-emerald-700"
-        : "bg-gray-100 text-gray-500",
+        : "bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400",
       bullet: "text-emerald-500",
       labelColor: "text-gray-500",
     },
     blue: {
       card: selected
         ? "border-2 border-red-400 bg-red-50/50 shadow-sm shadow-red-100"
-        : "border border-gray-200 bg-white hover:border-red-200 hover:bg-gray-50/40",
-      iconWrap: selected ? "bg-red-100" : "bg-gray-100",
+        : "border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-red-200 hover:bg-gray-50/40",
+      iconWrap: selected ? "bg-red-100" : "bg-gray-100 dark:bg-gray-700",
       iconColor: selected ? "text-red-600" : "text-gray-400",
-      title: selected ? "text-red-700" : "text-gray-700",
+      title: selected ? "text-red-700" : "text-gray-700 dark:text-gray-300",
       radio: selected
         ? "border-red-500 bg-red-500"
-        : "border-gray-300 bg-white",
+        : "border-gray-300 bg-white dark:bg-gray-800",
       badge: selected
         ? "bg-red-100 text-red-700"
-        : "bg-gray-100 text-gray-500",
+        : "bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400",
       bullet: "text-red-500",
       labelColor: "text-gray-500",
     },
@@ -140,7 +140,7 @@ function OptionCard({
         </span>
       )}
 
-      <div className="border-t border-gray-100 pt-2 mt-auto">
+      <div className="border-t border-gray-100 dark:border-gray-700 pt-2 mt-auto">
         <p
           className={`text-[9px] font-semibold uppercase tracking-widest mb-1.5 ${s.labelColor}`}
         >
@@ -403,7 +403,7 @@ function BlockingContent({ onRegister, onDelete, deleting }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2">
       {/* LEFT — Info */}
-      <div className="p-7 flex flex-col gap-5 border-b md:border-b-0 md:border-r border-gray-100">
+      <div className="p-7 flex flex-col gap-5 border-b md:border-b-0 md:border-r border-gray-100 dark:border-gray-700">
         <div className="flex flex-col gap-3">
           <div className="w-12 h-12 rounded-2xl bg-red-50 border border-red-100 flex items-center justify-center">
             <svg className="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -411,7 +411,7 @@ function BlockingContent({ onRegister, onDelete, deleting }) {
             </svg>
           </div>
           <div>
-            <h3 className="text-base font-semibold text-gray-900 leading-snug mb-1">
+            <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 leading-snug mb-1">
               Business Registration Required
             </h3>
             <p className="text-xs text-gray-500 leading-relaxed">
@@ -424,7 +424,7 @@ function BlockingContent({ onRegister, onDelete, deleting }) {
             assistance, our support team is happy to help.
           </p>
         </div>
-        <div className="border-t border-gray-100" />
+        <div className="border-t border-gray-100 dark:border-gray-700" />
         <div>
           <p className="text-[10px] font-semibold text-emerald-600 uppercase tracking-widest mb-2.5">
             Why is registration required?
@@ -443,7 +443,7 @@ function BlockingContent({ onRegister, onDelete, deleting }) {
       </div>
 
       {/* RIGHT — Actions */}
-      <div className="p-7 flex flex-col item-center justify-center gap-4 bg-gray-50/40">
+      <div className="p-7 flex flex-col item-center justify-center gap-4 bg-gray-50/40 dark:bg-gray-900/40">
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5 flex flex-col gap-4">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center flex-shrink-0">
@@ -452,7 +452,7 @@ function BlockingContent({ onRegister, onDelete, deleting }) {
               </svg>
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-800">Complete Registration</p>
+              <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">Complete Registration</p>
               <p className="text-xs text-gray-400 mt-0.5">Unlock all features on Trydood</p>
             </div>
           </div>
@@ -463,8 +463,8 @@ function BlockingContent({ onRegister, onDelete, deleting }) {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-4 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
+        <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
             <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
             </svg>
@@ -509,7 +509,7 @@ function BlockingModal({ onClose, onDelete, onSelectRegistered }) {
         style={{ pointerEvents: "none" }}
       >
         <div
-          className="bg-white rounded-2xl shadow-2xl border border-gray-100 w-full max-w-3xl relative overflow-hidden"
+          className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 w-full max-w-3xl relative overflow-hidden"
           style={{
             animation: "slideUp 0.3s cubic-bezier(0.34,1.56,0.64,1) both",
             pointerEvents: "auto",
@@ -521,7 +521,7 @@ function BlockingModal({ onClose, onDelete, onSelectRegistered }) {
           `}</style>
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 transition"
+            className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center text-gray-500 transition"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -553,7 +553,7 @@ function BlockingPage({ onDelete }) {
   };
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center px-4 py-12 relative overflow-hidden">
+    <div className="min-h-screen bg-white dark:bg-gray-800 flex items-center justify-center px-4 py-12 relative overflow-hidden">
       <div
         className="absolute top-0 right-0 w-[500px] h-[500px] pointer-events-none"
         style={{ background: "radial-gradient(ellipse at top right, rgba(239,68,68,0.06) 0%, transparent 65%)" }}
@@ -562,7 +562,7 @@ function BlockingPage({ onDelete }) {
         className="absolute bottom-0 left-0 w-[400px] h-[400px] pointer-events-none"
         style={{ background: "radial-gradient(ellipse at bottom left, rgba(16,185,129,0.07) 0%, transparent 65%)" }}
       />
-      <div className="w-full max-w-3xl bg-white rounded-2xl border border-gray-50 shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden relative z-10">
+      <div className="w-full max-w-3xl bg-white dark:bg-gray-800 rounded-2xl border border-gray-50 dark:border-gray-700 shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden relative z-10">
         <BlockingContent
           onRegister={() => goToStep(STEPS.BASIC_DETAILS, BASIC_SUB.REGISTRATION_STATUS)}
           onDelete={handleDelete}
@@ -645,7 +645,7 @@ export default function Step4IsRegistered() {
                   </svg>
                 </div>
                 <div>
-                  <h2 className="text-base md:text-lg font-semibold text-gray-900 mb-0.5">
+                  <h2 className="text-base md:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-0.5">
                     Is your business registered?
                   </h2>
                   <p className="text-xs text-gray-500">
@@ -711,7 +711,7 @@ export default function Step4IsRegistered() {
               )}
 
               {/* Footer — visible only on md+ (desktop) */}
-              <div className="hidden md:flex items-center justify-between border-t border-gray-100 pt-3 mt-1">
+              <div className="hidden md:flex items-center justify-between border-t border-gray-100 dark:border-gray-700 pt-3 mt-1">
                 <PrimaryButton
                   onClick={handleContinue}
                   disabled={!selected}
@@ -732,7 +732,7 @@ export default function Step4IsRegistered() {
         ── Mobile sticky footer button — fixed at bottom, only shown on mobile
         ── Mirrors the exact same disabled/loading state as the desktop button
       */}
-      <div className="fixed bottom-0 left-0 right-0 z-30 md:hidden bg-white border-t border-gray-100 px-4 py-3 safe-area-pb">
+      <div className="fixed bottom-0 left-0 right-0 z-30 md:hidden bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 px-4 py-3 safe-area-pb">
         <PrimaryButton
           onClick={handleContinue}
           disabled={!selected}

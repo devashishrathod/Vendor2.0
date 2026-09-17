@@ -32,13 +32,13 @@ export default function PlanInfo({ plan }) {
         : null;
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-6">
-      <h2 className="text-lg font-bold text-gray-800 mb-4 pb-4 border-b border-gray-100">
+    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6">
+      <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-4 pb-4 border-b border-gray-100 dark:border-gray-700">
         Subscribe to {plan.name}
       </h2>
 
       <div className="flex items-center gap-3 mb-1">
-        <span className="text-3xl font-extrabold text-gray-900">{formatINR(effectivePrice)}</span>
+        <span className="text-3xl font-extrabold text-gray-900 dark:text-gray-100">{formatINR(effectivePrice)}</span>
         <span className="text-gray-500 font-medium">/ {billingLabel(plan.type)}</span>
       </div>
 
@@ -60,8 +60,8 @@ export default function PlanInfo({ plan }) {
       {plan.description && <p className="text-sm text-gray-500 mb-6">{plan.description}</p>}
 
       <div className="mb-5">
-        <p className="text-sm font-bold text-gray-800 mb-1">Plan Duration</p>
-        <p className="text-sm text-gray-600">{durationLabel(plan.durationInDays)}</p>
+        <p className="text-sm font-bold text-gray-800 dark:text-gray-100 mb-1">Plan Duration</p>
+        <p className="text-sm text-gray-600 dark:text-gray-300">{durationLabel(plan.durationInDays)}</p>
       </div>
 
       {/* {(plan.benefits?.length > 0 || plan.limitations?.length > 0) && (

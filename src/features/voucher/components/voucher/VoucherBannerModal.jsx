@@ -7,7 +7,7 @@ import { Upload, X } from "lucide-react";
 import useVoucherBanner from "../../hooks/voucher/useVoucherBanner";
 
 const inputBase =
-  "w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-700 outline-none transition-colors " +
+  "w-full rounded-xl border border-gray-200 dark:border-gray-700 px-3 py-2.5 text-sm text-gray-700 dark:text-gray-100 dark:bg-gray-800 outline-none transition-colors " +
   "placeholder:text-gray-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100";
 
 export default function VoucherBannerModal({ voucher, onClose, onSaved }) {
@@ -57,18 +57,28 @@ export default function VoucherBannerModal({ voucher, onClose, onSaved }) {
     : existingBanner?.type === "IMAGE"
       ? existingBanner?.image?.url
       : null;
+  const videoPreviewUrl = bannerVideo
+    ? URL.createObjectURL(bannerVideo)
+    : existingBanner?.type === "VIDEO"
+      ? existingBanner?.video?.url
+      : null;
+  const gifPreviewUrl = bannerGif
+    ? URL.createObjectURL(bannerGif)
+    : existingBanner?.type === "GIF"
+      ? existingBanner?.gif?.url
+      : null;
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
       onClick={onClose}
     >
-      <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
-          <h3 className="text-base font-bold text-gray-900">Voucher Banner</h3>
+      <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-gray-800 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 px-6 py-4">
+          <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">Voucher Banner</h3>
           <button
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-gray-100"
+            className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
           >
             <X className="h-4 w-4 text-gray-500" />
           </button>
@@ -92,10 +102,10 @@ export default function VoucherBannerModal({ voucher, onClose, onSaved }) {
                 <img
                   src={imagePreviewUrl}
                   alt=""
-                  className="h-20 w-20 rounded-xl border border-gray-100 object-cover"
+                  className="h-20 w-20 rounded-xl border border-gray-100 dark:border-gray-700 object-cover"
                 />
               )}
-              <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-gray-200 text-gray-400 hover:border-emerald-400 hover:text-emerald-500 hover:bg-emerald-50/40">
+              <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-gray-200 dark:border-gray-700 text-gray-400 hover:border-emerald-400 hover:text-emerald-500 hover:bg-emerald-50/40 dark:hover:bg-emerald-500/10">
                 <Upload className="h-4 w-4" />
                 <span className="text-[10px]">{imagePreviewUrl ? "Change" : "Add"}</span>
                 <input
@@ -109,27 +119,55 @@ export default function VoucherBannerModal({ voucher, onClose, onSaved }) {
           )}
 
           {bannerType === "VIDEO" && (
-            <input
-              value={bannerVideo}
-              onChange={(e) => setBannerVideo(e.target.value)}
-              placeholder="Banner video URL"
-              className={inputBase}
-            />
+            <div className="flex items-center gap-3">
+              {videoPreviewUrl && (
+                <video
+                  src={videoPreviewUrl}
+                  muted
+                  playsInline
+                  preload="metadata"
+                  className="h-20 w-20 rounded-xl border border-gray-100 dark:border-gray-700 object-cover"
+                />
+              )}
+              <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-gray-200 dark:border-gray-700 text-gray-400 hover:border-emerald-400 hover:text-emerald-500 hover:bg-emerald-50/40 dark:hover:bg-emerald-500/10">
+                <Upload className="h-4 w-4" />
+                <span className="text-[10px]">{videoPreviewUrl ? "Change" : "Add"}</span>
+                <input
+                  type="file"
+                  accept="video/*"
+                  className="hidden"
+                  onChange={(e) => setBannerVideo(e.target.files?.[0] || null)}
+                />
+              </label>
+            </div>
           )}
 
           {bannerType === "GIF" && (
-            <input
-              value={bannerGif}
-              onChange={(e) => setBannerGif(e.target.value)}
-              placeholder="Banner GIF URL"
-              className={inputBase}
-            />
+            <div className="flex items-center gap-3">
+              {gifPreviewUrl && (
+                <img
+                  src={gifPreviewUrl}
+                  alt=""
+                  className="h-20 w-20 rounded-xl border border-gray-100 dark:border-gray-700 object-cover"
+                />
+              )}
+              <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-gray-200 dark:border-gray-700 text-gray-400 hover:border-emerald-400 hover:text-emerald-500 hover:bg-emerald-50/40 dark:hover:bg-emerald-500/10">
+                <Upload className="h-4 w-4" />
+                <span className="text-[10px]">{gifPreviewUrl ? "Change" : "Add"}</span>
+                <input
+                  type="file"
+                  accept="image/gif"
+                  className="hidden"
+                  onChange={(e) => setBannerGif(e.target.files?.[0] || null)}
+                />
+              </label>
+            </div>
           )}
 
           {error && <p className="mt-3 text-xs text-rose-500">{error}</p>}
         </div>
 
-        <div className="flex gap-2 border-t border-gray-100 px-6 py-4">
+        <div className="flex gap-2 border-t border-gray-100 dark:border-gray-700 px-6 py-4">
           {/* Delete button commented out per explicit instruction, not
               deleted, in case it needs to come back.
           <button
@@ -146,7 +184,7 @@ export default function VoucherBannerModal({ voucher, onClose, onSaved }) {
             type="button"
             onClick={handleSave}
             disabled={isSaving}
-            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-500 py-2.5 text-sm font-bold text-white transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-300"
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-500 py-2.5 text-sm font-bold text-white transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:text-gray-300"
           >
             {isSaving ? "Updating…" : "Update Banner"}
           </button>
