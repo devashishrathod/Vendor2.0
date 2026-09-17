@@ -10,8 +10,8 @@ export default function HeroBanner({ businessName = "Your Business" }) {
       }}
     >
       {/* Subtle dot decoration */}
-      <div className="absolute top-3 right-32 w-1.5 h-1.5 rounded-full bg-indigo-400 opacity-60" />
-      <div className="absolute bottom-4 left-40 w-1.5 h-1.5 rounded-full bg-violet-400 opacity-50" />
+      <div className="absolute top-3 right-32 w-1.5 h-1.5 rounded-full bg-emerald-400 opacity-60" />
+      <div className="absolute bottom-4 left-40 w-1.5 h-1.5 rounded-full bg-emerald-600 opacity-50" />
       <div className="absolute top-5 left-1/2 w-1 h-1 rounded-full bg-blue-300 opacity-40" />
 
       <div className="flex items-center justify-between gap-6">
@@ -43,7 +43,7 @@ export default function HeroBanner({ businessName = "Your Business" }) {
           >
             {businessName}
           </h2>
-          <p className="text-indigo-200 text-xs leading-relaxed max-w-sm mx-auto">
+          <p className="text-emerald-200 text-xs leading-relaxed max-w-sm mx-auto">
             Boost your visibility, connect with more customers,
             <br />
             and expand your business opportunities with our powerful platform.

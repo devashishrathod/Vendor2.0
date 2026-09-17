@@ -28,7 +28,7 @@ export default function VoucherRevenueChart({ revenueWeekly }) {
             Amount of revenue in this week comparing to last week
           </p>
         </div>
-        <button className="text-xs font-medium text-indigo-600 hover:underline">
+        <button className="text-xs font-medium text-emerald-600 hover:underline">
           Week Analysis
         </button>
       </div>
@@ -38,7 +38,7 @@ export default function VoucherRevenueChart({ revenueWeekly }) {
           <span className="h-2 w-2 rounded-full bg-emerald-500" /> Current Week
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-indigo-600" /> Last Week
+          <span className="h-2 w-2 rounded-full bg-emerald-600" /> Last Week
         </span>
       </div>
 

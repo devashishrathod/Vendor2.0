@@ -1,11 +1,10 @@
 // src/pages/voucher/VoucherDetails.jsx
-import React, { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import useVoucherDetails from "../../hooks/voucher/useVoucherDetails";
 import {
   VoucherTabs,
-  VoucherKeySummary,
   VoucherAnalysisStats,
   VoucherOutletUsageTable,
   VoucherRevenueChart,
@@ -14,19 +13,66 @@ import {
   VoucherDetailsInfo,
   VoucherTransactionInfo,
 } from "../../components/voucher";
-import DashboardHeader from "@/features/dashboard/components/DashboardHeader";
+import { useOnboardingStore } from "../../../onboarding/store/onboardingStore";
+import { useAuthStore } from "../../../onboarding/store/authStore";
+import useBrandData from "../../../brand/hooks/useBrandData";
+import { fetchVoucherTransactionsByVoucherId } from "../../../transaction/services/transactionService";
 
+// Confirmed real values seen so far: DRAFT, APPROVED — REJECTED/
+// UNDER_REVIEW inferred from the rejectedAt/rejectedBy and submittedAt/
+// reviewedAt fields the API also returns. Anything else falls back to the
+// plain gray badge below rather than guessing further enum values.
 const STATUS_BADGE = {
-  Active: "bg-emerald-50 text-emerald-600",
-  Expired: "bg-rose-50 text-rose-500",
-  "Under Review": "bg-amber-50 text-amber-600",
+  DRAFT: "bg-gray-100 text-gray-600",
+  UNDER_REVIEW: "bg-amber-50 text-amber-600",
+  APPROVED: "bg-emerald-50 text-emerald-600",
+  PUBLISHED: "bg-emerald-50 text-emerald-600",
+  REJECTED: "bg-rose-50 text-rose-500",
 };
+
+function formatDate(iso) {
+  if (!iso) return "—";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+}
 
 export default function VoucherDetails() {
   const { voucherId } = useParams();
   const navigate = useNavigate();
   const { voucher, isLoading, error } = useVoucherDetails(voucherId);
   const [activeTab, setActiveTab] = useState("Analysis Report");
+
+  // Same brandId-resolution pattern as useVoucher.js / VoucherDetailsInfo.jsx.
+  const onboardingBrandId = useOnboardingStore((s) => s.formData.brandId);
+  const authUserBrandId = useAuthStore((s) => s.user?.brandId);
+  const candidateBrandId = voucher?.brandId || onboardingBrandId || authUserBrandId;
+  const { data: brand } = useBrandData(candidateBrandId);
+  const resolvedBrandId = brand?._id || candidateBrandId;
+
+  // GET /voucher-claims/payments?voucherId=&brandId= — real payments for
+  // just this voucher, lazily fetched once the Transaction Information tab
+  // is actually opened.
+  const [txnData, setTxnData] = useState(null);
+  const [txnError, setTxnError] = useState(null);
+  useEffect(() => {
+    if (activeTab !== "Transaction Information" || !voucher?.voucherId || !resolvedBrandId) return;
+    let cancelled = false;
+
+    function resetTxnError() {
+      setTxnError(null);
+    }
+    resetTxnError();
+
+    fetchVoucherTransactionsByVoucherId(voucher.voucherId, { brandId: resolvedBrandId })
+      .then((result) => { if (!cancelled) setTxnData(result); })
+      .catch((err) => {
+        if (cancelled) return;
+        console.error("Failed to load voucher transactions:", err.message);
+        setTxnError(err.message || "Failed to load transactions for this voucher.");
+      });
+    return () => { cancelled = true; };
+  }, [activeTab, voucher?.voucherId, resolvedBrandId]);
 
   if (isLoading) {
     return <p className="px-4 py-10 text-center text-gray-400">Loading voucher details…</p>;
@@ -44,14 +90,14 @@ export default function VoucherDetails() {
         <div className="mb-4 flex items-start justify-between gap-3">
           <div className="flex items-start gap-3">
             <button
-              onClick={() => navigate(-1)}
+              onClick={() => navigate("/vouchers")}
               className="mt-1 rounded-md p-1 text-gray-500 hover:bg-gray-100"
             >
               <ArrowLeft className="h-5 w-5" />
             </button>
             <div>
-              <h1 className="text-lg font-semibold text-gray-900">{voucher.title}</h1>
-              <p className="text-xs text-gray-400">Created Date: {voucher.createdDate}</p>
+              <h1 className="text-lg font-semibold text-gray-900 capitalize">{voucher.name}</h1>
+              <p className="text-xs text-gray-400">Created Date: {formatDate(voucher.createdAt)}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -62,7 +108,7 @@ export default function VoucherDetails() {
               {voucher.status}
             </span>
             <button
-              onClick={() => navigate(`/vouchers/${voucher.id}/edit`)}
+              onClick={() => navigate(`/vouchers/${voucher.voucherId}/edit`)}
               className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
             >
               Edit Voucher
@@ -71,7 +117,7 @@ export default function VoucherDetails() {
         </div>
 
         <div className="mb-4 flex items-center  gap-3">
-          <p className="text-xs text-black">Voucher Id #{voucher.id}</p>
+          <p className="text-xs text-black">{voucher.versionCode}</p>
 
           <VoucherTabs activeTab={activeTab} onChange={setActiveTab} />
         </div>
@@ -79,7 +125,7 @@ export default function VoucherDetails() {
         <div className="mt-5 space-y-6">
           {activeTab === "Analysis Report" && (
             <>
-              <VoucherKeySummary keySummary={voucher.keySummary} />
+              {/* <VoucherKeySummary keySummary={voucher.keySummary} /> */}
               <VoucherAnalysisStats analysis={voucher.analysis} />
               <VoucherOutletUsageTable title={voucher.title} outletUsage={voucher.outletUsage} />
               <VoucherRevenueChart revenueWeekly={voucher.revenueWeekly} />
@@ -91,7 +137,18 @@ export default function VoucherDetails() {
           {activeTab === "Voucher Details" && <VoucherDetailsInfo voucher={voucher} />}
 
           {activeTab === "Transaction Information" && (
-            <VoucherTransactionInfo transactions={voucher.transactions} />
+            <>
+              {txnError && (
+                <p className="rounded-xl border border-red-100 bg-red-50 px-4 py-2.5 text-sm text-red-500">
+                  {txnError}
+                </p>
+              )}
+              <VoucherTransactionInfo
+                voucherTitle={voucher.name}
+                summary={txnData?.summary}
+                transactions={txnData?.rows || []}
+              />
+            </>
           )}
         </div>
       </div>

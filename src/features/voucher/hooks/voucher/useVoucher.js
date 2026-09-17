@@ -1,7 +1,7 @@
 // src/hooks/voucher/useVoucher.js
 // List view: stats, pagination, search. Talks to the real VoucherService.js
 // (getVouchers / getVoucherStats) — no more mock fetchVouchers/fetchVoucherStats.
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuthStore } from "../../../onboarding/store/authStore";
 import { useOnboardingStore } from "../../../onboarding/store/onboardingStore";
 import useBrandData from "../../../brand/hooks/useBrandData";
@@ -42,10 +42,24 @@ export default function useVoucher(brandId) {
   const [actionLoadingId, setActionLoadingId] = useState(null);
   const [actionError, setActionError] = useState(null);
 
+  // Debounced so typing in the search box doesn't fire a request on every
+  // keystroke — only once the vendor pauses for 400ms.
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  useEffect(() => {
+    const timeout = setTimeout(() => setDebouncedSearch(search), 400);
+    return () => clearTimeout(timeout);
+  }, [search]);
+
+  // Guards against out-of-order responses — without this, typing quickly
+  // (or flipping the status/date filters in quick succession) could let an
+  // earlier, slower request's response land AFTER a newer one's and
+  // silently overwrite it with stale results, making the filters look
+  // broken/flaky even though each individual request was correct.
+  const requestIdRef = useRef(0);
+
   const loadStats = useCallback(async () => {
     try {
       const data = await getVoucherStats({ brandId: resolvedBrandId });
-      console.log(data)
       // NOTE: getVoucherStats' real response shape isn't confirmed from
       // Postman (see VoucherService.js). Adjust this mapping once you know
       // the actual keys — falling back to `data` as-is for now.
@@ -56,19 +70,23 @@ export default function useVoucher(brandId) {
   }, [resolvedBrandId]);
 
   const loadVouchers = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
     setIsLoading(true);
     try {
       const res = await getVouchers({
         brandId: resolvedBrandId,
         page,
         limit: rowsPerPage,
-        search,
+        search: debouncedSearch,
         status: statusFilter || undefined,
         fromDate: dateRange.from || undefined,
         toDate: dateRange.to || undefined,
       });
 
-      console.log(res)
+      // A newer request has already fired (another filter/page change
+      // happened while this one was in flight) — its response will land
+      // separately, so applying this stale one would overwrite it.
+      if (requestIdRef.current !== requestId) return;
 
       // Confirmed envelope: { success, message, data: { total, totalPages,
       // page, limit, data: [...] } } — each item is a voucher *version*.
@@ -81,11 +99,11 @@ export default function useVoucher(brandId) {
       setTotal(totalCount);
       setTotalPages(pages);
     } catch (err) {
-      setError(err.message);
+      if (requestIdRef.current === requestId) setError(err.message);
     } finally {
-      setIsLoading(false);
+      if (requestIdRef.current === requestId) setIsLoading(false);
     }
-  }, [resolvedBrandId, page, rowsPerPage, search, statusFilter, dateRange.from, dateRange.to]);
+  }, [resolvedBrandId, page, rowsPerPage, debouncedSearch, statusFilter, dateRange.from, dateRange.to]);
 
   useEffect(() => {
     loadStats();

@@ -66,7 +66,7 @@ export default function Step14PartnerContract({ onComplete, locked }) {
                   Partner Deed Agreement
                 </h2>
                 {/* ✅ CHANGED: locked ho to subtitle change */}
-                <p className="text-xs text-gray-400 mt-0.5">
+                <p className="text-xs text-gray-500 mt-0.5">
                   {locked ? "Agreement already submitted" : "Review and accept to complete onboarding"}
                 </p>
               </div>
@@ -94,7 +94,7 @@ export default function Step14PartnerContract({ onComplete, locked }) {
               </a>
             </div>
 
-            <div className="flex items-center gap-2 text-xs text-gray-400">
+            <div className="flex items-center gap-2 text-xs text-gray-500">
               <svg className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                   d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -207,13 +207,13 @@ export default function Step14PartnerContract({ onComplete, locked }) {
                   </div>
                   <div>
                     <p className="text-xs font-semibold text-gray-700 mb-0.5">{term.title}</p>
-                    <p className="text-xs text-gray-400 leading-relaxed">{term.body}</p>
+                    <p className="text-xs text-gray-500 leading-relaxed">{term.body}</p>
                   </div>
                 </div>
               ))}
             </div>
             <div className="mt-auto pt-4 border-t border-gray-100">
-              <p className="text-xs text-gray-400 leading-relaxed">
+              <p className="text-xs text-gray-500 leading-relaxed">
                 For the full legal document, open the partner agreement link. Contact{" "}
                 <a href="mailto:support@trydood.com" className="text-emerald-500 font-semibold hover:underline">
                   support@trydood.com

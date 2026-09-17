@@ -44,9 +44,11 @@ export async function request(
   }
 
   if (!res.ok) {
-    throw new Error(
+    const err = new Error(
       data?.message || data?.error || `Error ${res.status}: ${res.statusText}`,
     );
+    err.status = res.status;
+    throw err;
   }
 
   return data;

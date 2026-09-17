@@ -108,7 +108,7 @@ export default function Step1WhatsApp() {
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">
               Welcome <span className="text-emerald-500">Back!</span>
             </h2>
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-gray-500">
               Enter your WhatsApp number to continue
             </p>
           </div>
@@ -180,7 +180,7 @@ export default function Step1WhatsApp() {
               </button>
             </div>
 
-            <p className="text-xs text-gray-400 text-center flex items-center justify-center gap-1 mt-1">
+            <p className="text-xs text-gray-500 text-center flex items-center justify-center gap-1 mt-1">
               <svg
                 className="w-3.5 h-3.5 text-emerald-400"
                 fill="none"
@@ -217,7 +217,7 @@ export default function Step1WhatsApp() {
               </svg>
             </div>
             <div className="text-center">
-              <p className="text-xs text-gray-400 mb-0.5">
+              <p className="text-xs text-gray-500 mb-0.5">
                 In case of any queries, reach out to
               </p>
               <a

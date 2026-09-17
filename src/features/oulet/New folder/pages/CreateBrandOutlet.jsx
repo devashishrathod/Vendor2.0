@@ -19,6 +19,7 @@ import {
   mapLocationToSelectedPlace,
   buildLocationPayloadFromPlace,
   hasValidCoordinates,
+  hasValidZipcode,
   ADDRESS_TYPES,
 } from "../services/locationApi";
 import { DEFAULT_WORKING_HOURS, OUTLET_TYPE_OPTIONS } from "../constants/brandOutletConstants";
@@ -47,6 +48,14 @@ export default function CreateBrandOutlet() {
 
   // ── Brand form state ──
   const [brandName, setBrandName] = useState("");
+  const [brandEmail, setBrandEmail] = useState("");
+  // ⚠️ NOT independently confirmed from a Postman sample for
+  // brands/update (only brandName/email/description/subCategoryId/
+  // isOnboarding/showcaseSectionIds are documented there) — sent as a
+  // `mobile` key per explicit instruction; verify the saved value once
+  // tested and correct the key name here if it's wrong.
+  const [brandMobile, setBrandMobile] = useState("");
+  const [mobileSameAsWhatsapp, setMobileSameAsWhatsapp] = useState(false);
   const [brandDescription, setBrandDescription] = useState("");
   const [brandType, setBrandType] = useState("");
   const [brandSubType, setBrandSubType] = useState("");
@@ -123,6 +132,16 @@ export default function CreateBrandOutlet() {
     hydrateUnverifiedShell,
   } = useWhatsappOtp({ brandId: brand?._id, brandWhatsappNumber, isFirstOutlet: true });
 
+  // While "Same as Brand WhatsApp Number" is checked, the field displays
+  // (and saves) brandWhatsappNumber directly instead of a separately-stored
+  // copy, so it stays live if that number changes — with no extra
+  // state-sync effect needed. brandWhatsappNumber (not outletWhatsapp) is
+  // used here because it's already available from the fetched brand
+  // profile as soon as this Brand Details section renders, whereas
+  // outletWhatsapp is only filled in later, in the Outlet Details section
+  // further down this same page.
+  const effectiveMobile = mobileSameAsWhatsapp ? brandWhatsappNumber : brandMobile;
+
   // ── Verify button: Case-aware — if a subBrand shell already exists
   // (subBrandId is already known, from either hydrateVerified or
   // hydrateUnverifiedShell on mount), just RESEND via
@@ -133,9 +152,9 @@ export default function CreateBrandOutlet() {
     if (subBrandId) {
       resetOtp();
     } else {
-      sendOtp();
+      sendOtp(outletType === "franchise" ? OUTLET_TYPES.FRANCHISE : OUTLET_TYPES.OUTLET);
     }
-  }, [subBrandId, resetOtp, sendOtp]);
+  }, [subBrandId, resetOtp, sendOtp, outletType]);
 
   const openGuideline = useCallback((type) => setGuidelineType(type), []);
   const closeGuideline = useCallback(() => setGuidelineType(null), []);
@@ -249,6 +268,23 @@ export default function CreateBrandOutlet() {
       showError(msg);
       return;
     }
+    // ⚠️ FIXED: this check existed in locationApi.js (hasValidZipcode) but
+    // was never actually called before hitting the backend — so a search
+    // result Google returns with no postal_code (and no 6-digit PIN in its
+    // formatted address either) sailed straight through to createLocation(),
+    // which then 422'd with the backend's raw "Zip Code/Postal Code is
+    // required" message. That's not a made-up frontend string — it's the
+    // backend's own validation error — but showing it verbatim, sitting
+    // inside the GST checkbox box, gave the vendor no idea it was actually
+    // about the search RESULT they picked below. Catch it here instead, with
+    // a message that points at the actual fix (pick a more specific result).
+    if (!hasValidZipcode(payload)) {
+      setSavedLocationId(null);
+      const msg = "This search result doesn't include a PIN/zipcode — try picking a more specific result (e.g. with a full street address) from the list below.";
+      setLocationSaveError(msg);
+      showError(msg);
+      return;
+    }
     persistLocationPayload(payload);
   }, [subBrandId, persistLocationPayload, showError]);
 
@@ -344,106 +380,127 @@ export default function CreateBrandOutlet() {
   // getBrandById's response already carries brand-level fields (name,
   // description, category/subCategory, logo) AND — nested under
   // `firstSubBrand` — the outlet's outletType, WhatsApp verification
-  // state, saved location, and saved working hours. So one call on mount
-  // is enough to hydrate the whole page for a vendor who already filled
-  // some/all of this in a previous session; a brand-new vendor just gets
-  // blank inputs since the relevant fields won't be present.
+  // state, saved location, and saved working hours. Extracted into its
+  // own function (not just a mount-effect IIFE) so it can ALSO be
+  // re-run right after a live OTP confirm below — see the "post-verify
+  // catch-up" effect — instead of only ever running once on mount.
+  const hydrateOutletFromBrand = useCallback(async () => {
+    if (!brand?._id) return;
+    try {
+      const res = await getBrandById(brand._id);
+      const data = res?.data ?? res;
+      if (!data) return;
+
+      // ── Brand-level fields ──
+      if (data.brandName) setBrandName(data.brandName);
+      if (data.email) setBrandEmail(data.email);
+      if (data.description) setBrandDescription(data.description);
+      if (data.categoryId) setBrandType(data.categoryId);
+      if (data.subCategoryId) setBrandSubType(data.subCategoryId);
+      if (data.logo) setExistingLogoUrl(data.logo);
+
+      const fsb = data.firstSubBrand;
+
+      // ── Case 3: no firstSubBrand at all → brand-new outlet. Nothing
+      // to hydrate here; the first "Verify" click will call sendOtp,
+      // which creates the subBrand shell (subBrands/signUp-with-whatsapp)
+      // AND sends the first OTP. Location/working-hours/outlet-type stay
+      // blocked until that shell exists (outletSectionsBlocked = !subBrandId).
+      if (!fsb) return;
+
+      // ── Outlet type ──
+      // ⚠️ CONFIRM: OUTLET_TYPE_OPTIONS values assumed to be the
+      // lowercase "outlet"/"franchise" strings, matching the existing
+      // handleSave mapping (outletType === "franchise" ? FRANCHISE : OUTLET).
+      if (fsb.outletType) {
+        setOutletType(fsb.outletType === OUTLET_TYPES.FRANCHISE ? "franchise" : "outlet");
+      }
+
+      // ── WhatsApp number + verification ──
+      // fsb.user.isMobileVerified is the real "is this outlet's
+      // WhatsApp number verified" flag returned by brands/get.
+      const isNumberVerified = !!fsb.user?.isMobileVerified;
+
+      if (isNumberVerified && fsb._id) {
+        // ── Case 1: shell exists AND already verified ──
+        // Skip OTP entirely. Verify button disappears, "Already
+        // verified for this outlet" shows instead.
+        hydrateVerified({
+          subBrandId: fsb._id,
+          whatsappNumber: fsb.whatsappNumber,
+        });
+      } else if (fsb._id) {
+        // ── Case 2: shell exists but NOT verified yet ──
+        // Prefill subBrandId + number, but leave whatsappVerified false.
+        // The Verify button (handleVerifyClick above) will see
+        // subBrandId already set and call resetOtp (just resends via
+        // auth/loginOrSignUp-with-whatsapp) instead of sendOtp — so we
+        // never try to recreate a shell that's already there.
+        hydrateUnverifiedShell({
+          subBrandId: fsb._id,
+          whatsappNumber: fsb.whatsappNumber,
+        });
+      }
+
+      // ── Location ──
+      // The subBrand doc carries its saved location regardless of
+      // whatsapp-verification status, so prefill it whenever present
+      // (covers both Case 1 and Case 2). If absent, the section stays
+      // blank and the vendor has to add one.
+      if (fsb.location) {
+        const place = mapLocationToSelectedPlace(fsb.location);
+        setSelectedPlace(place);
+        setSavedLocationId(fsb.location._id || fsb.location.id || null);
+      }
+
+      // ── Working hours ──
+      // Same idea — prefill whenever the subBrand doc already has them
+      // saved, regardless of verification status; otherwise stays at
+      // DEFAULT_WORKING_HOURS and needs a fresh save.
+      if (fsb.workHours) {
+        const wh = { ...DEFAULT_WORKING_HOURS };
+        WEEK_DAYS.forEach((d) => {
+          if (fsb.workHours[d]) {
+            wh[d] = {
+              start: fsb.workHours[d].start,
+              end: fsb.workHours[d].end,
+              isOpen: fsb.workHours[d].isOpen,
+            };
+          }
+        });
+        setWorkingHours(wh);
+        setWorkingHoursSaved(true); // already saved on the backend
+      }
+    } catch (err) {
+      console.error("Couldn't load existing brand/outlet details:", err.message);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [brand?._id]);
+
   useEffect(() => {
     if (!brand?._id || hydratedBrandDetailsRef.current) return;
     hydratedBrandDetailsRef.current = true;
-    (async () => {
-      try {
-        const res = await getBrandById(brand._id);
-        const data = res?.data ?? res;
-        if (!data) return;
-
-        // ── Brand-level fields ──
-        if (data.brandName) setBrandName(data.brandName);
-        if (data.description) setBrandDescription(data.description);
-        if (data.categoryId) setBrandType(data.categoryId);
-        if (data.subCategoryId) setBrandSubType(data.subCategoryId);
-        if (data.logo) setExistingLogoUrl(data.logo);
-
-        const fsb = data.firstSubBrand;
-
-        // ── Case 3: no firstSubBrand at all → brand-new outlet. Nothing
-        // to hydrate here; the first "Verify" click will call sendOtp,
-        // which creates the subBrand shell (subBrands/signUp-with-whatsapp)
-        // AND sends the first OTP. Location/working-hours/outlet-type stay
-        // blocked until that shell exists (outletSectionsBlocked = !subBrandId).
-        if (!fsb) return;
-
-        // ── Outlet type ──
-        // ⚠️ CONFIRM: OUTLET_TYPE_OPTIONS values assumed to be the
-        // lowercase "outlet"/"franchise" strings, matching the existing
-        // handleSave mapping (outletType === "franchise" ? FRANCHISE : OUTLET).
-        if (fsb.outletType) {
-          setOutletType(fsb.outletType === OUTLET_TYPES.FRANCHISE ? "franchise" : "outlet");
-        }
-
-        // ── WhatsApp number + verification ──
-        // fsb.user.isMobileVerified is the real "is this outlet's
-        // WhatsApp number verified" flag returned by brands/get.
-        const isNumberVerified = !!fsb.user?.isMobileVerified;
-
-        if (isNumberVerified && fsb._id) {
-          // ── Case 1: shell exists AND already verified ──
-          // Skip OTP entirely. Verify button disappears, "Already
-          // verified for this outlet" shows instead.
-          hydrateVerified({
-            subBrandId: fsb._id,
-            whatsappNumber: fsb.whatsappNumber,
-          });
-        } else if (fsb._id) {
-          // ── Case 2: shell exists but NOT verified yet ──
-          // Prefill subBrandId + number, but leave whatsappVerified false.
-          // The Verify button (handleVerifyClick above) will see
-          // subBrandId already set and call resetOtp (just resends via
-          // auth/loginOrSignUp-with-whatsapp) instead of sendOtp — so we
-          // never try to recreate a shell that's already there.
-          hydrateUnverifiedShell({
-            subBrandId: fsb._id,
-            whatsappNumber: fsb.whatsappNumber,
-          });
-        }
-
-        // ── Location ──
-        // The subBrand doc carries its saved location regardless of
-        // whatsapp-verification status, so prefill it whenever present
-        // (covers both Case 1 and Case 2). If absent, the section stays
-        // blank and the vendor has to add one.
-        if (fsb.location) {
-          const place = mapLocationToSelectedPlace(fsb.location);
-          setSelectedPlace(place);
-          setSavedLocationId(fsb.location._id || fsb.location.id || null);
-        }
-
-        // ── Working hours ──
-        // Same idea — prefill whenever the subBrand doc already has them
-        // saved, regardless of verification status; otherwise stays at
-        // DEFAULT_WORKING_HOURS and needs a fresh save.
-        if (fsb.workHours) {
-          const wh = { ...DEFAULT_WORKING_HOURS };
-          WEEK_DAYS.forEach((d) => {
-            if (fsb.workHours[d]) {
-              wh[d] = {
-                start: fsb.workHours[d].start,
-                end: fsb.workHours[d].end,
-                isOpen: fsb.workHours[d].isOpen,
-              };
-            }
-          });
-          setWorkingHours(wh);
-          setWorkingHoursSaved(true); // already saved on the backend
-        }
-      } catch (err) {
-        console.error("Couldn't load existing brand/outlet details:", err.message);
-      } finally {
-        setLocationLoading(false);
-      }
-    })();
+    hydrateOutletFromBrand().finally(() => setLocationLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [brand?._id]);
+
+  // ── Post-verify catch-up: right after a LIVE OTP confirm (not the
+  // mount-time hydration above — that only ever runs once), subBrandId
+  // should already be set from sendOtp()'s own response. If it somehow
+  // isn't by the time whatsappVerified flips true, Location/Working
+  // Hours/Outlet Type stayed wrongly blocked until the vendor manually
+  // refreshed the page — this re-fetches once instead, so they unlock
+  // immediately without a reload.
+  const postVerifyHydrateRef = useRef(false);
+  useEffect(() => {
+    if (!whatsappVerified) {
+      postVerifyHydrateRef.current = false;
+      return;
+    }
+    if (subBrandId || postVerifyHydrateRef.current) return;
+    postVerifyHydrateRef.current = true;
+    hydrateOutletFromBrand();
+  }, [whatsappVerified, subBrandId, hydrateOutletFromBrand]);
 
   useEffect(() => {
     if (!loading && !brand?._id) setLocationLoading(false);
@@ -478,10 +535,19 @@ export default function CreateBrandOutlet() {
 
     const brandPayload = {
       brandName,
+      email: brandEmail,
+      // ⚠️ NOT independently confirmed from a Postman sample for
+      // brands/update (only brandName/email/description/subCategoryId/
+      // isOnboarding/showcaseSectionIds are documented there) — sent as a
+      // `mobile` key per explicit instruction; verify the saved value once
+      // tested and correct the key name here if it's wrong.
+      mobile: effectiveMobile || undefined,
       description: brandDescription,
       subCategoryId: brandSubType,
       isOnboarding: true,
-      isActive: true,
+      // isActive removed — PUT /brands/update no longer accepts it (backend:
+      // "isActive is not settable here. Use PUT /brands/admin/:brandId/status"),
+      // since that's the vendor's account-active flag, admin-only now.
       showcaseSectionIds: showcaseAlbums.filter((a) => a.persisted).map((a) => a.id),
     };
 
@@ -503,7 +569,7 @@ export default function CreateBrandOutlet() {
   const canFinalSave = whatsappVerified && !!subBrandId && !!savedLocationId && workingHoursSaved;
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans">
+    <div className="min-h-screen bg-[#F8FAF7] font-sans">
       {/* Toasts */}
       <ErrorToast error={toastError} onDismiss={() => setToastError(null)} />
       <SuccessToast message={toastSuccess} onDismiss={() => setToastSuccess("")} />
@@ -566,20 +632,29 @@ export default function CreateBrandOutlet() {
 
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Create Your Brand Outlet</h1>
-            <p className="text-sm text-gray-500 mt-1">You are just a few steps away from listing your event on Trydood!</p>
+          <div className="flex items-center gap-3">
+            <div className="w-1 h-9 rounded-full bg-emerald-500 flex-shrink-0" />
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 leading-tight">Create Your Brand Outlet</h1>
+              <p className="text-sm text-gray-500 mt-1">You are just a few steps away from listing your event on Trydood!</p>
+            </div>
           </div>
-          <div className="border-2 border-dashed border-blue-300 rounded-xl px-6 py-3 bg-blue-50 text-sm font-semibold text-gray-700 whitespace-nowrap">
+          <div className="border border-emerald-100 rounded-xl px-6 py-3 bg-emerald-50 text-sm font-semibold text-gray-700 whitespace-nowrap">
             Merchant Token : <span className="text-gray-900">{merchantToken}</span>
           </div>
         </div>
 
-        <hr className="border-gray-200 mb-8" />
-
         {/* ══════════════════════ BRAND FORM ══════════════════════ */}
-        <div className="brand-form-section">
-          <FormDivider title="Brand Details" subtitle="Tell customers who you are — this stays the same across every outlet under this brand." />
+        <div className="brand-form-section bg-emerald-50/40 border border-emerald-100 rounded-3xl p-4 sm:p-6 mb-8">
+          <FormDivider
+            title="Brand Details"
+            subtitle="Tell customers who you are — this stays the same across every outlet under this brand."
+            icon={
+              <svg className="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+            }
+          />
 
           <SectionCard>
             <SectionHeader title="Brand Logo" subtitle="Upload Your Brand Identity Logo" guidelineKey="logo" onGuidelineClick={openGuideline} />
@@ -604,9 +679,43 @@ export default function CreateBrandOutlet() {
           </SectionCard>
 
           <SectionCard>
+            <SectionHeader title="Brand Email" subtitle="Used for order and account notifications." />
+            <input
+              type="email"
+              value={brandEmail}
+              onChange={(e) => setBrandEmail(e.target.value)}
+              placeholder="eg : hello@yourbrand.com"
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-emerald-400 bg-white text-gray-700"
+            />
+          </SectionCard>
+
+          <SectionCard>
+            <SectionHeader title="Mobile Number" subtitle="A direct contact number for this brand." />
+            <input
+              type="tel"
+              value={effectiveMobile}
+              disabled={mobileSameAsWhatsapp}
+              onChange={(e) => setBrandMobile(e.target.value)}
+              placeholder="eg : 9876543210"
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-emerald-400 bg-white text-gray-700 disabled:bg-gray-50 disabled:text-gray-400"
+            />
+            <label className="flex items-center gap-2 mt-2 text-xs font-semibold text-gray-600 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={mobileSameAsWhatsapp}
+                disabled={!brandWhatsappNumber}
+                onChange={(e) => setMobileSameAsWhatsapp(e.target.checked)}
+                className="w-4 h-4 accent-emerald-600 cursor-pointer disabled:opacity-40"
+              />
+              Same as Brand WhatsApp Number
+              {brandWhatsappNumber ? ` (${brandWhatsappNumber})` : " (not available on your brand profile)"}
+            </label>
+          </SectionCard>
+
+          <SectionCard>
             <div className="flex items-center justify-between mb-2">
               <label className="block text-sm font-semibold text-gray-700">Brand Description</label>
-              <button onClick={() => openGuideline("brandDescription")} className="text-sm text-blue-500 hover:underline whitespace-nowrap flex items-center gap-1">
+              <button onClick={() => openGuideline("brandDescription")} className="text-sm text-emerald-600 hover:underline whitespace-nowrap flex items-center gap-1">
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
@@ -619,7 +728,7 @@ export default function CreateBrandOutlet() {
               placeholder="eg : A cosy neighbourhood cafe known for its wood-fired pizzas and weekend live music."
               rows={4}
               maxLength={300}
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-indigo-400 transition-colors bg-white text-gray-800 resize-none"
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-400 transition-colors bg-white text-gray-800 resize-none"
             />
             <p className="text-xs text-gray-400 mt-1 text-right">{brandDescription.length}/300</p>
           </SectionCard>
@@ -634,7 +743,7 @@ export default function CreateBrandOutlet() {
                     value={brandType}
                     onChange={handleCategoryChange}
                     disabled={categoriesLoading}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-indigo-400 appearance-none bg-white text-gray-700 disabled:opacity-50"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-400 appearance-none bg-white text-gray-700 disabled:opacity-50"
                   >
                     <option value="">{categoriesLoading ? "Loading categories…" : "eg : Food & Drinks"}</option>
                     {categories.map((c) => (<option key={c._id} value={c._id}>{c.name}</option>))}
@@ -655,7 +764,7 @@ export default function CreateBrandOutlet() {
                     value={brandSubType}
                     onChange={(e) => setBrandSubType(e.target.value)}
                     disabled={!brandType || subCategoriesLoading}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-indigo-400 appearance-none bg-white text-gray-700 disabled:opacity-50"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-400 appearance-none bg-white text-gray-700 disabled:opacity-50"
                   >
                     <option value="">{subCategoriesLoading ? "Loading…" : "eg : buffet restaurants"}</option>
                     {subCategories.map((s) => (<option key={s._id} value={s._id}>{s.name}</option>))}
@@ -694,9 +803,17 @@ export default function CreateBrandOutlet() {
         </div>
 
         {/* ══════════════════════ OUTLET FORM ══════════════════════ */}
-        {/* Order: WhatsApp Number → Location → Working Hours → Outlet Type */}
-        <div className="outlet-form-section">
-          <FormDivider title="Outlet Details" subtitle="Details specific to this particular outlet's location and presentation." />
+        {/* Order: WhatsApp Number (+ Outlet Type) → Location → Working Hours */}
+        <div className="outlet-form-section bg-white border border-gray-200 rounded-3xl p-4 sm:p-6 mb-8">
+          <FormDivider
+            title="Outlet Details"
+            subtitle="Details specific to this particular outlet's location and presentation."
+            icon={
+              <svg className="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 21h18M5 21V10l7-6 7 6v11M9 21v-6h6v6" />
+              </svg>
+            }
+          />
 
           {/* ── 1. Outlet WhatsApp Number ── */}
           <SectionCard>
@@ -708,11 +825,29 @@ export default function CreateBrandOutlet() {
                 checked={useBrandNumber}
                 onChange={(e) => handleUseBrandNumberToggle(e.target.checked)}
                 disabled={!brandWhatsappNumber}
-                className="w-4 h-4 accent-indigo-600 cursor-pointer disabled:opacity-40"
+                className="w-4 h-4 accent-emerald-600 cursor-pointer disabled:opacity-40"
               />
               Same as Brand Business WhatsApp Number
               {brandWhatsappNumber ? ` (${brandWhatsappNumber})` : " (not available on your brand profile)"}
             </label>
+            {!whatsappVerified && !subBrandId && (
+              <div className="max-w-sm mb-3">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Outlet Type *</label>
+                <div className="relative">
+                  <select
+                    value={outletType}
+                    onChange={(e) => setOutletType(e.target.value)}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-400 appearance-none bg-white text-gray-700"
+                  >
+                    <option value="">eg : Outlet</option>
+                    {OUTLET_TYPE_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
+                  </select>
+                  <svg className="absolute right-3 top-3.5 w-4 h-4 text-gray-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
+            )}
             <div className="flex gap-2 max-w-sm">
               <input
                 type="tel"
@@ -720,14 +855,14 @@ export default function CreateBrandOutlet() {
                 onChange={(e) => handleOutletWhatsappChange(e.target.value)}
                 disabled={useBrandNumber || whatsappVerified}
                 placeholder="eg : 9876543210"
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-400 bg-white text-gray-700 disabled:bg-gray-100 disabled:text-gray-500"
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-emerald-400 bg-white text-gray-700 disabled:bg-gray-100 disabled:text-gray-500"
               />
               {!whatsappVerified && (
                 <button
                   onClick={handleVerifyClick}
-                  disabled={!isValidPhone(outletWhatsapp) || otpSending}
-                  className={`shrink-0 px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2 ${isValidPhone(outletWhatsapp) && !otpSending
-                      ? "bg-indigo-600 text-white hover:bg-indigo-700"
+                  disabled={!isValidPhone(outletWhatsapp) || otpSending || (!subBrandId && !outletType)}
+                  className={`shrink-0 px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2 ${isValidPhone(outletWhatsapp) && !otpSending && (subBrandId || outletType)
+                      ? "bg-emerald-500 text-white hover:bg-emerald-600"
                       : "bg-gray-100 text-gray-400 cursor-not-allowed"
                     }`}
                 >
@@ -799,7 +934,7 @@ export default function CreateBrandOutlet() {
                       checked={gstSameAsOutlet}
                       onChange={(e) => handleGstSameToggle(e.target.checked)}
                       disabled={outletSectionsBlocked}
-                      className="mt-0.5 w-4 h-4 accent-indigo-600 cursor-pointer"
+                      className="mt-0.5 w-4 h-4 accent-emerald-600 cursor-pointer"
                     />
                     <div>
                       <label htmlFor="gstSame" className="text-sm font-bold text-gray-800 cursor-pointer">
@@ -815,20 +950,23 @@ export default function CreateBrandOutlet() {
                     </p>
                   )} */}
 
-                  {(locationSaving || locationSaveError || (savedLocationId && gstSameAsOutlet)) && (
-                    <p className={`text-xs mt-3 ${locationSaveError ? "text-red-500" : "text-emerald-600"}`}>
-                      {locationSaving ? "Saving this address…" : locationSaveError ? locationSaveError : "✓ GST address saved as your outlet location."}
+                  {/* Saving/success status only here — any error is about the
+                      search RESULT picked below, so it's shown there instead,
+                      right next to the control the vendor needs to fix it. */}
+                  {!locationSaveError && (locationSaving || (savedLocationId && gstSameAsOutlet)) && (
+                    <p className="text-xs mt-3 text-emerald-600">
+                      {locationSaving ? "Saving this address…" : "✓ GST address saved as your outlet location."}
                     </p>
                   )}
                 </div>
 
                 <div className="flex flex-wrap items-center gap-6 mb-4 px-1">
                   <label className="flex items-center gap-2 text-sm font-bold text-gray-800 cursor-pointer">
-                    <input type="checkbox" checked={locationMode === "search"} onChange={() => switchLocationMode("search")} disabled={outletSectionsBlocked} className="w-4 h-4 accent-indigo-600 cursor-pointer" />
+                    <input type="checkbox" checked={locationMode === "search"} onChange={() => switchLocationMode("search")} disabled={outletSectionsBlocked} className="w-4 h-4 accent-emerald-600 cursor-pointer" />
                     Search My Outlet Location
                   </label>
                   <label className="flex items-center gap-2 text-sm font-bold text-gray-800 cursor-pointer">
-                    <input type="checkbox" checked={locationMode === "live"} onChange={() => switchLocationMode("live")} disabled={outletSectionsBlocked} className="w-4 h-4 accent-indigo-600 cursor-pointer" />
+                    <input type="checkbox" checked={locationMode === "live"} onChange={() => switchLocationMode("live")} disabled={outletSectionsBlocked} className="w-4 h-4 accent-emerald-600 cursor-pointer" />
                     Use My Live Location
                   </label>
                 </div>
@@ -839,9 +977,16 @@ export default function CreateBrandOutlet() {
                   <LiveLocationPicker selectedPlace={selectedPlace} onSelectPlace={handleSelectPlace} onShowMap={() => setShowMap(true)} />
                 )}
 
-                {!gstSameAsOutlet && (locationSaving || locationSaveError || savedLocationId) && (
-                  <p className={`text-xs mt-3 px-1 ${locationSaveError ? "text-red-500" : "text-emerald-600"}`}>
-                    {locationSaving ? "Saving this location…" : locationSaveError ? locationSaveError : "✓ Location saved."}
+                {(locationSaving || locationSaveError || (savedLocationId && !gstSameAsOutlet)) && (
+                  <p className={`text-xs mt-3 px-1 flex items-start gap-1.5 ${locationSaveError ? "text-red-500" : "text-emerald-600"}`}>
+                    {locationSaveError && (
+                      <svg className="w-3.5 h-3.5 flex-shrink-0 mt-px" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                    <span>
+                      {locationSaving ? "Saving this location…" : locationSaveError ? locationSaveError : "✓ Location saved."}
+                    </span>
                   </p>
                 )}
               </div>
@@ -881,46 +1026,13 @@ export default function CreateBrandOutlet() {
             </div>
           </SectionCard>
 
-          {/* ── 4. Outlet Type ── */}
-          <SectionCard>
-            <SectionHeader title="Outlet Type" subtitle="Is this a standalone outlet, or part of a franchise network?" />
-
-            {/* Blocked until the outlet's WhatsApp number is verified —
-                outletType is only ever posted as part of finalizeOutlet's
-                subBrandPatch, which needs subBrandId. */}
-            {/* {outletSectionsBlocked && (
-              <p className="text-xs text-amber-600 mb-3">
-                Verify your outlet's WhatsApp number above before choosing an outlet type.
-              </p>
-            )} */}
-
-            <div onClick={() => notifyBlocked("Verify your outlet's WhatsApp number above before choosing an outlet type.")}>
-              <div className={`max-w-xs ${outletSectionsBlocked ? "opacity-50 pointer-events-none" : ""}`}>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Outlet Type *</label>
-                <div className="relative">
-                  <select
-                    value={outletType}
-                    onChange={(e) => setOutletType(e.target.value)}
-                    disabled={outletSectionsBlocked}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-indigo-400 appearance-none bg-white text-gray-700 disabled:opacity-50"
-                  >
-                    <option value="">eg : Outlet</option>
-                    {OUTLET_TYPE_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
-                  </select>
-                  <svg className="absolute right-3 top-3.5 w-4 h-4 text-gray-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-          </SectionCard>
         </div>
 
         {/* ── Create ── */}
         <button
           onClick={handleSave}
           disabled={saving || !canFinalSave}
-          className="w-full bg-[#1a1a2e] text-white font-semibold py-4 rounded-2xl text-base hover:bg-[#2d2d5e] active:scale-[0.99] transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+          className="w-full bg-emerald-500 text-white font-bold py-4 rounded-2xl text-base tracking-wide hover:bg-emerald-600 active:scale-[0.99] transition-all shadow-sm shadow-emerald-100 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none mt-2"
         >
           {saving
             ? "Saving…"

@@ -130,7 +130,7 @@ export default function BasicDetailsReview({ onNavigate }) {
           <p className="text-xs font-semibold text-emerald-500 uppercase tracking-widest">Basic Details</p>
         </div>
         <h1 className="text-2xl font-extrabold text-gray-700 leading-tight">Review /&nbsp;Edit</h1>
-        <p className="text-base font-bold text-gray-400 leading-tight">Business Details</p>
+        <p className="text-base font-bold text-gray-500 leading-tight">Business Details</p>
       </div>
 
       {/* Rows */}

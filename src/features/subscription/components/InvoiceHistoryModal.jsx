@@ -1,12 +1,8 @@
-import React from 'react';
 import Modal from './Modal';
 import { CloseIcon } from './icons';
-import { useInvoiceHistory } from '../hooks/useInvoiceHistory';
 import InvoiceHistoryTable from './InvoiceHistoryTable';
 
-export default function InvoiceHistoryModal({ open, onClose, onViewInvoice }) {
-  const { invoices, isLoading, error, refetch } = useInvoiceHistory({ enabled: open });
-
+export default function InvoiceHistoryModal({ open, onClose, history = [], onViewInvoice }) {
   return (
     <Modal open={open} onClose={onClose} ariaLabel="Purchase history" widthVariant="wide">
       <div className="inv-modal__header">
@@ -16,22 +12,7 @@ export default function InvoiceHistoryModal({ open, onClose, onViewInvoice }) {
         </button>
       </div>
 
-      {isLoading && <p style={{ padding: '24px 0', color: '#6b7280' }}>Loading history…</p>}
-
-      {error && (
-        <div className="sub-state-message sub-state-message--error" style={{ padding: '24px 0' }}>
-          {error}
-          <div>
-            <button className="sub-retry-btn" onClick={refetch}>
-              Try Again
-            </button>
-          </div>
-        </div>
-      )}
-
-      {!isLoading && !error && (
-        <InvoiceHistoryTable invoices={invoices} onViewInvoice={onViewInvoice} />
-      )}
+      <InvoiceHistoryTable invoices={history} onViewInvoice={onViewInvoice} />
     </Modal>
   );
 }
