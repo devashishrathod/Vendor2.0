@@ -12,17 +12,25 @@ import { PAGE_SIZE } from "../constants/outletConstants";
 
 export default function OutletsPage() {
   const { brand } = useBrand();
-  const { search, setSearch, filters, toggleFilter, clearFilters, activeFilterCount, page, setPage } =
-    useOutletFilters();
+  const {
+    search, setSearch,
+    filters, toggleFilter, clearFilterGroup,
+    dateRange, setDateRange, clearDateRange,
+    sortBy, setSortBy, sortOrder, setSortOrder,
+    page, setPage,
+  } = useOutletFilters();
   // ⚠️ FIXED: "Export Data" used to call outletService.exportOutlets, which
   // exported hardcoded MOCK_OUTLETS — completely disconnected from what's
   // actually on screen. useOutlets' exportOutlets fetches the real, full
-  // subBrand list and applies the SAME search/filter logic as the visible
-  // grid, so the export always matches what's currently filtered — not just
-  // the current page, and not stale mock rows.
+  // subBrand list and applies the SAME search/filter/sort logic as the
+  // visible grid, so the export always matches what's currently filtered —
+  // not just the current page, and not stale mock rows.
   const { outlets, total, loading, toggleStatus, reload, exportOutlets, exporting } = useOutlets({
     search,
     filters,
+    dateRange,
+    sortBy,
+    sortOrder,
     page,
     brandId: brand?._id,
   });
@@ -50,8 +58,14 @@ export default function OutletsPage() {
             onSearchChange={setSearch}
             filters={filters}
             onToggleFilter={toggleFilter}
-            onClearFilters={clearFilters}
-            activeFilterCount={activeFilterCount}
+            onClearFilterGroup={clearFilterGroup}
+            dateRange={dateRange}
+            onDateRangeChange={setDateRange}
+            onClearDateRange={clearDateRange}
+            sortBy={sortBy}
+            onSortByChange={setSortBy}
+            sortOrder={sortOrder}
+            onSortOrderChange={setSortOrder}
             onExport={exportOutlets}
             exporting={exporting}
             onAddOutlet={() => setShowAddModal(true)}

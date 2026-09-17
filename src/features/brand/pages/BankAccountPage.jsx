@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 
 import BankAccountSection from "../components/BankAccountSection";
 
@@ -23,6 +23,13 @@ const BankAccountPage = ({ brand, brandId, brandLoading, brandError }) => {
       };
     }
 
+    const address = bank.bankAddress;
+    const bankAddress = address
+      ? [address.addressLine1, address.city, address.district, address.state, address.country]
+          .filter(Boolean)
+          .join(", ")
+      : undefined;
+
     return {
       subtitle: "Manage the bank account linked to your payouts.",
       activeAccountSubtitle: "This account is used to receive your settlements.",
@@ -32,10 +39,15 @@ const BankAccountPage = ({ brand, brandId, brandLoading, brandError }) => {
           isPrimary: true,
           bankName: bank.bankName,
           accountHolderName: bank.accountHolderName,
-          accountNumber: bank.maskedAccountNumber || bank.accountNumber,
+          // Full number kept separate from the masked one so the card can
+          // toggle between them with the eye icon — never shown by default.
+          maskedAccountNumber: bank.maskedAccountNumber || bank.accountNumber,
+          fullAccountNumber: bank.accountNumber,
           ifscCode: bank.ifscCode,
           branch: bank.branchName,
+          bankAddress,
           accountType: bank.accountType,
+          isValid: bank.isValid,
           isVerified: bank.isVerified,
           verificationStatus: bank.verificationStatus,
         },

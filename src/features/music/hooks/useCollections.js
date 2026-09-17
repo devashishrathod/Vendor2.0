@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { fetchCollections } from "../services/musicService";
 
 export function useCollections() {
-  const [collections, setCollections] = useState({ mood: [], language: [], artist: [] });
+  const [collections, setCollections] = useState({ mood: [], language: [], artist: [], trending: [] });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

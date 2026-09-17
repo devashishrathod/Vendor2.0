@@ -1,17 +1,18 @@
-import React, { useState } from "react";
+import { useState } from "react";
 
 import ListingFeaturesSection from "../components/ListingFeaturesSection";
 import AddListingFeatureModal from "../components/AddListingFeatureModal";
 import useListingFeatures from "../hooks/useListingFeatures";
 import {
   addListingFeature,
-  refreshListingFeature,
+  updateListingFeature,
   deleteListingFeature,
 } from "../services/brandApi";
 
 const ListingFeaturesPage = ({ brandId }) => {
   const { data: features, loading, error, reload } = useListingFeatures(brandId);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingFeature, setEditingFeature] = useState(null);
 
   const handleAdd = () => setShowAddModal(true);
 
@@ -20,13 +21,11 @@ const ListingFeaturesPage = ({ brandId }) => {
     reload();
   };
 
-  const handleRefresh = async (id) => {
-    try {
-      await refreshListingFeature(id);
-      reload();
-    } catch (err) {
-      console.error("Refresh failed:", err.message);
-    }
+  const handleEdit = (feature) => setEditingFeature(feature);
+
+  const handleEditSubmit = async ({ title, description, isActive, iconFile }) => {
+    await updateListingFeature(editingFeature.id, { title, description, isActive, iconFile });
+    reload();
   };
 
   const handleDelete = async (id) => {
@@ -36,6 +35,13 @@ const ListingFeaturesPage = ({ brandId }) => {
     } catch (err) {
       console.error("Delete failed:", err.message);
     }
+  };
+
+  // "Change" on the Icon column's hover overlay — swaps just the icon,
+  // keeping the feature's title/description/status untouched.
+  const handleChangeIcon = async (feature, iconFile) => {
+    await updateListingFeature(feature.id, { iconFile });
+    reload();
   };
 
   if (loading) {
@@ -50,6 +56,7 @@ const ListingFeaturesPage = ({ brandId }) => {
       iconUrl: f.icon,
       lfName: f.title,
       description: f.description,
+      isActive: f.isActive,
       createdOn: f.createdAt
         ? new Date(f.createdAt).toLocaleDateString("en-IN", {
             day: "2-digit",
@@ -70,14 +77,24 @@ const ListingFeaturesPage = ({ brandId }) => {
       <ListingFeaturesSection
         listingFeatures={listingFeatures}
         onAdd={handleAdd}
-        onRefresh={handleRefresh}
+        onEdit={handleEdit}
         onDelete={handleDelete}
+        onChangeIcon={handleChangeIcon}
       />
 
       {showAddModal && (
         <AddListingFeatureModal
           onClose={() => setShowAddModal(false)}
           onSubmit={handleAddSubmit}
+        />
+      )}
+
+      {editingFeature && (
+        <AddListingFeatureModal
+          mode="edit"
+          feature={editingFeature}
+          onClose={() => setEditingFeature(null)}
+          onSubmit={handleEditSubmit}
         />
       )}
     </div>

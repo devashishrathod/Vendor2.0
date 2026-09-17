@@ -252,6 +252,64 @@ export async function getBrandById(brandId) {
 }
 
 // ══════════════════════════════════════════════════════════════
+// EMAIL VERIFICATION
+// ══════════════════════════════════════════════════════════════
+
+// ── Send Email Verification Code ──────────────────────────────
+// POST {{TryDood2.0BaseUrl}}/auth/email/send-verification
+// body: { email } — omit to resend a code to the current unverified
+// email on file; pass a different email to switch to it instead.
+// Confirmed from Postman — response: { data: { sentTo, isChange } }.
+export async function sendEmailVerification(email) {
+    try {
+        const body = email ? { email } : {};
+        const { data } = await api.post('/auth/email/send-verification', body);
+        return data;
+    } catch (error) {
+        handleError(error);
+    }
+}
+
+// ── Verify Email OTP ────────────────────────────────────────────
+// POST {{TryDood2.0BaseUrl}}/auth/email/verify
+// body: { otp, email } — confirmed from Postman.
+export async function verifyEmailOtp({ otp, email }) {
+    try {
+        const { data } = await api.post('/auth/email/verify', { otp, email });
+        return data;
+    } catch (error) {
+        handleError(error);
+    }
+}
+
+// ══════════════════════════════════════════════════════════════
+// MOBILE VERIFICATION
+// ══════════════════════════════════════════════════════════════
+// ⚠️ TEMPORARY MOCK — there is no confirmed real "send/verify mobile OTP"
+// backend endpoint yet, so these two just fake a network round-trip
+// (setTimeout) instead of calling `api.post(...)`. Wired up per explicit
+// instruction so the UI/UX can be built and tested now; swap the bodies
+// below for real `api.post('/auth/mobile/...')` calls once that endpoint
+// is confirmed — the function signatures are already shaped to match
+// sendEmailVerification/verifyEmailOtp above so that swap should be a
+// drop-in change.
+
+// ── Send Mobile Verification Code (MOCK) ───────────────────────
+export async function sendMobileVerification(mobile) {
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    return { data: { sentTo: mobile } };
+}
+
+// ── Verify Mobile OTP (MOCK) — accepts any non-empty OTP ───────
+export async function verifyMobileOtp({ otp, mobile }) {
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    if (!otp || !otp.trim()) {
+        throw new Error("Invalid or expired code. Please try again.");
+    }
+    return { data: { verified: true, mobile } };
+}
+
+// ══════════════════════════════════════════════════════════════
 // LISTING FEATURES (a.k.a. Brand Features)
 // ══════════════════════════════════════════════════════════════
 
@@ -291,11 +349,22 @@ export async function addListingFeature(brandId, { title, description = '', isAc
     }
 }
 
-// ── Refresh / Re-verify a Brand Feature ───────────────────────
-// NOTE: confirm exact path from Postman — placeholder pattern below.
-export async function refreshListingFeature(featureId) {
+// ── Update a Brand Feature ─────────────────────────────────────
+// PUT {{TryDood2.0BaseUrl}}/brandFeatures/update/:id   (multipart/form-data)
+// Confirmed from Postman — fields: title, description, isActive, icon
+// (file, optional — omit it to keep the currently-uploaded icon).
+export async function updateListingFeature(featureId, { title, description, isActive, iconFile } = {}) {
     try {
-        const { data } = await api.patch(`/brandFeatures/${featureId}/refresh`);
+        if (!featureId) throw new Error('featureId is required');
+
+        const formData = new FormData();
+        if (title !== undefined) formData.append('title', title);
+        if (description !== undefined) formData.append('description', description);
+        if (isActive !== undefined) formData.append('isActive', String(!!isActive));
+        if (iconFile) formData.append('icon', iconFile);
+
+        // See updateBrandDetails's comment — no explicit Content-Type header.
+        const { data } = await api.put(`/brandFeatures/update/${featureId}`, formData);
         return data;
     } catch (error) {
         handleError(error);
@@ -303,10 +372,12 @@ export async function refreshListingFeature(featureId) {
 }
 
 // ── Delete a Brand Feature ────────────────────────────────────
-// NOTE: confirm exact path from Postman — placeholder pattern below.
+// DELETE {{TryDood2.0BaseUrl}}/brandFeatures/delete/:id
+// Confirmed from Postman.
 export async function deleteListingFeature(featureId) {
     try {
-        const { data } = await api.delete(`/brandFeatures/${featureId}/delete`);
+        if (!featureId) throw new Error('featureId is required');
+        const { data } = await api.delete(`/brandFeatures/delete/${featureId}`);
         return data;
     } catch (error) {
         handleError(error);
@@ -376,12 +447,14 @@ export async function getShowcaseSectionById(sectionId) {
 }
 
 // ── Update Section (title, description, sortOrder, sectionType, visibility) ──
-// PATCH {{TryDood2.0BaseUrl}}/showcase/section/update/:id/update
-// body: any subset of { title, description, sortOrder, sectionType, isVisible, showVideosInClips, isActive }
-// NOTE: adjust verb (PATCH vs PUT) / path if the real endpoint differs.
+// PUT {{TryDood2.0BaseUrl}}/showcase/section/update/:id   (raw JSON)
+// Confirmed from Postman — every field is optional, send only what changed:
+// { title, description, sortOrder, sectionType, isActive, isVisible,
+//   isShowVideosInClips }.
 export async function updateShowcaseSection(sectionId, patch = {}) {
     try {
-        const { data } = await api.patch(`/showcase/section/update/${sectionId}/update`, patch);
+        if (!sectionId) throw new Error('sectionId is required');
+        const { data } = await api.put(`/showcase/section/update/${sectionId}`, patch);
         return data;
     } catch (error) {
         handleError(error);
@@ -390,11 +463,31 @@ export async function updateShowcaseSection(sectionId, patch = {}) {
 
 // ── Delete Section ───────────────────────────────────────────────
 // DELETE {{TryDood2.0BaseUrl}}/showcase/section/delete/:id
-// NOTE: adjust path if the real endpoint differs. Confirm with backend
-// whether this cascades and deletes the section's media too.
+// Confirmed from Postman.
 export async function deleteShowcaseSection(sectionId) {
     try {
+        if (!sectionId) throw new Error('sectionId is required');
         const { data } = await api.delete(`/showcase/section/delete/${sectionId}`);
+        return data;
+    } catch (error) {
+        handleError(error);
+    }
+}
+
+// ── Reorder Showcase Sections ─────────────────────────────────────
+// PUT {{TryDood2.0BaseUrl}}/showcase/section/:brandId/reorder   (raw JSON)
+// Confirmed from Postman — the path id is the BRAND's id, not any
+// section's own id (an earlier version wrongly sent sections[0].id there,
+// which 404'd as "Brand not found" since the backend looks it up as a
+// brand). The actual reordering is driven by the body: { sections: [{ id,
+// sortOrder }, ...] }, covering every section in the new order.
+export async function reorderShowcaseSections(brandId, sections = []) {
+    try {
+        if (!brandId) throw new Error('brandId is required');
+        if (!sections.length) throw new Error('sections is required');
+        const { data } = await api.put(`/showcase/section/${brandId}/reorder`, {
+            sections: sections.map(({ id, sortOrder }) => ({ id, sortOrder })),
+        });
         return data;
     } catch (error) {
         handleError(error);
@@ -415,13 +508,18 @@ export async function deleteShowcaseSection(sectionId) {
 // @param {File[]} files
 // @param {object} [options]
 // @param {boolean} [options.isShowInVideoClips=false]
+// @param {File} [options.thumbnail] - ⚠️ NOT CONFIRMED from Postman: only
+//        `isShowInVideoClips` + `files` are documented on this endpoint.
+//        Sent as a best-effort "thumbnail" file field when provided (only
+//        meaningful alongside isShowInVideoClips: true) — verify against a
+//        real response and correct the field name here if it's wrong.
 // @param {Record<string,string>} [options.extraFields] - e.g. a "month" tag
 //        for Ambience-style albums, if the backend accepts it per-upload.
 // @param {(percent:number)=>void} [onUploadProgress]
 export async function addShowcaseMedia(
     sectionId,
     files,
-    { isShowInVideoClips = false, extraFields = {} } = {},
+    { isShowInVideoClips = false, thumbnail = null, extraFields = {} } = {},
     onUploadProgress
 ) {
     try {
@@ -430,6 +528,7 @@ export async function addShowcaseMedia(
 
         const formData = new FormData();
         formData.append('isShowInVideoClips', String(isShowInVideoClips));
+        if (thumbnail) formData.append('thumbnail', thumbnail);
 
         Object.entries(extraFields).forEach(([key, value]) => {
             formData.append(key, value);
@@ -451,17 +550,67 @@ export async function addShowcaseMedia(
     }
 }
 
-// ── Update a Media Item's Metadata ──────────────────────────────
-// PATCH {{TryDood2.0BaseUrl}}/showcase/section/:sectionId/media/update/:mediaId
-// body: e.g. { isShowInVideoClips, month, sortOrder }
-// Does NOT replace the underlying file — delete + re-add for that.
-// NOTE: adjust path if the real endpoint differs.
-export async function updateShowcaseMedia(sectionId, mediaId, patch = {}) {
+// ── Replace a Media Item's File (and/or its isShowInVideoClips flag) ────
+// PUT {{TryDood2.0BaseUrl}}/showcase/section/:sectionId/media/replace/:mediaId
+// (multipart/form-data, field: file — confirmed from Postman)
+// Swaps the underlying file for an existing media item in place (keeps its
+// position/sortOrder). `isShowInVideoClips` is NOT confirmed from Postman
+// on this endpoint — there's no separate "update media metadata" endpoint
+// documented anywhere, so this reuses the same replace call with just that
+// one extra form field and no `file`, as the closest real endpoint that
+// touches one existing media item. If the backend doesn't actually accept
+// it here, this needs a real confirmed endpoint swapped in instead.
+export async function replaceShowcaseMedia(sectionId, mediaId, { file, isShowInVideoClips } = {}, onUploadProgress) {
     try {
-        const { data } = await api.patch(
-            `/showcase/section/${sectionId}/media/update/${mediaId}`,
-            patch
+        if (!sectionId) throw new Error('sectionId is required');
+        if (!mediaId) throw new Error('mediaId is required');
+        if (!file && isShowInVideoClips === undefined) throw new Error('file or isShowInVideoClips is required');
+
+        const formData = new FormData();
+        if (file) formData.append('file', file);
+        if (isShowInVideoClips !== undefined) formData.append('isShowInVideoClips', String(isShowInVideoClips));
+
+        // See updateBrandDetails's comment — no explicit Content-Type header.
+        const { data } = await api.put(
+            `/showcase/section/${sectionId}/media/replace/${mediaId}`,
+            formData,
+            {
+                onUploadProgress: onUploadProgress
+                    ? (evt) => onUploadProgress(Math.round((evt.loaded * 100) / (evt.total || 1)))
+                    : undefined,
+            }
         );
+        return data;
+    } catch (error) {
+        handleError(error);
+    }
+}
+
+// ── Update a Media Item's Details (title / alt text / thumbnail) ────────
+// PATCH {{TryDood2.0BaseUrl}}/showcase/section/:sectionId/media/update/:mediaId
+// (multipart/form-data) — for editing an existing item's metadata (works
+// for both PHOTO and VIDEO), as opposed to media/replace which swaps the
+// underlying file itself. `thumbnail` is only meaningful for a VIDEO item
+// (its poster image) — omit it for photos.
+// Confirmed real RESPONSE shape from Postman (full updated media doc:
+// _id, type, url, thumbnail, title, altText, sortOrder, isActive, storage,
+// metadata, createdAt, updatedAt) — the exact REQUEST body field names
+// were NOT shown in the Postman sample (only the response was), so
+// title/altText/thumbnail are sent per explicit instruction; verify
+// against a real request once tested and correct the field names here if
+// any of them turn out wrong.
+export async function updateShowcaseMediaDetails(sectionId, mediaId, { title, altText, thumbnail } = {}) {
+    try {
+        if (!sectionId) throw new Error('sectionId is required');
+        if (!mediaId) throw new Error('mediaId is required');
+
+        const formData = new FormData();
+        if (title !== undefined) formData.append('title', title);
+        if (altText !== undefined) formData.append('altText', altText);
+        if (thumbnail) formData.append('thumbnail', thumbnail);
+
+        // See updateBrandDetails's comment — no explicit Content-Type header.
+        const { data } = await api.patch(`/showcase/section/${sectionId}/media/update/${mediaId}`, formData);
         return data;
     } catch (error) {
         handleError(error);
@@ -470,12 +619,30 @@ export async function updateShowcaseMedia(sectionId, mediaId, patch = {}) {
 
 // ── Delete a Media Item ──────────────────────────────────────────
 // DELETE {{TryDood2.0BaseUrl}}/showcase/section/:sectionId/media/delete/:mediaId
-// NOTE: adjust path if the real endpoint differs.
+// Confirmed from Postman.
 export async function deleteShowcaseMedia(sectionId, mediaId) {
     try {
+        if (!sectionId) throw new Error('sectionId is required');
+        if (!mediaId) throw new Error('mediaId is required');
         const { data } = await api.delete(
             `/showcase/section/${sectionId}/media/delete/${mediaId}`
         );
+        return data;
+    } catch (error) {
+        handleError(error);
+    }
+}
+
+// ── Reorder Media within a Section ────────────────────────────────
+// PUT {{TryDood2.0BaseUrl}}/showcase/section/:sectionId/media/reorder
+// (raw JSON) — body: { medias: [{ id, sortOrder }, ...] }.
+// Confirmed from Postman.
+export async function reorderShowcaseMedia(sectionId, medias = []) {
+    try {
+        if (!sectionId) throw new Error('sectionId is required');
+        const { data } = await api.put(`/showcase/section/${sectionId}/media/reorder`, {
+            medias: medias.map(({ id, sortOrder }) => ({ id, sortOrder })),
+        });
         return data;
     } catch (error) {
         handleError(error);

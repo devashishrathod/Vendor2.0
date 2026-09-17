@@ -30,11 +30,18 @@ export const OUTLET_TYPE_OPTIONS = [
 export const REGISTRATION_TYPES = OUTLET_TYPES;
 export const REGISTRATION_TYPE_LABELS = OUTLET_TYPE_LABELS;
 
-export const FILTER_OPTIONS = [
-  { id: "status_active", group: "status", value: OUTLET_STATUS.ACTIVE, label: "Active" },
-  { id: "status_not_active", group: "status", value: OUTLET_STATUS.NOT_ACTIVE, label: "Not Active" },
-  { id: "type_outlet", group: "type", value: OUTLET_TYPES.OUTLET, label: "Outlet" },
-  { id: "type_franchise", group: "type", value: OUTLET_TYPES.FRANCHISE, label: "Franchise" },
+// Status filter — now its own separate dropdown in OutletsToolbar (used to
+// be grouped together with Outlet Type inside one combined "Filter" panel).
+export const STATUS_OPTIONS = [
+  { value: OUTLET_STATUS.ACTIVE, label: "Active" },
+  { value: OUTLET_STATUS.NOT_ACTIVE, label: "Not Active" },
+];
+
+// Sort — by real, confirmed outlet fields only (joinedDate/createdAt,
+// storeId). Paired with a separate Ascending/Descending order in the UI.
+export const SORT_OPTIONS = [
+  { value: "joinedDate", label: "Joined Date" },
+  { value: "storeId", label: "Store Id" },
 ];
 
 export const ANALYTICS_REPORTS = [

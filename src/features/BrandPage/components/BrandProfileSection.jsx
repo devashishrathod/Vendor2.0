@@ -11,8 +11,8 @@ const BrandProfileSection = ({ profile, onChangeLogo }) => {
 
       <div className="mt-5 grid grid-cols-1 gap-x-10 gap-y-6 sm:grid-cols-2 lg:grid-cols-4">
         <InfoItem label="Merchant Token" value={profile.merchantToken} />
-        <InfoItem label="Brand Name" value={profile.brandName} />
-        <InfoItem label="Short Name" value={profile.shortName} />
+        <InfoItem label="Brand Name" value={profile.brandName} valueClassName="capitalize" />
+        <InfoItem label="Short Name" value={profile.shortName} valueClassName="capitalize" />
         <InfoItem
           label="Brand Logo"
           value={profile.brandLogo?.fileName}

@@ -13,6 +13,7 @@ const AccountManagerSection = ({ accountSetupManager }) => {
         <InfoItem
           label="Employee Name"
           value={accountSetupManager.employeeName}
+          valueClassName="capitalize"
         />
         <InfoItem
           label="Mobile Number"

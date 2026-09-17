@@ -52,3 +52,15 @@ export async function approvePartnership() {
     true
   );
 }
+
+// Acknowledge Approval — called when the vendor clicks through to the
+// dashboard from the Under Review page, once system-verify's status is
+// APPROVED. No body.
+export async function acknowledgeApproval() {
+  return request(
+    "/brands/onboarding/acknowledge-approval",
+    "PUT",
+    null,
+    true
+  );
+}

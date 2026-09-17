@@ -51,15 +51,42 @@ export function mapSubBrandToOutlet(doc) {
 // button (which needs the FULL matching set, not just the current page)
 // both filter identically — no risk of the export silently disagreeing
 // with what's actually on screen.
-function filterOutlets(mapped, { search, filters } = {}) {
+// Custom date range filter — applied to `joinedDate` (the only real,
+// confirmed date field on an outlet). `from`/`to` are plain "YYYY-MM-DD"
+// values from a native <input type="date">; the "to" side is inclusive of
+// the whole day.
+function isWithinDateRange(iso, range) {
+  if (!range?.from && !range?.to) return true;
+  if (!iso) return false;
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return false;
+  if (range.from && date < new Date(`${range.from}T00:00:00`)) return false;
+  if (range.to && date > new Date(`${range.to}T23:59:59.999`)) return false;
+  return true;
+}
+
+function filterOutlets(mapped, { search, filters, dateRange } = {}) {
   const q = (search || "").trim().toLowerCase();
   return mapped.filter((o) => {
     const matchesSearch =
       !q || o.storeId?.toLowerCase().includes(q) || o.status?.toLowerCase().includes(q);
     const matchesStatus = !filters?.status?.length || filters.status.includes(o.status);
     const matchesType = !filters?.type?.length || filters.type.includes(o.outletType);
-    return matchesSearch && matchesStatus && matchesType;
+    const matchesDate = isWithinDateRange(o.joinedDate, dateRange);
+    return matchesSearch && matchesStatus && matchesType && matchesDate;
   });
+}
+
+// Sort — by real fields only: joinedDate (falls back to createdAt via
+// mapSubBrandToOutlet already) or storeId (alphabetic).
+function sortOutlets(list, sortBy, sortOrder) {
+  const sorted = [...list].sort((a, b) => {
+    if (sortBy === "storeId") {
+      return (a.storeId || "").localeCompare(b.storeId || "");
+    }
+    return new Date(a.joinedDate || 0) - new Date(b.joinedDate || 0);
+  });
+  return sortOrder === "desc" ? sorted.reverse() : sorted;
 }
 
 function downloadCsv(filename, headers, rows) {
@@ -79,7 +106,7 @@ function downloadCsv(filename, headers, rows) {
   URL.revokeObjectURL(url);
 }
 
-export function useOutlets({ search, filters, page, brandId } = {}) {
+export function useOutlets({ search, filters, dateRange, sortBy, sortOrder, page, brandId } = {}) {
   const [outlets, setOutlets] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -101,19 +128,20 @@ export function useOutlets({ search, filters, page, brandId } = {}) {
       const docs = Array.isArray(list) ? list : [];
 
       const mapped = docs.map(mapSubBrandToOutlet);
-      const filtered = filterOutlets(mapped, { search, filters });
+      const filtered = filterOutlets(mapped, { search, filters, dateRange });
+      const sorted = sortOutlets(filtered, sortBy, sortOrder);
 
       const start = (page - 1) * PAGE_SIZE;
-      const pageSlice = filtered.slice(start, start + PAGE_SIZE);
+      const pageSlice = sorted.slice(start, start + PAGE_SIZE);
 
       setOutlets(pageSlice);
-      setTotal(filtered.length);
-    } catch (err) {
+      setTotal(sorted.length);
+    } catch {
       setError("Couldn't load outlets. Please try again.");
     } finally {
       setLoading(false);
     }
-  }, [brandId, search, filters, page]);
+  }, [brandId, search, filters, dateRange, sortBy, sortOrder, page]);
 
   useEffect(() => {
     load();
@@ -131,7 +159,8 @@ export function useOutlets({ search, filters, page, brandId } = {}) {
       const list = res?.data?.data ?? res?.data ?? [];
       const docs = Array.isArray(list) ? list : [];
       const mapped = docs.map(mapSubBrandToOutlet);
-      const filtered = filterOutlets(mapped, { search, filters });
+      const filtered = filterOutlets(mapped, { search, filters, dateRange });
+      const sorted = sortOutlets(filtered, sortBy, sortOrder);
 
       const headers = [
         "Store Id",
@@ -144,7 +173,7 @@ export function useOutlets({ search, filters, page, brandId } = {}) {
         "Description",
         "Address",
       ];
-      const rows = filtered.map((o) => [
+      const rows = sorted.map((o) => [
         o.storeId,
         o.uniqueId,
         o.whatsapp.number,
@@ -162,7 +191,7 @@ export function useOutlets({ search, filters, page, brandId } = {}) {
     } finally {
       setExporting(false);
     }
-  }, [brandId, search, filters]);
+  }, [brandId, search, filters, dateRange, sortBy, sortOrder]);
 
   // Optimistic toggle so the UI feels instant; reloads from the server on failure.
   const toggleStatus = useCallback(
@@ -174,7 +203,7 @@ export function useOutlets({ search, filters, page, brandId } = {}) {
       setOutlets((prev) => prev.map((o) => (o.id === id ? { ...o, status: nextStatus } : o)));
       try {
         await updateSubBrand(id, { isActive: nextStatus === OUTLET_STATUS.ACTIVE });
-      } catch (err) {
+      } catch {
         load();
       }
     },

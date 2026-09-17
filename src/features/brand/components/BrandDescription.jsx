@@ -47,9 +47,10 @@ const BrandDescription = ({ description, lastUpdate, onUpdate }) => {
                 d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
           </div>
-          <h3 className="text-sm font-bold text-gray-900">
-            Brand Description
-          </h3>
+          <div className="flex-1">
+            <h2 className="text-sm font-bold text-gray-900 leading-tight">Brand Description</h2>
+            <p className="text-xs text-gray-400 mt-0.5">Describe your brand and its unique value proposition</p>
+          </div>
         </div>
         {!isEditing && (
           <button

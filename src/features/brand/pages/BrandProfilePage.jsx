@@ -1,13 +1,24 @@
-import React from "react";
-
+import { useEffect, useState } from "react";
 import BrandProfileSection from "../components/BrandProfileSection";
 import CategoryInfoSection from "../components/CategoryInfoSection";
-import CategoryTagSection from "../components/CategoryTagSection";
+import { getSubBrands } from "@/features/voucher/services/voucher/VoucherService";
+// import CategoryTagSection from "../components/CategoryTagSection";
 
-const BrandProfilePage = ({ brand, brandLoading, brandError }) => {
-  const handleChangeLogo = () => {
-    console.log("Change brand logo clicked");
-  };
+const BrandProfilePage = ({ brand, brandId, brandLoading, brandError, reload }) => {
+  // Real outlet count for the "Outlet Count" field — same GET
+  // /subBrands/get-all?brandId= the Voucher Details page uses.
+  const [outletCount, setOutletCount] = useState(null);
+  useEffect(() => {
+    if (!brandId) return;
+    let cancelled = false;
+    getSubBrands({ brandId, limit: 200 })
+      .then((res) => {
+        if (cancelled) return;
+        setOutletCount(res?.data?.total ?? res?.data?.data?.length ?? 0);
+      })
+      .catch((err) => console.error("Failed to load outlet count:", err.message));
+    return () => { cancelled = true; };
+  }, [brandId]);
 
   if (brandLoading) {
     return <p className="text-sm text-gray-400">Loading brand profile…</p>;
@@ -25,16 +36,16 @@ const BrandProfilePage = ({ brand, brandLoading, brandError }) => {
         </p>
       )}
 
-      <BrandProfileSection profile={brand} onChangeLogo={handleChangeLogo} />
+      <BrandProfileSection profile={brand} outletCount={outletCount} reload={reload} />
 
-      <hr className="border-gray-100" />
+      
 
       <CategoryInfoSection
         category={brand.category}
         subCategory={brand.subCategory}
       />
 
-      <CategoryTagSection categoryTagLine={brand.categoryTagLine} />
+      {/* <CategoryTagSection categoryTagLine={brand.categoryTagLine} /> */}
     </div>
   );
 };

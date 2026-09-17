@@ -14,27 +14,31 @@ import { request } from "@/services/api/client";
  * POST {{TryDood2.0BaseUrl}}/transactions/subscribe/create-order
  *
  * @param {{
- *   brandId: string,          // required
  *   subscriptionId: string,   // required — the plan's _id
  *   email?: string,           // optional
  *   whatsappNumber?: string,  // optional
+ *   promoCode?: string,       // optional — only sent when the vendor actually applied one at checkout
  *   amount?: number,          // optional — backend falls back to the plan's price if omitted
  *   currency?: string,        // optional — defaults to "INR"
  * }} payload
  *
  * @example
  * const { data } = await razorpayAPI.createOrder({
- *   brandId,
  *   subscriptionId: plan.id,
  *   email: billingDetails?.email,
  *   whatsappNumber: billingDetails?.phone,
+ *   promoCode: pricing?.promoCode,
  * });
- * // data.razorpayOrderId, data.amount, data.currency, data.contact, ... are used to open checkout
+ * // Confirmed response shape: data.razorpay.{orderId, amount (paise),
+ * // currency, keyId}, data.transaction._id, plus billingDetails/
+ * // orderSummary/plan/pricing/reused — used to open the Razorpay widget
+ * // (see useRazorpayCheckout.js).
  */
-export const createOrder = ({ brandId, subscriptionId, email, whatsappNumber, amount, currency = "INR" }) => {
-  const payload = { brandId, subscriptionId, currency };
+export const createOrder = ({ subscriptionId, email, whatsappNumber, promoCode, amount, currency = "INR" }) => {
+  const payload = { subscriptionId, currency };
   if (email) payload.email = email;
   if (whatsappNumber) payload.whatsappNumber = whatsappNumber;
+  if (promoCode) payload.promoCode = promoCode;
   if (amount !== undefined) payload.amount = amount;
 
   return request("/transactions/subscribe/create-order", "POST", payload, true);
@@ -48,14 +52,14 @@ export const createOrder = ({ brandId, subscriptionId, email, whatsappNumber, am
  *   razorpayPaymentId: string,  // required — from Razorpay checkout response
  *   razorpayOrderId: string,    // required — from Razorpay checkout response
  *   razorpaySignature: string,  // required — from Razorpay checkout response
- *   transactionId: string,      // required — the `_id` returned by createOrder's `data`
+ *   transactionId: string,      // required — createOrder's `data.transaction._id`
  * }} payload
  * @example
  * await razorpayAPI.verifyPayment({
  *   razorpayPaymentId: response.razorpay_payment_id,
  *   razorpayOrderId: response.razorpay_order_id,
  *   razorpaySignature: response.razorpay_signature,
- *   transactionId: order._id, // captured from the createOrder response
+ *   transactionId: order.transaction?._id, // captured from the createOrder response
  * });
  */
 export const verifyPayment = ({

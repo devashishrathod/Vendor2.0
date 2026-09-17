@@ -59,7 +59,7 @@ function TicketRow({ ticket, isOpen, onToggle }) {
                     className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2"
                   >
                     <span className="text-sm text-slate-600">{res.label}</span>
-                    <button className="flex items-center gap-1.5 text-xs font-medium text-indigo-600 hover:underline">
+                    <button className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 hover:underline">
                       {res.action === "Screenshots" ? (
                         <ImageDown className="h-3.5 w-3.5" />
                       ) : (
@@ -71,7 +71,7 @@ function TicketRow({ ticket, isOpen, onToggle }) {
                 ))}
               </div>
               {ticket.footnote && (
-                <p className="mt-3 text-xs text-indigo-600 underline underline-offset-2">
+                <p className="mt-3 text-xs text-emerald-600 underline underline-offset-2">
                   {ticket.footnote}
                 </p>
               )}
@@ -86,16 +86,22 @@ function TicketRow({ ticket, isOpen, onToggle }) {
 function NewTicketModal({ open, onClose, onSubmit, submitting }) {
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
 
   if (!open) return null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!subject.trim() || !message.trim()) return;
-    await onSubmit?.({ subject, message });
-    setSubject("");
-    setMessage("");
-    onClose?.();
+    setError("");
+    try {
+      await onSubmit?.({ subject, message });
+      setSubject("");
+      setMessage("");
+      onClose?.();
+    } catch (err) {
+      setError(err.message || "Couldn't submit this ticket. Please try again.");
+    }
   };
 
   return (
@@ -115,7 +121,7 @@ function NewTicketModal({ open, onClose, onSubmit, submitting }) {
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               placeholder="e.g. Settlement amount mismatch"
-              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
             />
           </div>
           <div>
@@ -125,9 +131,10 @@ function NewTicketModal({ open, onClose, onSubmit, submitting }) {
               onChange={(e) => setMessage(e.target.value)}
               rows={4}
               placeholder="Describe the issue in detail…"
-              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
             />
           </div>
+          {error && <p className="text-xs text-rose-500">{error}</p>}
           <div className="flex justify-end gap-2 pt-1">
             <button
               type="button"
@@ -139,7 +146,7 @@ function NewTicketModal({ open, onClose, onSubmit, submitting }) {
             <button
               type="submit"
               disabled={submitting}
-              className="rounded-lg bg-indigo-600 px-4 py-2 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-60"
+              className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
             >
               {submitting ? "Submitting…" : "Submit ticket"}
             </button>

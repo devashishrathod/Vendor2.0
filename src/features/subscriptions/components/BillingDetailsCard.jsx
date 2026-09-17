@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 const BILLING_FIELDS = [
-  { key: "brandName", label: "Brand name", type: "text" },
+  { key: "legalBusinessName", label: "Brand Name", type: "text" },
   { key: "address", label: "Address", type: "textarea" },
   { key: "gstin", label: "GSTIN", type: "text" },
   { key: "pan", label: "Pan", type: "text" },
