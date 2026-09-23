@@ -37,10 +37,10 @@ export default function Settlement() {
   return (
    <div>
 
-     <div className="min-h-screen bg-slate-50 pb-16">
+     <div className="min-h-screen  dark:bg-gray-900 pb-16">
       <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="mb-6 text-center">
-          <h1 className="text-2xl font-semibold text-slate-800">Settlement Dashboard</h1>
+          <h1 className="text-2xl font-semibold text-slate-800 dark:text-gray-100">Settlement Dashboard</h1>
           <p className="mx-auto mt-1 max-w-xl text-sm text-slate-400">
             Monitor your payment settlements with complete transparency. Get a quick
             overview of your settlement status, amounts, and timeline.

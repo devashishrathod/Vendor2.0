@@ -7,8 +7,8 @@ const formatCurrency = (value) =>
 
 export default function VoucherAnalysisStats({ analysis }) {
   return (
-    <section className="rounded-xl border border-gray-200 bg-white p-5">
-      <h2 className="text-sm font-semibold text-gray-900">
+    <section className="rounded-xl bg-white dark:bg-gray-800 p-5">
+      <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
         Analysis Revenue Generated Through Vouchers
       </h2>
       <p className="mt-1 text-xs text-gray-500">
@@ -16,7 +16,7 @@ export default function VoucherAnalysisStats({ analysis }) {
         performance, customer usage, sales impact, and revenue growth.
       </p>
 
-      <div className="mt-4 flex flex-wrap gap-x-10 gap-y-4 divide-x divide-gray-100">
+      <div className="mt-4 flex flex-wrap gap-x-10 gap-y-4 divide-x divide-gray-100 dark:divide-gray-700">
         <VoucherStatCard
           label="Over All Earning"
           value={formatCurrency(analysis?.overAllEarning)}

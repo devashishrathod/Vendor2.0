@@ -35,17 +35,17 @@ const ReviewRow = ({ label, value, showEdit = true, onSave, onNavigateTo }) => {
   const handleCancel = () => { setInputVal(value ?? ""); setIsEditing(false); };
 
   return (
-    <div className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0 min-h-[52px]">
+    <div className="flex items-center justify-between py-3 min-h-[52px]">
       <div className="flex-1 min-w-0 pr-3">
         <p className="text-[10px] text-gray-400 font-medium mb-0.5 uppercase tracking-wide">{label}</p>
         {isEditing ? (
           <input autoFocus value={inputVal}
             onChange={(e) => setInputVal(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") handleCancel(); }}
-            className="w-full border border-emerald-300 rounded-lg px-2.5 py-1.5 text-sm
-              text-gray-800 outline-none focus:ring-2 focus:ring-emerald-200 bg-emerald-50" />
+            className="w-full rounded-lg px-2.5 py-1.5 text-sm
+              text-gray-800 outline-none focus:ring-2 focus:ring-emerald-200 bg-emerald-100 dark:bg-emerald-500/20" />
         ) : (
-          <p className="text-sm font-semibold text-gray-800 truncate">{value || "—"}</p>
+          <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{value || "—"}</p>
         )}
       </div>
       {showEdit && (
@@ -117,13 +117,13 @@ export default function BusinessDetailsReview({ onNavigate, lastStep, lastSubSte
           </span>
           <p className="text-xs font-semibold text-emerald-500 uppercase tracking-widest">Business Verification</p>
         </div>
-        <h1 className="text-2xl font-extrabold text-gray-700 leading-tight">Review /&nbsp;Edit</h1>
+        <h1 className="text-2xl font-extrabold text-gray-700 dark:text-gray-100 leading-tight">Review /&nbsp;Edit</h1>
         <p className="text-base font-bold text-gray-500 leading-tight">Business Details</p>
       </div>
 
       {/* PAN Section */}
       <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 mt-2">PAN Details</p>
-      <div className="w-full bg-white px-4 divide-y divide-gray-100 rounded-xl border border-gray-100 mb-3">
+      <div className="w-full bg-white dark:bg-gray-800 px-4 divide-y divide-gray-100 dark:divide-gray-700 rounded-xl mb-3">
         {/* PAN number — pen icon navigates to PAN enter step */}
         <ReviewRow label="PAN Number" value={pan} showEdit={true}
           onNavigateTo={goToPANEnter} />
@@ -133,7 +133,7 @@ export default function BusinessDetailsReview({ onNavigate, lastStep, lastSubSte
 
       {/* GST Section */}
       <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 mt-3">GST Details</p>
-      <div className="w-full bg-white px-4 divide-y divide-gray-100 rounded-xl border border-gray-100 mb-3">
+      <div className="w-full bg-white dark:bg-gray-800 px-4 divide-y divide-gray-100 dark:divide-gray-700 rounded-xl mb-3">
         {/* GST number — pen icon navigates to GST enter step */}
         <ReviewRow label="GST Number" value={gstin} showEdit={true}
           onNavigateTo={goToGSTEnter} />

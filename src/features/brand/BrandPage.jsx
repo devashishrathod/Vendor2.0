@@ -88,9 +88,9 @@ const BrandPage = ({ brandId: brandIdProp }) => {
   // ── No brandId at all — user isn't linked to a brand yet ──
   if (!brandId) {
     return (
-      <div className="min-h-screen bg-white px-6 py-8 md:px-10">
+      <div className="min-h-screen bg-[#F8FAF7] dark:bg-gray-900 px-6 py-8 md:px-10">
         <div className="mx-auto max-w-6xl">
-          <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6">
             <p className="text-sm text-gray-500">
               No brand is linked to your account yet. Please complete onboarding first.
             </p>
@@ -103,9 +103,9 @@ const BrandPage = ({ brandId: brandIdProp }) => {
   // ── Fetching brand data ──
   if (loading) {
     return (
-      <div className="min-h-screen bg-white px-6 py-8 md:px-10">
+      <div className="min-h-screen bg-[#F8FAF7] dark:bg-gray-900 px-6 py-8 md:px-10">
         <div className="mx-auto max-w-6xl">
-          <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6">
             <p className="text-sm text-gray-400">Loading brand details…</p>
           </div>
         </div>
@@ -116,15 +116,15 @@ const BrandPage = ({ brandId: brandIdProp }) => {
   // ── Fetch failed ──
   if (error) {
     return (
-      <div className="min-h-screen bg-white px-6 py-8 md:px-10">
+      <div className="min-h-screen  dark:bg-gray-900 px-6 py-8 md:px-10">
         <div className="mx-auto max-w-6xl">
-          <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6">
             <p className="text-sm text-red-500">
               Couldn't load brand data: {error}
             </p>
             <button
               onClick={reload}
-              className="mt-3 inline-flex items-center rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+              className="mt-3 inline-flex items-center rounded-xl px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             >
               Try again
             </button>
@@ -137,9 +137,9 @@ const BrandPage = ({ brandId: brandIdProp }) => {
   // ── No data returned (shouldn't normally happen if brandId is valid) ──
   if (!brand) {
     return (
-      <div className="min-h-screen bg-white px-6 py-8 md:px-10">
+      <div className="min-h-screen bg-[#F8FAF7] dark:bg-gray-900 px-6 py-8 md:px-10">
         <div className="mx-auto max-w-6xl">
-          <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6">
             <p className="text-sm text-gray-500">No brand data found.</p>
           </div>
         </div>
@@ -150,7 +150,7 @@ const BrandPage = ({ brandId: brandIdProp }) => {
   // ── Real data loaded successfully ──
   return (
     <div>
-      <div className="min-h-screen bg-white px-6 py-8 md:px-10">
+      <div className="min-h-screen bg-[#F8FAF7] dark:bg-gray-900 px-6 py-8 md:px-10">
         <div className="mx-auto max-w-6xl">
           <BrandHeader
             brandName={brand.brandName}

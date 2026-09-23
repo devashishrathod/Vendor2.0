@@ -18,10 +18,10 @@ export default function VoucherRevenueChart({ revenueWeekly }) {
   }));
 
   return (
-    <section className="rounded-xl border border-gray-200 bg-white p-5">
+    <section className="rounded-xl bg-white dark:bg-gray-800 p-5">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-sm font-semibold text-gray-900">
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
             Revenue Generated Analysis
           </h2>
           <p className="mt-1 text-xs text-gray-500">

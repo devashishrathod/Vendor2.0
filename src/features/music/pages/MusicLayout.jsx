@@ -1,6 +1,5 @@
 import { Outlet } from "react-router-dom";
-import BottomPlayer from "../components/BottomPlayer";
-import { usePlayer } from "../hooks/usePlayer";
+import { useOutletContext } from "react-router-dom";
 
 /**
  * MusicLayout
@@ -10,12 +9,11 @@ import { usePlayer } from "../hooks/usePlayer";
  * because you opened an album. Child routes read it via useOutletContext().
  */
 export default function MusicLayout() {
-  const player = usePlayer();
+  const { player } = useOutletContext();
 
   return (
     <>
       <Outlet context={{ player }} />
-      <BottomPlayer player={player} />
     </>
   );
 }

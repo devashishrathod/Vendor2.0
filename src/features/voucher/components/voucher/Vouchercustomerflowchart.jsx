@@ -16,10 +16,10 @@ export default function VoucherCustomerFlowChart({ customerFlowWeekly }) {
   }));
 
   return (
-    <section className="rounded-xl border border-gray-200 bg-white p-5">
+    <section className="rounded-xl bg-white dark:bg-gray-800 p-5">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-sm font-semibold text-gray-900">Customer Flow Analysis</h2>
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Customer Flow Analysis</h2>
           <p className="mt-1 text-xs text-gray-500">
             Vendor Customer Flow Analysis shows how customers interact with a vendor
             listing from first view to final conversion.

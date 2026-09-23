@@ -1,13 +1,13 @@
 export default function SummaryRow({ label, value, muted, accent, strike, sub }) {
   return (
-    <div className="border-b border-gray-100 pb-4">
+    <div className="pb-4">
       <div className="flex items-center justify-between">
-        <span className={`text-sm ${muted ? "text-gray-500" : "text-gray-700"}`}>
+        <span className={`text-sm ${muted ? "text-gray-500" : "text-gray-700 dark:text-gray-300"}`}>
           {label}
         </span>
         <span
           className={`text-sm font-semibold ${strike ? "line-through" : ""} ${
-            muted ? "text-gray-500" : accent ? "text-teal-600" : "text-gray-800"
+            muted ? "text-gray-500" : accent ? "text-teal-600" : "text-gray-800 dark:text-gray-100"
           }`}
         >
           {value}

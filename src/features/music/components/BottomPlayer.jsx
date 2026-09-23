@@ -27,7 +27,7 @@ export default function BottomPlayer({ player }) {
   if (!activeSong) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 shadow-[0_-4px_16px_rgba(0,0,0,0.05)] z-40">
+    <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 shadow-[0_-4px_16px_rgba(0,0,0,0.05)] z-40">
       <audio ref={audioRef} src={activeSong.src} preload="metadata" />
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2.5 flex items-center gap-4">
@@ -35,7 +35,7 @@ export default function BottomPlayer({ player }) {
         <div className="flex items-center gap-3 min-w-0 w-40 sm:w-64 flex-shrink-0">
           <MiniWave isPlaying={isPlaying} />
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-gray-900 truncate">{activeSong.title}</p>
+            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{activeSong.title}</p>
             <p className="text-xs text-gray-400 truncate">{activeSong.subtitle}</p>
           </div>
         </div>
@@ -54,7 +54,7 @@ export default function BottomPlayer({ player }) {
           <div className="flex items-center justify-center gap-4 mb-1">
             <button
               onClick={toggleShuffle}
-              className={`transition-colors ${isShuffle ? "text-emerald-500" : "text-gray-400 hover:text-gray-600"}`}
+              className={`transition-colors ${isShuffle ? "text-emerald-500" : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"}`}
               aria-label="Toggle shuffle"
               aria-pressed={isShuffle}
             >
@@ -62,7 +62,7 @@ export default function BottomPlayer({ player }) {
             </button>
             <button
               onClick={() => playAt(activeIndex - 1)}
-              className="text-gray-500 hover:text-gray-800 transition-colors"
+              className="text-gray-500 hover:text-gray-800 dark:hover:text-gray-100 transition-colors"
               aria-label="Previous song"
             >
               <SkipBack size={17} />
@@ -76,14 +76,14 @@ export default function BottomPlayer({ player }) {
             </button>
             <button
               onClick={() => playAt(activeIndex + 1)}
-              className="text-gray-500 hover:text-gray-800 transition-colors"
+              className="text-gray-500 hover:text-gray-800 dark:hover:text-gray-100 transition-colors"
               aria-label="Next song"
             >
               <SkipForward size={17} />
             </button>
             <button
               onClick={toggleRepeat}
-              className={`transition-colors ${isRepeat ? "text-emerald-500" : "text-gray-400 hover:text-gray-600"}`}
+              className={`transition-colors ${isRepeat ? "text-emerald-500" : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"}`}
               aria-label="Toggle repeat"
               aria-pressed={isRepeat}
             >
@@ -96,7 +96,7 @@ export default function BottomPlayer({ player }) {
               {formatTime(currentTime)}
             </span>
             <div
-              className="flex-1 h-1 bg-gray-100 rounded-full cursor-pointer"
+              className="flex-1 h-1 bg-gray-100 dark:bg-gray-700 rounded-full cursor-pointer"
               onClick={(e) => {
                 const rect = e.currentTarget.getBoundingClientRect();
                 const pct = ((e.clientX - rect.left) / rect.width) * 100;
@@ -114,7 +114,7 @@ export default function BottomPlayer({ player }) {
 
         {/* Volume */}
         <div className="hidden md:flex items-center gap-2 w-28 flex-shrink-0">
-          <button onClick={toggleMute} className="text-gray-400 hover:text-gray-700 transition-colors" aria-label="Toggle mute">
+          <button onClick={toggleMute} className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors" aria-label="Toggle mute">
             {isMuted || volume === 0 ? <VolumeX size={16} /> : <Volume2 size={16} />}
           </button>
           <input
@@ -131,7 +131,7 @@ export default function BottomPlayer({ player }) {
 
         <button
           type="button"
-          className="hidden lg:flex items-center justify-center text-gray-400 hover:text-gray-700 flex-shrink-0 transition-colors"
+          className="hidden lg:flex items-center justify-center text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 flex-shrink-0 transition-colors"
           aria-label="Queue"
         >
           <ListMusic size={17} />

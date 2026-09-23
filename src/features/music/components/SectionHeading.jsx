@@ -2,7 +2,7 @@ export default function SectionHeading({ title, subtitle, viewAllLabel = "View A
   return (
     <div className="flex items-start justify-between mb-3 gap-3">
       <div>
-        <h3 className="text-sm font-bold text-gray-900">{title}</h3>
+        <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">{title}</h3>
         {subtitle && <p className="text-xs text-gray-400 mt-0.5">{subtitle}</p>}
       </div>
       {onToggleViewAll && (

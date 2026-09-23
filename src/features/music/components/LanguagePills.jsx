@@ -10,7 +10,7 @@ export default function LanguagePills({ languages, onSelect }) {
     <section className="mb-8">
       <div className="flex items-start justify-between mb-3 gap-3">
         <div>
-          <h3 className="text-sm font-bold text-gray-900">Choose Language</h3>
+          <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">Choose Language</h3>
           <p className="text-xs text-gray-400 mt-0.5">Browse music in your preferred language</p>
         </div>
       </div>
@@ -21,7 +21,7 @@ export default function LanguagePills({ languages, onSelect }) {
             key={lang.id}
             type="button"
             onClick={() => onSelect(lang)}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-1.5 rounded-full border bg-white border-gray-200 text-gray-600 hover:border-emerald-200 hover:text-emerald-600 transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-1.5 rounded-full bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:text-emerald-600 transition-colors"
           >
             <Music size={12} /> {lang.label}
           </button>

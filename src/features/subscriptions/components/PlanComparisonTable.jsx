@@ -145,8 +145,8 @@ export default function PlanComparisonTable({ plans = [], selectedId, loading = 
   if (loading) {
     return (
       <div className="mt-12">
-        <div className="h-8 w-64 bg-gray-100 rounded mx-auto mb-8 animate-pulse" />
-        <div className="h-64 bg-gray-50 rounded-2xl border border-gray-100 animate-pulse" />
+        <div className="h-8 w-64 bg-gray-100 dark:bg-gray-700 rounded mx-auto mb-8 animate-pulse" />
+        <div className="h-64 bg-gray-50 dark:bg-gray-700 rounded-2xl animate-pulse" />
       </div>
     );
   }
@@ -176,18 +176,18 @@ export default function PlanComparisonTable({ plans = [], selectedId, loading = 
 
   return (
     <div className="mt-12">
-      <h2 className="text-3xl font-bold text-gray-900 text-center mb-1">Plan Comparison</h2>
+      <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100 text-center mb-1">Plan Comparison</h2>
       <p className="text-sm text-gray-400 text-center mb-8">
         Compare different plans and select the one that fits your requirements best.
       </p>
 
-      <div className="bg-gray-50 rounded-2xl overflow-hidden border border-gray-100 overflow-x-auto">
+      <div className="bg-gray-50 dark:bg-gray-700 rounded-2xl overflow-hidden overflow-x-auto">
         {/* Header row */}
         <div className="grid px-6 py-5 min-w-[640px]" style={gridTemplate}>
           <div />
           {plans.map((plan) => (
             <div key={plan.id} className="text-center">
-              <p className={`text-sm font-bold ${selectedId === plan.id ? "text-violet-600" : "text-gray-800"}`}>
+              <p className={`text-sm font-bold ${selectedId === plan.id ? "text-violet-600" : "text-gray-800 dark:text-gray-100"}`}>
                 {plan.label}
               </p>
               <p className={`text-xs mt-1 font-semibold ${selectedId === plan.id ? "text-violet-500" : "text-gray-400"}`}>
@@ -206,15 +206,15 @@ export default function PlanComparisonTable({ plans = [], selectedId, loading = 
           featureTitles.map((title, i) => (
             <div
               key={title}
-              className={`grid px-6 py-4 items-center min-w-[640px] ${i % 2 === 0 ? "bg-white" : "bg-gray-50"}`}
+              className={`grid px-6 py-4 items-center min-w-[640px] ${i % 2 === 0 ? "bg-white dark:bg-gray-800" : "bg-gray-50 dark:bg-gray-700"}`}
               style={gridTemplate}
             >
               {/* Feature name */}
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+                <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
                   <FeatureIcon name={iconForTitle(title)} />
                 </div>
-                <span className="text-sm font-medium text-gray-700">{title}</span>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{title}</span>
               </div>
 
               {/* Value per plan */}
@@ -238,7 +238,7 @@ export default function PlanComparisonTable({ plans = [], selectedId, loading = 
                     ) : (
                       <span
                         className={`text-sm font-medium ${
-                          plan.id === selectedId ? "text-violet-600 font-semibold" : "text-gray-600"
+                          plan.id === selectedId ? "text-violet-600 font-semibold" : "text-gray-600 dark:text-gray-300"
                         }`}
                       >
                         {feature.value}

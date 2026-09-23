@@ -420,9 +420,9 @@ const InvalidTick = () => (
 
 // ─── Border class ─────────────────────────────────────────────────────────────
 function borderClass(touched, isValid) {
-  if (!touched) return "border-gray-200 focus:border-emerald-300 focus:ring-2 focus:ring-emerald-50";
-  if (isValid)  return "border-emerald-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50";
-  return "border-red-200 bg-red-50/30 focus:border-red-300 focus:ring-2 focus:ring-red-50";
+  if (!touched) return "focus:ring-2 focus:ring-emerald-50";
+  if (isValid) return "focus:ring-2 focus:ring-emerald-50";
+  return "bg-red-50/30 focus:ring-2 focus:ring-red-50";
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -431,29 +431,30 @@ function borderClass(touched, isValid) {
 export default function Input({
   // Label
   label,
-  required  = false,
-  optional  = false,
+  description,
+  required = false,
+  optional = false,
 
   // Value & handlers
   placeholder,
-  value      = "",
+  value = "",
   onChange,
   onFocus,
   onBlur,
   onKeyDown,
 
   // Input behaviour
-  type       = "text",
+  type = "text",
   inputMode,
   maxLength,
   minLength,
-  disabled   = false,
-  mono       = false,
-  uppercase  = false,
+  disabled = false,
+  mono = false,
+  uppercase = false,
 
   // Validation
-  touched    = false,
-  isValid    = false,
+  touched = false,
+  isValid = false,
 
   // Messages
   errorMsg,
@@ -464,8 +465,8 @@ export default function Input({
   icon,
 
   // Eye toggle
-  showEyeToggle  = false,
-  revealed       = false,
+  showEyeToggle = false,
+  revealed = false,
   onToggleReveal,
 
   // Extra wrapper class
@@ -473,8 +474,8 @@ export default function Input({
 }) {
   const [focused, setFocused] = useState(false);
 
-  const handleFocus = (e) => { setFocused(true);  onFocus?.(e); };
-  const handleBlur  = (e) => { setFocused(false); onBlur?.(e);  };
+  const handleFocus = (e) => { setFocused(true); onFocus?.(e); };
+  const handleBlur = (e) => { setFocused(false); onBlur?.(e); };
 
   const resolvedIcon =
     typeof icon === "string" ? (ICONS[icon] ?? null) : (icon ?? null);
@@ -483,32 +484,32 @@ export default function Input({
   const prClass = showEyeToggle ? "pr-10" : touched ? "pr-9" : "pr-3";
 
   // ─── Char counter logic ───────────────────────────────────────────────────
-  const len         = typeof value === "string" ? value.length : 0;
-  const remaining   = minLength ? Math.max(0, minLength - len) : 0;
+  const len = typeof value === "string" ? value.length : 0;
+  const remaining = minLength ? Math.max(0, minLength - len) : 0;
   const showCounter = !!(minLength || maxLength);
 
   // "7 / 10" — right side mein dikhega
   const counterText = (() => {
     if (!touched || len === 0) {
       if (minLength === maxLength) return `0 / ${minLength}`;
-      if (minLength && maxLength)  return `0 / ${minLength}–${maxLength}`;
-      if (minLength)               return `0 / ${minLength}`;
-      if (maxLength)               return `0 / ${maxLength}`;
+      if (minLength && maxLength) return `0 / ${minLength}–${maxLength}`;
+      if (minLength) return `0 / ${minLength}`;
+      if (maxLength) return `0 / ${maxLength}`;
       return "";
     }
     const total =
       minLength === maxLength ? minLength
-      : remaining > 0         ? minLength
-      : maxLength             ? maxLength
-      : minLength;
+        : remaining > 0 ? minLength
+          : maxLength ? maxLength
+            : minLength;
     return `${len} / ${total}`;
   })();
 
   const counterColor =
     !touched || len === 0 ? "text-gray-300"
-    : isValid             ? "text-emerald-500"
-    : remaining > 0       ? "text-amber-600"
-    :                       "text-red-400";
+      : isValid ? "text-emerald-500"
+        : remaining > 0 ? "text-amber-600"
+          : "text-red-400";
 
   // Dynamic error message — "3 more characters needed" override
   const resolvedErrorMsg =
@@ -521,7 +522,7 @@ export default function Input({
 
       {/* ── Label ── */}
       {label && (
-        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+        <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-0.5 leading-tight flex items-center gap-1.5">
           {label}
           {required && <span className="text-red-400">*</span>}
           {optional && (
@@ -530,6 +531,12 @@ export default function Input({
             </span>
           )}
         </label>
+      )}
+
+      {description && (
+        <p className="text-[11px] text-gray-600 mb-1.5">
+          {description}
+        </p>
       )}
 
       {/* ── Input wrapper ── */}
@@ -555,13 +562,13 @@ export default function Input({
           inputMode={inputMode}
           disabled={disabled}
           className={[
-            "w-full py-2.5 bg-white border rounded-lg text-sm font-medium text-gray-800",
+            "w-full py-2.5 bg-emerald-50 dark:bg-emerald-500/10 rounded-lg text-sm font-medium text-gray-800 dark:text-gray-100",
             plClass,
             prClass,
-            mono      ? "font-mono tracking-widest"  : "",
-            uppercase ? "uppercase"                   : "",
-            disabled  ? "opacity-50 cursor-not-allowed bg-gray-50" : "",
-            "placeholder:text-gray-300 placeholder:font-sans placeholder:tracking-normal",
+            mono ? "font-mono tracking-widest" : "",
+            uppercase ? "uppercase" : "",
+            disabled ? "opacity-50 cursor-not-allowed" : "",
+            "placeholder:text-gray-500 placeholder:font-sans placeholder:tracking-normal",
             "outline-none transition-all duration-200",
             borderClass(touched, isValid),
           ].filter(Boolean).join(" ")}

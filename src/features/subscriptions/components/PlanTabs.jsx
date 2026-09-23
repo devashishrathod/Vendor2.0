@@ -65,8 +65,10 @@
 
 import { useRef, useEffect, useState } from "react";
 import { PieIcon } from "./PlanIcons";
+import { useTheme } from "@/context/ThemeContext";
 
 export default function PlanTabs({ plans = [], selected, onChange, loading = false }) {
+  const { isDark } = useTheme();
   const containerRef = useRef(null);
   const btnRefs = useRef({});
   const [pill, setPill] = useState({ left: 0, width: 0, ready: false });
@@ -90,9 +92,9 @@ export default function PlanTabs({ plans = [], selected, onChange, loading = fal
 
   if (loading) {
     return (
-      <div className="flex items-center gap-1 w-fit mx-auto bg-gray-50 border border-gray-200 rounded-2xl p-1.5">
+      <div className="flex items-center gap-1 w-fit mx-auto bg-gray-50 dark:bg-gray-700 rounded-2xl p-1.5">
         {[0, 1, 2].map((i) => (
-          <div key={i} className="h-9 w-28 rounded-xl bg-gray-100 animate-pulse" />
+          <div key={i} className="h-9 w-28 rounded-xl bg-gray-100 dark:bg-gray-700 animate-pulse" />
         ))}
       </div>
     );
@@ -107,11 +109,11 @@ export default function PlanTabs({ plans = [], selected, onChange, loading = fal
   return (
     <div
       ref={containerRef}
-      className="relative flex items-center bg-gray-50 border border-gray-200 rounded-2xl p-1.5 gap-1 w-fit mx-auto"
+      className="relative flex items-center bg-gray-50 dark:bg-gray-700 rounded-2xl p-1.5 gap-1 w-fit mx-auto"
     >
       {pill.ready && (
         <div
-          className="absolute top-1.5 bottom-1.5 rounded-xl shadow-sm pointer-events-none bg-white"
+          className="absolute top-1.5 bottom-1.5 rounded-xl shadow-sm pointer-events-none bg-white dark:bg-gray-800"
           style={{
             width: pill.width,
             transform: `translateX(${pill.left}px)`,
@@ -133,9 +135,9 @@ export default function PlanTabs({ plans = [], selected, onChange, loading = fal
             onClick={() => onChange(plan.id)}
             className={`relative z-10 flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold select-none
               transition-colors duration-200
-              ${isActive ? "text-black" : "text-gray-400 hover:text-gray-600"}`}
+              ${isActive ? "text-black dark:text-gray-100" : "text-gray-400 hover:text-gray-600"}`}
           >
-            <PieIcon fill={iconFill} active={isActive} size={22} />
+            <PieIcon fill={iconFill} active={isActive} size={22} isDark={isDark} />
             {plan.label}
           </button>
         );

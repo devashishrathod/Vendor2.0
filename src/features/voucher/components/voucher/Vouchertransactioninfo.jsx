@@ -43,7 +43,7 @@ function SummaryStat({ label, value, valueClassName = "" }) {
     return (
         <div className="flex flex-col gap-1 px-4 first:pl-0 last:pr-0">
             <span className="text-xs text-gray-500">{label}</span>
-            <span className={`text-base font-semibold text-gray-900 ${valueClassName}`}>
+            <span className={`text-base font-semibold text-gray-900 dark:text-gray-100 ${valueClassName}`}>
                 {value}
             </span>
         </div>
@@ -64,7 +64,7 @@ export default function VoucherTransactionInfo({
         return transactions.filter((row) => {
             const matchesFilter = activeFilter === "All" || row.storeType === activeFilter;
             const matchesSearch = search
-                ? [row.customerName, row.customerId, row.orderId, row.outletName]
+                ? [row.customerName, row.customerId, row.voucherVersionId, row.orderId, row.outletName]
                     .join(" ")
                     .toLowerCase()
                     .includes(search.toLowerCase())
@@ -82,20 +82,20 @@ export default function VoucherTransactionInfo({
     return (
         <div className="space-y-4">
             {/* Key Summary heading */}
-            <div className=" border-b border-gray-200 pb-4">
-                <h2 className="text-sm font-semibold text-gray-900">Key Summary</h2>
+            <div className=" pb-4">
+                <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Key Summary</h2>
                 <p className="text-xs text-gray-500">
                     Shows the key details and status of a product key in one place
                 </p>
             </div>
 
             {/* Toolbar */}
-            <div className="flex flex-wrap items-center justify-between gap-3   border-b border-gray-200 pb-4 text-xs text-gray-500">
+            <div className="flex flex-wrap items-center justify-between gap-3   pb-4 text-xs text-gray-500">
                 <span>
                     Payment Transaction History{voucherTitle ? ` / ${voucherTitle}` : ""}
                 </span>
                 <div className="flex items-center gap-2">
-                    <button className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 hover:bg-gray-50">
+                    <button className="flex items-center gap-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 px-3 py-1.5 hover:bg-gray-200 dark:hover:bg-gray-600">
                         <Calendar className="h-3.5 w-3.5" />
                         Filter by date
                     </button>
@@ -106,11 +106,11 @@ export default function VoucherTransactionInfo({
                 </div>
             </div>
 
-            <section className="rounded-xl bg-white p-5">
+            <section className="rounded-xl bg-white dark:bg-gray-800 p-5">
 
 
                 {/* Summary stats */}
-                <div className="flex flex-wrap items-center justify-between border-t border-gray-200 gap-y-4 divide-x divide-gray-100 py-4">
+                <div className="flex flex-wrap items-center justify-between gap-y-4 divide-x divide-gray-100 dark:divide-gray-700 py-4">
                     <SummaryStat
                         label="Overall Earnings"
                         value={formatCurrency(summary.overallEarnings)}
@@ -137,10 +137,10 @@ export default function VoucherTransactionInfo({
                 </div>
 
                 {/* Rows per page + pagination */}
-                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 py-4">
+                <div className="flex flex-wrap items-center justify-between gap-3 py-4">
                     <div className="flex items-center gap-2 text-sm text-gray-500">
                         <span>Rows per page:</span>
-                        <div className="flex overflow-hidden rounded-lg border border-gray-200">
+                        <div className="flex items-center gap-1 rounded-lg bg-gray-100 dark:bg-gray-700 p-1">
                             {ROWS_PER_PAGE_OPTIONS.map((option) => (
                                 <button
                                     key={option}
@@ -148,9 +148,9 @@ export default function VoucherTransactionInfo({
                                         setRowsPerPage(option);
                                         setPage(1);
                                     }}
-                                    className={`px-3 py-1.5 text-sm ${rowsPerPage === option
+                                    className={`rounded-md px-3 py-1.5 text-sm ${rowsPerPage === option
                                         ? "bg-emerald-600 text-white"
-                                        : "bg-white text-gray-600 hover:bg-gray-50"
+                                        : "text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
                                         }`}
                                 >
                                     {option}
@@ -163,7 +163,7 @@ export default function VoucherTransactionInfo({
                         <button
                             onClick={() => setPage((p) => Math.max(1, p - 1))}
                             disabled={page <= 1}
-                            className="rounded-md p-1.5 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+                            className="rounded-md p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-40"
                         >
                             <ChevronLeft className="h-4 w-4" />
                         </button>
@@ -171,7 +171,7 @@ export default function VoucherTransactionInfo({
                             <button
                                 key={p}
                                 onClick={() => setPage(p)}
-                                className={`h-7 w-7 rounded-md text-sm ${p === page ? "bg-emerald-600 text-white" : "hover:bg-gray-100"
+                                className={`h-7 w-7 rounded-md text-sm ${p === page ? "bg-emerald-600 text-white" : "hover:bg-gray-100 dark:hover:bg-gray-700"
                                     }`}
                             >
                                 {p}
@@ -180,7 +180,7 @@ export default function VoucherTransactionInfo({
                         <button
                             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                             disabled={page >= totalPages}
-                            className="rounded-md p-1.5 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+                            className="rounded-md p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-40"
                         >
                             <ChevronRight className="h-4 w-4" />
                         </button>
@@ -188,8 +188,8 @@ export default function VoucherTransactionInfo({
                 </div>
 
                 {/* Filter tabs + search */}
-                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 py-4">
-                    <div className="flex overflow-hidden rounded-lg border border-gray-200">
+                <div className="flex flex-wrap items-center justify-between gap-3 py-4">
+                    <div className="flex items-center gap-1 rounded-lg bg-gray-100 dark:bg-gray-700 p-1">
                         {FILTER_TABS.map((tab) => (
                             <button
                                 key={tab}
@@ -197,9 +197,9 @@ export default function VoucherTransactionInfo({
                                     setActiveFilter(tab);
                                     setPage(1);
                                 }}
-                                className={`px-4 py-1.5 text-sm font-medium ${activeFilter === tab
+                                className={`rounded-md px-4 py-1.5 text-sm font-medium ${activeFilter === tab
                                     ? "bg-gray-900 text-white"
-                                    : "bg-white text-gray-600 hover:bg-gray-50"
+                                    : "text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
                                     }`}
                             >
                                 {tab}
@@ -207,7 +207,7 @@ export default function VoucherTransactionInfo({
                         ))}
                     </div>
 
-                    <div className="flex w-full max-w-sm items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-400">
+                    <div className="flex w-full max-w-sm items-center gap-2 rounded-lg bg-emerald-100 dark:bg-emerald-500/20 px-3 py-2 text-sm text-gray-400">
                         <Search className="h-4 w-4" />
                         <input
                             value={search}
@@ -216,18 +216,19 @@ export default function VoucherTransactionInfo({
                                 setPage(1);
                             }}
                             placeholder="Search Here : Customer Name & ID , Voucher Id, Outlet Details"
-                            className="w-full bg-transparent text-gray-700 outline-none placeholder:text-gray-400"
+                            className="w-full bg-transparent text-gray-700 dark:text-gray-100 outline-none placeholder:text-gray-400"
                         />
                     </div>
                 </div>
 
                 {/* Table */}
-                <div className="overflow-x-auto border-t border-gray-100">
+                <div className="overflow-x-auto no-scrollbar">
                     <table className="w-full text-left text-sm">
                         <thead>
                             <tr className="text-xs text-gray-400">
                                 <th className="whitespace-nowrap px-3 py-3 font-medium">Order Id</th>
                                 <th className="whitespace-nowrap px-3 py-3 font-medium">Customer Details</th>
+                                <th className="whitespace-nowrap px-3 py-3 font-medium">Voucher Version ID</th>
                                 <th className="whitespace-nowrap px-3 py-3 font-medium">Outlet Details</th>
                                 <th className="whitespace-nowrap px-3 py-3 font-medium">Store Type</th>
                                 <th className="whitespace-nowrap px-3 py-3 font-medium">Date & Time</th>
@@ -238,13 +239,13 @@ export default function VoucherTransactionInfo({
                         <tbody>
                             {paginatedRows.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="px-3 py-8 text-center text-gray-400">
+                                    <td colSpan={8} className="px-3 py-8 text-center text-gray-400">
                                         No transactions found.
                                     </td>
                                 </tr>
                             ) : (
                                 paginatedRows.map((row, index) => (
-                                    <tr key={`${row.orderId}-${index}`} className="border-t border-gray-50">
+                                    <tr key={`${row.orderId}-${index}`} className="">
                                         <td className="whitespace-nowrap px-3 py-3 font-medium text-emerald-600">
                                             #{row.orderId}
                                         </td>
@@ -257,19 +258,22 @@ export default function VoucherTransactionInfo({
                                                     {getInitials(row.customerName)}
                                                 </span>
                                                 <div>
-                                                    <p className="font-medium text-gray-900">{row.customerName}</p>
+                                                    <p className="font-medium text-gray-900 dark:text-gray-100">{row.customerName}</p>
                                                     <p className="text-xs text-gray-400">{row.customerId}</p>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-3 py-3 text-gray-600">
+                                        <td className="whitespace-nowrap px-3 py-3 text-gray-600 dark:text-gray-300">
+                                            {row.voucherVersionId}
+                                        </td>
+                                        <td className="px-3 py-3 text-gray-600 dark:text-gray-300">
                                             <p>{row.outletName}</p>
                                             <p className="text-xs text-gray-400">Store id: {row.storeId}</p>
                                         </td>
-                                        <td className="whitespace-nowrap px-3 py-3 text-gray-600">
+                                        <td className="whitespace-nowrap px-3 py-3 text-gray-600 dark:text-gray-300">
                                             {row.storeType}
                                         </td>
-                                        <td className="whitespace-nowrap px-3 py-3 text-gray-600">
+                                        <td className="whitespace-nowrap px-3 py-3 text-gray-600 dark:text-gray-300">
                                             <p>{row.date}</p>
                                             <p className="text-xs text-gray-400">{row.time}</p>
                                         </td>
@@ -281,7 +285,7 @@ export default function VoucherTransactionInfo({
                                                 {row.status}
                                             </span>
                                         </td>
-                                        <td className="whitespace-nowrap px-3 py-3 font-medium text-gray-900">
+                                        <td className="whitespace-nowrap px-3 py-3 font-medium text-gray-900 dark:text-gray-100">
                                             {formatCurrency(row.amount)}
                                         </td>
                                     </tr>

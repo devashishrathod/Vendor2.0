@@ -28,13 +28,13 @@ export default function ErrorModal({ error, onDismiss, onRetry, duration = 10000
         role="alert"
         className="fixed top-6 right-6 z-[9999]
                    max-w-[380px] w-[calc(100vw-48px)]
-                   bg-white border border-red-100
+                   bg-white
                    rounded-2xl px-4 py-3.5
                    flex items-start gap-3
                    shadow-[0_8px_32px_-4px_rgba(239,68,68,0.18),0_4px_16px_rgba(0,0,0,0.08)]"
         style={{ animation: "toastIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)" }}
       >
-        <div className="w-9 h-9 rounded-xl bg-red-100 border border-red-200 flex items-center justify-center shrink-0">
+        <div className="w-9 h-9 rounded-xl bg-red-100 flex items-center justify-center shrink-0">
           <svg className="w-4 h-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path
               strokeLinecap="round"
@@ -64,7 +64,7 @@ export default function ErrorModal({ error, onDismiss, onRetry, duration = 10000
         <button
           onClick={onDismiss}
           aria-label="Dismiss"
-          className="bg-transparent border-none cursor-pointer p-1 leading-none
+          className="bg-transparent cursor-pointer p-1 leading-none
                      text-gray-400 rounded-full shrink-0
                      transition-colors hover:bg-red-50 hover:text-red-500"
         >

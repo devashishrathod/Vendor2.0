@@ -15,7 +15,7 @@ export default function CollectionDetail({
     <div className="mb-8">
       <button
         onClick={onBack}
-        className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors mb-4"
+        className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 dark:hover:text-gray-100 transition-colors mb-4"
       >
         <ArrowLeft size={16} /> Back
       </button>
@@ -38,27 +38,27 @@ export default function CollectionDetail({
         </button>
       </div>
 
-      <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden">
         {collection.songs.map((song, i) => {
           const isActive = activeSong?.id === song.id;
           return (
             <div
               key={song.id}
               onClick={() => onPlaySong(collection, i)}
-              className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors border-b border-gray-50 last:border-b-0 ${
-                isActive ? "bg-emerald-50" : "hover:bg-gray-50"
+              className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors ${
+                isActive ? "bg-emerald-50 dark:bg-emerald-500/10" : "hover:bg-gray-50 dark:hover:bg-gray-700"
               }`}
             >
               <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0">
                 {isActive && isPlaying ? (
-                  <Pause size={14} className="text-emerald-600" fill="currentColor" />
+                  <Pause size={14} className="text-emerald-600 dark:text-emerald-400" fill="currentColor" />
                 ) : (
-                  <Play size={14} className={isActive ? "text-emerald-600" : "text-gray-400"} fill="currentColor" />
+                  <Play size={14} className={isActive ? "text-emerald-600 dark:text-emerald-400" : "text-gray-400"} fill="currentColor" />
                 )}
               </div>
 
               <div className="min-w-0 flex-1">
-                <p className={`text-sm font-medium truncate ${isActive ? "text-emerald-700" : "text-gray-800"}`}>
+                <p className={`text-sm font-medium truncate ${isActive ? "text-emerald-700 dark:text-emerald-400" : "text-gray-800 dark:text-gray-100"}`}>
                   {song.title}
                 </p>
                 <p className="text-xs text-gray-400 truncate">{song.subtitle}</p>

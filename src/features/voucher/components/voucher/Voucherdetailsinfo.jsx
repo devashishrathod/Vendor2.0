@@ -8,7 +8,7 @@
 
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Tag, Store, Search, Image as ImageIcon, Percent, History } from "lucide-react";
+import { Tag, Store, Search, Image as ImageIcon, Percent, History, X, ZoomIn, Clock, AlertTriangle } from "lucide-react";
 import { useOnboardingStore } from "../../../onboarding/store/onboardingStore";
 import { useAuthStore } from "../../../onboarding/store/authStore";
 import useBrandData from "../../../brand/hooks/useBrandData";
@@ -39,13 +39,13 @@ function formatDiscount(offer) {
 // heading floating directly on the white background.
 function SectionCard({ icon: Icon, iconBg = "bg-emerald-50", iconText = "text-emerald-500", title, subtitle, children }) {
   return (
-    <section className="bg-white border border-gray-100 rounded-2xl p-5 sm:p-6">
+    <section className="bg-white dark:bg-gray-800 rounded-2xl p-5 sm:p-6">
       <div className="flex items-center gap-3 mb-1">
         <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${iconBg} ${iconText}`}>
           <Icon className="w-4 h-4" />
         </div>
         <div>
-          <h2 className="text-sm font-bold text-gray-900">{title}</h2>
+          <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100">{title}</h2>
           {subtitle && <p className="text-xs text-gray-400 mt-0.5">{subtitle}</p>}
         </div>
       </div>
@@ -57,14 +57,50 @@ function SectionCard({ icon: Icon, iconBg = "bg-emerald-50", iconText = "text-em
 function Field({ label, value, action }) {
   return (
     <div className="min-w-0">
-      <p className="text-xs font-semibold text-gray-900 mb-1">{label}</p>
-      <p className="text-sm text-gray-900 break-all">{value ?? NOT_FOUND}</p>
+      <p className="text-xs font-semibold text-gray-900 dark:text-gray-100 mb-1">{label}</p>
+      <p className="text-sm text-gray-900 dark:text-gray-100 break-all">{value ?? NOT_FOUND}</p>
       {action && <div className="mt-1 flex items-center gap-1.5">{action}</div>}
     </div>
   );
 }
 
-function ReviewStep({ label, at, by, colorClass = "text-gray-900" }) {
+// Full-size click-to-view modal for the Banner & Gallery thumbnails —
+// read-only preview (no replace/delete/edit, unlike the brand Showcase
+// media modals), just so a vendor can see the actual voucher image clearly.
+function ImageViewModal({ src, label, kind, onClose }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4"
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full max-w-2xl overflow-hidden rounded-2xl bg-white dark:bg-gray-800"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-end p-3">
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="flex h-7 w-7 items-center justify-center rounded-full text-gray-500 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
+          >
+            <X size={16} />
+          </button>
+        </div>
+        <div className="flex justify-center bg-gray-50 dark:bg-gray-700 p-5">
+          {kind === "VIDEO" ? (
+            <video src={src} controls className="max-h-[70vh] rounded-xl" />
+          ) : (
+            <img src={src} alt={label || "Voucher image"} className="max-h-[70vh] rounded-xl object-contain" />
+          )}
+        </div>
+        {label && <p className="px-4 py-3 text-center text-xs text-gray-500">{label}</p>}
+      </div>
+    </div>
+  );
+}
+
+function ReviewStep({ label, at, by, colorClass = "text-gray-900 dark:text-gray-100" }) {
   if (!at) return null;
   return (
     <div>
@@ -77,6 +113,7 @@ function ReviewStep({ label, at, by, colorClass = "text-gray-900" }) {
 
 export default function VoucherDetailsInfo({ voucher }) {
   const navigate = useNavigate();
+  const [viewImage, setViewImage] = useState(null); // { src, label } | null — Banner & Gallery "view" modal
 
   // Same brandId-resolution pattern as useVoucher.js — needed to fetch
   // this brand's real sub-brand/outlet counts for the "Which Outlet
@@ -114,8 +151,17 @@ export default function VoucherDetailsInfo({ voucher }) {
 
   if (!voucher) return null;
 
-  const bannerUrl =
-    voucher.voucher?.banner?.type === "IMAGE" ? voucher.voucher?.banner?.image?.url : null;
+  // Confirmed shape (vendor_panel_api_doc.md #59, V-4): banner is
+  // { current, pending, status, rejectionReason, reviewedBy, reviewedAt }.
+  // `current` is whatever's actually live/approved right now; a newly
+  // submitted banner sits in `pending` under admin review and never
+  // replaces `current` until approved.
+  const bannerInfo = voucher.voucher?.banner;
+  const currentBanner = bannerInfo?.current;
+  const pendingBanner = bannerInfo?.status === "PENDING" ? bannerInfo?.pending : null;
+  const bannerRejected = bannerInfo?.status === "REJECTED";
+  const bannerUrl = currentBanner?.url || null;
+  const bannerKind = currentBanner?.kind;
   const images = Array.isArray(voucher.images) ? voucher.images : [];
   const offers = Array.isArray(voucher.offers) ? voucher.offers : [];
   const tags = Array.isArray(voucher.tags) ? voucher.tags : [];
@@ -127,7 +173,7 @@ export default function VoucherDetailsInfo({ voucher }) {
   return (
     <div className="space-y-4">
       {/* Voucher Information */}
-      <SectionCard icon={Tag} iconBg="bg-emerald-50" iconText="text-emerald-500" title="Voucher Information">
+      <SectionCard icon={Tag} iconBg="bg-emerald-50 dark:bg-emerald-500/10" iconText="text-emerald-500 dark:text-emerald-400" title="Voucher Information">
         <div className="grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-4">
           <Field
             label="Voucher Id"
@@ -137,6 +183,10 @@ export default function VoucherDetailsInfo({ voucher }) {
                 Edit Voucher
               </button>
             }
+          />
+          <Field
+            label="Voucher Version Id"
+            value={voucher.versionid || NOT_FOUND}
           />
           <Field label="Voucher Name" value={voucher.name} />
           <Field label="Published Date" value={formatDate(voucher.startAt)} />
@@ -185,8 +235,8 @@ export default function VoucherDetailsInfo({ voucher }) {
       {/* Search Tag */}
       <SectionCard
         icon={Search}
-        iconBg="bg-emerald-50"
-        iconText="text-emerald-500"
+        iconBg="bg-emerald-50 dark:bg-emerald-500/10"
+        iconText="text-emerald-500 dark:text-emerald-400"
         title="Search Tag"
         subtitle="Keywords that help users quickly find this item. Add keywords to improve search visibility."
       >
@@ -204,16 +254,58 @@ export default function VoucherDetailsInfo({ voucher }) {
       </SectionCard>
 
       {/* Banner & Gallery */}
-      {(bannerUrl || images.length > 0) && (
+      {(bannerUrl || pendingBanner || bannerRejected || images.length > 0) && (
         <SectionCard icon={ImageIcon} iconBg="bg-amber-50" iconText="text-amber-500" title="Banner & Gallery">
+          {pendingBanner && (
+            <div className="mb-4 flex items-start gap-3 rounded-xl bg-amber-50 dark:bg-amber-500/10 px-3.5 py-3">
+              <Clock size={16} className="mt-0.5 shrink-0 text-amber-500" />
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold text-amber-700 dark:text-amber-400">Banner Pending Review</p>
+                <p className="mt-0.5 text-xs text-amber-600 dark:text-amber-400/80">
+                  Your new banner is awaiting admin approval. Customers still see the current banner until it's approved.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setViewImage({ src: pendingBanner.url, label: "Pending Banner", kind: pendingBanner.kind })}
+                className="shrink-0 overflow-hidden rounded-lg"
+              >
+                {pendingBanner.kind === "VIDEO" ? (
+                  <video src={pendingBanner.url} muted playsInline preload="metadata" className="h-12 w-12 object-cover" />
+                ) : (
+                  <img src={pendingBanner.url} alt="" className="h-12 w-12 object-cover" />
+                )}
+              </button>
+            </div>
+          )}
+          {bannerRejected && (
+            <div className="mb-4 flex items-start gap-3 rounded-xl bg-rose-50 dark:bg-rose-500/10 px-3.5 py-3">
+              <AlertTriangle size={16} className="mt-0.5 shrink-0 text-rose-500" />
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold text-rose-700 dark:text-rose-400">Banner Rejected</p>
+                <p className="mt-0.5 text-xs text-rose-600 dark:text-rose-400/80">
+                  {voucher.voucher?.banner?.rejectionReason || "Your submitted banner was rejected. Please submit a new one."}
+                </p>
+              </div>
+            </div>
+          )}
           <div className="flex flex-wrap gap-3">
             {bannerUrl && (
               <div className="relative">
-                <img
-                  src={bannerUrl}
-                  alt="Banner"
-                  className="h-24 w-24 rounded-xl border border-gray-100 object-cover"
-                />
+                <button
+                  type="button"
+                  onClick={() => setViewImage({ src: bannerUrl, label: "Banner", kind: bannerKind })}
+                  className="group block h-24 w-24 overflow-hidden rounded-xl"
+                >
+                  {bannerKind === "VIDEO" ? (
+                    <video src={bannerUrl} muted playsInline preload="metadata" className="h-full w-full object-cover" />
+                  ) : (
+                    <img src={bannerUrl} alt="Banner" className="h-full w-full object-cover" />
+                  )}
+                  <span className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/40">
+                    <ZoomIn size={18} className="text-white opacity-0 transition-opacity group-hover:opacity-100" />
+                  </span>
+                </button>
                 <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-semibold text-white">
                   Banner
                 </span>
@@ -222,13 +314,18 @@ export default function VoucherDetailsInfo({ voucher }) {
             {images
               .slice()
               .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
-              .map((img) => (
-                <img
+              .map((img, i) => (
+                <button
+                  type="button"
                   key={img._id}
-                  src={img.url}
-                  alt=""
-                  className="h-24 w-24 rounded-xl border border-gray-100 object-cover"
-                />
+                  onClick={() => setViewImage({ src: img.url, label: `Gallery Image ${i + 1}` })}
+                  className="group relative block h-24 w-24 overflow-hidden rounded-xl"
+                >
+                  <img src={img?.media?.url} alt="" className="h-full w-full object-cover" />
+                  <span className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/40">
+                    <ZoomIn size={18} className="text-white opacity-0 transition-opacity group-hover:opacity-100" />
+                  </span>
+                </button>
               ))}
           </div>
         </SectionCard>
@@ -241,7 +338,7 @@ export default function VoucherDetailsInfo({ voucher }) {
             {offers.map((offer) => (
               <div
                 key={offer._id}
-                className="rounded-xl border border-gray-100 p-4 grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4"
+                className="rounded-xl p-4 grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4"
               >
                 <Field label="Title" value={offer.title} />
                 <Field label="Discount" value={formatDiscount(offer)} />
@@ -257,7 +354,7 @@ export default function VoucherDetailsInfo({ voucher }) {
       )}
 
       {/* Review Timeline */}
-      <SectionCard icon={History} iconBg="bg-emerald-50" iconText="text-emerald-500" title="Review Timeline">
+      <SectionCard icon={History} iconBg="bg-emerald-50 dark:bg-emerald-500/10" iconText="text-emerald-500 dark:text-emerald-400" title="Review Timeline">
         <div className="grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-4">
           <ReviewStep label="Submitted" at={voucher.submittedAt} by={voucher.submittedByUser} />
           <ReviewStep label="Reviewed" at={voucher.reviewedAt} by={voucher.reviewedByUser} />
@@ -270,6 +367,10 @@ export default function VoucherDetailsInfo({ voucher }) {
           </p>
         )}
       </SectionCard>
+
+      {viewImage && (
+        <ImageViewModal src={viewImage.src} label={viewImage.label} kind={viewImage.kind} onClose={() => setViewImage(null)} />
+      )}
     </div>
   );
 }

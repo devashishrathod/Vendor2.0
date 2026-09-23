@@ -134,13 +134,19 @@ export async function deleteShowcaseSection(sectionId) {
 // @param {File[]} files
 // @param {object} [options]
 // @param {boolean} [options.isShowInVideoClips=false]
+// @param {File} [options.thumbnail] - ⚠️ NOT CONFIRMED from Postman: only
+//        `isShowInVideoClips` + `files` are documented on this endpoint.
+//        Sent as a best-effort "thumbnail" file field when provided (only
+//        meaningful alongside isShowInVideoClips: true) — verify against a
+//        real response and correct the field name here if it's wrong.
+//        (Mirrors src/features/brand/services/brandApi.js's addShowcaseMedia.)
 // @param {Record<string,string>} [options.extraFields] - e.g. a "month" tag
 //        for Ambience-style albums, if the backend accepts it per-upload.
 // @param {(percent:number)=>void} [onUploadProgress]
 export async function addShowcaseMedia(
     sectionId,
     files,
-    { isShowInVideoClips = false, extraFields = {} } = {},
+    { isShowInVideoClips = false, thumbnail = null, extraFields = {} } = {},
     onUploadProgress
 ) {
     try {
@@ -149,6 +155,7 @@ export async function addShowcaseMedia(
 
         const formData = new FormData();
         formData.append('isShowInVideoClips', String(isShowInVideoClips));
+        if (thumbnail) formData.append('thumbnail', thumbnail);
 
         Object.entries(extraFields).forEach(([key, value]) => {
             formData.append(key, value);

@@ -11,7 +11,7 @@ import {
   ChevronDown,
   CalendarDays,
   BarChart3,
-  ShoppingBag,
+  Receipt,
   Layers,
   RefreshCw,
   LineChart,
@@ -23,6 +23,7 @@ import { useOnboardingStore } from "@/features/onboarding/store/onboardingStore"
 import useBrandData from "@/features/brand/hooks/useBrandData";
 import { fetchVoucherTransactionOverview } from "@/features/transaction/services/transactionService";
 import { getVouchers } from "@/features/voucher/services/voucher/VoucherService";
+import Select from "../../../components/common/Select";
 
 // ══════════════════════════════════════════════════════════════
 // DATA GENERATION
@@ -74,26 +75,45 @@ function isWithinRange(iso, range) {
   return date >= range.from && date <= end;
 }
 
-function generateSeries(range) {
+// Real per-day aggregation of the actual voucher-claim payment rows
+// (fetchVoucherTransactionOverview, same source Recent Transactions below
+// uses) within the selected range — one bucket per calendar day, revenue/
+// transactions/refunds summed from each row's real `amount`/`status`.
+// Replaces a previous version that plotted a fabricated sine-wave trend
+// with no connection to real data — this project has no generic "orders"
+// concept at all (it's voucher redemptions), so there's nothing to
+// simulate a trend FOR without the real rows.
+function buildRealSeries(range, rows) {
   const { from, to } = range;
   const totalDays = Math.max(1, Math.round((to - from) / 86400000) + 1);
-  const arr = [];
+  const buckets = [];
   const cursor = new Date(from);
   for (let idx = 0; idx < totalDays; idx += 1) {
-    const wave = Math.sin(idx / 3) * 14 + Math.sin(idx / 9) * 7;
-    const trend = idx * (18 / totalDays); // gentle upward trend across the range
-    const spike = idx % 9 === 0 ? 12 : 0; // weekend-ish spikes
-    const value = Math.max(8, Math.round(46 + wave + trend + spike));
-    arr.push({
+    buckets.push({
       date: new Date(cursor),
       label: cursor.toLocaleDateString("en-IN", { day: "2-digit", month: "short" }),
       fullLabel: cursor.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }),
-      revenue: value * 1000, // ₹ thousands/day
-      orders: Math.round(value * 1.35),
+      revenue: 0,
+      transactions: 0,
+      refunds: 0,
     });
     cursor.setDate(cursor.getDate() + 1);
   }
-  return arr;
+  rows.forEach((row) => {
+    const iso = row.raw?.createdAt;
+    if (!iso) return;
+    const created = new Date(iso);
+    const dayStart = new Date(created.getFullYear(), created.getMonth(), created.getDate());
+    const dayIdx = Math.round((dayStart - from) / 86400000);
+    if (dayIdx < 0 || dayIdx >= buckets.length) return;
+    const amount = Number(row.raw?.amount || 0);
+    buckets[dayIdx].revenue += amount;
+    buckets[dayIdx].transactions += 1;
+    // Real Razorpay status vocabulary (see transactionService.js's
+    // mapPaymentRow comment) — "refunded" is a genuine, confirmed value.
+    if (row.raw?.status === "refunded") buckets[dayIdx].refunds += amount;
+  });
+  return buckets;
 }
 
 function summarizeVoucherDiscount(offers) {
@@ -216,13 +236,13 @@ function computeChange(series, key) {
 function PaginationBar({ page, totalPages, onChange, count }) {
   if (count === 0) return null;
   return (
-    <div className="flex items-center justify-between border-t border-gray-100 px-5 py-3">
+    <div className="flex items-center justify-between px-5 py-3">
       <span className="text-xs text-gray-400">Page {page} of {totalPages}</span>
       <div className="flex items-center gap-1">
         <button
           onClick={() => onChange(Math.max(1, page - 1))}
           disabled={page <= 1}
-          className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+          className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-40"
         >
           <ChevronLeft className="h-4 w-4" />
         </button>
@@ -231,7 +251,7 @@ function PaginationBar({ page, totalPages, onChange, count }) {
             key={p}
             onClick={() => onChange(p)}
             className={`h-7 w-7 rounded-lg text-xs font-medium transition-colors ${
-              p === page ? "bg-emerald-500 text-white" : "text-gray-500 hover:bg-gray-100"
+              p === page ? "bg-emerald-500 text-white" : "text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
             }`}
           >
             {p}
@@ -240,7 +260,7 @@ function PaginationBar({ page, totalPages, onChange, count }) {
         <button
           onClick={() => onChange(Math.min(totalPages, page + 1))}
           disabled={page >= totalPages}
-          className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+          className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-40"
         >
           <ChevronRight className="h-4 w-4" />
         </button>
@@ -255,8 +275,8 @@ function PaginationBar({ page, totalPages, onChange, count }) {
 
 const CHART_METRICS = [
   { key: "revenue", label: "Revenue" },
-  { key: "orders", label: "Orders" },
-  { key: "aov", label: "Avg. Order Value" },
+  { key: "transactions", label: "Transactions" },
+  { key: "aov", label: "Avg. Transaction Value" },
 ];
 
 export default function AnalysisReport() {
@@ -334,17 +354,29 @@ export default function AnalysisReport() {
 
   const range = RANGE_OPTIONS.find((r) => r.key === rangeKey);
   const rangeDates = useMemo(() => getRangeDates(rangeKey), [rangeKey]);
-  const series = useMemo(() => generateSeries(rangeDates), [rangeDates]);
 
-  // ── Derived KPIs (recompute whenever the date range changes) ──
+  // Every KPI/chart/status-split below is derived from this SAME
+  // range-filtered set of real rows, so the top summary and the Recent
+  // Transactions table further down always agree — matches Transactions.jsx's
+  // convention of never disagreeing with its own table.
+  const rangeTransactionRows = useMemo(
+    () => transactionRows.filter((row) => isWithinRange(row.raw?.createdAt, rangeDates)),
+    [transactionRows, rangeDates]
+  );
+  const series = useMemo(
+    () => buildRealSeries(rangeDates, rangeTransactionRows),
+    [rangeDates, rangeTransactionRows]
+  );
+
+  // ── Derived KPIs (recompute whenever the date range or real data changes) ──
   const totalRevenue = series.reduce((s, d) => s + d.revenue, 0);
-  const totalOrders = series.reduce((s, d) => s + d.orders, 0);
-  const avgOrderValue = totalOrders ? totalRevenue / totalOrders : 0;
-  const refundRate = 0.025 + (series.length % 7) * 0.0015;
-  const refundsIssued = totalRevenue * refundRate;
+  const totalTransactions = series.reduce((s, d) => s + d.transactions, 0);
+  const avgTransactionValue = totalTransactions ? totalRevenue / totalTransactions : 0;
+  const refundsIssued = series.reduce((s, d) => s + d.refunds, 0);
 
   const revenueChange = computeChange(series, "revenue");
-  const ordersChange = computeChange(series, "orders");
+  const transactionsChange = computeChange(series, "transactions");
+  const refundsChange = computeChange(series, "refunds");
 
   const STATS = [
     {
@@ -352,68 +384,87 @@ export default function AnalysisReport() {
       value: formatINR(totalRevenue),
       change: revenueChange,
       icon: BarChart3,
-      iconBg: "bg-emerald-50",
-      iconText: "text-emerald-600",
+      iconBg: "bg-emerald-50 dark:bg-emerald-500/10",
+      iconText: "text-emerald-600 dark:text-emerald-400",
       spark: "#10b981",
       sparkData: series.map((d) => d.revenue),
     },
     {
-      label: "Total Orders",
-      value: totalOrders.toLocaleString("en-IN"),
-      change: ordersChange,
-      icon: ShoppingBag,
+      label: "Total Transactions",
+      value: totalTransactions.toLocaleString("en-IN"),
+      change: transactionsChange,
+      icon: Receipt,
       iconBg: "bg-blue-50",
       iconText: "text-blue-600",
       spark: "#3b82f6",
-      sparkData: series.map((d) => d.orders),
+      sparkData: series.map((d) => d.transactions),
     },
     {
-      label: "Avg Order Value",
-      value: formatINR(avgOrderValue),
-      change: revenueChange - ordersChange, // AOV drifts with the gap between the two
+      label: "Avg Transaction Value",
+      value: formatINR(avgTransactionValue),
+      change: revenueChange - transactionsChange, // drifts with the gap between the two
       icon: Layers,
       iconBg: "bg-violet-50",
       iconText: "text-violet-600",
       spark: "#8b5cf6",
-      sparkData: series.map((d) => d.revenue / d.orders),
+      sparkData: series.map((d) => (d.transactions ? d.revenue / d.transactions : 0)),
     },
     {
       label: "Refunds Issued",
       value: formatINR(refundsIssued),
-      change: -(revenueChange * 0.4), // refunds trend opposite-ish to revenue health
+      change: refundsChange,
       icon: RefreshCw,
       iconBg: "bg-rose-50",
       iconText: "text-rose-500",
       spark: "#f43f5e",
-      sparkData: series.map((d) => d.revenue * refundRate),
+      sparkData: series.map((d) => d.refunds),
     },
   ];
 
   // ── Revenue Trend chart data for whichever metric tab is selected ──
   const metricSeriesValues = series.map((d) =>
-    chartMetric === "orders" ? d.orders : chartMetric === "aov" ? d.revenue / d.orders : d.revenue
+    chartMetric === "transactions" ? d.transactions : chartMetric === "aov" ? (d.transactions ? d.revenue / d.transactions : 0) : d.revenue
   );
   const maxMetric = Math.max(...metricSeriesValues, 1);
   const yTicks = [maxMetric, maxMetric * 0.75, maxMetric * 0.5, maxMetric * 0.25, 0];
   const labelStep = Math.max(1, Math.round(series.length / 6));
   const formatMetricValue = (n) =>
-    chartMetric === "orders" ? `${Math.round(n).toLocaleString("en-IN")} orders` : formatINR(n);
+    chartMetric === "transactions" ? `${Math.round(n).toLocaleString("en-IN")} transactions` : formatINR(n);
 
-  // ── Order status split, derived from totalOrders ──
-  const statusSplit = [
-    { label: "Success", pct: 84, color: "#34d399" },
-    { label: "Pending", pct: 7, color: "#fbbf24" },
-    { label: "Refunded", pct: 6, color: "#f87171" },
-    { label: "Cancelled", pct: 3, color: "#9ca3af" },
-  ];
+  // ── Transaction status split — real distribution of `rangeTransactionRows`'
+  // own `status` (see transactionService.js's mapPaymentRow: "Paid" for a
+  // captured payment, else the raw Razorpay status capitalized — Failed/
+  // Refunded/Created/Authorized — or "Pending" as a last-resort fallback),
+  // not a fabricated percentage breakdown.
+  const STATUS_SPLIT_COLORS = {
+    Paid: "#34d399",
+    Refunded: "#f87171",
+    Failed: "#9ca3af",
+  };
+  const DEFAULT_STATUS_COLOR = "#fbbf24"; // Pending / Created / Authorized / anything else
+  const statusCounts = rangeTransactionRows.reduce((acc, row) => {
+    const label = row.status || "Pending";
+    acc[label] = (acc[label] || 0) + 1;
+    return acc;
+  }, {});
+  const statusSplit = Object.entries(statusCounts)
+    .map(([label, count]) => ({
+      label,
+      count,
+      pct: totalTransactions ? Math.round((count / totalTransactions) * 1000) / 10 : 0,
+      color: STATUS_SPLIT_COLORS[label] || DEFAULT_STATUS_COLOR,
+    }))
+    .sort((a, b) => b.count - a.count);
   let acc = 0;
-  const conicStops = statusSplit
-    .map((s) => {
-      const from = acc;
-      acc += s.pct;
-      return `${s.color} ${from}% ${acc}%`;
-    })
-    .join(", ");
+  const conicStops = statusSplit.length
+    ? statusSplit
+        .map((s) => {
+          const from = acc;
+          acc += s.pct;
+          return `${s.color} ${from}% ${acc}%`;
+        })
+        .join(", ")
+    : "#e5e7eb 0% 100%";
 
   // ── Vouchers: only PUBLISHED ones show here ("Top Performing" means live
   // for customers), ranked by real usage against Recent Transactions' rows. ──
@@ -423,19 +474,17 @@ export default function AnalysisReport() {
     .map((v) => ({ v, usage: computeVoucherUsage(v, transactionRows) }))
     .sort((a, b) => (b.usage?.count || 0) - (a.usage?.count || 0));
 
-  // ── Recent Transactions: filtered by the same top-of-page date range
-  // plus a client-side search (order id / customer / voucher version id),
-  // then paginated 10 at a time. ──
+  // ── Recent Transactions: same range-filtered rows the KPIs/chart/status
+  // split above use, plus a client-side search (order id / customer /
+  // voucher version id), then paginated 10 at a time. ──
   const transactionSearchTerm = transactionSearch.trim().toLowerCase();
-  const filteredTransactionRows = transactionRows
-    .filter((row) => isWithinRange(row.raw?.createdAt, rangeDates))
-    .filter((row) =>
-      !transactionSearchTerm ||
-      [row.orderId, row.customerName, row.customerCode, row.refId]
-        .join(" ")
-        .toLowerCase()
-        .includes(transactionSearchTerm)
-    );
+  const filteredTransactionRows = rangeTransactionRows.filter((row) =>
+    !transactionSearchTerm ||
+    [row.orderId, row.customerName, row.customerCode, row.refId]
+      .join(" ")
+      .toLowerCase()
+      .includes(transactionSearchTerm)
+  );
   const transactionTotalPages = Math.max(1, Math.ceil(filteredTransactionRows.length / PAGE_SIZE));
   const pagedTransactionRows = filteredTransactionRows.slice(
     (transactionPage - 1) * PAGE_SIZE,
@@ -459,36 +508,32 @@ export default function AnalysisReport() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans">
+    <div className="min-h-screen dark:bg-gray-900 font-sans">
       <div className="max-w-6xl mx-auto px-6 py-6">
 
         {/* ── Heading + controls ── */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Analysis Report</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Dashboard</h1>
             <p className="text-xs text-gray-400 mt-1">
               Business performance overview · {range.label.toLowerCase()} view
             </p>
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 bg-white border border-gray-100 rounded-xl px-3 py-2">
+            <div className="flex items-center gap-1.5 bg-white dark:bg-gray-800 rounded-xl px-3 py-2">
               <CalendarDays size={14} className="text-gray-400" />
-              <select
+              <Select
+                compact
                 value={rangeKey}
-                onChange={(e) => changeRange(e.target.value)}
-                className="bg-transparent text-xs font-semibold text-gray-700 outline-none"
-              >
-                {RANGE_OPTIONS.map((r) => (
-                  <option key={r.key} value={r.key}>
-                    {r.label}
-                  </option>
-                ))}
-              </select>
+                onChange={changeRange}
+                options={RANGE_OPTIONS.map((r) => ({ value: r.key, label: r.label }))}
+                className="bg-transparent text-gray-700 dark:text-gray-300"
+              />
             </div>
             <button
               onClick={exportCSV}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border border-gray-100 bg-white text-gray-600 hover:text-emerald-700 hover:border-emerald-200 transition-colors"
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:text-emerald-700 transition-colors"
             >
               <Download size={14} />
               Export CSV
@@ -502,7 +547,7 @@ export default function AnalysisReport() {
             const positive = s.change >= 0;
             const Icon = s.icon;
             return (
-              <div key={s.label} className="bg-white border border-gray-100 rounded-xl p-4">
+              <div key={s.label} className="bg-white dark:bg-gray-800 rounded-xl p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2.5 min-w-0">
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${s.iconBg} ${s.iconText}`}>
@@ -512,7 +557,7 @@ export default function AnalysisReport() {
                   </div>
                   <MiniSparkline data={s.sparkData} color={s.spark} />
                 </div>
-                <p className="text-xl font-bold text-gray-900 mt-3">{s.value}</p>
+                <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-3">{s.value}</p>
                 <p className={`flex items-center gap-1 text-xs font-semibold mt-1 ${positive ? "text-emerald-600" : "text-red-500"}`}>
                   {positive ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
                   {Math.abs(s.change).toFixed(1)}% vs prev period
@@ -524,20 +569,20 @@ export default function AnalysisReport() {
 
         {/* ── Revenue Trend + Order Status, side by side ── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
-        <div className="lg:col-span-2 bg-white border border-gray-100 rounded-xl p-5">
+        <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl p-5">
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
             <div className="flex items-start gap-2.5">
-              <div className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+              <div className="w-9 h-9 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
                 <LineChart size={16} />
               </div>
               <div>
-                <p className="text-sm font-semibold text-gray-700">Revenue Trend</p>
+                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Revenue Trend</p>
                 <p className="text-[11px] text-gray-400">Your revenue performance over time</p>
               </div>
             </div>
 
             <div className="flex items-center gap-2 flex-wrap">
-              <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+              <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
                 {CHART_METRICS.map((m) => (
                   <button
                     key={m.key}
@@ -550,14 +595,14 @@ export default function AnalysisReport() {
                   </button>
                 ))}
               </div>
-              <div className="flex items-center gap-1 border border-gray-200 rounded-lg px-3 py-1.5 text-xs font-semibold text-gray-600 whitespace-nowrap">
+              <div className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300 whitespace-nowrap">
                 Daily <ChevronDown size={13} className="text-gray-400" />
               </div>
             </div>
           </div>
 
           <div className="flex items-baseline gap-2 mb-4">
-            <p className="text-xl font-bold text-gray-900">{formatINR(totalRevenue)}</p>
+            <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{formatINR(totalRevenue)}</p>
             <span
               className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${
                 revenueChange >= 0 ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"
@@ -580,20 +625,20 @@ export default function AnalysisReport() {
               {/* Gridlines */}
               <div className="absolute inset-0 flex flex-col justify-between pb-5 pt-1 pointer-events-none">
                 {yTicks.map((_, i) => (
-                  <div key={i} className="border-t border-gray-100" />
+                  <div key={i} />
                 ))}
               </div>
 
               {/* Floating tooltip */}
               {hoveredDay !== null && (
                 <div
-                  className="absolute z-10 -translate-x-1/2 bg-white border border-gray-200 rounded-lg shadow-lg px-3 py-1.5 whitespace-nowrap pointer-events-none"
+                  className="absolute z-10 -translate-x-1/2 bg-white dark:bg-gray-800 rounded-lg shadow-lg px-3 py-1.5 whitespace-nowrap pointer-events-none"
                   style={{
                     left: `${((hoveredDay + 0.5) / series.length) * 100}%`,
                     bottom: `${Math.min(88, (metricSeriesValues[hoveredDay] / maxMetric) * 78 + 12)}%`,
                   }}
                 >
-                  <p className="text-[11px] font-semibold text-gray-800">{series[hoveredDay].fullLabel}</p>
+                  <p className="text-[11px] font-semibold text-gray-800 dark:text-gray-100">{series[hoveredDay].fullLabel}</p>
                   <p className="text-[11px] text-emerald-600 flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
                     {formatMetricValue(metricSeriesValues[hoveredDay])}
@@ -636,16 +681,16 @@ export default function AnalysisReport() {
           </div>
         </div>
 
-        {/* ── Order status donut ── */}
-        <div className="lg:col-span-1 bg-white border border-gray-100 rounded-xl p-5">
+        {/* ── Transaction status donut ── */}
+        <div className="lg:col-span-1 bg-white dark:bg-gray-800 rounded-xl p-5">
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+              <div className="w-9 h-9 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
                 <Layers size={16} />
               </div>
               <div>
-                <p className="text-sm font-semibold text-gray-700">Order Status</p>
-                <p className="text-[11px] text-gray-400">Total orders: {totalOrders.toLocaleString("en-IN")}</p>
+                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Transaction Status</p>
+                <p className="text-[11px] text-gray-400">Total transactions: {totalTransactions.toLocaleString("en-IN")}</p>
               </div>
             </div>
             <Link
@@ -661,30 +706,34 @@ export default function AnalysisReport() {
               className="w-36 h-36 rounded-full shrink-0 relative"
               style={{ background: `conic-gradient(${conicStops})` }}
             >
-              <div className="absolute inset-[14px] bg-white rounded-full flex flex-col items-center justify-center">
-                <span className="text-xl font-bold text-gray-900">{totalOrders.toLocaleString("en-IN")}</span>
-                <span className="text-[10px] text-gray-400">Orders</span>
+              <div className="absolute inset-[14px] bg-white dark:bg-gray-800 rounded-full flex flex-col items-center justify-center">
+                <span className="text-xl font-bold text-gray-900 dark:text-gray-100">{totalTransactions.toLocaleString("en-IN")}</span>
+                <span className="text-[10px] text-gray-400">Transactions</span>
               </div>
             </div>
             <div className="flex-1 w-full flex flex-col gap-3.5">
-              {statusSplit.map((s) => (
-                <div key={s.label} className="flex items-center justify-between">
-                  <span className="flex items-center gap-2 text-xs text-gray-600">
-                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
-                    {s.label}
-                  </span>
-                  <span className="text-xs font-semibold text-gray-800">
-                    {Math.round((totalOrders * s.pct) / 100).toLocaleString("en-IN")}
-                    <span className="text-gray-400 font-normal"> ({s.pct}%)</span>
-                  </span>
-                </div>
-              ))}
+              {statusSplit.length === 0 ? (
+                <p className="text-xs text-gray-400">No transactions in this period yet.</p>
+              ) : (
+                statusSplit.map((s) => (
+                  <div key={s.label} className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
+                      <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
+                      {s.label}
+                    </span>
+                    <span className="text-xs font-semibold text-gray-800 dark:text-gray-100">
+                      {s.count.toLocaleString("en-IN")}
+                      <span className="text-gray-400 font-normal"> ({s.pct}%)</span>
+                    </span>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
           <div
-            className={`mt-5 flex items-center gap-3 rounded-xl px-4 py-3 border ${
-              revenueChange >= 0 ? "bg-emerald-50 border-emerald-100" : "bg-amber-50 border-amber-100"
+            className={`mt-5 flex items-center gap-3 rounded-xl px-4 py-3 ${
+              revenueChange >= 0 ? "bg-emerald-50" : "bg-amber-50"
             }`}
           >
             <div
@@ -709,14 +758,14 @@ export default function AnalysisReport() {
         </div>
 
         {/* ── Top Performing Voucher: horizontal card carousel, ranked by real usage ── */}
-        <div className="bg-white border border-gray-100 rounded-xl mb-4">
-          <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 gap-3">
+        <div className="bg-white dark:bg-gray-800 rounded-xl mb-4">
+          <div className="flex items-center justify-between px-5 py-3.5 gap-3">
             <div className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-lg bg-amber-50 text-amber-500 flex items-center justify-center shrink-0">
                 <Star size={16} />
               </div>
               <div>
-                <p className="text-sm font-semibold text-gray-700">Top Performing Voucher</p>
+                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Top Performing Voucher</p>
                 <p className="text-[11px] text-gray-400">Your best performing offers this month</p>
               </div>
             </div>
@@ -738,7 +787,7 @@ export default function AnalysisReport() {
                 <button
                   onClick={() => scrollVouchers(-1)}
                   aria-label="Scroll left"
-                  className="hidden sm:flex absolute left-1 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-white border border-gray-200 shadow items-center justify-center text-gray-500 hover:text-gray-800"
+                  className="hidden sm:flex absolute left-1 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-white dark:bg-gray-800 shadow items-center justify-center text-gray-500 hover:text-gray-800"
                 >
                   <ChevronLeft size={16} />
                 </button>
@@ -750,30 +799,34 @@ export default function AnalysisReport() {
                 >
                   {topVouchers.map(({ v, usage }) => {
                     const thumbnail = v.images?.[0]?.url;
-                    const bannerUrl = v.voucher?.banner?.type === "IMAGE" ? v.voucher?.banner?.image?.url : null;
+                    // Confirmed shape (vendor_panel_api_doc.md #59, V-4):
+                    // banner.current.{url,kind} — only usable here as an
+                    // <img> fallback when it isn't a video.
+                    const currentBanner = v.voucher?.banner?.current;
+                    const bannerUrl = currentBanner && currentBanner.kind !== "VIDEO" ? currentBanner.url : null;
                     const imageUrl = thumbnail || bannerUrl;
                     return (
                       <div
                         key={v._id}
-                        className="flex-none w-64 bg-white border border-gray-100 rounded-xl p-3 snap-start"
+                        className="flex-none w-64 bg-gray-50 dark:bg-gray-700 rounded-xl p-3 snap-start"
                       >
                         <div className="flex gap-3">
                           {imageUrl ? (
                             <img src={imageUrl} alt="" className="w-16 h-16 rounded-lg object-cover shrink-0" />
                           ) : (
-                            <div className="w-16 h-16 rounded-lg border border-dashed border-gray-200 flex items-center justify-center text-gray-300 shrink-0">
+                            <div className="w-16 h-16 rounded-lg flex items-center justify-center text-gray-300 shrink-0">
                               <ImageIcon className="h-5 w-5" />
                             </div>
                           )}
                           <div className="flex-1 min-w-0">
-                            <span className="inline-block bg-emerald-50 text-emerald-600 text-[11px] font-semibold px-2 py-0.5 rounded-full mb-1">
+                            <span className="inline-block bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[11px] font-semibold px-2 py-0.5 rounded-full mb-1">
                               {summarizeVoucherDiscount(v.offers)}
                             </span>
-                            <p className="text-sm font-semibold text-gray-800 leading-snug line-clamp-2">{v.name}</p>
+                            <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 leading-snug line-clamp-2">{v.name}</p>
                             <p className="text-[11px] text-gray-400 mt-0.5 truncate">{v.versionCode}</p>
                           </div>
                         </div>
-                        <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-50">
+                        <div className="flex items-center justify-between mt-3 pt-2">
                           <span className="text-xs text-gray-500">
                             {usage ? `${usage.count.toLocaleString("en-IN")} uses` : "No uses yet"}
                           </span>
@@ -796,7 +849,7 @@ export default function AnalysisReport() {
                 <button
                   onClick={() => scrollVouchers(1)}
                   aria-label="Scroll right"
-                  className="hidden sm:flex absolute right-1 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-white border border-gray-200 shadow items-center justify-center text-gray-500 hover:text-gray-800"
+                  className="hidden sm:flex absolute right-1 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-white dark:bg-gray-800 shadow items-center justify-center text-gray-500 hover:text-gray-800"
                 >
                   <ChevronRight size={16} />
                 </button>
@@ -806,25 +859,25 @@ export default function AnalysisReport() {
         </div>
 
         {/* ── Recent transactions ── */}
-        <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 gap-3">
-            <p className="text-sm font-semibold text-gray-700 whitespace-nowrap">Recent Transactions</p>
+        <div className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-3.5 gap-3">
+            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">Recent Transactions</p>
             <div className="relative w-full max-w-[220px]">
               <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-300" />
               <input
                 value={transactionSearch}
                 onChange={(e) => { setTransactionSearch(e.target.value); setTransactionPage(1); }}
                 placeholder="Search transactions…"
-                className="w-full text-xs border border-gray-200 rounded-lg pl-7 pr-3 py-1.5 outline-none focus:border-emerald-400 bg-gray-50 text-gray-700"
+                className="w-full text-xs rounded-lg pl-7 pr-3 py-1.5 outline-none bg-emerald-50 dark:bg-emerald-500/10 text-gray-700 dark:text-gray-100 placeholder:text-gray-400"
               />
             </div>
           </div>
           {transactionsError && (
-            <p className="px-5 py-2.5 text-xs text-rose-600 bg-rose-50 border-b border-rose-100">
+            <p className="px-5 py-2.5 text-xs text-rose-600 bg-rose-50">
               {transactionsError}
             </p>
           )}
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto no-scrollbar">
             <table className="w-full text-xs">
               <thead>
                 <tr className="bg-[#1a1a2e]">
@@ -851,7 +904,7 @@ export default function AnalysisReport() {
                   pagedTransactionRows.map((row) => {
                     const avatar = getAvatarColors(row.customerName);
                     return (
-                      <tr key={row.orderId} className="border-b border-gray-100 bg-white last:border-b-0 hover:bg-gray-50 transition-colors">
+                      <tr key={row.orderId} className="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                         <td className="px-3 py-2 whitespace-nowrap">
                           <Link
                             to={`/transactions/order/${(row.txnId || row.orderId).replace(/^#/, "")}`}
@@ -869,17 +922,17 @@ export default function AnalysisReport() {
                               {getInitials(row.customerName)}
                             </div>
                             <div>
-                              <p className="text-gray-700 font-medium">{row.customerName}</p>
+                              <p className="text-gray-700 dark:text-gray-300 font-medium capitalize">{row.customerName}</p>
                               <p className="text-blue-500">{row.customerCode}</p>
                             </div>
                           </div>
                         </td>
-                        <td className="px-3 py-2 text-gray-700 whitespace-nowrap">{row.refId}</td>
+                        <td className="px-3 py-2 text-gray-700 dark:text-gray-300 whitespace-nowrap">{row.refId}</td>
                         <td className="px-3 py-2 text-gray-500 whitespace-nowrap">{row.createdOn}</td>
                         <td className="px-3 py-2 text-gray-500 whitespace-nowrap">{row.outlet}</td>
-                        <td className="px-3 py-2 text-gray-700 whitespace-nowrap">{row.billAmount}</td>
+                        <td className="px-3 py-2 text-gray-700 dark:text-gray-300 whitespace-nowrap">{row.billAmount}</td>
                         <td className="px-3 py-2 text-rose-500 whitespace-nowrap">{row.offerDiscount}</td>
-                        <td className="px-3 py-2 text-gray-700 whitespace-nowrap">{row.netBill}</td>
+                        <td className="px-3 py-2 text-gray-700 dark:text-gray-300 whitespace-nowrap">{row.netBill}</td>
                         <td className="px-3 py-2 text-green-700 font-medium whitespace-nowrap">{row.amount}</td>
                         <td className="px-3 py-2 text-gray-500 whitespace-nowrap capitalize">{row.paymentMethod}</td>
                         <td className="px-3 py-2 whitespace-nowrap">

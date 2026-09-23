@@ -106,21 +106,21 @@ export default function Transactions() {
   }, [voucherData, dateRange]);
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans">
+    <div className="min-h-screen  dark:bg-gray-900 font-sans">
       {/* Header — apna routing khud NavLink se handle karta hai, koi prop nahi chahiye */}
 
 
       <div className="max-w-6xl mx-auto px-6 py-6">
         {/* Page heading */}
         <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Transaction's Overview</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Transaction's Overview</h1>
           <p className="text-xs text-gray-400 mt-1">
             "Fast, safe, and effortless payments." This information will be automatically deleted after 24 hours.
           </p>
         </div>
 
         {voucherError && (
-          <p className="mb-4 text-sm text-rose-700 bg-rose-50 border border-rose-100 rounded-lg px-3 py-2.5 text-center">
+          <p className="mb-4 text-sm text-rose-700 bg-rose-50 rounded-lg px-3 py-2.5 text-center">
             {voucherError}
           </p>
         )}

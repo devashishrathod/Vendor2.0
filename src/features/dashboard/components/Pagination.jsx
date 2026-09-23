@@ -7,7 +7,7 @@ export default function Pagination({
   totalPages,
 }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 border-t border-gray-50">
+    <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
       {/* Rows per page */}
       <div className="flex items-center gap-2 text-xs text-gray-400">
         <span>Rows per page:</span>
@@ -15,10 +15,10 @@ export default function Pagination({
           <button
             key={n}
             onClick={() => setRowsPerPage(n)}
-            className={`w-7 h-7 rounded-md text-xs font-semibold transition-colors border
+            className={`w-7 h-7 rounded-md text-xs font-semibold transition-colors
               ${rowsPerPage === n
-                ? "bg-gray-900 text-white border-gray-900"
-                : "text-gray-500 border-gray-200 hover:bg-gray-50"
+                ? "bg-gray-900 text-white"
+                : "text-gray-500 hover:bg-gray-50"
               }`}
           >
             {n}
@@ -31,7 +31,7 @@ export default function Pagination({
         <button
           onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
           disabled={currentPage === 1}
-          className="w-7 h-7 flex items-center justify-center rounded-md border border-gray-200 hover:bg-gray-50 text-gray-400 disabled:opacity-30"
+          className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-gray-50 text-gray-400 disabled:opacity-30"
         >
           <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -55,7 +55,7 @@ export default function Pagination({
         <button
           onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
           disabled={currentPage === totalPages}
-          className="w-7 h-7 flex items-center justify-center rounded-md border border-gray-200 hover:bg-gray-50 text-gray-400 disabled:opacity-30"
+          className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-gray-50 text-gray-400 disabled:opacity-30"
         >
           <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />

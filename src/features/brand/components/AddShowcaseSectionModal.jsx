@@ -64,19 +64,19 @@ const AddShowcaseSectionModal = ({ mode = "add", section = null, onClose, onSubm
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-2xl border border-gray-100 bg-white p-6 shadow-xl"
+        className="w-full max-w-md rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center flex-shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
               {isEdit ? (
-                <Pencil size={18} className="text-emerald-500" />
+                <Pencil size={18} className="text-emerald-500 dark:text-emerald-400" />
               ) : (
-                <Plus size={18} className="text-emerald-500" />
+                <Plus size={18} className="text-emerald-500 dark:text-emerald-400" />
               )}
             </div>
-            <h3 className="text-sm font-bold text-gray-900">
+            <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">
               {isEdit ? "Edit Showcase Section" : "Add Showcase Section"}
             </h3>
           </div>
@@ -96,7 +96,7 @@ const AddShowcaseSectionModal = ({ mode = "add", section = null, onClose, onSubm
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-600">
+            <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
               Section title
             </label>
             <input
@@ -104,26 +104,26 @@ const AddShowcaseSectionModal = ({ mode = "add", section = null, onClose, onSubm
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Ambience photo"
-              className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm text-gray-700 outline-none transition-colors placeholder:text-gray-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+              className="w-full rounded-xl px-3.5 py-2.5 text-sm text-gray-700 bg-emerald-50 dark:bg-emerald-500/10 dark:text-gray-100 outline-none transition-colors placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-100"
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-600">
+            <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
               Description (optional)
             </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={2}
-              className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm text-gray-700 outline-none transition-colors placeholder:text-gray-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+              className="w-full rounded-xl px-3.5 py-2.5 text-sm text-gray-700 bg-emerald-50 dark:bg-emerald-500/10 dark:text-gray-100 outline-none transition-colors placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-100"
             />
           </div>
 
           {!isEdit && (
             <>
               <div>
-                <label className="mb-1 block text-xs font-medium text-gray-600">
+                <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
                   Photos / Videos
                 </label>
                 <input
@@ -131,7 +131,7 @@ const AddShowcaseSectionModal = ({ mode = "add", section = null, onClose, onSubm
                   accept="image/*,video/*"
                   multiple
                   onChange={handleFilesChange}
-                  className="w-full text-sm text-gray-600 file:mr-3 file:rounded-xl file:border-0 file:bg-emerald-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-emerald-700 hover:file:bg-emerald-100"
+                  className="w-full text-sm text-gray-600 dark:text-gray-300 file:mr-3 file:rounded-xl file:bg-emerald-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-emerald-700 hover:file:bg-emerald-100"
                 />
                 {files.length > 0 && (
                   <p className="mt-1 text-xs text-gray-500">
@@ -146,9 +146,9 @@ const AddShowcaseSectionModal = ({ mode = "add", section = null, onClose, onSubm
                   type="checkbox"
                   checked={isShowInVideoClips}
                   onChange={(e) => setIsShowInVideoClips(e.target.checked)}
-                  className="h-4 w-4 rounded border-gray-300 accent-emerald-600 focus:ring-emerald-400"
+                  className="h-4 w-4 rounded accent-emerald-600 focus:ring-emerald-400"
                 />
-                <label htmlFor="isShowInVideoClips" className="text-sm text-gray-700">
+                <label htmlFor="isShowInVideoClips" className="text-sm text-gray-700 dark:text-gray-300">
                   Show in video clips
                 </label>
               </div>
@@ -162,14 +162,14 @@ const AddShowcaseSectionModal = ({ mode = "add", section = null, onClose, onSubm
                   request/response once tested. */}
               {isShowInVideoClips && (
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-600">
+                  <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
                     Thumbnail for clips (optional)
                   </label>
                   <input
                     type="file"
                     accept="image/*"
                     onChange={handleThumbnailChange}
-                    className="w-full text-sm text-gray-600 file:mr-3 file:rounded-xl file:border-0 file:bg-emerald-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-emerald-700 hover:file:bg-emerald-100"
+                    className="w-full text-sm text-gray-600 dark:text-gray-300 file:mr-3 file:rounded-xl file:bg-emerald-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-emerald-700 hover:file:bg-emerald-100"
                   />
                   {thumbnail && (
                     <p className="mt-1 text-xs text-gray-500">{thumbnail.name}</p>
@@ -183,7 +183,7 @@ const AddShowcaseSectionModal = ({ mode = "add", section = null, onClose, onSubm
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50"
+              className="rounded-xl px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
             >
               Cancel
             </button>

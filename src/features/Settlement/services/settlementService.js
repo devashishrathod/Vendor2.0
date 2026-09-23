@@ -47,7 +47,7 @@ function buildParams(params = {}) {
 // GET {{base_url}}/settlements?page=&limit=&status=&open=&from=&to=
 export async function getSettlements({
   page = 1,
-  limit = 20,
+  limit = 10,
   status,
   open,
   from,
