@@ -23,7 +23,7 @@ import {
   hasValidZipcode,
   ADDRESS_TYPES,
 } from "../services/locationApi";
-import { DEFAULT_WORKING_HOURS, OUTLET_TYPE_OPTIONS } from "../constants/brandOutletConstants";
+import { DEFAULT_WORKING_HOURS, OUTLET_TYPE_OPTIONS, MIN_ITEMS_PER_ALBUM } from "../constants/brandOutletConstants";
 
 import {
   GuidelinesModal,
@@ -574,7 +574,13 @@ export default function CreateBrandOutlet() {
     }
   };
 
-  const canFinalSave = whatsappVerified && !!subBrandId && !!savedLocationId && workingHoursSaved;
+  // Every showcase album that's been started must meet the same minimum
+  // (MIN_ITEMS_PER_ALBUM) the album's own inline warning already shows —
+  // this just makes that a hard block on final submit instead of a message
+  // the vendor could ignore.
+  const showcaseAlbumsMeetMinimum = showcaseAlbums.every((a) => a.media.length >= MIN_ITEMS_PER_ALBUM);
+
+  const canFinalSave = whatsappVerified && !!subBrandId && !!savedLocationId && workingHoursSaved && showcaseAlbumsMeetMinimum;
 
   return (
     <div className="min-h-screen bg-[#F8FAF7] dark:bg-gray-900 font-sans">
@@ -1041,7 +1047,9 @@ export default function CreateBrandOutlet() {
                 ? "Select & Save Your Outlet Location"
                 : !workingHoursSaved
                   ? "Save Working Hours to Continue"
-                  : "Save & Process"}
+                  : !showcaseAlbumsMeetMinimum
+                    ? `Add at least ${MIN_ITEMS_PER_ALBUM} Photos/Videos to Each Showcase Album`
+                    : "Save & Process"}
         </button>
       </div>
     </div>
