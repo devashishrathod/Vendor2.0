@@ -10,15 +10,15 @@ const DEFAULT_BADGES = [
 
 export default function TrustBar({ badges = DEFAULT_BADGES }) {
   return (
-    <div className="w-full bg-gray-50 border border-gray-200 rounded-xl px-8 py-3 mb-6">
-      <div className="flex items-center justify-center gap-6 divide-x divide-gray-300 overflow-x-auto">
+    <div className="w-full bg-gray-50 dark:bg-gray-700 rounded-xl px-8 py-3 mb-6">
+      <div className="flex items-center justify-center gap-6 divide-x divide-gray-300 dark:divide-gray-700 overflow-x-auto">
         {badges.map((b, i) => (
           <div
             key={i}
             className="flex items-center gap-2 px-4 first:pl-0 last:pr-0 shrink-0"
           >
             <span className="text-lg">{b.icon}</span>
-            <span className="text-sm font-medium text-gray-700 whitespace-nowrap">
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
               {b.label}
             </span>
             {b.rating && (

@@ -154,7 +154,7 @@ export default function MapModal({ place, onClose }) {
       >
         <Icon size={18} strokeWidth={2} />
       </span>
-      <span className="text-xs text-gray-700 text-center leading-tight">
+      <span className="text-xs text-gray-700 dark:text-gray-300 text-center leading-tight">
         {label}
       </span>
     </button>
@@ -179,7 +179,7 @@ export default function MapModal({ place, onClose }) {
           referrerPolicy="no-referrer-when-downgrade"
         />
       ) : (
-        <div className="absolute inset-0 bg-gray-100 flex items-center justify-center text-sm text-gray-500">
+        <div className="absolute inset-0 bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-sm text-gray-500">
           Location coordinates unavailable.
         </div>
       )}
@@ -189,7 +189,7 @@ export default function MapModal({ place, onClose }) {
         type="button"
         onClick={onClose}
         aria-label="Close"
-        className="absolute top-4 right-4 z-20 w-10 h-10 rounded-full bg-white shadow-lg text-gray-700 flex items-center justify-center hover:bg-gray-50"
+        className="absolute top-4 right-4 z-20 w-10 h-10 rounded-full bg-white dark:bg-gray-800 shadow-lg text-gray-700 dark:text-gray-300 flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700"
       >
         ✕
       </button>
@@ -197,7 +197,7 @@ export default function MapModal({ place, onClose }) {
       {/* ─────────────────────────────────────── */}
       {/* FLOATING CARD — overlays the map, top-left */}
       {/* ─────────────────────────────────────── */}
-      <div className="absolute top-4 left-4 bottom-4 z-10 w-full max-w-sm bg-white rounded-2xl shadow-2xl overflow-y-auto">
+      <div className="absolute top-4 left-4 bottom-4 z-10 w-full max-w-sm bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-y-auto">
         {/* Photo */}
         <div className="relative">
           {currentPhoto ? (
@@ -207,7 +207,7 @@ export default function MapModal({ place, onClose }) {
               className="w-full h-44 object-cover rounded-t-2xl"
             />
           ) : (
-            <div className="w-full h-44 bg-gray-100 flex items-center justify-center rounded-t-2xl">
+            <div className="w-full h-44 bg-gray-100 dark:bg-gray-700 flex items-center justify-center rounded-t-2xl">
               <span className="text-gray-400 text-sm">
                 No photo available
               </span>
@@ -242,7 +242,7 @@ export default function MapModal({ place, onClose }) {
         {/* Title row */}
         <div className="px-5 pt-4 pb-3 flex items-start justify-between gap-3">
           <div>
-            <h2 className="text-xl font-semibold text-gray-900 leading-tight">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 leading-tight">
               {name || "Place"}
             </h2>
             <p className="text-sm text-gray-500 mt-1">
@@ -253,7 +253,7 @@ export default function MapModal({ place, onClose }) {
           {(rating !== null && rating !== undefined) || status ? (
             <div className="text-right shrink-0">
               {rating !== null && rating !== undefined && (
-                <div className="flex items-center justify-end gap-1 text-gray-800 font-medium">
+                <div className="flex items-center justify-end gap-1 text-gray-800 dark:text-gray-100 font-medium">
                   <Star size={14} className="fill-amber-400 text-amber-400" />
                   {rating}
                 </div>
@@ -272,7 +272,7 @@ export default function MapModal({ place, onClose }) {
           ) : null}
         </div>
 
-        <div className="border-t border-gray-100" />
+        <div className="" />
 
         {/* Action icon row */}
         <div className="px-3 py-4 flex items-start">
@@ -303,7 +303,7 @@ export default function MapModal({ place, onClose }) {
           <ActionButton icon={Share2} label="Share" onClick={handleShare} />
         </div>
 
-        <div className="border-t border-gray-100" />
+        <div className="" />
 
         {/* Tabs — switching tabs is display-only, the place
             data stays exactly as loaded, nothing resets */}
@@ -313,26 +313,26 @@ export default function MapModal({ place, onClose }) {
               key={tab}
               type="button"
               onClick={() => setActiveTab(tab)}
-              className={`text-sm font-medium pb-2 border-b-2 transition ${
+              className={`text-sm font-medium pb-2 transition ${
                 activeTab === tab
-                  ? "border-emerald-600 text-emerald-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
+                  ? "text-emerald-600"
+                  : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
               }`}
             >
               {tab}
             </button>
           ))}
         </div>
-        <div className="border-t border-gray-100" />
+        <div className="" />
 
         {/* Tab content */}
         <div className="px-5 py-4">
           {activeTab === "Overview" && (
             <div>
-              <h3 className="text-base font-semibold text-gray-900 mb-2">
+              <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-2">
                 Quick facts
               </h3>
-              <p className="text-sm text-gray-700 leading-relaxed">
+              <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
                 {showFullFacts || facts.length <= 140
                   ? facts
                   : `${facts.slice(0, 140)}… `}
@@ -388,7 +388,7 @@ export default function MapModal({ place, onClose }) {
               {openingHours?.weekday_text?.length > 0 ? (
                 <div className="space-y-1.5">
                   {openingHours.weekday_text.map((day) => (
-                    <p key={day} className="text-sm text-gray-600">
+                    <p key={day} className="text-sm text-gray-600 dark:text-gray-300">
                       {day}
                     </p>
                   ))}

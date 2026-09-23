@@ -12,7 +12,7 @@ const DAYS = [
 
 const BusinessHours = ({ hours = {}, onToggleDay, onTimeChange }) => {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
+    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm">
       {DAYS.map((day, idx) => {
         const dayData = hours[day.key] || { start: "", end: "", isOpen: false };
 
@@ -20,7 +20,7 @@ const BusinessHours = ({ hours = {}, onToggleDay, onTimeChange }) => {
           <div
             key={day.key}
             className={`flex flex-wrap items-center gap-4 px-5 py-4 ${
-              idx !== DAYS.length - 1 ? "border-b border-gray-50" : ""
+              idx !== DAYS.length - 1 ? "" : ""
             }`}
           >
             <div className="flex w-40 shrink-0 items-center gap-3">
@@ -39,7 +39,7 @@ const BusinessHours = ({ hours = {}, onToggleDay, onTimeChange }) => {
                   }`}
                 />
               </button>
-              <span className="whitespace-nowrap text-sm font-medium text-gray-900">
+              <span className="whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
                 {day.label}
               </span>
             </div>
@@ -52,7 +52,7 @@ const BusinessHours = ({ hours = {}, onToggleDay, onTimeChange }) => {
                   onChange={(e) =>
                     onTimeChange(day.key, "start", e.target.value)
                   }
-                  className="rounded-xl border border-gray-200 px-3.5 py-2 text-sm text-gray-700 outline-none transition-colors focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                  className="rounded-xl px-3.5 py-2 text-sm text-gray-700 bg-emerald-50 dark:bg-emerald-500/10 dark:text-gray-100 outline-none transition-colors focus:ring-2 focus:ring-emerald-100"
                 />
                 <span className="text-sm text-gray-400">to</span>
                 <input
@@ -61,7 +61,7 @@ const BusinessHours = ({ hours = {}, onToggleDay, onTimeChange }) => {
                   onChange={(e) =>
                     onTimeChange(day.key, "end", e.target.value)
                   }
-                  className="rounded-xl border border-gray-200 px-3.5 py-2 text-sm text-gray-700 outline-none transition-colors focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                  className="rounded-xl px-3.5 py-2 text-sm text-gray-700 bg-emerald-50 dark:bg-emerald-500/10 dark:text-gray-100 outline-none transition-colors focus:ring-2 focus:ring-emerald-100"
                 />
               </div>
             ) : (

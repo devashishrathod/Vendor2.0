@@ -1,7 +1,7 @@
 export default function ErrorMessage({ message }) {
   if (!message) return null;
   return (
-    <div className="flex items-start gap-2 mt-2 text-red-500 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+    <div className="flex items-start gap-2 mt-2 text-red-500 bg-red-50 rounded-lg px-3 py-2">
       <svg
         className="w-4 h-4 mt-0.5 flex-shrink-0"
         viewBox="0 0 20 20"

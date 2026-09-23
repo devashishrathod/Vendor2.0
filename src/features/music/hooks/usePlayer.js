@@ -104,6 +104,21 @@ export function usePlayer() {
     setIsPlaying((p) => !p);
   }
 
+  function stopPlayback() {
+    const audio = audioRef.current;
+    if (audio) {
+      audio.pause();
+      audio.currentTime = 0;
+    }
+    setIsPlaying(false);
+    setQueue([]);
+    setQueueName("");
+    setActiveIndex(0);
+    setProgress(0);
+    setCurrentTime(0);
+    setDuration(0);
+  }
+
   function toggleFavorite(id) {
     setFavorites((f) => ({ ...f, [id]: !f[id] }));
   }
@@ -154,6 +169,7 @@ export function usePlayer() {
     playSongInCollection,
     playAt,
     togglePlayPause,
+    stopPlayback,
     toggleFavorite,
     toggleMute,
     toggleShuffle,

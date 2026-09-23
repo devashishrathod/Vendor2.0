@@ -38,7 +38,7 @@ function SuccessNote({ text }) {
 function ShortNameBadge({ value }) {
   if (!value?.trim()) return null;
   return (
-    <span className="inline-flex items-center gap-1 bg-emerald-50 border border-emerald-200
+    <span className="inline-flex items-center gap-1 bg-emerald-50
       text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-widest uppercase mt-1.5">
       <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
@@ -155,12 +155,12 @@ export default function Step3BusinessName() {
         <div className="flex gap-5 items-start flex-wrap">
 
           {/* ── Form card ── */}
-          <div className="flex-1 min-w-0 bg-white border border-gray-50 rounded-2xl mt-4 sm:mt-8
+          <div className="flex-1 min-w-0 bg-white dark:bg-gray-800 rounded-2xl mt-4 sm:mt-8
             shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-4 sm:p-6 step-in" style={{ animationDelay: "0s" }}>
 
             {/* Header */}
             <div className="flex items-center gap-3 mb-5 step-in" style={{ animationDelay: "0s" }}>
-              <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100
+              <div className="w-10 h-10 rounded-xl bg-emerald-50
                 flex items-center justify-center flex-shrink-0">
                 <svg className="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
@@ -168,9 +168,9 @@ export default function Step3BusinessName() {
                 </svg>
               </div>
               <div className="flex-1 min-w-0">
-                <h2 className="text-base font-bold text-gray-900 leading-tight">Know Your Brand</h2>
+                <h2 className="text-base font-bold text-gray-900 leading-tight">Tell us about your business</h2>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  Enter your business name as it appears on official documents.
+                  Start by adding the official details of your business. These details will be used across your vendor profile and business documents.
                 </p>
               </div>
 
@@ -182,7 +182,7 @@ export default function Step3BusinessName() {
                     d="M3 21h18M4 21V9l8-6 8 6v12M9 21v-6h6v6" />
                 </svg>
                 <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-emerald-500
-                  border-2 border-white flex items-center justify-center">
+                  flex items-center justify-center">
                   <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                   </svg>
@@ -193,9 +193,10 @@ export default function Step3BusinessName() {
             {/* Inputs */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4 step-in" style={{ animationDelay: "0.05s" }}>
               <Input
-                label="Legal Business Name"
+                label="LEGAL BUSINESS NAME"
+                description="Enter your business name exactly as it appears on your official documents."
                 required
-                placeholder="e.g. Kentucky Fried Chicken"
+                placeholder="e.g., Kentucky Fried Chicken"
                 value={name}
                 onChange={handleNameChange}
                 onBlur={() => { setNameTouched(true); setNameError(validateBusinessName(name)); }}
@@ -209,9 +210,10 @@ export default function Step3BusinessName() {
               />
 
               <Input
-                label="Short Name"
+                label="BRAND SHORT NAME"
+                description="This is the name customers will see across the platform."
                 optional
-                placeholder="KFC"
+                placeholder="e.g., KFC"
                 value={shortName}
                 onChange={handleShortChange}
                 onBlur={() => { setShortTouched(true); setShortError(validateShortName(shortName)); }}
@@ -227,7 +229,7 @@ export default function Step3BusinessName() {
             </div>
 
             {/* Tips panel */}
-            <div className="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 mb-4 step-in"
+            <div className="bg-gray-50 rounded-xl px-4 py-3 mb-4 step-in"
               style={{ animationDelay: "0.1s" }}>
               <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest
                 flex items-center gap-1.5 mb-2">
@@ -235,14 +237,14 @@ export default function Step3BusinessName() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                     d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                Tips
+                Before you continue
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5">
                 {[
-                  "Use your registered brand name",
-                  "At least 3 characters",
-                  "No special symbols like @, #, &",
-                  "Short name: 2–10 chars (e.g. KFC)",
+                  "Use your registered business name.",
+                  "Make sure the name matches your official documents.",
+                  "Keep your short name simple and recognizable.",
+                  "Avoid unnecessary symbols or special characters.",
                 ].map((tip, i) => (
                   <div key={i} className="flex items-start gap-1.5">
                     <span className="w-1 h-1 rounded-full bg-gray-400 flex-shrink-0 mt-1.5" />
@@ -253,12 +255,12 @@ export default function Step3BusinessName() {
             </div>
 
             {/* Divider */}
-            <div className="border-t border-gray-100 my-4" />
+            <div className="my-4" />
 
             {/* CTA row */}
             <div className="flex flex-col sm:flex-row sm:items-center gap-3 step-in" style={{ animationDelay: "0.15s" }}>
               <div className="flex items-center gap-2.5 flex-1 min-w-0 order-2 sm:order-1">
-                <div className="w-9 h-9 rounded-lg bg-gray-50 border border-gray-100
+                <div className="w-9 h-9 rounded-lg bg-gray-50
                   flex items-center justify-center flex-shrink-0">
                   <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
@@ -266,15 +268,18 @@ export default function Step3BusinessName() {
                   </svg>
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-bold text-gray-700 truncate">
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">
+                    Business preview
+                  </p>
+                  <p className="text-sm font-bold text-gray-800 truncate">
                     {name.trim() || "—–"}
                   </p>
-                  <p className="text-[11px] text-gray-500 truncate">
+                  <p className="text-[11px] text-gray-600 truncate">
                     {name.trim()
                       ? shortName.trim()
                         ? `Short name: ${shortName.trim()}`
-                        : "Brand preview"
-                      : "Your brand preview will appear here"}
+                        : ""
+                      : "Your business name and short name will appear here as you enter them."}
                   </p>
                 </div>
               </div>
@@ -309,15 +314,15 @@ export default function Step3BusinessName() {
             </div>
 
             {/* Footer note */}
-            <div className="flex items-center gap-2 border-t border-gray-100 mt-4 pt-3">
+            <div className="flex items-center gap-2 mt-4 pt-3">
               <div className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
                 <svg className="w-3 h-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                     d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <p className="text-[11px] text-gray-500">
-                Don't worry, you can edit these details later from your profile settings.
+              <p className="text-[11px] text-gray-600">
+                You can update these details later from your business settings.
               </p>
             </div>
 

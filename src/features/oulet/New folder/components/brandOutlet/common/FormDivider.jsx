@@ -6,7 +6,7 @@ export default function FormDivider({ eyebrow, title, subtitle, icon }) {
   return (
     <div className="flex items-start gap-3 mb-5">
       {icon && (
-        <div className="w-10 h-10 rounded-xl bg-white border border-emerald-100 flex items-center justify-center flex-shrink-0">
+        <div className="w-10 h-10 rounded-xl bg-white dark:bg-gray-800 flex items-center justify-center flex-shrink-0">
           {icon}
         </div>
       )}
@@ -16,7 +16,7 @@ export default function FormDivider({ eyebrow, title, subtitle, icon }) {
             {eyebrow}
           </span>
         )}
-        <h2 className="text-lg font-bold text-gray-900 leading-tight">{title}</h2>
+        <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 leading-tight">{title}</h2>
         {subtitle && <p className="text-sm text-gray-500 mt-0.5">{subtitle}</p>}
       </div>
     </div>

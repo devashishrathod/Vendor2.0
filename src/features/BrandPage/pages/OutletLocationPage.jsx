@@ -31,7 +31,7 @@ const OutletLocationPage = ({ merchantToken }) => {
       )}
 
       <section>
-        <h2 className="text-xs font-bold uppercase tracking-wide text-gray-700">
+        <h2 className="text-xs font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300">
           Outlet Location
         </h2>
         <div className="mt-5">

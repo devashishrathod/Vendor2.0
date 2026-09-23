@@ -79,11 +79,11 @@ function CheckCard({ label, status, detail, index }) {
   }, [index]);
 
   const cfg = {
-    done:     { wrap:"bg-white border-slate-100",      icon:"bg-emerald-500 text-white", label:"text-slate-800", sub:"text-slate-400", badge:"bg-emerald-50 text-emerald-600" },
-    warn:     { wrap:"bg-amber-50 border-amber-100",    icon:"bg-amber-400 text-white",   label:"text-slate-800", sub:"text-slate-500", badge:"bg-amber-100 text-amber-700" },
-    failed:   { wrap:"bg-red-50 border-red-100",        icon:"bg-red-400 text-white",     label:"text-slate-800", sub:"text-slate-500", badge:"bg-red-100 text-red-700" },
-    checking: { wrap:"bg-white border-slate-100",       icon:"bg-emerald-100 text-emerald-500", label:"text-slate-400", sub:"text-slate-300", badge:"" },
-    pending:  { wrap:"bg-white border-slate-100",       icon:"bg-slate-100",              label:"text-slate-300", sub:"",                badge:"" },
+    done:     { wrap:"bg-white dark:bg-gray-800",      icon:"bg-emerald-500 text-white", label:"text-slate-800 dark:text-gray-100", sub:"text-slate-400", badge:"bg-emerald-50 text-emerald-600" },
+    warn:     { wrap:"bg-amber-50",    icon:"bg-amber-400 text-white",   label:"text-slate-800 dark:text-gray-100", sub:"text-slate-500", badge:"bg-amber-100 text-amber-700" },
+    failed:   { wrap:"bg-red-50",        icon:"bg-red-400 text-white",     label:"text-slate-800 dark:text-gray-100", sub:"text-slate-500", badge:"bg-red-100 text-red-700" },
+    checking: { wrap:"bg-white dark:bg-gray-800",       icon:"bg-emerald-100 text-emerald-500", label:"text-slate-400", sub:"text-slate-300", badge:"" },
+    pending:  { wrap:"bg-white dark:bg-gray-800",       icon:"bg-slate-100",              label:"text-slate-300", sub:"",                badge:"" },
   }[status] || {};
 
   const Icon = () => {
@@ -103,7 +103,7 @@ function CheckCard({ label, status, detail, index }) {
 
   return (
     <div
-      className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl border ${cfg.wrap}`}
+      className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl ${cfg.wrap}`}
       style={{
         opacity: visible ? 1 : 0,
         transform: visible ? "translateX(0)" : "translateX(-28px)",
@@ -282,7 +282,7 @@ export default function Step10SystemVerify({ onSuccess }) {
       <div className="w-full max-w-3xl" style={{ animation:"stepIn 0.4s cubic-bezier(0.34,1.4,0.64,1) both" }}>
 
         {/* ── Hero ── */}
-        <div className="relative rounded-3xl px-7 py-6 mb-5 overflow-hidden border border-emerald-100" style={{ background: "linear-gradient(120deg, #ecfdf5 0%, #f0fdf9 55%, #ffffff 100%)" }}>
+        <div className="relative rounded-3xl px-7 py-6 mb-5 overflow-hidden" style={{ background: "linear-gradient(120deg, #ecfdf5 0%, #f0fdf9 55%, #ffffff 100%)" }}>
           {/* dotted pattern */}
           <div className="absolute right-44 top-1/2 -translate-y-1/2 grid grid-cols-6 gap-1.5 opacity-40 pointer-events-none">
             {[...Array(24)].map((_, i) => (
@@ -293,7 +293,7 @@ export default function Step10SystemVerify({ onSuccess }) {
           <div className="relative flex items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <div
-                className="w-14 h-14 rounded-full bg-white shadow-sm flex items-center justify-center flex-shrink-0"
+                className="w-14 h-14 rounded-full bg-white dark:bg-gray-800 shadow-sm flex items-center justify-center flex-shrink-0"
                 style={{ animation: phase!=="loading" ? "popIn 0.5s cubic-bezier(0.34,1.6,0.64,1) 0.1s both" : "none" }}
               >
                 {phase === "loading" ? (
@@ -303,7 +303,7 @@ export default function Step10SystemVerify({ onSuccess }) {
                 )}
               </div>
               <div>
-                <h2 className="text-[22px] font-bold text-slate-800 leading-tight">
+                <h2 className="text-[22px] font-bold text-slate-800 dark:text-gray-100 leading-tight">
                   {phase === "loading" ? "Verifying your details" : "System verification"}
                 </h2>
                 <p className="text-[13px] text-slate-500 mt-1 leading-relaxed">
@@ -315,12 +315,12 @@ export default function Step10SystemVerify({ onSuccess }) {
             </div>
 
             {sysData?.score != null && (
-              <div className="bg-white rounded-2xl shadow-sm px-5 py-3 text-center flex-shrink-0" style={{ animation:"popIn 0.5s cubic-bezier(0.34,1.6,0.64,1) 0.2s both" }}>
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm px-5 py-3 text-center flex-shrink-0" style={{ animation:"popIn 0.5s cubic-bezier(0.34,1.6,0.64,1) 0.2s both" }}>
                 <p className="text-3xl font-extrabold text-emerald-500 leading-none">{sysData.score}</p>
                 <p className="text-[12px] text-emerald-500 font-semibold mt-1">
                   {sysData.score >= 80 ? "Excellent" : sysData.score >= 50 ? "Fair" : "Low"}
                 </p>
-                <div className="w-20 h-1 rounded-full bg-slate-100 mt-2 overflow-hidden">
+                <div className="w-20 h-1 rounded-full bg-slate-100 dark:bg-gray-700 mt-2 overflow-hidden">
                   <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${Math.min(100, sysData.score)}%` }} />
                 </div>
               </div>
@@ -339,9 +339,9 @@ export default function Step10SystemVerify({ onSuccess }) {
         {phase === "loading" && checks.length === 0 && (
           <div className="grid grid-cols-2 gap-4 mb-5">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-white border border-slate-100" style={{ opacity:0.55 }}>
-                <div className="w-8 h-8 rounded-full bg-slate-200 animate-pulse flex-shrink-0" />
-                <div className="h-2.5 rounded-full bg-slate-200 animate-pulse flex-1" />
+              <div key={i} className="flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-white dark:bg-gray-800" style={{ opacity:0.55 }}>
+                <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-gray-700 animate-pulse flex-shrink-0" />
+                <div className="h-2.5 rounded-full bg-slate-200 dark:bg-gray-700 animate-pulse flex-1" />
               </div>
             ))}
           </div>
@@ -349,7 +349,7 @@ export default function Step10SystemVerify({ onSuccess }) {
 
         {/* ── Remarks ── */}
         {sysData?.remarks?.length > 0 && (
-          <div className="bg-sky-50 border border-sky-100 rounded-2xl px-5 py-4 mb-5">
+          <div className="bg-sky-50 rounded-2xl px-5 py-4 mb-5">
             <div className="flex items-center gap-2 mb-2">
               <div className="w-4 h-4 rounded-full bg-sky-500 flex items-center justify-center flex-shrink-0">
                 <InfoIcon className="w-2.5 h-2.5 text-white" strokeWidth={3} />
@@ -372,7 +372,7 @@ export default function Step10SystemVerify({ onSuccess }) {
               <button
                 onClick={handleRetry}
                 disabled={retrying}
-                className="px-5 py-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 text-sm font-semibold transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50"
+                className="px-5 py-3 rounded-xl bg-white dark:bg-gray-800 hover:bg-slate-50 dark:hover:bg-gray-700 text-slate-600 dark:text-gray-300 text-sm font-semibold transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {retrying
                   ? <Loader2Icon className="w-4 h-4 animate-spin" />
@@ -382,7 +382,7 @@ export default function Step10SystemVerify({ onSuccess }) {
               </button>
             )}
             {/* {!showRetry && (
-              <button className="px-5 py-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-sm font-semibold transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+              <button className="px-5 py-3 rounded-xl bg-white hover:bg-slate-50 text-slate-700 text-sm font-semibold transition-all active:scale-[0.98] flex items-center justify-center gap-2">
                 <FileSearchIcon className="w-4 h-4" />
                 View Details
               </button>

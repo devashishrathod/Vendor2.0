@@ -11,7 +11,7 @@ import { MapPin, Plus, Minus, LocateFixed } from "lucide-react";
  */
 const OutletLocationMap = ({ latitude, longitude, onZoomIn, onZoomOut, onLocate }) => {
   return (
-    <div className="relative h-56 w-full overflow-hidden rounded-xl border border-gray-100 sm:h-64">
+    <div className="relative h-56 w-full overflow-hidden rounded-xl sm:h-64">
       {/* Diamond pattern background */}
       <div
         className="absolute inset-0"
@@ -37,21 +37,21 @@ const OutletLocationMap = ({ latitude, longitude, onZoomIn, onZoomOut, onLocate 
         >
           <LocateFixed size={15} />
         </button>
-        <div className="overflow-hidden rounded-md bg-white shadow-sm">
+        <div className="overflow-hidden rounded-md bg-white shadow-sm dark:bg-gray-800">
           <button
             type="button"
             onClick={onZoomIn}
             aria-label="Zoom in"
-            className="flex h-8 w-8 items-center justify-center text-gray-600 hover:bg-gray-50"
+            className="flex h-8 w-8 items-center justify-center text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"
           >
             <Plus size={14} />
           </button>
-          <div className="h-px w-full bg-gray-100" />
+          <div className="h-px w-full bg-gray-100 dark:bg-gray-700" />
           <button
             type="button"
             onClick={onZoomOut}
             aria-label="Zoom out"
-            className="flex h-8 w-8 items-center justify-center text-gray-600 hover:bg-gray-50"
+            className="flex h-8 w-8 items-center justify-center text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"
           >
             <Minus size={14} />
           </button>

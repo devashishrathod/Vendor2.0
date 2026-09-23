@@ -31,7 +31,7 @@ const BrandProfilePage = ({ brand, brandLoading, brandError }) => {
 
       <BrandProfileSection profile={brand} onChangeLogo={handleChangeLogo} />
 
-      <hr className="border-gray-100" />
+      <hr />
 
       <CategoryInfoSection category={brand.category} />
 

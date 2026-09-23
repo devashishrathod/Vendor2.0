@@ -13,7 +13,7 @@ export default function CollectionDetailModal({ collection, player, onClose }) {
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg max-h-full overflow-y-auto rounded-2xl bg-gray-50 p-5"
+        className="w-full max-w-lg max-h-full overflow-y-auto rounded-2xl bg-gray-50 dark:bg-gray-800 p-5"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-end mb-1">
@@ -21,7 +21,7 @@ export default function CollectionDetailModal({ collection, player, onClose }) {
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="text-gray-400 hover:text-gray-600"
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
           >
             <X size={20} />
           </button>

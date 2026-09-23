@@ -9,7 +9,7 @@ export default function ReceiptModal({ order, typeConfig, onClose }) {
     value ? (
       <div className="flex items-start justify-between gap-3 py-1.5">
         <span className="text-xs text-gray-500">{label}</span>
-        <span className="text-xs font-semibold text-gray-800 text-right">{value}</span>
+        <span className="text-xs font-semibold text-gray-800 dark:text-gray-100 text-right">{value}</span>
       </div>
     ) : null;
 
@@ -23,7 +23,7 @@ export default function ReceiptModal({ order, typeConfig, onClose }) {
         }
       `}</style>
 
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm max-h-[90vh] overflow-y-auto">
         <div id="receipt-print-area" className="p-6">
           <div className="text-center mb-5">
             <p className="text-lg font-extrabold text-emerald-600 tracking-tight">TRYDOOD</p>
@@ -33,14 +33,14 @@ export default function ReceiptModal({ order, typeConfig, onClose }) {
           <div className="flex items-center justify-between mb-4">
             <div>
               <p className="text-xs text-gray-400">Order Id</p>
-              <p className="text-sm font-bold text-gray-900">{order.orderId || "—"}</p>
+              <p className="text-sm font-bold text-gray-900 dark:text-gray-100">{order.orderId || "—"}</p>
             </div>
-            <span className="text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full">
+            <span className="text-[11px] font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 dark:text-emerald-400 px-2.5 py-1 rounded-full">
               {order.status || "Active"}
             </span>
           </div>
 
-          <div className="border-t border-dashed border-gray-200 my-3" />
+          <div className="my-3" />
 
           <div className="space-y-0.5">
             {row(typeConfig.idFieldLabel, order.refId)}
@@ -50,21 +50,21 @@ export default function ReceiptModal({ order, typeConfig, onClose }) {
             {row("Store Type", order.storeType)}
           </div>
 
-          <div className="border-t border-dashed border-gray-200 my-3" />
+          <div className="my-3" />
 
           <div className="space-y-0.5">
             {row("Bill Amount", order.billAmount)}
             {row("Discount Amount", order.discountAmount)}
           </div>
 
-          <div className="border-t border-dashed border-gray-200 my-3" />
+          <div className="my-3" />
 
           <div className="flex items-center justify-between py-1">
-            <span className="text-sm font-bold text-gray-900">Paid Amount</span>
+            <span className="text-sm font-bold text-gray-900 dark:text-gray-100">Paid Amount</span>
             <span className="text-lg font-bold text-emerald-600">{order.paidAmount || "—"}</span>
           </div>
 
-          <div className="border-t border-dashed border-gray-200 my-3" />
+          <div className="my-3" />
 
           <div className="space-y-0.5">
             {row("Payment Method", order.paymentMethod)}
@@ -79,7 +79,7 @@ export default function ReceiptModal({ order, typeConfig, onClose }) {
         <div className="flex items-center gap-2 px-6 pb-6">
           <button
             onClick={onClose}
-            className="flex-1 text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl px-4 py-2.5 transition-colors"
+            className="flex-1 text-sm font-semibold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl px-4 py-2.5 transition-colors"
           >
             Close
           </button>

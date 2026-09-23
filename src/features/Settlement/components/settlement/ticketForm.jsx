@@ -4,13 +4,13 @@ import { ChevronDown, ChevronUp, Download, ImageDown, X } from "lucide-react";
 
 function TicketRow({ ticket, isOpen, onToggle }) {
   return (
-    <div className="border-b border-slate-100 last:border-b-0">
+    <div>
       <button
         onClick={() => onToggle(ticket.id)}
         className="flex w-full items-center justify-between px-6 py-3.5 text-left"
       >
-        <span className="text-sm text-slate-600">
-          Ticket Id: <span className="font-medium text-slate-800">{ticket.id}</span>{" "}
+        <span className="text-sm text-slate-600 dark:text-gray-300">
+          Ticket Id: <span className="font-medium text-slate-800 dark:text-gray-100">{ticket.id}</span>{" "}
           <span className="text-slate-400">[{ticket.date}]</span>
         </span>
         {isOpen ? (
@@ -27,7 +27,7 @@ function TicketRow({ ticket, isOpen, onToggle }) {
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                 Customer Information
               </p>
-              <p className="mt-1 text-sm leading-relaxed text-slate-600">
+              <p className="mt-1 text-sm leading-relaxed text-slate-600 dark:text-gray-300">
                 {ticket.customerInfo}
               </p>
             </div>
@@ -38,7 +38,7 @@ function TicketRow({ ticket, isOpen, onToggle }) {
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                 Next Steps
               </p>
-              <p className="mt-1 text-sm leading-relaxed text-slate-600">{ticket.nextSteps}</p>
+              <p className="mt-1 text-sm leading-relaxed text-slate-600 dark:text-gray-300">{ticket.nextSteps}</p>
             </div>
           )}
 
@@ -47,7 +47,7 @@ function TicketRow({ ticket, isOpen, onToggle }) {
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                 Resources
               </p>
-              <p className="mt-1 text-sm leading-relaxed text-slate-600">
+              <p className="mt-1 text-sm leading-relaxed text-slate-600 dark:text-gray-300">
                 Purpose strings must clearly identify the app being used to access this data,
                 and describe how the app uses the data in a way that is easy for the reader to
                 understand.
@@ -56,9 +56,9 @@ function TicketRow({ ticket, isOpen, onToggle }) {
                 {ticket.resources.map((res) => (
                   <div
                     key={res.label}
-                    className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2"
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-slate-50 dark:bg-gray-700 px-3 py-2"
                   >
-                    <span className="text-sm text-slate-600">{res.label}</span>
+                    <span className="text-sm text-slate-600 dark:text-gray-300">{res.label}</span>
                     <button className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 hover:underline">
                       {res.action === "Screenshots" ? (
                         <ImageDown className="h-3.5 w-3.5" />
@@ -106,10 +106,10 @@ function NewTicketModal({ open, onClose, onSubmit, submitting }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4">
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+      <div className="w-full max-w-md rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-xl">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-slate-800">Create Ticket</h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+          <h3 className="text-sm font-semibold text-slate-800 dark:text-gray-100">Create Ticket</h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-gray-100">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -121,7 +121,7 @@ function NewTicketModal({ open, onClose, onSubmit, submitting }) {
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               placeholder="e.g. Settlement amount mismatch"
-              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+              className="mt-1 w-full rounded-lg bg-emerald-50 dark:bg-emerald-500/10 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-400"
             />
           </div>
           <div>
@@ -131,7 +131,7 @@ function NewTicketModal({ open, onClose, onSubmit, submitting }) {
               onChange={(e) => setMessage(e.target.value)}
               rows={4}
               placeholder="Describe the issue in detail…"
-              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+              className="mt-1 w-full rounded-lg bg-emerald-50 dark:bg-emerald-500/10 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-400"
             />
           </div>
           {error && <p className="text-xs text-rose-500">{error}</p>}
@@ -139,7 +139,7 @@ function NewTicketModal({ open, onClose, onSubmit, submitting }) {
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-slate-200 px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50"
+              className="rounded-lg px-4 py-2 text-xs font-medium text-slate-600 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-700"
             >
               Cancel
             </button>
@@ -167,8 +167,8 @@ export default function TicketForm({
   submitting,
 }) {
   return (
-    <div className="rounded-2xl border border-slate-100 bg-white shadow-sm">
-      <div className="border-b border-slate-100 px-6 py-4">
+    <div className="rounded-2xl bg-white dark:bg-gray-800 shadow-sm">
+      <div className="px-6 py-4">
         <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
           Ticket Raise
         </h3>

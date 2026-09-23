@@ -34,22 +34,22 @@ export default function PlanBenefitsModal({ open, onClose, planName, features = 
       }}
     >
       <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto"
+        className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto"
         role="dialog"
         aria-modal="true"
         aria-label="Plan benefit details"
       >
-        <div className="flex items-center justify-between gap-3 px-6 py-5 border-b border-gray-100 sticky top-0 bg-white">
+        <div className="flex items-center justify-between gap-3 px-6 py-5 sticky top-0 bg-white dark:bg-gray-800">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
               <Crown className="w-4 h-4" />
             </div>
-            <h3 className="text-base font-bold text-gray-900">{planName} Plan Details</h3>
+            <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">{planName} Plan Details</h3>
           </div>
           <button
             onClick={onClose}
             aria-label="Close"
-            className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+            className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -65,9 +65,9 @@ export default function PlanBenefitsModal({ open, onClose, planName, features = 
               <p className="text-xs font-bold uppercase tracking-wide text-gray-400 mb-3">Plan Features</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 {features.map((f) => (
-                  <div key={f.title} className="flex items-center justify-between gap-3 bg-gray-50 rounded-xl px-3.5 py-2.5">
-                    <span className="text-sm text-gray-600">{f.title}</span>
-                    <span className={`flex items-center gap-1 text-sm font-semibold ${f.available ? 'text-gray-800' : 'text-gray-400'}`}>
+                  <div key={f.title} className="flex items-center justify-between gap-3 bg-gray-50 dark:bg-gray-700 rounded-xl px-3.5 py-2.5">
+                    <span className="text-sm text-gray-600 dark:text-gray-300">{f.title}</span>
+                    <span className={`flex items-center gap-1 text-sm font-semibold ${f.available ? 'text-gray-800 dark:text-gray-100' : 'text-gray-400'}`}>
                       {f.available ? (
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                       ) : (
@@ -86,9 +86,9 @@ export default function PlanBenefitsModal({ open, onClose, planName, features = 
               <p className="text-xs font-bold uppercase tracking-wide text-gray-400 mb-3">Benefits</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 {benefits.map((b) => (
-                  <div key={b} className="flex items-center gap-2 bg-emerald-50/60 border border-emerald-100 rounded-xl px-3.5 py-2.5">
+                  <div key={b} className="flex items-center gap-2 bg-emerald-50/60 dark:bg-emerald-500/10 rounded-xl px-3.5 py-2.5">
                     <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                    <span className="text-sm font-medium text-gray-700">{b}</span>
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{b}</span>
                   </div>
                 ))}
               </div>
@@ -102,10 +102,10 @@ export default function PlanBenefitsModal({ open, onClose, planName, features = 
                 {usageRows.map(([key, u]) => {
                   const pct = !u.isUnlimited && u.limit ? Math.min(100, ((u.used ?? 0) / u.limit) * 100) : 0;
                   return (
-                    <div key={key} className="bg-gray-50 rounded-xl px-3.5 py-3">
+                    <div key={key} className="bg-gray-50 dark:bg-gray-700 rounded-xl px-3.5 py-3">
                       <div className="flex items-center justify-between text-sm mb-1.5">
-                        <span className="text-gray-600">{USAGE_LABELS[key]}</span>
-                        <span className="font-semibold text-gray-800">
+                        <span className="text-gray-600 dark:text-gray-300">{USAGE_LABELS[key]}</span>
+                        <span className="font-semibold text-gray-800 dark:text-gray-100">
                           {u.used ?? 0}
                           {u.isUnlimited ? ' / Unlimited' : u.limit != null ? ` / ${u.limit}` : ''}
                         </span>

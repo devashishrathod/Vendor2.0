@@ -18,7 +18,7 @@ const ShowcaseMediaRow = ({ fields, onGenerate, onUpload }) => {
             <p className="text-[11px] font-medium text-gray-500">
               {field.label}
             </p>
-            <p className="mt-1 text-sm text-gray-800">{field.value}</p>
+            <p className="mt-1 text-sm text-gray-800 dark:text-gray-100">{field.value}</p>
           </div>
         ))}
       </div>

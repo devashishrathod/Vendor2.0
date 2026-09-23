@@ -12,7 +12,7 @@ const InfoItem = ({ label, value, valueClassName = "", action }) => {
         {label}
       </p>
       <div className="mt-1 flex items-center gap-2">
-        <p className={`text-sm text-gray-800 ${valueClassName}`}>{value}</p>
+        <p className={`text-sm text-gray-800 dark:text-gray-100 ${valueClassName}`}>{value}</p>
         {action && (
           <button
             type="button"

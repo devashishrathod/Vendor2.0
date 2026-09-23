@@ -22,7 +22,7 @@ export default function SubscriptionPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 font-sans flex items-center justify-center">
+      <div className="min-h-screen dark:bg-gray-900 font-sans flex items-center justify-center">
         <p className="text-sm text-gray-500">Loading your subscription…</p>
       </div>
     );
@@ -30,7 +30,7 @@ export default function SubscriptionPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 font-sans flex items-center justify-center">
+      <div className="min-h-screen  dark:bg-gray-900 font-sans flex items-center justify-center">
         <div className="text-center">
           <p className="text-sm text-gray-500 mb-4">{error}</p>
           <button
@@ -47,7 +47,7 @@ export default function SubscriptionPage() {
   if (!subscription) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans">
+    <div className="min-h-screen bg-[#F8FAF7] dark:bg-gray-900 font-sans">
       <div className="max-w-6xl mx-auto px-4 py-8 space-y-4">
         <PageHeader planTypeLabel={subscription.planTypeLabel} />
 

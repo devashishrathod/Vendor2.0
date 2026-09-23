@@ -32,7 +32,7 @@ const DescriptionCell = ({ description, onReadMore }) => {
 const StatusBadge = ({ isActive }) => (
   <span
     className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
-      isActive ? "bg-emerald-50 text-emerald-600" : "bg-gray-100 text-gray-500"
+      isActive ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400"
     }`}
   >
     {isActive ? "Active" : "Inactive"}
@@ -48,16 +48,16 @@ const FeatureDetailsModal = ({ feature, onClose }) => (
     onClick={onClose}
   >
     <div
-      className="w-full max-w-md rounded-2xl bg-white shadow-2xl"
+      className="w-full max-w-md rounded-2xl bg-white dark:bg-gray-800 shadow-2xl"
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-        <h3 className="text-base font-bold text-gray-900">Listing Feature</h3>
+      <div className="flex items-center justify-between px-6 py-4">
+        <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">Listing Feature</h3>
         <button
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
         >
           <X size={16} className="text-gray-500" />
         </button>
@@ -66,19 +66,19 @@ const FeatureDetailsModal = ({ feature, onClose }) => (
         <div className="flex items-center gap-3">
           <MediaThumb src={feature.iconUrl} alt={feature.lfName} />
           <div>
-            <p className="text-sm font-bold text-gray-900">{feature.lfName}</p>
+            <p className="text-sm font-bold text-gray-900 dark:text-gray-100">{feature.lfName}</p>
             <StatusBadge isActive={feature.isActive} />
           </div>
         </div>
         <div>
-          <p className="text-xs font-semibold text-gray-900 mb-1">Description</p>
-          <p className="text-sm text-gray-600 whitespace-pre-line">
+          <p className="text-xs font-semibold text-gray-900 dark:text-gray-100 mb-1">Description</p>
+          <p className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-line">
             {feature.description || "—"}
           </p>
         </div>
         <div>
-          <p className="text-xs font-semibold text-gray-900 mb-1">Created On</p>
-          <p className="text-sm text-gray-600">{feature.createdOn}</p>
+          <p className="text-xs font-semibold text-gray-900 dark:text-gray-100 mb-1">Created On</p>
+          <p className="text-sm text-gray-600 dark:text-gray-300">{feature.createdOn}</p>
         </div>
       </div>
     </div>
@@ -95,7 +95,7 @@ const MediaThumb = ({ src, alt, onPlay, onView, onChangeIcon, changing }) => {
         <img
           src={src}
           alt={alt}
-          className="h-12 w-12 rounded-xl border border-gray-200 bg-gray-50 object-cover"
+          className="h-12 w-12 rounded-xl bg-gray-50 dark:bg-gray-700 object-cover"
         />
         {(onView || onChangeIcon) && (
           <div className="absolute inset-0 flex items-center justify-center gap-1.5 rounded-xl bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
@@ -145,7 +145,7 @@ const MediaThumb = ({ src, alt, onPlay, onView, onChangeIcon, changing }) => {
     <button
       type="button"
       onClick={onPlay}
-      className="group relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-gray-900"
+      className="group relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl bg-gray-900"
       aria-label={`Play ${alt}`}
     >
       <video src={src} className="h-full w-full object-cover opacity-70" muted />
@@ -222,11 +222,11 @@ const ListingFeaturesSection = ({
     <section>
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center flex-shrink-0">
-            <ListChecks size={18} className="text-emerald-500" />
+          <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
+            <ListChecks size={18} className="text-emerald-500 dark:text-emerald-400" />
           </div>
           <div>
-            <h2 className="text-sm font-bold text-gray-900">
+            <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100">
               Listing Features
             </h2>
             <p className="text-xs text-gray-400 mt-0.5">
@@ -244,15 +244,15 @@ const ListingFeaturesSection = ({
       </div>
 
       {iconError && (
-        <p className="mt-4 rounded-xl border border-red-100 bg-red-50 px-4 py-2.5 text-sm text-red-500">
+        <p className="mt-4 rounded-xl bg-red-50 px-4 py-2.5 text-sm text-red-500">
           {iconError}
         </p>
       )}
 
-      <div className="mt-5 overflow-x-auto rounded-xl border border-gray-100 shadow-sm">
+      <div className="mt-5 overflow-x-auto no-scrollbar rounded-xl shadow-sm">
         <table className="w-full min-w-[640px] text-left text-sm">
           <thead>
-            <tr className="border-b border-gray-100 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+            <tr className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
               <th className="px-5 py-3">S.NO</th>
               <th className="px-5 py-3">Icon</th>
               <th className="px-5 py-3">Title</th>
@@ -266,9 +266,8 @@ const ListingFeaturesSection = ({
             {listingFeatures.features.map((feature) => (
               <tr
                 key={feature.id}
-                className="border-b border-gray-50 last:border-b-0"
               >
-                <td className="px-5 py-4 text-gray-800">{feature.sNo}</td>
+                <td className="px-5 py-4 text-gray-800 dark:text-gray-100">{feature.sNo}</td>
                 <td className="px-5 py-4">
                   <MediaThumb
                     src={feature.iconUrl}
@@ -279,8 +278,8 @@ const ListingFeaturesSection = ({
                     changing={changingIconId === feature.id}
                   />
                 </td>
-                <td className="px-5 py-4 text-gray-800">{feature.lfName}</td>
-                <td className="px-5 py-4 text-gray-800 max-w-xs">
+                <td className="px-5 py-4 text-gray-800 dark:text-gray-100">{feature.lfName}</td>
+                <td className="px-5 py-4 text-gray-800 dark:text-gray-100 max-w-xs">
                   <DescriptionCell
                     description={feature.description}
                     onReadMore={() => setViewingFeature(feature)}

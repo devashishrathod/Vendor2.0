@@ -64,26 +64,26 @@ export default function UploadBox({
 
   return (
     <>
-      <div className="bg-[#f3f6fb] rounded-xl p-4">
+      <div className="bg-[#f3f6fb] dark:bg-gray-700/40 rounded-xl p-4">
         <div className="flex flex-wrap items-center gap-4 mb-3">
           {/* Info cols */}
           <div className="grid gap-1 text-sm min-w-[120px]">
-            <span className="font-semibold text-gray-700">Pixel Size Rules</span>
+            <span className="font-semibold text-gray-700 dark:text-gray-300">Pixel Size Rules</span>
             <span className="text-gray-500">{sizeRule || "3:4 ratio (50×50 px)"}</span>
           </div>
           <div className="grid gap-1 text-sm min-w-[100px]">
-            <span className="font-semibold text-gray-700">Upload Size Limit</span>
+            <span className="font-semibold text-gray-700 dark:text-gray-300">Upload Size Limit</span>
             <span className="text-gray-500">{sizeLimit || "1.5 MB"}</span>
           </div>
           {extraCols.map((col, i) => (
             <div key={i} className="grid gap-1 text-sm min-w-[80px]">
-              <span className="font-semibold text-gray-700">{col.label}</span>
+              <span className="font-semibold text-gray-700 dark:text-gray-300">{col.label}</span>
               <span className="text-gray-500">{col.value}</span>
             </div>
           ))}
           {maxFiles > 1 && (
             <div className="grid gap-1 text-sm min-w-[80px]">
-              <span className="font-semibold text-gray-700">Max Files</span>
+              <span className="font-semibold text-gray-700 dark:text-gray-300">Max Files</span>
               <span className="text-gray-500">{items.length} / {maxFiles}</span>
             </div>
           )}
@@ -95,7 +95,7 @@ export default function UploadBox({
               className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
                 remainingSlots > 0
                   ? "bg-[#1a1a2e] text-white hover:bg-[#2d2d5e]"
-                  : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                  : "bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed"
               }`}
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -118,7 +118,7 @@ export default function UploadBox({
         {items.length > 0 && (
           <div className="flex flex-wrap gap-3">
             {items.map((it) => (
-              <div key={it.id} className="relative w-16 h-16 rounded-lg overflow-hidden border border-gray-200 group">
+              <div key={it.id} className="relative w-16 h-16 rounded-lg overflow-hidden group">
                 {mediaType === "video" ? (
                   <div className="w-full h-full bg-gray-800 flex items-center justify-center">
                     <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">

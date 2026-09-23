@@ -56,7 +56,7 @@ export default function RaiseTicketModal({ open, onClose, onSubmit }) {
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+        <div className="flex items-center justify-between px-6 py-5">
           <h2 className="text-sm font-bold tracking-[0.15em] text-gray-900">RAISE TICKET</h2>
           <button
             onClick={handleClose}
@@ -87,10 +87,10 @@ export default function RaiseTicketModal({ open, onClose, onSubmit }) {
                   key={cat}
                   type="button"
                   onClick={() => toggleCategory(cat)}
-                  className={`text-xs font-semibold rounded-full px-4 py-2 border transition-colors ${
+                  className={`text-xs font-semibold rounded-full px-4 py-2 transition-colors ${
                     isSelected
-                      ? "border-emerald-600 text-gray-900 bg-white"
-                      : "border-gray-200 text-gray-700 bg-white hover:border-gray-300"
+                      ? "text-gray-900 bg-white"
+                      : "text-gray-700 bg-white"
                   }`}
                 >
                   {cat}
@@ -104,7 +104,7 @@ export default function RaiseTicketModal({ open, onClose, onSubmit }) {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="DESCRIBE THE PROBLEM"
-            className="w-full h-64 resize-none bg-gray-100 rounded-xl px-4 py-4 text-xs font-semibold tracking-[0.1em] text-gray-500 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+            className="w-full h-64 resize-none bg-emerald-100 rounded-xl px-4 py-4 text-xs font-semibold tracking-[0.1em] text-gray-500 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
           />
         </div>
 
