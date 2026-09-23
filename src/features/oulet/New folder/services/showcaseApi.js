@@ -126,20 +126,28 @@ export async function deleteShowcaseSection(sectionId) {
 
 // ── Add Media to a Section ──────────────────────────────────────
 // POST {{TryDood2.0BaseUrl}}/showcase/section/:sectionId/add-media   (multipart/form-data)
-// Matches the Postman request exactly:
+// CONFIRMED from the real Postman request (form-data field table):
 //   - "isShowInVideoClips": "true" | "false"   (text field)
-//   - "files": <file>                          (repeated file field, one per upload)
+//   - "files": <file>                          (repeated file field — "the
+//     name the service reads", one or more photo/video)
+//   - "thumbnails": <file>                     (repeated file field — each
+//     VIDEO's poster, matched to `files` BY INDEX. Was wrongly sent as
+//     singular "thumbnail" before — that's why the backend kept saying "A
+//     video needs a poster image" even with a poster attached.)
+//   - "uploadIds" / "thumbnailUploadIds" — alternate presigned-upload route
+//     for the same two slots (see src/services/uploadApi.js), not used here.
+//
+// This component only ever uploads one video (+ its one poster) per call
+// (see ShowcaseAlbumsEditor's VideoUploadModal flow), so `files`/`thumbnails`
+// being index-matched 1:1 is trivially satisfied; a photo-only batch sends
+// no `thumbnails` at all.
 //
 // @param {string} sectionId
 // @param {File[]} files
 // @param {object} [options]
 // @param {boolean} [options.isShowInVideoClips=false]
-// @param {File} [options.thumbnail] - ⚠️ NOT CONFIRMED from Postman: only
-//        `isShowInVideoClips` + `files` are documented on this endpoint.
-//        Sent as a best-effort "thumbnail" file field when provided (only
-//        meaningful alongside isShowInVideoClips: true) — verify against a
-//        real response and correct the field name here if it's wrong.
-//        (Mirrors src/features/brand/services/brandApi.js's addShowcaseMedia.)
+// @param {File} [options.thumbnail] - the video's poster image, sent as the
+//        "thumbnails" field.
 // @param {Record<string,string>} [options.extraFields] - e.g. a "month" tag
 //        for Ambience-style albums, if the backend accepts it per-upload.
 // @param {(percent:number)=>void} [onUploadProgress]
@@ -155,7 +163,7 @@ export async function addShowcaseMedia(
 
         const formData = new FormData();
         formData.append('isShowInVideoClips', String(isShowInVideoClips));
-        if (thumbnail) formData.append('thumbnail', thumbnail);
+        if (thumbnail) formData.append('thumbnails', thumbnail);
 
         Object.entries(extraFields).forEach(([key, value]) => {
             formData.append(key, value);
