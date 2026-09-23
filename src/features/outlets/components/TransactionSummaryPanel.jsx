@@ -45,7 +45,7 @@ export default function TransactionSummaryPanel({ transactions }) {
         return (
           <div
             key={type.value}
-            className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl p-5 flex items-start justify-between gap-3"
+            className="bg-white dark:bg-gray-800 rounded-2xl p-5 flex items-start justify-between gap-3"
           >
             <div>
               <div className="flex items-center gap-2.5">

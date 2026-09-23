@@ -7,9 +7,9 @@ const CategoryTagSection = ({ categoryTagLine }) => {
   // adds this, render nothing rather than crashing.
   if (!categoryTagLine) {
     return (
-      <section className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6">
+      <section className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 flex items-center justify-center flex-shrink-0">
+          <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
             <svg className="w-4 h-4 text-emerald-500 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 6h16M4 12h16M4 18h7" />
             </svg>
@@ -26,9 +26,9 @@ const CategoryTagSection = ({ categoryTagLine }) => {
   const tags = categoryTagLine.tags || [];
 
   return (
-    <section className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6">
+    <section className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6">
       <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 flex items-center justify-center flex-shrink-0">
+        <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
           <svg className="w-4 h-4 text-emerald-500 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 6h16M4 12h16M4 18h7" />
           </svg>

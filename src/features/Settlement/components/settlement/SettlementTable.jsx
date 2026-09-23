@@ -12,6 +12,7 @@ import {
   ChevronRight,
   Copy,
 } from "lucide-react";
+import Select from "../../../../components/common/Select";
 
 const currency = (n) =>
   `₹${Number(n || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
@@ -148,9 +149,9 @@ export default function SettlementTable({
   };
 
   return (
-    <div className="rounded-2xl border border-slate-100 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+    <div className="rounded-2xl bg-white dark:bg-gray-800 shadow-sm">
       {/* Toolbar */}
-      <div className="flex flex-col gap-3 border-b border-slate-100 dark:border-gray-700 p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-1 rounded-lg bg-slate-100 dark:bg-gray-700 p-1">
           {pageSizes.map((size) => (
             <button
@@ -169,7 +170,7 @@ export default function SettlementTable({
         </div>
 
         <div className="flex flex-1 flex-nowrap items-center gap-2 overflow-x-auto sm:justify-end">
-          <div className="flex w-44 flex-shrink-0 items-center gap-2 rounded-xl border border-slate-200 dark:border-gray-700 px-3 py-2 text-sm text-slate-400 transition-colors focus-within:border-emerald-400 focus-within:ring-2 focus-within:ring-emerald-100">
+          <div className="flex w-44 flex-shrink-0 items-center gap-2 rounded-xl bg-emerald-100 dark:bg-emerald-500/20 px-3 py-2 text-sm text-slate-400 transition-colors focus-within:ring-2 focus-within:ring-emerald-100">
             <Search className="h-4 w-4 flex-shrink-0" />
             <input
               value={search}
@@ -179,21 +180,22 @@ export default function SettlementTable({
             />
           </div>
 
-          <div className="flex flex-shrink-0 items-center gap-1.5 rounded-xl border border-slate-200 dark:border-gray-700 px-3 py-2 text-sm text-slate-600 dark:text-gray-300">
+          <div className="flex flex-shrink-0 items-center gap-1.5 rounded-xl bg-emerald-100 dark:bg-emerald-500/20 pl-3">
             <SlidersHorizontal className="h-4 w-4 shrink-0 text-slate-400" />
-            <select
+            <Select
+              compact
               value={statusFilter}
-              onChange={(e) => onStatusFilterChange(e.target.value)}
-              className="bg-transparent text-sm text-slate-600 dark:text-gray-300 outline-none"
-            >
-              <option value="all">All Statuses</option>
-              {statusOptions.map((s) => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
+              onChange={(value) => onStatusFilterChange(value)}
+              options={[
+                { value: "all", label: "All Statuses" },
+                ...statusOptions.map((s) => ({ value: s, label: s })),
+              ]}
+              placeholder="All Statuses"
+              className="bg-transparent text-slate-600 dark:text-gray-300"
+            />
           </div>
 
-          <div className="flex flex-shrink-0 items-center gap-1.5 rounded-xl border border-slate-200 dark:border-gray-700 px-3 py-2 text-sm text-slate-600 dark:text-gray-300">
+          <div className="flex flex-shrink-0 items-center gap-1.5 rounded-xl bg-emerald-100 dark:bg-emerald-500/20 px-3 py-2 text-sm text-slate-600 dark:text-gray-300">
             <CalendarDays className="h-4 w-4 shrink-0 text-slate-400" />
             <input
               type="date"
@@ -225,7 +227,7 @@ export default function SettlementTable({
             type="button"
             disabled={rows.length === 0}
             onClick={() => exportSettlementsToCsv(rows)}
-            className="flex flex-shrink-0 items-center gap-1.5 rounded-xl border border-slate-200 dark:border-gray-700 px-3 py-2 text-sm font-medium text-slate-600 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex flex-shrink-0 items-center gap-1.5 rounded-xl bg-slate-100 dark:bg-gray-700 px-3 py-2 text-sm font-medium text-slate-600 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-gray-600 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <Download className="h-4 w-4" />
             Export Data
@@ -271,7 +273,7 @@ export default function SettlementTable({
                 const isOpen = expandedRow === row.id;
                 return (
                   <React.Fragment key={row.id}>
-                    <tr className="border-b border-slate-100 dark:border-gray-700 bg-white dark:bg-gray-800 last:border-b-0 hover:bg-slate-50/60 dark:hover:bg-gray-700/60">
+                    <tr className="bg-white dark:bg-gray-800 hover:bg-slate-50/60 dark:hover:bg-gray-700/60">
                       <td className="px-3 py-2">
                         <button
                           onClick={() => goToDetails(row.id)}
@@ -314,7 +316,7 @@ export default function SettlementTable({
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center justify-between border-t border-slate-100 dark:border-gray-700 px-6 py-4">
+      <div className="flex items-center justify-between px-6 py-4">
         <p className="text-xs text-slate-400">
           Showing {rows.length} of {total} settlements
         </p>

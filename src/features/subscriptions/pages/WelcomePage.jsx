@@ -63,7 +63,7 @@ function DownloadInvoiceButton({ invoiceUrl, className = "" }) {
       onClick={() => invoiceUrl && window.open(invoiceUrl, "_blank", "noopener,noreferrer")}
       disabled={!invoiceUrl}
       title={invoiceUrl ? "Download invoice" : "Invoice not available yet"}
-      className={`inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-semibold rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 active:scale-[0.97] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white dark:disabled:hover:bg-gray-800 flex-shrink-0 ${className}`}
+      className={`inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-semibold rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 active:scale-[0.97] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white dark:disabled:hover:bg-gray-700 flex-shrink-0 ${className}`}
     >
       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
@@ -108,47 +108,69 @@ function PlanSummaryCard({ planName, orderSummary, strikePrice, defaultOpen = fa
   const payable = orderSummary?.payable;
   if (rows.length === 0) return null;
 
+  // Styled like a printed receipt/bill — deliberately always paper-white
+  // (not theme-following) since a receipt reads as physical paper
+  // regardless of the app's own light/dark mode, with a torn/zigzag
+  // bottom edge (the classic CSS double-gradient trick) instead of a
+  // plain rounded corner.
   return (
-    <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden mb-6 bg-white dark:bg-gray-800">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center justify-between px-5 py-3 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-      >
-        <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Plan Name : {planName}</p>
-        <ChevronIcon open={open} />
-      </button>
+    <div className="mb-6 drop-shadow-lg">
+      <div className="rounded-t-xl overflow-hidden bg-white">
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          className="w-full flex items-center justify-between px-5 py-3 bg-gray-50 hover:bg-gray-100 transition-colors"
+        >
+          <p className="text-sm font-semibold text-gray-700">Plan Name : {planName}</p>
+          <ChevronIcon open={open} />
+        </button>
 
-      {open && (
-        <div className="px-5 py-4 space-y-3">
-          {rows.map((row) => {
-            const isOriginal = row.key === "ORIGINAL_PRICE";
-            const isDiscount = /discount/i.test(row.label || "");
-            // strikePrice is often 0 (confirmed field, meaning "none set"),
-            // not null/undefined — `!= null` alone let a real 0 through and
-            // overrode the actual Original Price with "₹0.00".
-            const value = isOriginal && strikePrice > 0 ? fmt(strikePrice) : row.display;
-            return (
-              <div key={row.key} className="flex items-center justify-between">
-                <span className="text-sm text-gray-600 dark:text-gray-300">{truncatePercentInLabel(row.label)}</span>
-                <span
-                  className={`text-sm font-semibold ${
-                    isDiscount ? "text-teal-600" : isOriginal ? "text-gray-400 line-through" : "text-gray-800 dark:text-gray-100"
-                  }`}
+        {open && (
+          <div className="px-5 py-4">
+            {rows.map((row) => {
+              const isOriginal = row.key === "ORIGINAL_PRICE";
+              const isDiscount = /discount/i.test(row.label || "");
+              // strikePrice is often 0 (confirmed field, meaning "none set"),
+              // not null/undefined — `!= null` alone let a real 0 through and
+              // overrode the actual Original Price with "₹0.00".
+              const value = isOriginal && strikePrice > 0 ? fmt(strikePrice) : row.display;
+              return (
+                <div
+                  key={row.key}
+                  className="flex items-center justify-between py-2 border-b border-dashed border-gray-200"
                 >
-                  {value}
-                </span>
+                  <span className="text-sm text-gray-600">{truncatePercentInLabel(row.label)}</span>
+                  <span
+                    className={`text-sm font-mono font-semibold ${
+                      isDiscount ? "text-teal-600" : isOriginal ? "text-gray-400 line-through" : "text-gray-800"
+                    }`}
+                  >
+                    {value}
+                  </span>
+                </div>
+              );
+            })}
+            {payable && (
+              <div className="flex items-center justify-between pt-3">
+                <span className="text-sm font-bold text-gray-900">{payable.label || "Total Paid"}</span>
+                <span className="text-base font-mono font-extrabold text-gray-900">{payable.display}</span>
               </div>
-            );
-          })}
-          {payable && (
-            <div className="flex items-center justify-between pt-2 border-t border-dashed border-gray-200 dark:border-gray-700">
-              <span className="text-sm font-bold text-gray-900 dark:text-gray-100">{payable.label || "Total Paid"}</span>
-              <span className="text-base font-extrabold text-gray-900 dark:text-gray-100">{payable.display}</span>
-            </div>
-          )}
-        </div>
-      )}
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Torn-paper zigzag edge */}
+      <div
+        className="h-3"
+        style={{
+          backgroundImage:
+            "linear-gradient(135deg, white 50%, transparent 50%), linear-gradient(225deg, white 50%, transparent 50%)",
+          backgroundSize: "16px 16px",
+          backgroundPosition: "top left, top right",
+          backgroundRepeat: "repeat-x",
+        }}
+      />
     </div>
   );
 }
@@ -176,8 +198,8 @@ function CurrentSubscriptionCard({ sub }) {
   const isActive = subscription.status === "ACTIVE";
 
   return (
-    <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden mb-6 bg-white dark:bg-gray-800">
-      <div className="flex items-center justify-between gap-3 px-5 py-3 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-700">
+    <div className="rounded-xl overflow-hidden mb-6 bg-white dark:bg-gray-800">
+      <div className="flex items-center justify-between gap-3 px-5 py-3 bg-gray-50 dark:bg-gray-700">
         <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 min-w-0 truncate">
           Current Plan : {plan.name || "—"}
           {plan.typeLabel ? ` (${plan.typeLabel})` : ""}
@@ -213,7 +235,7 @@ function CurrentSubscriptionCard({ sub }) {
         </div>
 
         {/* Pricing breakdown */}
-        <div className="space-y-2 pt-3 border-t border-dashed border-gray-200 dark:border-gray-700">
+        <div className="space-y-2 pt-3">
           {pricing.listPrice != null && (
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600 dark:text-gray-300">List Price</span>
@@ -236,7 +258,7 @@ function CurrentSubscriptionCard({ sub }) {
               <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">{fmt(pricing.gstAmount)}</span>
             </div>
           )}
-          <div className="flex items-center justify-between pt-2 border-t border-dashed border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between pt-2">
             <span className="text-sm font-bold text-gray-900 dark:text-gray-100">Total Paid</span>
             <span className="text-base font-extrabold text-gray-900 dark:text-gray-100">
               {fmt(subscription.paidAmount ?? pricing.totalPayable)}
@@ -251,7 +273,7 @@ function CurrentSubscriptionCard({ sub }) {
 
         {/* Plan features */}
         {plan.features?.length > 0 && (
-          <div className="mt-4 pt-4 border-t border-dashed border-gray-200 dark:border-gray-700">
+          <div className="mt-4 pt-4">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Plan Features</p>
             <div className="grid grid-cols-2 gap-x-6 gap-y-1.5">
               {plan.features.map((f) => (
@@ -268,7 +290,7 @@ function CurrentSubscriptionCard({ sub }) {
 
         {/* Benefits */}
         {plan.benefits?.length > 0 && (
-          <div className="mt-4 pt-4 border-t border-dashed border-gray-200 dark:border-gray-700">
+          <div className="mt-4 pt-4">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Benefits</p>
             <ul className="space-y-1">
               {plan.benefits.map((b) => (
@@ -283,7 +305,7 @@ function CurrentSubscriptionCard({ sub }) {
 
         {/* Usage */}
         {Object.keys(usage).length > 0 && (
-          <div className="mt-4 pt-4 border-t border-dashed border-gray-200 dark:border-gray-700">
+          <div className="mt-4 pt-4">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Usage</p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {USAGE_KEYS.map((key) => {
@@ -414,14 +436,14 @@ export default function WelcomePage({ orderData = null, asModal = true, onClose,
         <div className={`relative p-6 z-10 ${asModal ? "px-6 pb-6" : "px-6 md:px-10 pb-16"}`}>
           <div className={`text-center ${asModal ? "pt-8 pb-6" : "pt-10 pb-10"}`}>
             {orderData && (
-              <div className="inline-flex items-center gap-2 mb-3 px-4 py-1.5 rounded-full bg-teal-50 text-teal-700 text-sm font-semibold">
+              <div className="inline-flex items-center gap-2 mb-3 px-4 py-1.5 rounded-full bg-teal-50 dark:bg-teal-500/10 text-teal-700 dark:text-teal-400 text-sm font-semibold">
                 ✅ Payment Successful
               </div>
             )}
-            <h1 className={`font-semibold text-[#1a1a2e] mb-2 ${asModal ? "text-2xl" : "text-3xl md:text-4xl"}`}>
+            <h1 className={`font-semibold text-[#1a1a2e] dark:text-gray-100 mb-2 ${asModal ? "text-2xl" : "text-3xl md:text-4xl"}`}>
               Welcome To Trydood!
             </h1>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               Set up your organisation before you run your Listings
             </p>
           </div>
@@ -429,23 +451,23 @@ export default function WelcomePage({ orderData = null, asModal = true, onClose,
           <div
             className={
               asModal
-                ? "bg-white"
-                : "max-w-5xl mx-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-8 shadow-sm"
+                ? "bg-white dark:bg-gray-800"
+                : "max-w-5xl mx-auto bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-sm"
             }
           >
             {!asModal && (
               <>
-                <h2 className="text-xl font-bold text-[#1a1a2e] mb-2">Create Your Brand Outlet's</h2>
-                <p className="text-sm text-gray-500 mb-6">
+                <h2 className="text-xl font-bold text-[#1a1a2e] dark:text-gray-100 mb-2">Create Your Brand Outlet's</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
                   Register your outlet to showcase your products, services, and offers.
                   Reach more customers and grow your business easily.
                 </p>
-                <hr className="border-gray-200 dark:border-gray-700 mb-6" />
+                <hr className="mb-6 border-gray-200 dark:border-gray-700" />
               </>
             )}
 
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Brand Details</p>
-            <p className="text-base font-bold text-[#1a1a2e] capitalize mb-4">{brandData.companyName}</p>
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Brand Details</p>
+            <p className="text-base font-bold text-[#1a1a2e] dark:text-gray-100 capitalize mb-4">{brandData.companyName}</p>
 
             <div className={`flex flex-wrap gap-x-6 gap-y-2 mb-6 text-sm text-gray-700 dark:text-gray-300 ${asModal ? "flex-col sm:flex-row" : ""}`}>
               <span>Merchant Token : <span className="text-emerald-500 font-medium">{brandData.merchantToken}</span></span>
@@ -470,7 +492,7 @@ export default function WelcomePage({ orderData = null, asModal = true, onClose,
 
             <button
               onClick={handlePrimaryCta}
-              className="w-full flex items-center justify-center gap-3 py-3.5 bg-[#1a1a2e] text-white text-base font-semibold rounded-xl hover:bg-[#2d2d5e] active:scale-[0.99] transition-all"
+              className="w-full flex items-center justify-center gap-3 py-3.5 bg-[#1a1a2e] dark:bg-emerald-500 text-white text-base font-semibold rounded-xl hover:bg-[#2d2d5e] dark:hover:bg-emerald-600 active:scale-[0.99] transition-all"
             >
               {returnTo ? (
                 "Continue"

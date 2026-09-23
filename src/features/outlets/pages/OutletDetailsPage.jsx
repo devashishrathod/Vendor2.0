@@ -18,7 +18,7 @@ export default function OutletDetailsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 font-sans">
+      <div className="min-h-screen bg-[#F8FAF7] dark:bg-gray-900 font-sans">
         <div className="max-w-6xl mx-auto px-4 py-8">
           <div className="h-16 rounded-2xl bg-gray-100 dark:bg-gray-700 animate-pulse mb-6" />
           <div className="h-48 rounded-2xl bg-gray-100 dark:bg-gray-700 animate-pulse" />
@@ -29,7 +29,7 @@ export default function OutletDetailsPage() {
 
   if (error || !outlet) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 font-sans flex items-center justify-center">
+      <div className="min-h-screen bg-[#F8FAF7] dark:bg-gray-900 font-sans flex items-center justify-center">
         <div className="text-center">
           <p className="text-sm text-gray-500 mb-4">{error || "Outlet not found."}</p>
           <button
@@ -44,7 +44,7 @@ export default function OutletDetailsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 font-sans">
+    <div className="min-h-screen  dark:bg-gray-900 font-sans">
       <div className="max-w-6xl mx-auto px-4 py-8 space-y-4">
         <OutletDetailsHeader outlet={outlet} brand={brand} onBack={handleBack} />
         <TransactionSummaryPanel transactions={transactions} />

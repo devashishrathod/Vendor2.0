@@ -109,7 +109,7 @@ export default function VoucherDetails() {
             </span>
             <button
               onClick={() => navigate(`/vouchers/${voucher.voucherId}/edit`)}
-              className="rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+              className="rounded-lg px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
             >
               Edit Voucher
             </button>
@@ -117,7 +117,7 @@ export default function VoucherDetails() {
         </div>
 
         <div className="mb-4 flex items-center  gap-3">
-          <p className="text-xs text-black">{voucher.versionCode}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">{voucher.versionCode}</p>
 
           <VoucherTabs activeTab={activeTab} onChange={setActiveTab} />
         </div>
@@ -139,7 +139,7 @@ export default function VoucherDetails() {
           {activeTab === "Transaction Information" && (
             <>
               {txnError && (
-                <p className="rounded-xl border border-red-100 bg-red-50 px-4 py-2.5 text-sm text-red-500">
+                <p className="rounded-xl bg-red-50 px-4 py-2.5 text-sm text-red-500">
                   {txnError}
                 </p>
               )}

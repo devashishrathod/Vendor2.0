@@ -41,6 +41,7 @@ export default function OutletLocationSearch({
   selectedPlace,
   onSelectPlace,
   onShowMap,
+  onError,
 }) {
   const [query, setQuery] = useState("");
 
@@ -52,10 +53,14 @@ export default function OutletLocationSearch({
   const [detailsLoading, setDetailsLoading] =
     useState(false);
 
-  const [error, setError] = useState("");
-
   const [hasSearched, setHasSearched] =
     useState(false);
+
+  // Not shown as text anywhere (the message itself goes to onError as a
+  // toast) — only used to suppress the "No matches found" empty-state
+  // below when the search actually failed rather than genuinely
+  // returning zero results.
+  const [hasError, setHasError] = useState(false);
 
   // ─────────────────────────────────────────────
   // PRELOAD GOOGLE MAPS
@@ -132,8 +137,8 @@ export default function OutletLocationSearch({
     }
 
     setSearching(true);
-    setError("");
     setHasSearched(true);
+    setHasError(false);
 
     try {
       const places =
@@ -157,7 +162,8 @@ export default function OutletLocationSearch({
         err
       );
 
-      setError(
+      setHasError(true);
+      onError?.(
         err?.message ||
           "Couldn't fetch results."
       );
@@ -217,7 +223,7 @@ export default function OutletLocationSearch({
         "❌ PLACE ID IS MISSING"
       );
 
-      setError(
+      onError?.(
         "Selected place has no Place ID. Please try again."
       );
 
@@ -225,7 +231,6 @@ export default function OutletLocationSearch({
     }
 
     setDetailsLoading(true);
-    setError("");
 
     try {
       console.log(
@@ -381,7 +386,7 @@ export default function OutletLocationSearch({
         err
       );
 
-      setError(
+      onError?.(
         err?.message ||
           "Couldn't fetch place details."
       );
@@ -475,7 +480,7 @@ export default function OutletLocationSearch({
         Find Your Outlet Location Using Google Maps.
       </h3>
 
-      <p className="text-xs text-gray-500 mb-4">
+      <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
         Search your outlet name and city,
         then pick it from the results.
       </p>
@@ -490,7 +495,7 @@ export default function OutletLocationSearch({
           }
           onKeyDown={handleKeyDown}
           placeholder="eg : Toni & Guy Ahmedabad"
-          className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-emerald-400 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-100"
+          className="w-full rounded-xl px-4 py-2.5 text-sm outline-none bg-emerald-50 dark:bg-emerald-500/10 text-gray-700 dark:text-gray-100"
         />
 
         <button
@@ -513,18 +518,10 @@ export default function OutletLocationSearch({
         </button>
       </div>
 
-      {/* ERROR */}
-
-      {error && (
-        <p className="text-xs text-red-500 mb-3">
-          {error}
-        </p>
-      )}
-
       {/* RESULTS */}
 
       {results.length > 0 && (
-        <div className="mb-4 max-h-64 overflow-y-auto rounded-xl border border-gray-100 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
+        <div className="mb-4 max-h-64 overflow-y-auto rounded-xl divide-y divide-gray-100 dark:divide-gray-700">
           {results.map(
             (place, index) => (
               <button
@@ -539,7 +536,7 @@ export default function OutletLocationSearch({
                 disabled={
                   detailsLoading
                 }
-                className="w-full text-left px-4 py-3 hover:bg-[#f3f6fb] transition-colors flex items-start gap-3 disabled:opacity-60"
+                className="w-full text-left px-4 py-3 hover:bg-[#f3f6fb] dark:hover:bg-gray-700 transition-colors flex items-start gap-3 disabled:opacity-60"
               >
                 {/* ICON */}
 
@@ -569,7 +566,7 @@ export default function OutletLocationSearch({
                       "Unnamed place"}
                   </span>
 
-                  <span className="block text-xs text-gray-500 mt-0.5">
+                  <span className="block text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                     {place.address ||
                       "Address unavailable"}
                   </span>
@@ -600,7 +597,7 @@ export default function OutletLocationSearch({
       {hasSearched &&
         !searching &&
         results.length === 0 &&
-        !error && (
+        !hasError && (
           <p className="text-xs text-gray-400 mb-4">
             No matches found. Try a
             different search term.
@@ -611,7 +608,7 @@ export default function OutletLocationSearch({
 
       {selectedPlace ? (
         <div className="bg-[#f3f6fb] dark:bg-gray-700/40 rounded-xl p-4">
-          <p className="text-xs font-semibold text-gray-500 mb-1">
+          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">
             {selectedPlace.source === "gst"
               ? "GST Address (used as Outlet Location)"
               : "Selected Outlet Location"}

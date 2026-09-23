@@ -5,6 +5,7 @@ import { useBrand } from "../../../../hooks/useBrand";
 import { useLogout } from "@/hooks/useLogout";
 import ErrorToast from "../../../../components/common/ErrorToast";
 import SuccessToast from "../../../../components/common/SuccessToast";
+import Select from "../../../../components/common/Select";
 
 import { useCategories } from "../hooks/useCategories";
 import { useWhatsappOtp, isValidPhone } from "../hooks/useWhatsappOtp";
@@ -118,6 +119,7 @@ export default function CreateBrandOutlet() {
     otpStage,
     otpValue,
     otpSending,
+    otpConfirming,
     otpError,
     devOtpHint,
     hydrated: whatsappHydrated,
@@ -417,9 +419,15 @@ export default function CreateBrandOutlet() {
       }
 
       // ── WhatsApp number + verification ──
-      // fsb.user.isMobileVerified is the real "is this outlet's
-      // WhatsApp number verified" flag returned by brands/get.
-      const isNumberVerified = !!fsb.user?.isMobileVerified;
+      // ⚠️ FIXED: was reading fsb.user?.isMobileVerified, which is a
+      // different (mobile-OTP) flag that stays false even for an outlet
+      // whose WhatsApp number IS verified — confirmed from a real
+      // brands/get response where firstSubBrand.user.isWhatsappVerified
+      // was true while isMobileVerified was false for the same outlet.
+      // That mismatch is why a freshly-verified number could still show
+      // as unverified again after a page refresh. isWhatsappVerified is
+      // the real "is this outlet's WhatsApp number verified" flag.
+      const isNumberVerified = !!fsb.user?.isWhatsappVerified;
 
       if (isNumberVerified && fsb._id) {
         // ── Case 1: shell exists AND already verified ──
@@ -510,15 +518,15 @@ export default function CreateBrandOutlet() {
   // called, on every single render (loading true or false). Nothing below
   // this line may declare a new hook — only plain derived consts and JSX.
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center text-sm text-gray-500">Loading...</div>;
+    return <div className="min-h-screen flex items-center justify-center  dark:bg-gray-900 text-sm text-gray-500">Loading...</div>;
   }
 
   const merchantToken = brand?.merchantId || "—";
   const gstAddress = brand?.gst?.address?.location || "";
   const outletAddress = gstSameAsOutlet ? gstAddress : (selectedPlace?.address || "");
 
-  const handleCategoryChange = (e) => {
-    setBrandType(e.target.value);
+  const handleCategoryChange = (value) => {
+    setBrandType(value);
     setBrandSubType("");
   };
 
@@ -569,7 +577,7 @@ export default function CreateBrandOutlet() {
   const canFinalSave = whatsappVerified && !!subBrandId && !!savedLocationId && workingHoursSaved;
 
   return (
-    <div className="min-h-screen bg-[#F8FAF7] font-sans">
+    <div className="min-h-screen bg-[#F8FAF7] dark:bg-gray-900 font-sans">
       {/* Toasts */}
       <ErrorToast error={toastError} onDismiss={() => setToastError(null)} />
       <SuccessToast message={toastSuccess} onDismiss={() => setToastSuccess("")} />
@@ -586,6 +594,7 @@ export default function CreateBrandOutlet() {
           onClose={closeOtpModal}
           onResend={resetOtp}
           resending={otpSending}
+          confirming={otpConfirming}
           devOtpHint={devOtpHint}
         />
       )}
@@ -599,7 +608,7 @@ export default function CreateBrandOutlet() {
       )}
 
       {/* Navbar */}
-      <nav className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-6 h-14 flex items-center justify-between sticky top-0 z-10">
+      <nav className="bg-white dark:bg-gray-800 px-6 h-14 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-2">
           <div className="w-12 h-12 flex items-center justify-center overflow-hidden">
             <img
@@ -618,7 +627,7 @@ export default function CreateBrandOutlet() {
         <div className="absolute top-4 right-5 z-20">
           <button
             onClick={handleLogout}
-            className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-red-500 transition-colors duration-150 px-3 py-1.5 rounded-lg hover:bg-red-50 border border-transparent hover:border-red-100"
+            className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-red-500 transition-colors duration-150 px-3 py-1.5 rounded-lg hover:bg-red-50"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
@@ -639,13 +648,13 @@ export default function CreateBrandOutlet() {
               <p className="text-sm text-gray-500 mt-1">You are just a few steps away from listing your event on Trydood!</p>
             </div>
           </div>
-          <div className="border border-emerald-100 rounded-xl px-6 py-3 bg-emerald-50 dark:bg-emerald-500/10 text-sm font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">
+          <div className="rounded-xl px-6 py-3 bg-emerald-50 dark:bg-emerald-500/10 text-sm font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">
             Merchant Token : <span className="text-gray-900 dark:text-gray-100">{merchantToken}</span>
           </div>
         </div>
 
         {/* ══════════════════════ BRAND FORM ══════════════════════ */}
-        <div className="brand-form-section bg-emerald-50/40 border border-emerald-100 rounded-3xl p-4 sm:p-6 mb-8">
+        <div className="brand-form-section bg-emerald-50/40 dark:bg-gray-800 rounded-3xl p-4 sm:p-6 mb-8">
           <FormDivider
             title="Brand Details"
             subtitle="Tell customers who you are — this stays the same across every outlet under this brand."
@@ -663,7 +672,7 @@ export default function CreateBrandOutlet() {
                 <img
                   src={existingLogoUrl}
                   alt="Current brand logo"
-                  className="w-16 h-16 rounded-lg object-cover border border-gray-200 dark:border-gray-700"
+                  className="w-16 h-16 rounded-lg object-cover"
                 />
                 <span className="text-xs text-gray-500">Current logo — upload a new file below to replace it.</span>
               </div>
@@ -685,7 +694,7 @@ export default function CreateBrandOutlet() {
               value={brandEmail}
               onChange={(e) => setBrandEmail(e.target.value)}
               placeholder="eg : hello@yourbrand.com"
-              className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-emerald-400 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-100"
+              className="w-full rounded-xl px-4 py-2.5 text-sm outline-none bg-emerald-50 dark:bg-emerald-500/10 text-gray-700 dark:text-gray-100"
             />
           </SectionCard>
 
@@ -697,7 +706,7 @@ export default function CreateBrandOutlet() {
               disabled={mobileSameAsWhatsapp}
               onChange={(e) => setBrandMobile(e.target.value)}
               placeholder="eg : 9876543210"
-              className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-emerald-400 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-100 disabled:bg-gray-50 dark:disabled:bg-gray-700 disabled:text-gray-400"
+              className="w-full rounded-xl px-4 py-2.5 text-sm outline-none bg-emerald-50 dark:bg-emerald-500/10 text-gray-700 dark:text-gray-100 disabled:bg-gray-50 dark:disabled:bg-gray-700 disabled:text-gray-400"
             />
             <label className="flex items-center gap-2 mt-2 text-xs font-semibold text-gray-600 dark:text-gray-300 cursor-pointer">
               <input
@@ -728,7 +737,7 @@ export default function CreateBrandOutlet() {
               placeholder="eg : A cosy neighbourhood cafe known for its wood-fired pizzas and weekend live music."
               rows={4}
               maxLength={300}
-              className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-400 transition-colors bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 resize-none"
+              className="w-full rounded-xl px-4 py-3 text-sm outline-none transition-colors bg-emerald-50 dark:bg-emerald-500/10 text-gray-800 dark:text-gray-100 resize-none"
             />
             <p className="text-xs text-gray-400 mt-1 text-right">{brandDescription.length}/300</p>
           </SectionCard>
@@ -738,20 +747,14 @@ export default function CreateBrandOutlet() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Category *</label>
-                <div className="relative">
-                  <select
-                    value={brandType}
-                    onChange={handleCategoryChange}
-                    disabled={categoriesLoading}
-                    className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-400 appearance-none bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-100 disabled:opacity-50"
-                  >
-                    <option value="">{categoriesLoading ? "Loading categories…" : "eg : Food & Drinks"}</option>
-                    {categories.map((c) => (<option key={c._id} value={c._id}>{c.name}</option>))}
-                  </select>
-                  <svg className="absolute right-3 top-3.5 w-4 h-4 text-gray-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
+                <Select
+                  value={brandType}
+                  onChange={handleCategoryChange}
+                  options={categories.map((c) => ({ value: c._id, label: c.name }))}
+                  placeholder={categoriesLoading ? "Loading categories…" : "eg : Food & Drinks"}
+                  disabled={categoriesLoading}
+                  className="bg-emerald-50 dark:bg-emerald-500/10 text-gray-700 dark:text-gray-100"
+                />
                 {categoriesError && <p className="text-xs text-red-500 mt-1">{categoriesError}</p>}
                 {!categoriesLoading && !categoriesError && categories.length === 0 && (
                   <p className="text-xs text-gray-400 mt-1">No categories available right now.</p>
@@ -759,20 +762,14 @@ export default function CreateBrandOutlet() {
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Sub-Category</label>
-                <div className="relative">
-                  <select
-                    value={brandSubType}
-                    onChange={(e) => setBrandSubType(e.target.value)}
-                    disabled={!brandType || subCategoriesLoading}
-                    className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-400 appearance-none bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-100 disabled:opacity-50"
-                  >
-                    <option value="">{subCategoriesLoading ? "Loading…" : "eg : buffet restaurants"}</option>
-                    {subCategories.map((s) => (<option key={s._id} value={s._id}>{s.name}</option>))}
-                  </select>
-                  <svg className="absolute right-3 top-3.5 w-4 h-4 text-gray-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
+                <Select
+                  value={brandSubType}
+                  onChange={setBrandSubType}
+                  options={subCategories.map((s) => ({ value: s._id, label: s.name }))}
+                  placeholder={subCategoriesLoading ? "Loading…" : "eg : buffet restaurants"}
+                  disabled={!brandType || subCategoriesLoading}
+                  className="bg-emerald-50 dark:bg-emerald-500/10 text-gray-700 dark:text-gray-100"
+                />
                 {subCategoriesError && <p className="text-xs text-red-500 mt-1">{subCategoriesError}</p>}
                 {brandType && !subCategoriesLoading && !subCategoriesError && subCategories.length === 0 && (
                   <p className="text-xs text-gray-400 mt-1">No sub-categories for this category.</p>
@@ -804,7 +801,7 @@ export default function CreateBrandOutlet() {
 
         {/* ══════════════════════ OUTLET FORM ══════════════════════ */}
         {/* Order: WhatsApp Number (+ Outlet Type) → Location → Working Hours */}
-        <div className="outlet-form-section bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-3xl p-4 sm:p-6 mb-8">
+        <div className="outlet-form-section bg-white dark:bg-gray-800 rounded-3xl p-4 sm:p-6 mb-8">
           <FormDivider
             title="Outlet Details"
             subtitle="Details specific to this particular outlet's location and presentation."
@@ -818,8 +815,8 @@ export default function CreateBrandOutlet() {
           {/* ── 1. Outlet WhatsApp Number ── */}
           <SectionCard>
             <SectionHeader title="Outlet WhatsApp Number" subtitle="Customers will reach this outlet on WhatsApp using this verified number." />
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Outlet WhatsApp Number *</label>
-            <label className="flex items-center gap-2 text-xs font-semibold text-gray-600 dark:text-gray-300 mb-3 cursor-pointer">
+
+            <label className="flex items-center gap-2 text-xs font-semibold text-gray-600 dark:text-gray-300 mb-4 cursor-pointer">
               <input
                 type="checkbox"
                 checked={useBrandNumber}
@@ -830,80 +827,83 @@ export default function CreateBrandOutlet() {
               Same as Brand Business WhatsApp Number
               {brandWhatsappNumber ? ` (${brandWhatsappNumber})` : " (not available on your brand profile)"}
             </label>
-            {!whatsappVerified && !subBrandId && (
-              <div className="max-w-sm mb-3">
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Outlet Type *</label>
-                <div className="relative">
-                  <select
+
+            <div
+              className={`grid gap-4 max-w-2xl ${
+                !whatsappVerified && !subBrandId ? "grid-cols-1 sm:grid-cols-[200px_1fr]" : "grid-cols-1"
+              }`}
+            >
+              {!whatsappVerified && !subBrandId && (
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Outlet Type *</label>
+                  <Select
                     value={outletType}
-                    onChange={(e) => setOutletType(e.target.value)}
-                    className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-400 appearance-none bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-100"
-                  >
-                    <option value="">eg : Outlet</option>
-                    {OUTLET_TYPE_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
-                  </select>
-                  <svg className="absolute right-3 top-3.5 w-4 h-4 text-gray-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                  </svg>
+                    onChange={setOutletType}
+                    options={OUTLET_TYPE_OPTIONS}
+                    placeholder="eg : Outlet"
+                    className="bg-emerald-50 dark:bg-emerald-500/10 text-gray-700 dark:text-gray-100"
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Outlet WhatsApp Number *</label>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="tel"
+                    value={outletWhatsapp}
+                    onChange={(e) => handleOutletWhatsappChange(e.target.value)}
+                    disabled={useBrandNumber || whatsappVerified}
+                    placeholder="eg : 9876543210"
+                    className="w-full rounded-xl px-4 py-2.5 text-sm outline-none bg-emerald-50 dark:bg-emerald-500/10 text-gray-700 dark:text-gray-100 disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:text-gray-500"
+                  />
+                  {!whatsappVerified && (
+                    <button
+                      onClick={handleVerifyClick}
+                      disabled={!isValidPhone(outletWhatsapp) || otpSending || (!subBrandId && !outletType)}
+                      className={`shrink-0 sm:min-w-[112px] px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2 ${isValidPhone(outletWhatsapp) && !otpSending && (subBrandId || outletType)
+                          ? "bg-emerald-500 text-white hover:bg-emerald-600"
+                          : "bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed"
+                        }`}
+                    >
+                      {otpSending && (
+                        <svg
+                          className="w-4 h-4 animate-spin"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          />
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                          />
+                        </svg>
+                      )}
+                      {otpSending ? "Sending…" : subBrandId ? "Resend OTP" : "Send OTP"}
+                    </button>
+                  )}
                 </div>
               </div>
-            )}
-            <div className="flex gap-2 max-w-sm">
-              <input
-                type="tel"
-                value={outletWhatsapp}
-                onChange={(e) => handleOutletWhatsappChange(e.target.value)}
-                disabled={useBrandNumber || whatsappVerified}
-                placeholder="eg : 9876543210"
-                className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-emerald-400 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-100 disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:text-gray-500"
-              />
-              {!whatsappVerified && (
-                <button
-                  onClick={handleVerifyClick}
-                  disabled={!isValidPhone(outletWhatsapp) || otpSending || (!subBrandId && !outletType)}
-                  className={`shrink-0 px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2 ${isValidPhone(outletWhatsapp) && !otpSending && (subBrandId || outletType)
-                      ? "bg-emerald-500 text-white hover:bg-emerald-600"
-                      : "bg-gray-100 text-gray-400 cursor-not-allowed"
-                    }`}
-                >
-                  {otpSending && (
-                    <svg
-                      className="w-4 h-4 animate-spin"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                      />
-                    </svg>
-                  )}
-                  {otpSending ? "Sending…" : otpStage ? "Resend" : "Verify"}
-                </button>
-              )}
             </div>
-            {useBrandNumber && !whatsappVerified && (
-              <p className="text-xs text-amber-600 mt-2">This number is pulled from your brand profile, but still needs to be verified for this outlet.</p>
-            )}
+
             {whatsappVerified && (
-              <p className="text-xs font-semibold text-emerald-600 mt-2 flex items-center gap-1">
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 rounded-full px-3 py-1.5 mt-3">
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
                 {whatsappHydrated ? "Already verified for this outlet" : "Number verified"}
-              </p>
+              </span>
             )}
-            {!whatsappVerified && <p className="text-xs text-gray-400 mt-2">Verify your WhatsApp number to enable Save & Process.</p>}
+            {!whatsappVerified && <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">Verify your WhatsApp number to enable Save & Process.</p>}
           </SectionCard>
 
           {/* ── 2. Location ── */}
@@ -926,7 +926,7 @@ export default function CreateBrandOutlet() {
 
             <div onClick={() => notifyBlocked("Verify your outlet's WhatsApp number above before setting a location.")}>
               <div className={outletSectionsBlocked ? "opacity-50 pointer-events-none" : ""}>
-                <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 mb-5">
+                <div className="px-1 mb-5">
                   <div className="flex items-start gap-3 mb-4">
                     <input
                       type="checkbox"
@@ -937,10 +937,10 @@ export default function CreateBrandOutlet() {
                       className="mt-0.5 w-4 h-4 accent-emerald-600 cursor-pointer"
                     />
                     <div>
-                      <label htmlFor="gstSame" className="text-sm font-bold text-gray-800 cursor-pointer">
+                      <label htmlFor="gstSame" className="text-sm font-bold text-gray-800 dark:text-gray-100 cursor-pointer">
                         GST Address Is The Same As The Outlet Location.
                       </label>
-                      <p className="text-sm text-gray-500 mt-0.5">Search and select your Outlet address</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Search and select your Outlet address</p>
                     </div>
                   </div>
 
@@ -961,32 +961,29 @@ export default function CreateBrandOutlet() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-6 mb-4 px-1">
-                  <label className="flex items-center gap-2 text-sm font-bold text-gray-800 cursor-pointer">
+                  <label className="flex items-center gap-2 text-sm font-bold text-gray-800 dark:text-gray-100 cursor-pointer">
                     <input type="checkbox" checked={locationMode === "search"} onChange={() => switchLocationMode("search")} disabled={outletSectionsBlocked} className="w-4 h-4 accent-emerald-600 cursor-pointer" />
                     Search My Outlet Location
                   </label>
-                  <label className="flex items-center gap-2 text-sm font-bold text-gray-800 cursor-pointer">
+                  <label className="flex items-center gap-2 text-sm font-bold text-gray-800 dark:text-gray-100 cursor-pointer">
                     <input type="checkbox" checked={locationMode === "live"} onChange={() => switchLocationMode("live")} disabled={outletSectionsBlocked} className="w-4 h-4 accent-emerald-600 cursor-pointer" />
                     Use My Live Location
                   </label>
                 </div>
 
                 {locationMode === "search" ? (
-                  <OutletLocationSearch selectedPlace={selectedPlace} onSelectPlace={handleSelectPlace} onShowMap={() => setShowMap(true)} />
+                  <OutletLocationSearch selectedPlace={selectedPlace} onSelectPlace={handleSelectPlace} onShowMap={() => setShowMap(true)} onError={showError} />
                 ) : (
-                  <LiveLocationPicker selectedPlace={selectedPlace} onSelectPlace={handleSelectPlace} onShowMap={() => setShowMap(true)} />
+                  <LiveLocationPicker selectedPlace={selectedPlace} onSelectPlace={handleSelectPlace} onShowMap={() => setShowMap(true)} onError={showError} />
                 )}
 
-                {(locationSaving || locationSaveError || (savedLocationId && !gstSameAsOutlet)) && (
-                  <p className={`text-xs mt-3 px-1 flex items-start gap-1.5 ${locationSaveError ? "text-red-500" : "text-emerald-600"}`}>
-                    {locationSaveError && (
-                      <svg className="w-3.5 h-3.5 flex-shrink-0 mt-px" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                      </svg>
-                    )}
-                    <span>
-                      {locationSaving ? "Saving this location…" : locationSaveError ? locationSaveError : "✓ Location saved."}
-                    </span>
+                {/* Errors already surface as a toast (see showError calls
+                    around setLocationSaveError above) — this stays purely
+                    informational (saving/saved) so it isn't a second,
+                    louder red banner for the same failure. */}
+                {!locationSaveError && (locationSaving || (savedLocationId && !gstSameAsOutlet)) && (
+                  <p className="text-xs mt-3 px-1 text-emerald-600">
+                    {locationSaving ? "Saving this location…" : "✓ Location saved."}
                   </p>
                 )}
               </div>
@@ -1013,7 +1010,9 @@ export default function CreateBrandOutlet() {
                   onSave={subBrandId ? handleSaveWorkingHours : undefined}
                   saving={workingHoursSaving}
                 />
-                {workingHoursSaveError && <p className="text-xs text-red-500 mt-2">{workingHoursSaveError}</p>}
+                {/* workingHoursSaveError already surfaces as a toast (see
+                    showError call inside handleSaveWorkingHours) — no
+                    second inline red banner needed for the same failure. */}
                 {workingHoursSaved && !workingHoursSaveError && (
                   <p className="text-xs font-semibold text-emerald-600 mt-2 flex items-center gap-1">
                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

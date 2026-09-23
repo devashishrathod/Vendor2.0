@@ -12,7 +12,7 @@ const ScanQrCode = ({
   return (
     <section>
       <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 flex items-center justify-center flex-shrink-0">
+        <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
           <QrCode size={18} className="text-emerald-500 dark:text-emerald-400" />
         </div>
         <div>
@@ -21,7 +21,7 @@ const ScanQrCode = ({
         </div>
       </div>
 
-      <div className="mt-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
+      <div className="mt-4 rounded-2xl shadow-sm">
         <div className="flex items-center justify-between gap-4 px-5 py-6">
           <p className="text-xs font-medium text-gray-800 dark:text-gray-100">{note}</p>
 
@@ -30,7 +30,7 @@ const ScanQrCode = ({
               type="button"
               onClick={() => setShowPreview((prev) => !prev)}
               aria-label={showPreview ? "Hide QR code" : "Preview QR code"}
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              className="flex h-9 w-9 items-center justify-center rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             >
               {showPreview ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
@@ -45,11 +45,11 @@ const ScanQrCode = ({
         </div>
 
         {showPreview && (
-          <div className="flex justify-center border-t border-gray-100 dark:border-gray-700 px-5 py-6">
+          <div className="flex justify-center px-5 py-6">
             <img
               src={qrImageUrl}
               alt="QR code"
-              className="h-40 w-40 rounded-xl border border-gray-100 dark:border-gray-700"
+              className="h-40 w-40 rounded-xl"
             />
           </div>
         )}

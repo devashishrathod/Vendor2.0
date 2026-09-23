@@ -110,6 +110,21 @@ export async function signUpSubBrandWithWhatsapp({ brandId, whatsappNumber, isFi
     }
 }
 
+// A fresh subBrand shell and the very next "send OTP" call are two
+// separate backend requests fired back-to-back — if the OTP endpoint
+// doesn't yet see the just-created shell (a brief consistency lag) it can
+// fail on the very first attempt even though the shell itself was created
+// fine. One short, silent retry absorbs that instead of surfacing an
+// error the merchant would just clear by clicking "Verify"/"Resend" again.
+async function sendLoginOtpWithRetry(whatsappNumber) {
+    try {
+        return await loginOrSignUpWithWhatsapp({ whatsappNumber });
+    } catch {
+        await new Promise((resolve) => setTimeout(resolve, 600));
+        return loginOrSignUpWithWhatsapp({ whatsappNumber });
+    }
+}
+
 // ── Combined helper: creates the subBrand shell AND sends the OTP ──
 // Creating the shell (signUp-with-whatsapp) and triggering the OTP
 // (loginOrSignUp-with-whatsapp) are two separate backend calls; this
@@ -121,7 +136,21 @@ export async function signUpSubBrandWithWhatsapp({ brandId, whatsappNumber, isFi
 // need the outlet's id for updateSubBrand / upsertWorkHours.
 export async function sendOutletWhatsappOtp({ brandId, whatsappNumber, isFirstOutlet } = {}) {
     const subBrandRes = await signUpSubBrandWithWhatsapp({ brandId, whatsappNumber, isFirstOutlet });
-    await loginOrSignUpWithWhatsapp({ whatsappNumber });
+    try {
+        await sendLoginOtpWithRetry(whatsappNumber);
+    } catch (err) {
+        // ⚠️ FIXED: previously let this failure propagate with no way for
+        // the caller to know the shell above WAS already created — the
+        // caller's catch block never got a subBrandId to save, so the next
+        // "Verify" click re-ran signUp-with-whatsapp against an outlet
+        // that already existed instead of just resending the OTP (that's
+        // why verifying could take two clicks). Attach the real
+        // subBrandId to the error so a caller can still recover and save
+        // it even though this call is failing overall.
+        const shell = subBrandRes?.data ?? subBrandRes;
+        err.subBrandId = shell?.subBrandId || null;
+        throw err;
+    }
     return subBrandRes;
 }
 

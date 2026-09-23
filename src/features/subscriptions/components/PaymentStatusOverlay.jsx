@@ -97,7 +97,7 @@ export default function PaymentStatusOverlay({
             <div className="relative z-10">
               <div className="mx-auto mb-6 w-16 h-16 relative">
                 <div
-                  className="absolute inset-0 rounded-full border-4 border-teal-100"
+                  className="absolute inset-0 rounded-full"
                   style={{ borderTopColor: "#09B285", animation: "ring-spin 0.9s linear infinite" }}
                 />
               </div>
@@ -147,7 +147,7 @@ export default function PaymentStatusOverlay({
             <div className="flex gap-3">
               <button
                 onClick={onCancel}
-                className="flex-1 py-3 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                className="flex-1 py-3 rounded-xl text-gray-700 dark:text-gray-300 font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               >
                 Cancel
               </button>

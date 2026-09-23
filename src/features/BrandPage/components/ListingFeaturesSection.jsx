@@ -28,10 +28,10 @@ const ListingFeaturesSection = ({
         </button>
       </div>
 
-      <div className="mt-5 overflow-x-auto no-scrollbar rounded-xl border border-gray-100 dark:border-gray-700">
+      <div className="mt-5 overflow-x-auto no-scrollbar rounded-xl">
         <table className="w-full min-w-[640px] text-left text-sm">
           <thead>
-            <tr className="border-b border-gray-100 text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:border-gray-700">
+            <tr className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
               <th className="px-5 py-3">S.NO</th>
               <th className="px-5 py-3">Icon Png</th>
               <th className="px-5 py-3">LF Name</th>
@@ -43,7 +43,6 @@ const ListingFeaturesSection = ({
             {listingFeatures.features.map((feature) => (
               <tr
                 key={feature.id}
-                className="border-b border-gray-50 last:border-b-0"
               >
                 <td className="px-5 py-4 text-gray-800 dark:text-gray-100">{feature.sNo}</td>
                 <td className="px-5 py-4">

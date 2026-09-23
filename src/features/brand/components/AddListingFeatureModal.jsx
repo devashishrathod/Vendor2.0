@@ -61,12 +61,12 @@ const AddListingFeatureModal = ({ mode = "add", feature = null, onClose, onSubmi
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-2xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 shadow-xl"
+        className="w-full max-w-md rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 flex items-center justify-center flex-shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
               {isEdit ? (
                 <Pencil size={18} className="text-emerald-500 dark:text-emerald-400" />
               ) : (
@@ -101,7 +101,7 @@ const AddListingFeatureModal = ({ mode = "add", feature = null, onClose, onSubmi
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Dine-In"
-              className="w-full rounded-xl border border-gray-200 dark:border-gray-700 px-3.5 py-2.5 text-sm text-gray-700 dark:text-gray-100 outline-none transition-colors placeholder:text-gray-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 dark:bg-gray-800"
+              className="w-full rounded-xl px-3.5 py-2.5 text-sm text-gray-700 dark:text-gray-100 outline-none transition-colors placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-100 bg-emerald-50 dark:bg-emerald-500/10"
             />
           </div>
 
@@ -114,7 +114,7 @@ const AddListingFeatureModal = ({ mode = "add", feature = null, onClose, onSubmi
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
               placeholder="Short description of this feature"
-              className="w-full rounded-xl border border-gray-200 dark:border-gray-700 px-3.5 py-2.5 text-sm text-gray-700 dark:text-gray-100 outline-none transition-colors placeholder:text-gray-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 dark:bg-gray-800"
+              className="w-full rounded-xl px-3.5 py-2.5 text-sm text-gray-700 dark:text-gray-100 outline-none transition-colors placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-100 bg-emerald-50 dark:bg-emerald-500/10"
             />
           </div>
 
@@ -126,7 +126,7 @@ const AddListingFeatureModal = ({ mode = "add", feature = null, onClose, onSubmi
               type="file"
               accept="image/*,video/*"
               onChange={handleFileChange}
-              className="w-full text-sm text-gray-600 dark:text-gray-100 file:mr-3 file:rounded-xl file:border-0 file:bg-emerald-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-emerald-700 hover:file:bg-emerald-100"
+              className="w-full text-sm text-gray-600 dark:text-gray-100 file:mr-3 file:rounded-xl file:bg-emerald-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-emerald-700 hover:file:bg-emerald-100"
             />
             {currentPreviewUrl && (
               <div className="mt-2">
@@ -134,27 +134,27 @@ const AddListingFeatureModal = ({ mode = "add", feature = null, onClose, onSubmi
                   isVideoPreview ? (
                     <video
                       src={currentPreviewUrl}
-                      className="h-20 w-20 rounded-xl border border-gray-100 dark:border-gray-700 object-cover"
+                      className="h-20 w-20 rounded-xl object-cover"
                       muted
                     />
                   ) : (
                     <img
                       src={currentPreviewUrl}
                       alt="Preview"
-                      className="h-20 w-20 rounded-xl border border-gray-100 dark:border-gray-700 object-contain"
+                      className="h-20 w-20 rounded-xl object-contain"
                     />
                   )
                 ) : isVideoCurrentIcon ? (
                   <video
                     src={currentPreviewUrl}
-                    className="h-20 w-20 rounded-xl border border-gray-100 dark:border-gray-700 object-cover"
+                    className="h-20 w-20 rounded-xl object-cover"
                     muted
                   />
                 ) : (
                   <img
                     src={currentPreviewUrl}
                     alt="Current icon"
-                    className="h-20 w-20 rounded-xl border border-gray-100 dark:border-gray-700 object-contain"
+                    className="h-20 w-20 rounded-xl object-contain"
                   />
                 )}
               </div>
@@ -167,7 +167,7 @@ const AddListingFeatureModal = ({ mode = "add", feature = null, onClose, onSubmi
               type="checkbox"
               checked={isActive}
               onChange={(e) => setIsActive(e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300 accent-emerald-600 focus:ring-emerald-400"
+              className="h-4 w-4 rounded accent-emerald-600 focus:ring-emerald-400"
             />
             <label htmlFor="isActive" className="text-sm text-gray-700 dark:text-gray-300">
               Active
@@ -178,7 +178,7 @@ const AddListingFeatureModal = ({ mode = "add", feature = null, onClose, onSubmi
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-gray-200 dark:border-gray-700 px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+              className="rounded-xl px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
             >
               Cancel
             </button>

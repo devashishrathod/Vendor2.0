@@ -272,7 +272,7 @@ export default function MapModal({ place, onClose }) {
           ) : null}
         </div>
 
-        <div className="border-t border-gray-100 dark:border-gray-700" />
+        <div className="" />
 
         {/* Action icon row */}
         <div className="px-3 py-4 flex items-start">
@@ -303,7 +303,7 @@ export default function MapModal({ place, onClose }) {
           <ActionButton icon={Share2} label="Share" onClick={handleShare} />
         </div>
 
-        <div className="border-t border-gray-100 dark:border-gray-700" />
+        <div className="" />
 
         {/* Tabs — switching tabs is display-only, the place
             data stays exactly as loaded, nothing resets */}
@@ -313,17 +313,17 @@ export default function MapModal({ place, onClose }) {
               key={tab}
               type="button"
               onClick={() => setActiveTab(tab)}
-              className={`text-sm font-medium pb-2 border-b-2 transition ${
+              className={`text-sm font-medium pb-2 transition ${
                 activeTab === tab
-                  ? "border-emerald-600 text-emerald-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                  ? "text-emerald-600"
+                  : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
               }`}
             >
               {tab}
             </button>
           ))}
         </div>
-        <div className="border-t border-gray-100 dark:border-gray-700" />
+        <div className="" />
 
         {/* Tab content */}
         <div className="px-5 py-4">

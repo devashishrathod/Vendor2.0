@@ -21,7 +21,7 @@ export default function CollectionPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-28">
+      <div className="min-h-screen bg-[#F8FAF7] dark:bg-gray-900 pb-28">
         <div className="max-w-4xl mx-auto px-6 py-10">
           <div className="h-40 rounded-2xl bg-gray-100 dark:bg-gray-700 animate-pulse" />
         </div>
@@ -31,7 +31,7 @@ export default function CollectionPage() {
 
   if (!collection) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-28">
+      <div className="min-h-screen bg-[#F8FAF7] dark:bg-gray-900 pb-28">
         <div className="max-w-4xl mx-auto px-6 py-10">
           <button
             type="button"
@@ -66,7 +66,7 @@ export default function CollectionPage() {
           </button>
 
           <div className="flex items-end gap-5 flex-wrap">
-            <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-white/15 border border-white/20 flex items-center justify-center flex-shrink-0 backdrop-blur-sm">
+            <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-white/15 flex items-center justify-center flex-shrink-0 backdrop-blur-sm">
               {Icon && <Icon size={42} className="text-white" />}
             </div>
             <div>
@@ -87,14 +87,14 @@ export default function CollectionPage() {
           <Play size={16} fill="currentColor" /> Play
         </button>
 
-        <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden">
           {collection.songs.map((song, i) => {
             const isActive = player.activeSong?.id === song.id;
             return (
               <div
                 key={song.id}
                 onClick={() => player.playSongInCollection(collection, i)}
-                className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors border-b border-gray-50 dark:border-gray-700 last:border-b-0 ${
+                className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors ${
                   isActive ? "bg-emerald-50 dark:bg-emerald-500/10" : "hover:bg-gray-50 dark:hover:bg-gray-700"
                 }`}
               >

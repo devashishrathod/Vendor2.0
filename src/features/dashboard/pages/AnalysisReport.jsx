@@ -23,6 +23,7 @@ import { useOnboardingStore } from "@/features/onboarding/store/onboardingStore"
 import useBrandData from "@/features/brand/hooks/useBrandData";
 import { fetchVoucherTransactionOverview } from "@/features/transaction/services/transactionService";
 import { getVouchers } from "@/features/voucher/services/voucher/VoucherService";
+import Select from "../../../components/common/Select";
 
 // ══════════════════════════════════════════════════════════════
 // DATA GENERATION
@@ -235,7 +236,7 @@ function computeChange(series, key) {
 function PaginationBar({ page, totalPages, onChange, count }) {
   if (count === 0) return null;
   return (
-    <div className="flex items-center justify-between border-t border-gray-100 dark:border-gray-700 px-5 py-3">
+    <div className="flex items-center justify-between px-5 py-3">
       <span className="text-xs text-gray-400">Page {page} of {totalPages}</span>
       <div className="flex items-center gap-1">
         <button
@@ -507,7 +508,7 @@ export default function AnalysisReport() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 font-sans">
+    <div className="min-h-screen dark:bg-gray-900 font-sans">
       <div className="max-w-6xl mx-auto px-6 py-6">
 
         {/* ── Heading + controls ── */}
@@ -520,23 +521,19 @@ export default function AnalysisReport() {
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl px-3 py-2">
+            <div className="flex items-center gap-1.5 bg-white dark:bg-gray-800 rounded-xl px-3 py-2">
               <CalendarDays size={14} className="text-gray-400" />
-              <select
+              <Select
+                compact
                 value={rangeKey}
-                onChange={(e) => changeRange(e.target.value)}
-                className="bg-transparent text-xs font-semibold text-gray-700 dark:text-gray-300 outline-none"
-              >
-                {RANGE_OPTIONS.map((r) => (
-                  <option key={r.key} value={r.key}>
-                    {r.label}
-                  </option>
-                ))}
-              </select>
+                onChange={changeRange}
+                options={RANGE_OPTIONS.map((r) => ({ value: r.key, label: r.label }))}
+                className="bg-transparent text-gray-700 dark:text-gray-300"
+              />
             </div>
             <button
               onClick={exportCSV}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:text-emerald-700 hover:border-emerald-200 transition-colors"
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:text-emerald-700 transition-colors"
             >
               <Download size={14} />
               Export CSV
@@ -550,7 +547,7 @@ export default function AnalysisReport() {
             const positive = s.change >= 0;
             const Icon = s.icon;
             return (
-              <div key={s.label} className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-4">
+              <div key={s.label} className="bg-white dark:bg-gray-800 rounded-xl p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2.5 min-w-0">
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${s.iconBg} ${s.iconText}`}>
@@ -572,7 +569,7 @@ export default function AnalysisReport() {
 
         {/* ── Revenue Trend + Order Status, side by side ── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
-        <div className="lg:col-span-2 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-5">
+        <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl p-5">
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
             <div className="flex items-start gap-2.5">
               <div className="w-9 h-9 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
@@ -598,7 +595,7 @@ export default function AnalysisReport() {
                   </button>
                 ))}
               </div>
-              <div className="flex items-center gap-1 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300 whitespace-nowrap">
+              <div className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300 whitespace-nowrap">
                 Daily <ChevronDown size={13} className="text-gray-400" />
               </div>
             </div>
@@ -628,14 +625,14 @@ export default function AnalysisReport() {
               {/* Gridlines */}
               <div className="absolute inset-0 flex flex-col justify-between pb-5 pt-1 pointer-events-none">
                 {yTicks.map((_, i) => (
-                  <div key={i} className="border-t border-gray-100 dark:border-gray-700" />
+                  <div key={i} />
                 ))}
               </div>
 
               {/* Floating tooltip */}
               {hoveredDay !== null && (
                 <div
-                  className="absolute z-10 -translate-x-1/2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg px-3 py-1.5 whitespace-nowrap pointer-events-none"
+                  className="absolute z-10 -translate-x-1/2 bg-white dark:bg-gray-800 rounded-lg shadow-lg px-3 py-1.5 whitespace-nowrap pointer-events-none"
                   style={{
                     left: `${((hoveredDay + 0.5) / series.length) * 100}%`,
                     bottom: `${Math.min(88, (metricSeriesValues[hoveredDay] / maxMetric) * 78 + 12)}%`,
@@ -685,7 +682,7 @@ export default function AnalysisReport() {
         </div>
 
         {/* ── Transaction status donut ── */}
-        <div className="lg:col-span-1 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-5">
+        <div className="lg:col-span-1 bg-white dark:bg-gray-800 rounded-xl p-5">
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
@@ -735,8 +732,8 @@ export default function AnalysisReport() {
           </div>
 
           <div
-            className={`mt-5 flex items-center gap-3 rounded-xl px-4 py-3 border ${
-              revenueChange >= 0 ? "bg-emerald-50 border-emerald-100" : "bg-amber-50 border-amber-100"
+            className={`mt-5 flex items-center gap-3 rounded-xl px-4 py-3 ${
+              revenueChange >= 0 ? "bg-emerald-50" : "bg-amber-50"
             }`}
           >
             <div
@@ -761,8 +758,8 @@ export default function AnalysisReport() {
         </div>
 
         {/* ── Top Performing Voucher: horizontal card carousel, ranked by real usage ── */}
-        <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl mb-4">
-          <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 dark:border-gray-700 gap-3">
+        <div className="bg-white dark:bg-gray-800 rounded-xl mb-4">
+          <div className="flex items-center justify-between px-5 py-3.5 gap-3">
             <div className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-lg bg-amber-50 text-amber-500 flex items-center justify-center shrink-0">
                 <Star size={16} />
@@ -790,7 +787,7 @@ export default function AnalysisReport() {
                 <button
                   onClick={() => scrollVouchers(-1)}
                   aria-label="Scroll left"
-                  className="hidden sm:flex absolute left-1 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow items-center justify-center text-gray-500 hover:text-gray-800"
+                  className="hidden sm:flex absolute left-1 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-white dark:bg-gray-800 shadow items-center justify-center text-gray-500 hover:text-gray-800"
                 >
                   <ChevronLeft size={16} />
                 </button>
@@ -802,18 +799,22 @@ export default function AnalysisReport() {
                 >
                   {topVouchers.map(({ v, usage }) => {
                     const thumbnail = v.images?.[0]?.url;
-                    const bannerUrl = v.voucher?.banner?.type === "IMAGE" ? v.voucher?.banner?.image?.url : null;
+                    // Confirmed shape (vendor_panel_api_doc.md #59, V-4):
+                    // banner.current.{url,kind} — only usable here as an
+                    // <img> fallback when it isn't a video.
+                    const currentBanner = v.voucher?.banner?.current;
+                    const bannerUrl = currentBanner && currentBanner.kind !== "VIDEO" ? currentBanner.url : null;
                     const imageUrl = thumbnail || bannerUrl;
                     return (
                       <div
                         key={v._id}
-                        className="flex-none w-64 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-3 snap-start"
+                        className="flex-none w-64 bg-gray-50 dark:bg-gray-700 rounded-xl p-3 snap-start"
                       >
                         <div className="flex gap-3">
                           {imageUrl ? (
                             <img src={imageUrl} alt="" className="w-16 h-16 rounded-lg object-cover shrink-0" />
                           ) : (
-                            <div className="w-16 h-16 rounded-lg border border-dashed border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-300 shrink-0">
+                            <div className="w-16 h-16 rounded-lg flex items-center justify-center text-gray-300 shrink-0">
                               <ImageIcon className="h-5 w-5" />
                             </div>
                           )}
@@ -825,7 +826,7 @@ export default function AnalysisReport() {
                             <p className="text-[11px] text-gray-400 mt-0.5 truncate">{v.versionCode}</p>
                           </div>
                         </div>
-                        <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-50 dark:border-gray-700">
+                        <div className="flex items-center justify-between mt-3 pt-2">
                           <span className="text-xs text-gray-500">
                             {usage ? `${usage.count.toLocaleString("en-IN")} uses` : "No uses yet"}
                           </span>
@@ -848,7 +849,7 @@ export default function AnalysisReport() {
                 <button
                   onClick={() => scrollVouchers(1)}
                   aria-label="Scroll right"
-                  className="hidden sm:flex absolute right-1 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow items-center justify-center text-gray-500 hover:text-gray-800"
+                  className="hidden sm:flex absolute right-1 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-white dark:bg-gray-800 shadow items-center justify-center text-gray-500 hover:text-gray-800"
                 >
                   <ChevronRight size={16} />
                 </button>
@@ -858,8 +859,8 @@ export default function AnalysisReport() {
         </div>
 
         {/* ── Recent transactions ── */}
-        <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 dark:border-gray-700 gap-3">
+        <div className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-3.5 gap-3">
             <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">Recent Transactions</p>
             <div className="relative w-full max-w-[220px]">
               <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-300" />
@@ -867,12 +868,12 @@ export default function AnalysisReport() {
                 value={transactionSearch}
                 onChange={(e) => { setTransactionSearch(e.target.value); setTransactionPage(1); }}
                 placeholder="Search transactions…"
-                className="w-full text-xs border border-gray-200 dark:border-gray-700 rounded-lg pl-7 pr-3 py-1.5 outline-none focus:border-emerald-400 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-100"
+                className="w-full text-xs rounded-lg pl-7 pr-3 py-1.5 outline-none bg-emerald-50 dark:bg-emerald-500/10 text-gray-700 dark:text-gray-100 placeholder:text-gray-400"
               />
             </div>
           </div>
           {transactionsError && (
-            <p className="px-5 py-2.5 text-xs text-rose-600 bg-rose-50 border-b border-rose-100">
+            <p className="px-5 py-2.5 text-xs text-rose-600 bg-rose-50">
               {transactionsError}
             </p>
           )}
@@ -903,7 +904,7 @@ export default function AnalysisReport() {
                   pagedTransactionRows.map((row) => {
                     const avatar = getAvatarColors(row.customerName);
                     return (
-                      <tr key={row.orderId} className="border-b border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 last:border-b-0 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                      <tr key={row.orderId} className="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                         <td className="px-3 py-2 whitespace-nowrap">
                           <Link
                             to={`/transactions/order/${(row.txnId || row.orderId).replace(/^#/, "")}`}
@@ -921,7 +922,7 @@ export default function AnalysisReport() {
                               {getInitials(row.customerName)}
                             </div>
                             <div>
-                              <p className="text-gray-700 dark:text-gray-300 font-medium">{row.customerName}</p>
+                              <p className="text-gray-700 dark:text-gray-300 font-medium capitalize">{row.customerName}</p>
                               <p className="text-blue-500">{row.customerCode}</p>
                             </div>
                           </div>

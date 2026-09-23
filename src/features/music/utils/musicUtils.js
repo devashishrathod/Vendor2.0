@@ -9,23 +9,31 @@ export function formatTime(sec) {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-// Placeholder audio pool — swap for real files/CDN URLs when you have them.
-const SRC_POOL = [
-  "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
-  "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
-  "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
-  "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3",
-  "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3",
-  "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3",
+export const SPOTIFY_PLAYLISTS = [
+  {
+    id: "1UR7GhwklC22Dx6deuweNH",
+    label: "90s Yaadein",
+    description: "Evergreen Hindi songs for a relaxed, nostalgic ambience.",
+    language: "Hindi",
+  },
+  {
+    id: "04wyLWYsskgWjn9827AQj3",
+    label: "Tamil Playlist",
+    description: "Tamil favourites for a lively outlet atmosphere.",
+    language: "Tamil",
+  },
+  {
+    id: "1qpyCtjj5fW0g1FaKEFAOo",
+    label: "Punjabi Playlist",
+    description: "Punjabi hits to bring energy to your outlet.",
+    language: "Punjabi",
+  },
 ];
 
-let songUid = 0;
-export function makeSong(title, subtitle) {
-  songUid += 1;
-  return {
-    id: `song-${songUid}`,
-    title,
-    subtitle,
-    src: SRC_POOL[songUid % SRC_POOL.length],
-  };
+export function spotifyEmbedUrl(playlistId) {
+  return `https://open.spotify.com/embed/playlist/${playlistId}?utm_source=generator&theme=0`;
+}
+
+export function spotifyPlaylistUrl(playlistId) {
+  return `https://open.spotify.com/playlist/${playlistId}`;
 }

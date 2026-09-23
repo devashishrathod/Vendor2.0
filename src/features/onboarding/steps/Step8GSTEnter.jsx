@@ -78,7 +78,7 @@ function PANMismatchBanner({ gstin, pan }) {
   if (panFromGST === panUpper) return null;
 
   return (
-    <div className="flex items-start gap-2.5 bg-red-50 border border-red-200 rounded-xl px-3 py-2.5 mt-2">
+    <div className="flex items-start gap-2.5 bg-red-50 rounded-xl px-3 py-2.5 mt-2">
       <svg
         className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5"
         fill="none"
@@ -134,8 +134,14 @@ export default function Step8GSTEnter({ pan: panProp = "" }) {
   const upper = gstin.toUpperCase();
   const error = validateGST(upper, pan);
   const isValid = !error && upper.length === 15;
-  const rules = GST_RULES.map((r) => ({
-    label: r.label,
+  const ruleLabels = [
+    "15 characters",
+    "Valid GSTIN format",
+    "Valid state code",
+    "PAN must match your verified business PAN",
+  ];
+  const rules = GST_RULES.map((r, index) => ({
+    label: ruleLabels[index],
     passed: r.test(upper, pan),
   }));
 
@@ -217,44 +223,16 @@ export default function Step8GSTEnter({ pan: panProp = "" }) {
         .step-in { animation: stepIn 0.3s cubic-bezier(0.34,1.2,0.64,1) both; }
       `}</style>
 
-      <div className="bg-white dark:bg-gray-800 border border-gray-50 dark:border-gray-700 rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-4 sm:p-5">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-4 sm:p-5">
 
-      {/* ── Header ── */}
-      <div className="flex flex-wrap items-center gap-4 mb-4 step-in">
-        <div
-          className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-100
-          flex items-center justify-center flex-shrink-0"
-        >
-          <svg
-            className="w-5 h-5 text-emerald-500"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={1.8}
-              d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"
-            />
-          </svg>
-        </div>
-        <div>
-          <h2 className="text-lg font-extrabold text-gray-900 dark:text-gray-100 leading-tight tracking-tight">
-            Enter your GST Number
-          </h2>
-          <p className="text-xs text-gray-500 mt-0.5">
-            Please enter your 15-digit GSTIN to continue
-          </p>
-        </div>
-
-        {pan && (
+        {/* ── Header ── */}
+        <div className="flex flex-wrap items-center gap-4 mb-4 step-in">
           <div
-            className="ml-auto flex items-center gap-1.5 bg-blue-50 border border-blue-100
-            rounded-full px-3 py-1.5 flex-shrink-0"
+            className="w-12 h-12 rounded-2xl bg-emerald-50
+          flex items-center justify-center flex-shrink-0"
           >
             <svg
-              className="w-3 h-3 text-blue-400"
+              className="w-5 h-5 text-emerald-500"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -262,34 +240,59 @@ export default function Step8GSTEnter({ pan: panProp = "" }) {
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                strokeWidth={1.8}
+                d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"
               />
             </svg>
-            <span className="text-[10px] text-blue-400 font-semibold">
-              PAN:
-            </span>
-            <span className="text-[10px] text-blue-700 font-mono font-bold tracking-widest">
-              {pan.toUpperCase()}
-            </span>
           </div>
-        )}
-      </div>
+          <div>
+            <h2 className="text-lg font-extrabold text-gray-900 dark:text-gray-100 leading-tight tracking-tight">
+              Verify Your GST Registration
+            </h2>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Enter your 15-character GSTIN to verify your business registration details.
+            </p>
+          </div>
 
-      {/* ── Two column grid ── */}
-      <div
-        className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3 step-in"
-        style={{ animationDelay: "0.05s" }}
-      >
-        {/* LEFT — Input */}
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-col">
-            {/* <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+          {pan && (
+            <div
+              className="ml-auto flex items-center gap-1.5 bg-blue-50
+            rounded-full px-3 py-1.5 flex-shrink-0"
+            >
+              <svg
+                className="w-3 h-3 text-blue-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                />
+              </svg>
+              <span className="text-[10px] text-blue-700 font-semibold">
+                ✓ PAN Verified
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* ── Two column grid ── */}
+        <div
+          className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3 step-in"
+          style={{ animationDelay: "0.05s" }}
+        >
+          {/* LEFT — Input */}
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col">
+              {/* <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
               GSTIN
               <span className="text-red-400">*</span>
             </label> */}
-            <div className="relative">
-              {/* <input
+              <div className="relative">
+                {/* <input
                 type="text"
                 placeholder="27ABCDE1234F1Z5"
                 value={upper}
@@ -309,80 +312,77 @@ export default function Step8GSTEnter({ pan: panProp = "" }) {
                   }`}
               /> */}
 
-              {/* // GSTIN input — pura purana div hata do: */}
-              <Input
-                label="GSTIN"
-                required
-                placeholder="27ABCDE1234F1Z5"
-                value={upper}
-                onChange={handleChange}
-                onBlur={() => gstin && setTouched(true)}
-                touched={touched}
-                isValid={isValid}
-                mono
-                uppercase
-                maxLength={15}
-                minLength={15}
-                errorMsg={
-                  hasPANMismatch
-                    ? undefined  // PANMismatchBanner already handles this
-                    : "Enter a valid 15-digit GSTIN"
-                }
-                successMsg="Valid GSTIN format"
-              />
+                {/* // GSTIN input — pura purana div hata do: */}
+                <Input
+                  label="BUSINESS GSTIN"
+                  description="15 characters · Includes your registered PAN"
+                  required
+                  placeholder="e.g., 27ABCDE1234F1Z5"
+                  value={upper}
+                  onChange={handleChange}
+                  onBlur={() => gstin && setTouched(true)}
+                  touched={touched}
+                  isValid={isValid}
+                  mono
+                  uppercase
+                  maxLength={15}
+                  minLength={15}
+                  errorMsg={
+                    hasPANMismatch
+                      ? undefined  // PANMismatchBanner already handles this
+                      : "Enter a valid 15-digit GSTIN"
+                  }
+                  successMsg="Valid GSTIN format"
+                />
 
-              {/* // PANMismatchBanner alag se raho — uska logic alag hai */}
-              <PANMismatchBanner gstin={upper} pan={pan} />
-              {touched && (
-                <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                  {isValid ? (
-                    <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center">
-                      <svg
-                        className="w-3 h-3 text-white"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={3}
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
-                    </div>
-                  ) : (
-                    <div
-                      className={`w-5 h-5 rounded-full flex items-center justify-center
+                {/* // PANMismatchBanner alag se raho — uska logic alag hai */}
+                <PANMismatchBanner gstin={upper} pan={pan} />
+                {touched && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    {isValid ? (
+                      <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center">
+                        <svg
+                          className="w-3 h-3 text-white"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={3}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                      </div>
+                    ) : (
+                      <div
+                        className={`w-5 h-5 rounded-full flex items-center justify-center
                       ${hasPANMismatch ? "bg-orange-400" : "bg-red-400"}`}
-                    >
-                      <svg
-                        className="w-3 h-3 text-white"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={3}
-                          d="M6 18L18 6M6 6l12 12"
-                        />
-                      </svg>
-                    </div>
-                  )}
-                </div>
-              )}
+                        <svg
+                          className="w-3 h-3 text-white"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={3}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              <PANMismatchBanner gstin={upper} pan={pan} />
             </div>
-            <p className="text-[11px] text-gray-300 mt-1.5">
-              Format: 2 digits · 10 PAN · 1 digit · 1 letter · 1 digit
-            </p>
 
-            <PANMismatchBanner gstin={upper} pan={pan} />
-          </div>
-
-          {/* Status banner */}
-          {/* {touched && !hasPANMismatch && (
+            {/* Status banner */}
+            {/* {touched && !hasPANMismatch && (
             <div
               className={`flex items-start gap-3 p-3 rounded-xl border transition-all duration-200
               ${isValid ? "bg-emerald-50 border-emerald-100" : "bg-red-50/60 border-red-100"}`}
@@ -437,186 +437,188 @@ export default function Step8GSTEnter({ pan: panProp = "" }) {
               </div>
             </div>
           )} */}
-        </div>
-
-        {/* RIGHT — Validation checklist */}
-        <div className="bg-gray-50/80 dark:bg-gray-700/40 border border-gray-100 dark:border-gray-700 rounded-xl px-4 py-4 flex flex-col justify-between">
-          <div>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">
-              Validation Rules
-            </p>
-            <div className="space-y-2.5">
-              {rules.map((r, i) => (
-                <RuleRow
-                  key={i}
-                  label={r.label}
-                  passed={r.passed}
-                  touched={touched}
-                />
-              ))}
-            </div>
           </div>
-          <p className="text-[11px] text-gray-500 leading-relaxed mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
-            Your GSTIN is linked to your PAN and state code. Ensure it matches
-            your GST certificate.
-          </p>
-        </div>
-      </div>
 
-      {/* ── Tips ── */}
-      <div
-        className="bg-gray-50 dark:bg-gray-700/40 border border-gray-100 dark:border-gray-700 rounded-xl px-4 py-2.5 mb-3 step-in"
-        style={{ animationDelay: "0.1s" }}
-      >
-        <p
-          className="text-[10px] font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest
-          flex items-center gap-1.5 mb-2"
-        >
-          <svg
-            className="w-3 h-3"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
-          Tips
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5">
-          {[
-            "GSTIN is case-insensitive",
-            "First 2 digits are your state code",
-            "Characters 3–12 must match your PAN",
-          ].map((tip, i) => (
-            <div key={i} className="flex items-start gap-1.5">
-              <span className="w-1 h-1 rounded-full bg-gray-400 flex-shrink-0 mt-1.5" />
-              <span className="text-[11px] text-gray-600 dark:text-gray-300 leading-snug">
-                {tip}
-              </span>
+          {/* RIGHT — Validation checklist */}
+          <div className="bg-gray-50/80 dark:bg-gray-700/40 rounded-xl px-4 py-4 flex flex-col justify-between">
+            <div>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">
+                GSTIN requirements
+              </p>
+              <div className="space-y-2.5">
+                {rules.map((r, i) => (
+                  <RuleRow
+                    key={i}
+                    label={r.label}
+                    passed={r.passed}
+                    touched={touched}
+                  />
+                ))}
+              </div>
             </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ── CTA row ── */}
-      <div
-        className="flex flex-col sm:flex-row sm:items-center gap-3 step-in"
-        style={{ animationDelay: "0.15s" }}
-      >
-        {/* Preview pill */}
-        <div className="flex-1 min-w-0 order-2 sm:order-1">
-          {upper.trim() ? (
-            <div
-              className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700/40 border border-gray-100 dark:border-gray-700
-              rounded-xl px-4 py-2.5 overflow-hidden"
-            >
-              <span className="text-[9px] font-bold text-gray-300 uppercase tracking-widest flex-shrink-0">
-                GST
-              </span>
-              <span className="w-px h-3 bg-gray-200 flex-shrink-0" />
-              <span className="text-sm font-mono font-bold text-gray-800 dark:text-gray-100 tracking-widest">
-                {upper}
-              </span>
-              {isValid && (
-                <>
-                  <span className="w-px h-3 bg-gray-200 flex-shrink-0" />
-                  <span className="text-[10px] font-bold text-emerald-500 flex-shrink-0">
-                    ✓ Valid
-                  </span>
-                </>
-              )}
-              {hasPANMismatch && (
-                <>
-                  <span className="w-px h-3 bg-gray-200 flex-shrink-0" />
-                  <span className="text-[10px] font-bold text-orange-500 flex-shrink-0">
-                    ⚠ PAN mismatch
-                  </span>
-                </>
-              )}
-            </div>
-          ) : (
-            <p className="text-[11px] text-gray-300 pl-1">
-              Your GSTIN preview appears here
+            <p className="text-[11px] text-gray-500 leading-relaxed mt-4 pt-4">
+              Your GSTIN must be linked to the verified PAN and registered state.
             </p>
-          )}
+          </div>
         </div>
 
-        {/* Button */}
-        <button
-          onClick={handleFetch}
-          disabled={!isValid || fetching || fetchDone}
-          className={`flex items-center justify-center gap-2 px-7 py-3 rounded-xl font-bold text-sm
+        {/* ── Tips ── */}
+        <div
+          className="bg-gray-50 dark:bg-gray-700/40 rounded-xl px-4 py-2.5 mb-3 step-in"
+          style={{ animationDelay: "0.1s" }}
+        >
+          <p
+            className="text-[10px] font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest
+          flex items-center gap-1.5 mb-2"
+          >
+            <svg
+              className="w-3 h-3"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            Before you continue
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5">
+            {[
+              "Enter the GSTIN linked to your business.",
+              "The first two digits represent the registration state.",
+              "Make sure it matches your GST registration certificate.",
+            ].map((tip, i) => (
+              <div key={i} className="flex items-start gap-1.5">
+                <span className="w-1 h-1 rounded-full bg-gray-400 flex-shrink-0 mt-1.5" />
+                <span className="text-[11px] text-gray-600 dark:text-gray-300 leading-snug">
+                  {tip}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ── CTA row ── */}
+        <div
+          className="flex flex-col sm:flex-row sm:items-center gap-3 step-in"
+          style={{ animationDelay: "0.15s" }}
+        >
+          {/* Preview pill */}
+          <div className="flex-1 min-w-0 order-2 sm:order-1">
+            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">
+              GST registration details
+            </p>
+            {upper.trim() ? (
+              <div
+                className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700/40
+              rounded-xl px-4 py-2.5 overflow-hidden"
+              >
+                <span className="text-[9px] font-bold text-gray-300 uppercase tracking-widest flex-shrink-0">
+                  GST
+                </span>
+                <span className="w-px h-3 bg-gray-200 flex-shrink-0" />
+                <span className="text-sm font-mono font-bold text-gray-800 dark:text-gray-100 tracking-widest">
+                  {upper}
+                </span>
+                {isValid && (
+                  <>
+                    <span className="w-px h-3 bg-gray-200 flex-shrink-0" />
+                    <span className="text-[10px] font-bold text-emerald-500 flex-shrink-0">
+                      ✓ Valid
+                    </span>
+                  </>
+                )}
+                {hasPANMismatch && (
+                  <>
+                    <span className="w-px h-3 bg-gray-200 flex-shrink-0" />
+                    <span className="text-[10px] font-bold text-orange-500 flex-shrink-0">
+                      ⚠ PAN mismatch
+                    </span>
+                  </>
+                )}
+              </div>
+            ) : (
+              <p className="text-[11px] text-gray-300 pl-1">
+                Your verified GST details will appear here.
+              </p>
+            )}
+          </div>
+
+          {/* Button */}
+          <button
+            onClick={handleFetch}
+            disabled={!isValid || fetching || fetchDone}
+            className={`flex items-center justify-center gap-2 px-7 py-3 rounded-xl font-bold text-sm
             tracking-wide transition-all duration-200 flex-shrink-0 order-1 sm:order-2 w-full sm:w-auto
             ${isValid && !fetching && !fetchDone
-              ? "bg-emerald-500 hover:bg-emerald-600 active:scale-[0.97] text-white shadow-sm shadow-emerald-100"
-              : "bg-gray-100 dark:bg-gray-700 text-gray-300 cursor-not-allowed"
-            }`}
-        >
-          {fetching ? (
-            <>
-              <svg
-                className="w-4 h-4 animate-spin"
-                viewBox="0 0 24 24"
-                fill="none"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
+                ? "bg-emerald-500 hover:bg-emerald-600 active:scale-[0.97] text-white shadow-sm shadow-emerald-100"
+                : "bg-gray-100 dark:bg-gray-700 text-gray-300 cursor-not-allowed"
+              }`}
+          >
+            {fetching ? (
+              <>
+                <svg
+                  className="w-4 h-4 animate-spin"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                  />
+                </svg>
+                Verifying…
+              </>
+            ) : fetchDone ? (
+              <>
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
                   stroke="currentColor"
-                  strokeWidth="4"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                />
-              </svg>
-              Verifying…
-            </>
-          ) : fetchDone ? (
-            <>
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2.5}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
-              Verified
-            </>
-          ) : (
-            <>
-              Fetch Details
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2.5}
-                  d="M13 7l5 5m0 0l-5 5m5-5H6"
-                />
-              </svg>
-            </>
-          )}
-        </button>
-      </div>
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2.5}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+                Verified
+              </>
+            ) : (
+              <>
+                Verify & Fetch Details
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2.5}
+                    d="M13 7l5 5m0 0l-5 5m5-5H6"
+                  />
+                </svg>
+              </>
+            )}
+          </button>
+        </div>
 
       </div>
 

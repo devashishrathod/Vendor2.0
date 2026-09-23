@@ -7,7 +7,7 @@ export default function StepCard({
 }) {
   return (
     <div
-      className={`bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 w-full max-w-sm mx-auto ${className}`}
+      className={`bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 w-full max-w-sm mx-auto ${className}`}
       style={{ animation: "stepIn 0.3s ease both" }}
     >
       <style>{`

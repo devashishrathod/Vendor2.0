@@ -7,7 +7,7 @@ const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 // ── Axios instance ──────────────────────────────────────────
 const api = axios.create({
-    baseURL: BASE_URL,
+  baseURL: BASE_URL,
 });
 
 // Attach auth token automatically (same pattern as onboarding's verify.api.js
@@ -16,22 +16,22 @@ const api = axios.create({
 // not `accessToken` — using either the wrong path or the wrong field name
 // here silently sends every request with no Authorization header at all.
 api.interceptors.request.use(async (config) => {
-    const { useAuthStore } = await import('../../onboarding/store/authStore');
-    const token = useAuthStore.getState().token;
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
+  const { useAuthStore } = await import('../../onboarding/store/authStore');
+  const token = useAuthStore.getState().token;
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
 });
 
 // Normalize error responses so callers get a consistent shape
 function handleError(error) {
-    const message =
-        error?.response?.data?.message ||
-        error?.response?.data?.error ||
-        error?.message ||
-        'Something went wrong. Please try again.';
-    throw new Error(message);
+  const message =
+    error?.response?.data?.message ||
+    error?.response?.data?.error ||
+    error?.message ||
+    'Something went wrong. Please try again.';
+  throw new Error(message);
 }
 
 /* -------------------------------------------------------------------------
@@ -42,26 +42,26 @@ function handleError(error) {
 // ── Get All Voucher Claims ────────────────────────────────────────
 // GET {{base_url}}/voucher-claims?page=&limit=&status=&outletId=&from=&to=
 export async function getVoucherClaims({
-    page = 1,
-    limit = 20,
-    brandId,
-    status,
-    outletId,
-    from,
-    to,
+  page = 1,
+  limit = 20,
+  brandId,
+  status,
+  outletId,
+  from,
+  to,
 } = {}) {
-    try {
-        const params = { page, limit };
-        if (brandId) params.brandId = brandId;
-        if (status) params.status = status;
-        if (outletId) params.outletId = outletId;
-        if (from) params.from = from;
-        if (to) params.to = to;
-        const { data } = await api.get('/voucher-claims', { params });
-        return data;
-    } catch (error) {
-        handleError(error);
-    }
+  try {
+    const params = { page, limit };
+    if (brandId) params.brandId = brandId;
+    if (status) params.status = status;
+    if (outletId) params.outletId = outletId;
+    if (from) params.from = from;
+    if (to) params.to = to;
+    const { data } = await api.get('/voucher-claims', { params });
+    return data;
+  } catch (error) {
+    handleError(error);
+  }
 }
 
 // ── Get All Voucher Claim Payments ────────────────────────────────
@@ -73,52 +73,52 @@ export async function getVoucherClaims({
 // narrows it down to just one voucher's payments (used by the Voucher
 // Details page's "Transaction Information" tab).
 export async function getVoucherClaimPayments({ page = 1, limit = 20, brandId, outletId, voucherId } = {}) {
-    try {
-        const params = { page, limit };
-        if (brandId) params.brandId = brandId;
-        if (outletId) params.outletId = outletId;
-        if (voucherId) params.voucherId = voucherId;
-        const { data } = await api.get('/voucher-claims/payments', { params });
-        return data;
-    } catch (error) {
-        handleError(error);
-    }
+  try {
+    const params = { page, limit };
+    if (brandId) params.brandId = brandId;
+    if (outletId) params.outletId = outletId;
+    if (voucherId) params.voucherId = voucherId;
+    const { data } = await api.get('/voucher-claims/payments', { params });
+    return data;
+  } catch (error) {
+    handleError(error);
+  }
 }
 
 // ── Get One Voucher Claim Payment ─────────────────────────────────
 // GET {{base_url}}/voucher-claims/payments/:claimTransactionId
 export async function getVoucherClaimPaymentById(claimTransactionId) {
-    try {
-        if (!claimTransactionId) throw new Error('claimTransactionId is required');
-        const { data } = await api.get(`/voucher-claims/payments/${claimTransactionId}`);
-        return data;
-    } catch (error) {
-        handleError(error);
-    }
+  try {
+    if (!claimTransactionId) throw new Error('claimTransactionId is required');
+    const { data } = await api.get(`/voucher-claims/payments/${claimTransactionId}`);
+    return data;
+  } catch (error) {
+    handleError(error);
+  }
 }
 
 // ── Get One Voucher Claim — full timeline (payment + claim + brand + outlet)
 // GET {{base_url}}/voucher-claims/:claimId
 export async function getVoucherClaimById(claimId) {
-    try {
-        if (!claimId) throw new Error('claimId is required');
-        const { data } = await api.get(`/voucher-claims/${claimId}`);
-        return data;
-    } catch (error) {
-        handleError(error);
-    }
+  try {
+    if (!claimId) throw new Error('claimId is required');
+    const { data } = await api.get(`/voucher-claims/${claimId}`);
+    return data;
+  } catch (error) {
+    handleError(error);
+  }
 }
 
 // ── Verify a Claim by its human-readable code (counter verification) ─────
 // GET {{base_url}}/voucher-claims/code/:claimCode
 export async function getVoucherClaimByCode(claimCode) {
-    try {
-        if (!claimCode) throw new Error('claimCode is required');
-        const { data } = await api.get(`/voucher-claims/code/${claimCode}`);
-        return data;
-    } catch (error) {
-        handleError(error);
-    }
+  try {
+    if (!claimCode) throw new Error('claimCode is required');
+    const { data } = await api.get(`/voucher-claims/code/${claimCode}`);
+    return data;
+  } catch (error) {
+    handleError(error);
+  }
 }
 
 /* -------------------------------------------------------------------------
@@ -136,16 +136,14 @@ const formatINR = (n) =>
 const formatDate = (iso) =>
   iso
     ? new Date(iso).toLocaleString("en-IN", {
-        day: "2-digit", month: "short", year: "numeric",
-        hour: "2-digit", minute: "2-digit",
-      })
+      day: "2-digit", month: "short", year: "numeric",
+      hour: "2-digit", minute: "2-digit",
+    })
     : "—";
 
-// There is NO customer name/phone on the payment record — only
-// `customerId` — so the row shows that id as a reference code instead of
-// inventing a name.
 function mapPaymentRow(p) {
-  const customerRef = p.customerId ? `#${String(p.customerId).slice(-8).toUpperCase()}` : "—";
+  const customerName = p.customer?.fullName || "—";
+  const customerCode = p.customer?.uniqueId || "—";
   return {
     orderId: p.invoiceId || p._id,
     // The real lookup key for GET /voucher-claims/payments/:claimTransactionId
@@ -153,15 +151,10 @@ function mapPaymentRow(p) {
     // code and isn't guaranteed to be queryable by that endpoint, so the
     // detail-page LINK routes on this instead (see TransactionOverview.jsx).
     txnId: p._id,
-    customerName: customerRef,
-    customerCode: customerRef,
+    customerName,
+    customerCode,
     customerPhone: "",
-    // Confirmed from a real response: this endpoint's `voucher` object is
-    // { claimId, billAmount, offerDiscount, netBill, vendorPayable,
-    // vendorPromoCost, commissionAmount } — no version-code field anywhere
-    // on it (that only exists on the separate GET /vouchers/versions/get-all
-    // response), so this column shows the plain voucherId instead.
-    refId: p.voucherId || p.voucher?.voucherId || "—",
+    refId: p.voucherVersion?.versionCode || p.voucherVersion?._id || "—",
     razorpayOrderId: p.razorpayOrderId || "—",
     createdOn: formatDate(p.createdAt),
     outlet: p.outlet?.storeId || p.outlet?.uniqueId || "—",
@@ -185,63 +178,106 @@ function mapPaymentRow(p) {
   };
 }
 
-// Maps the real GET /voucher-claims/payments/:claimTransactionId response
-// into the field set OrderDetail.jsx's existing JSX already reads
-// (order.title/refId/outlet/storeId/billAmount/... — see TYPE_CONFIG.voucher
-// in data/transactionData.js). Confirmed real shape (very different from a
-// flat payment record — this is `data: { payment, claim, brand, outlet,
-// viewer } }`): most of the actually-useful detail (voucher name, discount
-// breakdown, outlet snapshot) lives on `claim`, not `payment`.
-//
-// `viewer.canSeeCustomerContact` comes back `false` for a vendor — there is
-// no customer name/email/phone anywhere in this response at all, which
-// confirms that's a deliberate scope restriction, not a missing field, so
-// none of the Customer Information fields are filled in here.
-//
-// Fields the API genuinely has no equivalent for (store type, published/
-// expired dates, reminder days, coupon code, settlement id/date, tickets)
-// are left undefined rather than invented — the existing <Field> cells just
-// render blank for those instead of the page crashing or showing made-up
-// data.
+const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
+
+// "Outlet Location" in Billing Information — city, district, state,
+// country + zipcode from outletDetail.address, joined into one readable
+// line, instead of just the single city/state it showed before.
+function formatOutletLocation(address) {
+  if (!address) return undefined;
+  const parts = [address.city, address.district, address.state, address.country]
+    .filter(Boolean)
+    .map(capitalize);
+  const line = parts.join(", ");
+  return address.zipcode ? [line, address.zipcode].filter(Boolean).join(" - ") : line || undefined;
+}
+
 export function mapPaymentToOrderDetail(data) {
   const payment = data?.payment || {};
   const claim = data?.claim || {};
   const outlet = claim.outletSnapshot || data?.outlet || {};
   const pricing = claim.pricing || {};
+  // The confirmed GET /voucher-claims/payments/:id response also has a
+  // richer top-level `pricing` object (fees, GST, refund) alongside
+  // claim.pricing's slimmer summary — used below only for the fields
+  // claim.pricing doesn't have, so nothing already wired above changes.
+  const fullPricing = data?.pricing || {};
+  const customer = data?.customer || {};
+  const voucherVersion = data?.voucherVersion || data?.voucher?.version || {};
+  const paymentInfo = data?.paymentInfo || {};
+  const paymentMethod = paymentInfo.method || {};
+  const settlement = data?.settlement || {};
+  const outletDetail = data?.outletDetail || {};
+  const outletAddress = outletDetail.address || {};
 
   return {
     title: claim.voucherSnapshot?.name,
-    tagLine: pricing.offerTitle ? `${pricing.offerTitle} OFF` : undefined,
+    tagLine: pricing.offerTitle,
     orderId: payment.invoiceId || payment._id,
-    // Confirmed from a real response: there's no version-code field
-    // anywhere on `claim` or `claim.voucherSnapshot` either (same as the
-    // list endpoint's `voucher` object) — this stays the plain voucherId.
-    refId: payment.voucherId || claim.voucherId || "—",
+    voucherId: payment.voucherId || claim.voucherId || data?.voucher?.voucherId || "—",
+    voucherVersionId: voucherVersion._id || data?.voucher?.voucherVersionId || "—",
+    refId: voucherVersion.versionCode || voucherVersion._id || "—",
     voucherName: claim.voucherSnapshot?.name,
-    percentage: pricing.offerTitle,
-    // Confirmed real field — REDEEMED/etc, replaces what used to be a
-    // hardcoded "Active" badge in OrderDetail.jsx's header.
+    percentage: pricing.offerTitle || (pricing.offerDiscountValue != null ? `${pricing.offerDiscountValue}%` : undefined),
     status: claim.status,
-    // Real location signal confirmed on this endpoint's outlet
-    // snapshot is just `state` (e.g. "karnataka") — no full street
-    // address/city field exists, so that's shown here (capitalized),
-    // not the outlet's uniqueId (that's an id, not a location).
-    outlet: outlet.state ? outlet.state.charAt(0).toUpperCase() + outlet.state.slice(1) : undefined,
+    outlet: formatOutletLocation(outletAddress) || (outlet.state ? capitalize(outlet.state) : undefined),
     storeId: outlet.storeId || "—",
+    storeType: outletDetail.outletType || "—",
+    // Outlet Information — real fields from outletDetail (address, contact,
+    // status), not the thinner claim.outletSnapshot/data.outlet objects
+    // that only carry storeId/uniqueId/state.
+    outletUniqueId: outletDetail.uniqueId || outlet.uniqueId || "—",
+    outletWhatsapp: outletDetail.whatsappNumber || "—",
+    outletDescription: outletDetail.description?.trim() || "—",
+    outletFormattedAddress: outletAddress.formattedAddress || "—",
+    outletCity: outletAddress.city ? capitalize(outletAddress.city) : "—",
+    outletState: outletAddress.state ? capitalize(outletAddress.state) : "—",
+    outletZipcode: outletAddress.zipcode || "—",
+    outletJoinedDate: outletDetail.joinedDate
+      ? new Date(outletDetail.joinedDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
+      : "—",
+    outletStatus: outletDetail.isActive === false ? "Inactive" : (outletDetail.isActive ? "Active" : "—"),
+    // Claim Code — the human-readable redemption code, shown nowhere else
+    // on this page today (see claim.claimCode in the confirmed response).
+    claimCode: claim.claimCode || "—",
     billAmount: formatINR(pricing.billAmount ?? payment.voucher?.billAmount),
     discountAmount: formatINR(-(pricing.offerDiscount ?? payment.voucher?.offerDiscount ?? 0)),
-    // "Best Value" ~ the real amount the customer saved on this claim.
     bestValue: pricing.youSaved != null ? formatINR(pricing.youSaved) : undefined,
-    paidAmount: formatINR(payment.amount),
+    trydoodDiscount: formatINR(-(pricing.vendorPromoCost ?? payment.voucher?.vendorPromoCost ?? 0)),
+    couponCode: pricing.promoCode || "—",
+    // Convenience fee + GST — from the richer top-level `pricing` object;
+    // "Not Applicable" when GST genuinely isn't enabled on this order,
+    // never a fabricated ₹0.00. Commission fields are deliberately NOT
+    // surfaced anywhere on this page — viewer.canSeePlatformCosts is false
+    // for a vendor, meaning the platform's own cut isn't meant for them.
+    convenienceFee: fullPricing.convenienceFee != null ? formatINR(fullPricing.convenienceFee) : undefined,
+    gstAmount: fullPricing.isGstEnabled ? formatINR(fullPricing.gstAmount) : "Not Applicable",
+    refundStatus: fullPricing.isRefunded
+      ? `${fullPricing.refundStatus || "Refunded"} · ${formatINR(fullPricing.amountRefunded)}`
+      : undefined,
+    paidAmount: formatINR(payment.amount ?? pricing.totalPayable),
     paymentMethod: payment.paymentMethod || "—",
-    // Explains WHY Customer Name/Id/Mail Id below are blank — this isn't a
-    // missing-data gap, viewer.canSeeCustomerContact is false for a vendor
-    // account and the API returns no customer field at all for that reason.
-    customerNote: "Customer contact details aren't visible to vendor accounts for this claim.",
-    paymentTransactionId: payment.razorpayPaymentId || payment._id,
-    paymentDateTime: formatDate(payment.createdAt),
-    payVia: payment.paymentMethod || "—",
+    paymentOptions: paymentMethod.type || payment.paymentMethod || "—",
+    paymentVia: paymentMethod.bank || paymentMethod.wallet || paymentMethod.vpa || paymentMethod.type || "—",
+    customerName: customer.fullName || "—",
+    customerCode: customer.uniqueId || "—",
+    customerEmail: customer.email || "—",
+    customerNote: data?.viewer?.canSeeCustomerContact === false
+      ? "Customer contact details aren't visible to vendor accounts for this claim."
+      : undefined,
+    paymentTransactionId: paymentInfo.gatewayPaymentId || payment.razorpayPaymentId || payment._id,
+    paymentDateTime: formatDate(paymentInfo.createdAt || payment.createdAt),
+    payVia: paymentInfo.method?.type || payment.paymentMethod || "—",
     receivedAccountInfo: "Trydood Account",
+    publishedDate: voucherVersion.startAt,
+    expiredDate: voucherVersion.endAt,
+    reminderDays: voucherVersion.endAt
+      ? `${Math.max(Math.ceil((new Date(voucherVersion.endAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)), 0)} Days`
+      : undefined,
+    settlementId: settlement.record?._id || settlement.state,
+    settlementDateTime: settlement.paidToVendorAt ? formatDate(settlement.paidToVendorAt) : undefined,
+    settlementTransactionId: settlement.record?.transactionId,
+    settlementAccountInfo: settlement.state || "—",
     tickets: [],
   };
 }
@@ -280,24 +316,18 @@ export async function fetchVoucherTransactionOverview(opts = {}) {
   };
 }
 
-// Maps one payment record into the row shape VoucherTransactionInfo.jsx's
-// table expects (Order Id / Customer / Outlet / Store Type / Date & Time /
-// Status / Payment Details). There's no customer name on this record —
-// only `customerId` (same limitation as mapPaymentRow above) — and no
-// per-payment `storeType` either (the payment's own embedded `outlet` only
-// has uniqueId/storeId, not the outlet's type), so both show "—" rather
-// than a fabricated value; the "Sub-Brand"/"Franchise" filter tabs won't
-// have anything real to filter on until the API adds that field.
 function mapPaymentToVoucherTransactionRow(p) {
-  const customerRef = p.customerId ? `#${String(p.customerId).slice(-8).toUpperCase()}` : "—";
+  const customerName = p.customer?.fullName || "—";
+  const customerId = p.customer?.uniqueId || "—";
   const created = p.createdAt ? new Date(p.createdAt) : null;
   return {
     orderId: p.invoiceId || p._id,
-    customerName: customerRef,
-    customerId: customerRef,
+    customerName,
+    customerId,
+    voucherVersionId: p.voucherVersion?.versionCode || p.voucherVersion?._id || "—",
     outletName: p.outlet?.uniqueId || "—",
     storeId: p.outlet?.storeId || "—",
-    storeType: "—",
+    storeType: p.outlet?.outletType || "—",
     date: created && !Number.isNaN(created.getTime())
       ? created.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
       : "—",
@@ -323,7 +353,7 @@ export async function fetchVoucherTransactionsByVoucherId(voucherId, opts = {}) 
   const rows = payments.map(mapPaymentToVoucherTransactionRow);
 
   const sum = (fn) => payments.reduce((acc, p) => acc + (fn(p) || 0), 0);
-  const uniqueCustomers = new Set(payments.map((p) => p.customerId).filter(Boolean));
+  const uniqueCustomers = new Set(payments.map((p) => p.customer?.uniqueId).filter(Boolean));
 
   return {
     summary: {
@@ -338,12 +368,12 @@ export async function fetchVoucherTransactionsByVoucherId(voucherId, opts = {}) 
 }
 
 export default {
-    getVoucherClaims,
-    mapPaymentToOrderDetail,
-    getVoucherClaimPayments,
-    getVoucherClaimPaymentById,
-    getVoucherClaimById,
-    getVoucherClaimByCode,
-    fetchVoucherTransactionOverview,
-    fetchVoucherTransactionsByVoucherId,
+  getVoucherClaims,
+  mapPaymentToOrderDetail,
+  getVoucherClaimPayments,
+  getVoucherClaimPaymentById,
+  getVoucherClaimById,
+  getVoucherClaimByCode,
+  fetchVoucherTransactionOverview,
+  fetchVoucherTransactionsByVoucherId,
 };

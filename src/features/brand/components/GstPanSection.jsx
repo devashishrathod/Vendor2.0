@@ -31,9 +31,9 @@ function VerifiedBadge({ verifiedAt }) {
 function InfoCard({ icon, title, subtitle, verified, verifiedAt, children }) {
   const [collapsed, setCollapsed] = useState(false);
   return (
-    <section className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6">
+    <section className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 flex items-center justify-center flex-shrink-0">
+        <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
           {icon}
         </div>
         <div className="flex-1">
@@ -54,7 +54,7 @@ function InfoCard({ icon, title, subtitle, verified, verifiedAt, children }) {
         </button>
       </div>
 
-      {!collapsed && <div className="mt-5 rounded-xl border border-gray-100 dark:border-gray-700 p-5">{children}</div>}
+      {!collapsed && <div className="mt-5 rounded-xl p-5">{children}</div>}
     </section>
   );
 }
@@ -105,7 +105,7 @@ function GstCard({ gst }) {
             {gst.natureOfBusiness.map((item) => (
               <span
                 key={item}
-                className="text-xs font-medium text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 border border-gray-100 dark:border-gray-700 rounded-full px-3 py-1"
+                className="text-xs font-medium text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 rounded-full px-3 py-1"
               >
                 {item}
               </span>
@@ -163,9 +163,9 @@ function PanCard({ pan }) {
 const GstPanSection = ({ gst, pan }) => {
   if (!gst && !pan) {
     return (
-      <section className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6">
+      <section className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6">
         <div className="flex items-center gap-3 mb-1">
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 flex items-center justify-center flex-shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
             <FileText className="w-5 h-5 text-emerald-500 dark:text-emerald-400" strokeWidth={1.8} />
           </div>
           <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100">GST &amp; PAN Information</h2>

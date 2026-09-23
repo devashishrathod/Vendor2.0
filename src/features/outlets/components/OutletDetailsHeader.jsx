@@ -60,7 +60,7 @@ export default function OutletDetailsHeader({ outlet, brand, onBack }) {
   };
 
   return (
-    <div className="rounded-2xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 sm:p-6">
+    <div className="rounded-2xl bg-white dark:bg-gray-800 p-5 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex items-center gap-4">
           <button
@@ -99,7 +99,7 @@ export default function OutletDetailsHeader({ outlet, brand, onBack }) {
               >
                 {OUTLET_TYPE_LABELS[outlet.outletType] || "—"}
               </span>
-              <span className="text-xs font-semibold text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 border border-gray-100 dark:border-gray-700 rounded-full px-3 py-1">
+              <span className="text-xs font-semibold text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 rounded-full px-3 py-1">
                 Joined {formatJoinedDate(outlet.joinedDate)}
               </span>
               <StatusBadge status={outlet.status} />
@@ -110,7 +110,7 @@ export default function OutletDetailsHeader({ outlet, brand, onBack }) {
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={handleShare}
-            className="flex items-center gap-1.5 text-sm font-semibold text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-xl px-3.5 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            className="flex items-center gap-1.5 text-sm font-semibold text-gray-600 dark:text-gray-300 rounded-xl px-3.5 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
           >
             {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Share2 className="w-4 h-4" />}
             {copied ? "Copied" : "Share"}
@@ -119,7 +119,7 @@ export default function OutletDetailsHeader({ outlet, brand, onBack }) {
           {hasCoords && (
             <button
               onClick={handleViewOnMap}
-              className="flex items-center gap-1.5 text-sm font-semibold text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-xl px-3.5 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              className="flex items-center gap-1.5 text-sm font-semibold text-gray-600 dark:text-gray-300 rounded-xl px-3.5 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             >
               <MapPin className="w-4 h-4" />
               View on Map
@@ -129,12 +129,12 @@ export default function OutletDetailsHeader({ outlet, brand, onBack }) {
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setMenuOpen((o) => !o)}
-              className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              className="w-9 h-9 flex items-center justify-center rounded-xl text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             >
               <MoreVertical className="w-4 h-4" />
             </button>
             {menuOpen && (
-              <div className="absolute right-0 top-full mt-1.5 w-44 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl shadow-lg py-1 z-10">
+              <div className="absolute right-0 top-full mt-1.5 w-44 bg-white dark:bg-gray-800 rounded-xl shadow-lg py-1 z-10">
                 <button
                   onClick={handleCopyStoreId}
                   className="w-full flex items-center gap-2 px-3.5 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
@@ -148,7 +148,7 @@ export default function OutletDetailsHeader({ outlet, brand, onBack }) {
         </div>
       </div>
 
-      <div className="flex items-center gap-3 mt-5 bg-gradient-to-r from-emerald-50 to-emerald-50/40 border border-emerald-100 rounded-xl px-4 py-3">
+      <div className="flex items-center gap-3 mt-5 bg-gradient-to-r from-emerald-50 to-emerald-50/40 rounded-xl px-4 py-3">
         <div className="w-9 h-9 rounded-lg bg-emerald-500 text-white flex items-center justify-center shrink-0">
           <Crown className="w-4 h-4" />
         </div>

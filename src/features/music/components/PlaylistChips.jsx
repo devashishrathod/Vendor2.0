@@ -10,7 +10,7 @@ export default function PlaylistChips({ playlists, requests }) {
         {playlists.map((p) => (
           <span
             key={p.id}
-            className="inline-flex items-center gap-1.5 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-full px-3 py-1.5 text-xs text-gray-600 dark:text-gray-300"
+            className="inline-flex items-center gap-1.5 bg-white dark:bg-gray-800 rounded-full px-3 py-1.5 text-xs text-gray-600 dark:text-gray-300"
           >
             <Music2 size={12} className="text-emerald-500" /> {p.name}
           </span>
@@ -18,7 +18,7 @@ export default function PlaylistChips({ playlists, requests }) {
         {requests.map((r) => (
           <span
             key={r.id}
-            className="inline-flex items-center gap-1.5 bg-amber-50 border border-amber-100 rounded-full px-3 py-1.5 text-xs text-amber-700"
+            className="inline-flex items-center gap-1.5 bg-amber-50 rounded-full px-3 py-1.5 text-xs text-amber-700"
           >
             {r.name} · requested
           </span>

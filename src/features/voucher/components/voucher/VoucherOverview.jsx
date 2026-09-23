@@ -15,7 +15,7 @@ const formatCurrency = (value) =>
 // line, optional "Amount breakup" link or "No. of. Count" line.
 function StatCard({ icon, label, value, note, showBreakup, count, valueClassName = "", isLast }) {
   return (
-    <div className={`flex-1 px-6 py-4 ${!isLast ? "sm:border-r border-gray-100 dark:border-gray-700" : ""}`}>
+    <div className={`flex-1 px-6 py-4 ${!isLast ? "" : ""}`}>
       <div className="flex items-center gap-2 text-gray-400">
         {icon}
         <span className="text-sm font-medium text-gray-500">{label}</span>
@@ -40,7 +40,7 @@ function StatCard({ icon, label, value, note, showBreakup, count, valueClassName
 // with Overall Collection Amount, and no confirmed real data source).
 export default function VoucherOverview({ stats, isLoading, refreshing, onRefresh }) {
   return (
-    <div className="rounded-2xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+    <div className="rounded-2xl bg-white dark:bg-gray-800 shadow-sm">
       <div className="flex items-center justify-between px-6 pt-5 pb-1">
         <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Voucher Overview</h3>
         <button

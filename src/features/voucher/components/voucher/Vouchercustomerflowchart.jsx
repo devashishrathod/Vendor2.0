@@ -16,7 +16,7 @@ export default function VoucherCustomerFlowChart({ customerFlowWeekly }) {
   }));
 
   return (
-    <section className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5">
+    <section className="rounded-xl bg-white dark:bg-gray-800 p-5">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Customer Flow Analysis</h2>

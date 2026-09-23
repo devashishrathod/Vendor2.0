@@ -40,7 +40,7 @@ export default function ReceiptModal({ order, typeConfig, onClose }) {
             </span>
           </div>
 
-          <div className="border-t border-dashed border-gray-200 dark:border-gray-700 my-3" />
+          <div className="my-3" />
 
           <div className="space-y-0.5">
             {row(typeConfig.idFieldLabel, order.refId)}
@@ -50,21 +50,21 @@ export default function ReceiptModal({ order, typeConfig, onClose }) {
             {row("Store Type", order.storeType)}
           </div>
 
-          <div className="border-t border-dashed border-gray-200 dark:border-gray-700 my-3" />
+          <div className="my-3" />
 
           <div className="space-y-0.5">
             {row("Bill Amount", order.billAmount)}
             {row("Discount Amount", order.discountAmount)}
           </div>
 
-          <div className="border-t border-dashed border-gray-200 dark:border-gray-700 my-3" />
+          <div className="my-3" />
 
           <div className="flex items-center justify-between py-1">
             <span className="text-sm font-bold text-gray-900 dark:text-gray-100">Paid Amount</span>
             <span className="text-lg font-bold text-emerald-600">{order.paidAmount || "—"}</span>
           </div>
 
-          <div className="border-t border-dashed border-gray-200 dark:border-gray-700 my-3" />
+          <div className="my-3" />
 
           <div className="space-y-0.5">
             {row("Payment Method", order.paymentMethod)}

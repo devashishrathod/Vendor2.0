@@ -4,7 +4,7 @@ import { ChevronDown, ChevronUp, Download, ImageDown, X } from "lucide-react";
 
 function TicketRow({ ticket, isOpen, onToggle }) {
   return (
-    <div className="border-b border-slate-100 dark:border-gray-700 last:border-b-0">
+    <div>
       <button
         onClick={() => onToggle(ticket.id)}
         className="flex w-full items-center justify-between px-6 py-3.5 text-left"
@@ -56,7 +56,7 @@ function TicketRow({ ticket, isOpen, onToggle }) {
                 {ticket.resources.map((res) => (
                   <div
                     key={res.label}
-                    className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-100 dark:border-gray-700 bg-slate-50 dark:bg-gray-700 px-3 py-2"
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-slate-50 dark:bg-gray-700 px-3 py-2"
                   >
                     <span className="text-sm text-slate-600 dark:text-gray-300">{res.label}</span>
                     <button className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 hover:underline">
@@ -121,7 +121,7 @@ function NewTicketModal({ open, onClose, onSubmit, submitting }) {
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               placeholder="e.g. Settlement amount mismatch"
-              className="mt-1 w-full rounded-lg border border-slate-200 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+              className="mt-1 w-full rounded-lg bg-emerald-50 dark:bg-emerald-500/10 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-400"
             />
           </div>
           <div>
@@ -131,7 +131,7 @@ function NewTicketModal({ open, onClose, onSubmit, submitting }) {
               onChange={(e) => setMessage(e.target.value)}
               rows={4}
               placeholder="Describe the issue in detail…"
-              className="mt-1 w-full rounded-lg border border-slate-200 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+              className="mt-1 w-full rounded-lg bg-emerald-50 dark:bg-emerald-500/10 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-400"
             />
           </div>
           {error && <p className="text-xs text-rose-500">{error}</p>}
@@ -139,7 +139,7 @@ function NewTicketModal({ open, onClose, onSubmit, submitting }) {
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-slate-200 dark:border-gray-700 px-4 py-2 text-xs font-medium text-slate-600 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-700"
+              className="rounded-lg px-4 py-2 text-xs font-medium text-slate-600 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-700"
             >
               Cancel
             </button>
@@ -167,8 +167,8 @@ export default function TicketForm({
   submitting,
 }) {
   return (
-    <div className="rounded-2xl border border-slate-100 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
-      <div className="border-b border-slate-100 dark:border-gray-700 px-6 py-4">
+    <div className="rounded-2xl bg-white dark:bg-gray-800 shadow-sm">
+      <div className="px-6 py-4">
         <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
           Ticket Raise
         </h3>

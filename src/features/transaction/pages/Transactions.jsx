@@ -106,7 +106,7 @@ export default function Transactions() {
   }, [voucherData, dateRange]);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 font-sans">
+    <div className="min-h-screen  dark:bg-gray-900 font-sans">
       {/* Header — apna routing khud NavLink se handle karta hai, koi prop nahi chahiye */}
 
 
@@ -120,7 +120,7 @@ export default function Transactions() {
         </div>
 
         {voucherError && (
-          <p className="mb-4 text-sm text-rose-700 bg-rose-50 border border-rose-100 rounded-lg px-3 py-2.5 text-center">
+          <p className="mb-4 text-sm text-rose-700 bg-rose-50 rounded-lg px-3 py-2.5 text-center">
             {voucherError}
           </p>
         )}

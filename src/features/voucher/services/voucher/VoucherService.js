@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { uploadFileViaPresign, uploadFilesViaPresign, UPLOAD_PURPOSES } from '@/services/uploadApi';
 
 // ── Base URL ────────────────────────────────────────────────
 // Matches the Postman env variable {{TryDood2.0BaseUrl}}
@@ -55,6 +56,11 @@ function appendArrayField(formData, key, values) {
     }
 }
 
+// Confirmed from vendor_panel_api_doc.md #54 (V-4/U-4): images and the
+// banner now go through the presigned-upload flow — `imageUploadIds`,
+// `bannerUploadId`, `bannerPosterUploadId` — instead of raw multipart
+// files. `bannerType` is gone too: the banner is a single `media` file,
+// image/GIF/video told apart from its own bytes on the backend.
 function buildVoucherFormData({
     brandId,
     name,
@@ -65,36 +71,17 @@ function buildVoucherFormData({
     subBrandIds = [],
     isSaveAsDraft = false,
     offers = [],
-    images = [],
-    existingImageUrls = [], // NOTE: not confirmed from Postman — createVoucher never sends this today
-    bannerType,
-    bannerImage,
-    // NOTE: only bannerType + bannerImage were confirmed via Postman on
-    // create — bannerVideo/bannerGif are sent here for symmetry with the
-    // dedicated banner endpoint's contract (same 4 fields), since the add
-    // form now offers all three banner types up front.
-    // ⚠️ Both are now File objects (picked via a real file input, same UX
-    // as bannerImage), NOT the "plain URL string" the banner endpoint's
-    // contract actually confirmed (see updateVoucherBanner's comment
-    // below) — sent per explicit instruction to give video/gif the same
-    // upload UX as image. FormData.append happily accepts either a string
-    // or a File under the same field name, so this at least reaches the
-    // backend as a real file part; verify the saved result once tested,
-    // and switch back to a URL-string flow (upload elsewhere, paste the
-    // resulting link here) if the backend actually rejects a raw file on
-    // these two fields.
-    bannerVideo,
-    bannerGif,
+    imageUploadIds = [],
+    bannerUploadId,
+    bannerPosterUploadId,
 } = {}) {
     const formData = new FormData();
 
     if (brandId) formData.append('brandId', brandId);
     if (name !== undefined) formData.append('name', name);
     if (description !== undefined) formData.append('description', description);
-    if (bannerType) formData.append('bannerType', bannerType);
-    if (bannerImage) formData.append('bannerImage', bannerImage);
-    if (bannerVideo) formData.append('bannerVideo', bannerVideo);
-    if (bannerGif) formData.append('bannerGif', bannerGif);
+    if (bannerUploadId) formData.append('bannerUploadId', bannerUploadId);
+    if (bannerPosterUploadId) formData.append('bannerPosterUploadId', bannerPosterUploadId);
 
     appendArrayField(formData, 'tags', tags);
 
@@ -109,27 +96,51 @@ function buildVoucherFormData({
         formData.append('offers', typeof offer === 'string' ? offer : JSON.stringify(offer));
     });
 
-    // NOTE: not confirmed from Postman (create doesn't need this) — kept
-    // here so updateVoucher can tell the backend which previously-uploaded
-    // images to retain vs. drop, if it needs that. Adjust/remove per real
-    // update contract.
-    existingImageUrls.forEach((url) => formData.append('existingImageUrls', url));
-
-    images.forEach((file) => {
-        if (file) formData.append('images', file);
-    });
+    if (imageUploadIds.length) appendArrayField(formData, 'imageUploadIds', imageUploadIds);
 
     return formData;
 }
 
 // ══════════════════════════════════════════════════════════════
 // CREATE
+// Uploads images + banner (+ poster) via presign first — see uploadApi.js
+// — then sends the resulting uploadIds to POST /vouchers/create. Progress
+// spans the whole flow: 0-90% is the presign/S3/confirm uploads, 90-100%
+// is the final (small, fast) create request.
 export async function createVoucher(voucher, onUploadProgress) {
     try {
         if (!voucher?.brandId) throw new Error('brandId is required');
         if (!voucher?.name) throw new Error('name is required');
 
-        const formData = buildVoucherFormData(voucher);
+        const images = (voucher.images || []).filter(Boolean);
+        const bannerMedia = voucher.bannerMedia || null;
+        const bannerPoster = voucher.bannerPoster || null;
+
+        const reportUploadProgress = (percent) => onUploadProgress?.(Math.round(percent * 0.9));
+
+        const imageUploadIds = images.length
+            ? await uploadFilesViaPresign(images, UPLOAD_PURPOSES.VOUCHER_IMAGE, {
+                onProgress: reportUploadProgress,
+            })
+            : [];
+
+        let bannerUploadId;
+        if (bannerMedia) {
+            bannerUploadId = await uploadFileViaPresign(bannerMedia, UPLOAD_PURPOSES.VOUCHER_BANNER, {
+                onProgress: reportUploadProgress,
+            });
+        }
+
+        let bannerPosterUploadId;
+        if (bannerPoster) {
+            bannerPosterUploadId = await uploadFileViaPresign(bannerPoster, UPLOAD_PURPOSES.VOUCHER_BANNER_POSTER, {
+                onProgress: reportUploadProgress,
+            });
+        }
+
+        onUploadProgress?.(90);
+
+        const formData = buildVoucherFormData({ ...voucher, imageUploadIds, bannerUploadId, bannerPosterUploadId });
 
         // NOTE: no explicit Content-Type header here — the browser must set
         // it itself when the body is a FormData instance, because it needs
@@ -148,10 +159,9 @@ export async function createVoucher(voucher, onUploadProgress) {
             }
         }
         const { data } = await api.post('/vouchers/create', formData, {
-            onUploadProgress: onUploadProgress
-                ? (evt) => onUploadProgress(Math.round((evt.loaded * 100) / (evt.total || 1)))
-                : undefined,
+            onUploadProgress: (evt) => onUploadProgress?.(90 + Math.round((evt.loaded / (evt.total || 1)) * 10)),
         });
+        onUploadProgress?.(100);
         return data;
     } catch (error) {
         handleError(error);
@@ -275,6 +285,11 @@ export async function getSubBrands({ brandId, page = 1, limit = 50, search } = {
 // JSON-stringified array in a single field here, vs. createVoucher's
 // `offers` which is one repeated field per offer object) — so createVoucher
 // itself is untouched.
+// Confirmed from vendor_panel_api_doc.md #55 (V-4/U-4): `newImages` can
+// now also arrive as `newImageUploadIds` — a presigned batch mixes fine
+// with a multipart one, floor applies to the combined total. This service
+// always uploads via presign first (see updateVoucher below), so only the
+// uploadIds variant is built here.
 function buildVoucherUpdateFormData({
     name,
     description,
@@ -284,7 +299,7 @@ function buildVoucherUpdateFormData({
     removedTags = [],
     newOffers = [],
     removedOfferIds = [],
-    newImages = [],
+    newImageUploadIds = [],
     removeImageIds = [],
     newSubBrandIds = [],
     removeSubBrandIds = [],
@@ -312,9 +327,7 @@ function buildVoucherUpdateFormData({
     if (newSubBrandIds.length) appendArrayField(formData, 'newSubBrandIds', newSubBrandIds);
     if (removeSubBrandIds.length) appendArrayField(formData, 'removeSubBrandIds', removeSubBrandIds);
 
-    newImages.forEach((file) => {
-        if (file) formData.append('newImages', file);
-    });
+    if (newImageUploadIds.length) appendArrayField(formData, 'newImageUploadIds', newImageUploadIds);
 
     return formData;
 }
@@ -344,7 +357,17 @@ export async function updateVoucher(voucherId, patch, onUploadProgress) {
     try {
         if (!voucherId) throw new Error('voucherId is required');
 
-        const formData = buildVoucherUpdateFormData(patch);
+        const newImages = (patch?.newImages || []).filter(Boolean);
+        const reportUploadProgress = (percent) => onUploadProgress?.(Math.round(percent * 0.9));
+        const newImageUploadIds = newImages.length
+            ? await uploadFilesViaPresign(newImages, UPLOAD_PURPOSES.VOUCHER_IMAGE, {
+                entityId: voucherId,
+                onProgress: reportUploadProgress,
+            })
+            : [];
+        onUploadProgress?.(90);
+
+        const formData = buildVoucherUpdateFormData({ ...patch, newImageUploadIds });
 
         // See createVoucher's comment — no explicit Content-Type header,
         // the browser needs to attach its own multipart boundary.
@@ -355,44 +378,58 @@ export async function updateVoucher(voucherId, patch, onUploadProgress) {
             }
         }
         const { data } = await api.put(`/vouchers/update/${voucherId}`, formData, {
-            onUploadProgress: onUploadProgress
-                ? (evt) => onUploadProgress(Math.round((evt.loaded * 100) / (evt.total || 1)))
-                : undefined,
+            onUploadProgress: (evt) => onUploadProgress?.(90 + Math.round((evt.loaded / (evt.total || 1)) * 10)),
         });
+        onUploadProgress?.(100);
         return data;
     } catch (error) {
         handleError(error);
     }
 }
 
-// ── Update Voucher Banner (dedicated endpoint) ───────────────────
+// ── Submit Voucher Banner for review (dedicated endpoint) ─────────
 // POST {{TryDood2.0BaseUrl}}/vouchers/:id/banner   (multipart/form-data)
-// Confirmed from Postman — lets a vendor change just the banner of an
-// already-created voucher without resending the whole form. bannerType is
-// one of IMAGE/VIDEO/GIF; bannerImage is a File. bannerVideo/bannerGif
-// were CONFIRMED as plain URL strings in that same Postman sample, but are
-// now sent as Files instead (per explicit instruction — VoucherBannerModal.jsx
-// gives them the same file-upload UX as bannerImage). ⚠️ Not re-verified
-// against a real response since that change — confirm the backend actually
-// accepts a raw file on these two fields, and revert to URL strings if not.
-function buildVoucherBannerFormData({ bannerType, bannerImage, bannerVideo, bannerGif } = {}) {
+// Confirmed from vendor_panel_api_doc.md #59 (V-4) — lets a vendor submit
+// a new banner for an already-created voucher without resending the whole
+// form. `bannerType` and the three typed file fields are gone: `media` is
+// one file (image, GIF or video — told apart from its own bytes), `poster`
+// is required only when it's a video. Uploaded via presign first (see
+// uploadApi.js) → `bannerUploadId` / `bannerPosterUploadId`. The banner
+// does NOT go live immediately — it's held as `pending` until admin
+// review; the previously-approved `current` banner keeps showing to
+// customers in the meantime. There is no DELETE any more — changing a
+// banner always means submitting a new one.
+function buildVoucherBannerFormData({ bannerUploadId, bannerPosterUploadId } = {}) {
     const formData = new FormData();
-    if (bannerType) formData.append('bannerType', bannerType);
-    if (bannerImage) formData.append('bannerImage', bannerImage);
-    if (bannerVideo) formData.append('bannerVideo', bannerVideo);
-    if (bannerGif) formData.append('bannerGif', bannerGif);
+    if (bannerUploadId) formData.append('bannerUploadId', bannerUploadId);
+    if (bannerPosterUploadId) formData.append('bannerPosterUploadId', bannerPosterUploadId);
     return formData;
 }
 
-export async function updateVoucherBanner(voucherId, { bannerType, bannerImage, bannerVideo, bannerGif } = {}, onUploadProgress) {
+export async function updateVoucherBanner(voucherId, { media, poster } = {}, onUploadProgress) {
     try {
         if (!voucherId) throw new Error('voucherId is required');
-        const formData = buildVoucherBannerFormData({ bannerType, bannerImage, bannerVideo, bannerGif });
-        const { data } = await api.post(`/vouchers/${voucherId}/banner`, formData, {
-            onUploadProgress: onUploadProgress
-                ? (evt) => onUploadProgress(Math.round((evt.loaded * 100) / (evt.total || 1)))
-                : undefined,
+        if (!media) throw new Error('media is required');
+
+        const reportUploadProgress = (percent) => onUploadProgress?.(Math.round(percent * 0.9));
+        const bannerUploadId = await uploadFileViaPresign(media, UPLOAD_PURPOSES.VOUCHER_BANNER, {
+            entityId: voucherId,
+            onProgress: reportUploadProgress,
         });
+        let bannerPosterUploadId;
+        if (poster) {
+            bannerPosterUploadId = await uploadFileViaPresign(poster, UPLOAD_PURPOSES.VOUCHER_BANNER_POSTER, {
+                entityId: voucherId,
+                onProgress: reportUploadProgress,
+            });
+        }
+        onUploadProgress?.(90);
+
+        const formData = buildVoucherBannerFormData({ bannerUploadId, bannerPosterUploadId });
+        const { data } = await api.post(`/vouchers/${voucherId}/banner`, formData, {
+            onUploadProgress: (evt) => onUploadProgress?.(90 + Math.round((evt.loaded / (evt.total || 1)) * 10)),
+        });
+        onUploadProgress?.(100);
         return data;
     } catch (error) {
         handleError(error);
@@ -452,12 +489,13 @@ export async function publishVoucher(versionId) {
 // ══════════════════════════════════════════════════════════════
 
 // ── Delete Voucher ───────────────────────────────────────────────
-// DELETE {{TryDood2.0BaseUrl}}/vouchers/:id/delete
-// NOTE: adjust path if the real endpoint differs.
-export async function deleteVoucher(voucherId) {
+// DELETE {{TryDood2.0BaseUrl}}/vouchers/:id
+// Confirmed from Postman — body: { reason }. Success 200; 409 when the
+// voucher can't be deleted in its current state.
+export async function deleteVoucher(voucherId, reason) {
     try {
         if (!voucherId) throw new Error('voucherId is required');
-        const { data } = await api.delete(`/vouchers/${voucherId}/delete`);
+        const { data } = await api.delete(`/vouchers/${voucherId}`, { data: { reason } });
         return data;
     } catch (error) {
         handleError(error);
@@ -480,25 +518,10 @@ export async function deleteVoucherImage(voucherId, imageId) {
     }
 }
 
-// ── Delete Voucher Banner ────────────────────────────────────────
-// POST {{TryDood2.0BaseUrl}}/vouchers/:id/banner   (multipart/form-data)
-// There's no separate delete endpoint — confirmed the banner only has the
-// one "set" route (same as updateVoucherBanner above). Deleting reuses it,
-// sending an explicit empty bannerType and nothing else to tell the
-// backend to clear the banner.
-export async function deleteVoucherBanner(voucherId) {
-    try {
-        if (!voucherId) throw new Error('voucherId is required');
-        const formData = new FormData();
-        formData.append('bannerType', '');
-        const { data } = await api.post(`/vouchers/${voucherId}/banner`, formData);
-        return data;
-    } catch (error) {
-        handleError(error);
-    }
-}
-
-
+// `DELETE /vouchers/:voucherId/banner` no longer exists (confirmed from
+// vendor_panel_api_doc.md #59/#60, V-4) — a banner's slot is never empty,
+// so "delete" isn't a real state any more. Changing a banner always means
+// submitting a new one via updateVoucherBanner above.
 
 
 

@@ -35,7 +35,7 @@ function InfoField({ label, value, copyable, onCopy }) {
 
 function SectionCard({ title, action, children }) {
   return (
-    <div className="rounded-2xl border border-slate-100 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 shadow-sm">
+    <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-gray-400">
           {title}
@@ -64,7 +64,7 @@ export default function SettlementDetails() {
 
   if (loading || !detail) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-gray-900 text-sm text-slate-400">
+      <div className="flex min-h-screen items-center justify-center bg-[#F8FAF7] dark:bg-gray-900 text-sm text-slate-400">
         Loading settlement details…
       </div>
     );
@@ -75,14 +75,14 @@ export default function SettlementDetails() {
   return (
    <div>
  
-     <div className="min-h-screen bg-slate-50 dark:bg-gray-900 pb-16">
+     <div className="min-h-screen bg-[#F8FAF7] dark:bg-gray-900 pb-16">
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate("/settlements")}
-              className="rounded-full border border-slate-200 dark:border-gray-700 p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-gray-700"
+              className="rounded-full p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-gray-700"
             >
               <ArrowLeft className="h-4 w-4" />
             </button>
@@ -100,7 +100,7 @@ export default function SettlementDetails() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setFormOpen(true)}
-              className="flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-gray-700 px-3.5 py-2 text-xs font-medium text-slate-600 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-700"
+              className="flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-medium text-slate-600 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-700"
             >
               <PlusCircle className="h-3.5 w-3.5" />
               Create Ticket
@@ -180,7 +180,7 @@ export default function SettlementDetails() {
                 {legs.map((leg) => (
                   <div
                     key={leg.id}
-                    className="flex items-start gap-3 border-t border-slate-100 dark:border-gray-700 pt-5 first:border-t-0 first:pt-0"
+                    className="flex items-start gap-3 pt-5 first:pt-0"
                   >
                     <span className="mt-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/10 p-2 text-emerald-600 dark:text-emerald-400">
                       <Landmark className="h-4 w-4" />

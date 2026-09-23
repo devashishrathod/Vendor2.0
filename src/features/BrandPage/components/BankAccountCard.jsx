@@ -2,15 +2,15 @@ import React from "react";
 
 const BankAccountCard = ({ account, isSelected, onSelect }) => {
   return (
-    <div className="rounded-xl border border-gray-100 dark:border-gray-700">
+    <div className="rounded-xl">
       <button
         type="button"
         onClick={() => onSelect(account.id)}
-        className="flex w-full items-center gap-3 border-b border-gray-100 px-5 py-4 text-left dark:border-gray-700"
+        className="flex w-full items-center gap-3 px-5 py-4 text-left"
       >
         <span
-          className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 ${
-            isSelected ? "border-blue-600" : "border-gray-300"
+          className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full ${
+            isSelected ? "" : ""
           }`}
         >
           {isSelected && (

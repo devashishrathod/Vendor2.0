@@ -1,11 +1,26 @@
 import { useState } from "react";
 import {
-  sendOutletWhatsappOtp,
+  signUpSubBrandWithWhatsapp,
   loginOrSignUpWithWhatsapp,
   verifyOtpWhatsapp,
 } from "../services/brandOutletApi";
 
 export const isValidPhone = (v) => /^[0-9]{10}$/.test((v || "").replace(/\D/g, ""));
+
+// A fresh subBrand shell and the very next "send OTP" call are two
+// separate backend requests fired back-to-back — if the OTP endpoint
+// doesn't yet see the just-created shell (a brief consistency lag) it can
+// fail on the very first attempt even though the shell itself was created
+// fine. One short, silent retry absorbs that instead of surfacing an
+// error the merchant would just clear by clicking "Verify"/"Resend" again.
+async function sendLoginOtpWithRetry(whatsappNumber) {
+  try {
+    return await loginOrSignUpWithWhatsapp({ whatsappNumber });
+  } catch {
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    return loginOrSignUpWithWhatsapp({ whatsappNumber });
+  }
+}
 
 /**
  * Encapsulates the "outlet WhatsApp number + OTP verification" flow,
@@ -55,6 +70,7 @@ export function useWhatsappOtp({ brandId, brandWhatsappNumber, isFirstOutlet } =
   const [otpStage, setOtpStage] = useState(false);
   const [otpValue, setOtpValue] = useState("");
   const [otpSending, setOtpSending] = useState(false);
+  const [otpConfirming, setOtpConfirming] = useState(false);
   const [otpError, setOtpError] = useState("");
 
   // Real backend doesn't return a dev OTP — this stays null/undefined in
@@ -103,18 +119,31 @@ export function useWhatsappOtp({ brandId, brandWhatsappNumber, isFirstOutlet } =
     setOtpSending(true);
     setOtpError("");
     try {
-      const res = await sendOutletWhatsappOtp({
+      // ⚠️ FIXED: this used to go through a combined helper that made the
+      // shell-create + OTP-send calls back-to-back inside one all-or-
+      // nothing try. If the OTP-send half failed for any reason, the
+      // whole thing threw and subBrandId here never got set — even
+      // though the shell WAS already created server-side. The next
+      // "Verify" click then saw subBrandId still null and re-ran
+      // signUp-with-whatsapp from scratch against an outlet that already
+      // existed, instead of just resending the OTP for it — that's why
+      // verifying could take two clicks. Setting subBrandId as soon as
+      // the shell call itself resolves (before touching the OTP call at
+      // all) means a hiccup in the OTP step no longer loses it.
+      const subBrandRes = await signUpSubBrandWithWhatsapp({
         brandId,
         whatsappNumber: outletWhatsapp,
         outletType,
         isFirstOutlet,
       });
-      const created = res?.data ?? res;
+      const created = subBrandRes?.data ?? subBrandRes;
       // ⚠️ FIXED: was created?._id (the SUB_VENDOR user id) — must be
       // subBrandId (the actual outlet doc id), per brandOutletApi.js's
       // own warning comments on this response shape.
       setSubBrandId(created?.subBrandId || null);
-      setDevOtpHint(created?.devOtp || res?.devOtp || null);
+
+      const otpRes = await sendLoginOtpWithRetry(outletWhatsapp);
+      setDevOtpHint(otpRes?.data?.devOtp || otpRes?.devOtp || null);
       setOtpStage(true);
     } catch (err) {
       setOtpError(err.message || "Couldn't send OTP. Try again.");
@@ -133,7 +162,7 @@ export function useWhatsappOtp({ brandId, brandWhatsappNumber, isFirstOutlet } =
     setOtpError("");
     setOtpValue("");
     try {
-      const res = await loginOrSignUpWithWhatsapp({ whatsappNumber: outletWhatsapp });
+      const res = await sendLoginOtpWithRetry(outletWhatsapp);
       setDevOtpHint(res?.data?.devOtp || res?.devOtp || null);
       setOtpStage(true);
     } catch (err) {
@@ -144,7 +173,17 @@ export function useWhatsappOtp({ brandId, brandWhatsappNumber, isFirstOutlet } =
   };
 
   const confirmOtp = async () => {
-    if (otpValue.length < 4) return;
+    // ⚠️ FIXED: this had no in-flight guard at all — nothing stopped an
+    // impatient double-click (or a slow network making the button look
+    // unresponsive) from firing verifyOtpWhatsapp twice with the same
+    // code. Since an OTP is single-use, the second call could come back
+    // "invalid/expired" even though the first one had already succeeded,
+    // and whichever promise settled last is what the vendor actually saw
+    // — sometimes a stale error right after a real success. Guarding on
+    // otpConfirming makes this idempotent: only one verify call is ever
+    // in flight for a given "Confirm" press.
+    if (otpValue.length < 4 || otpConfirming) return;
+    setOtpConfirming(true);
     setOtpError("");
     try {
       await verifyOtpWhatsapp({ whatsappNumber: outletWhatsapp, otp: otpValue });
@@ -154,6 +193,8 @@ export function useWhatsappOtp({ brandId, brandWhatsappNumber, isFirstOutlet } =
       setOtpValue("");
     } catch (err) {
       setOtpError(err.message || "Invalid OTP. Try again.");
+    } finally {
+      setOtpConfirming(false);
     }
   };
 
@@ -218,6 +259,7 @@ export function useWhatsappOtp({ brandId, brandWhatsappNumber, isFirstOutlet } =
     otpStage,
     otpValue,
     otpSending,
+    otpConfirming,
     otpError,
     devOtpHint,
     hydrated,

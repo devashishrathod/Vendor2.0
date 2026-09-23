@@ -216,7 +216,7 @@ export default function SubscriptionPlan({
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-800 relative overflow-hidden">
+    <div className="min-h-screen bg-[#F8FAF7] dark:bg-gray-900 relative overflow-hidden">
       <style>{`
         .sp-bubble {
           position: absolute;
@@ -252,7 +252,7 @@ export default function SubscriptionPlan({
       <div className="absolute top-4 right-5 z-20">
         <button
           onClick={handleLogout}
-          className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-red-500 transition-colors duration-150 px-3 py-1.5 rounded-lg hover:bg-red-50 border border-transparent hover:border-red-100"
+          className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-red-500 transition-colors duration-150 px-3 py-1.5 rounded-lg hover:bg-red-50"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -276,7 +276,7 @@ export default function SubscriptionPlan({
 
       <div className="relative z-10 max-w-5xl mx-auto px-6 py-6">
         <div className="text-center" style={{ animation: "slideDown 0.5s ease both" }}>
-          <span className="inline-flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 text-emerald-600 dark:text-emerald-400 text-xs font-semibold px-3 py-1 rounded-full">
+          <span className="inline-flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-semibold px-3 py-1 rounded-full">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
             Choose Your Plan
           </span>
@@ -299,7 +299,7 @@ export default function SubscriptionPlan({
         </div>
 
         {plansError && (
-          <div className="mt-8 mx-auto max-w-md text-center bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl px-4 py-3">
+          <div className="mt-8 mx-auto max-w-md text-center bg-red-50 text-red-600 text-sm rounded-xl px-4 py-3">
             {plansError}
           </div>
         )}

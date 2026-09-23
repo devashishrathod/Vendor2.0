@@ -27,8 +27,8 @@ export default function BillingDetailsCard({ details, onSave }) {
     setDraft((prev) => ({ ...prev, [key]: val }));
 
   return (
-    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
-      <div className="bg-gray-50 dark:bg-gray-700 px-6 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+    <div className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden">
+      <div className="bg-gray-50 dark:bg-gray-700 px-6 py-3 flex items-center justify-between">
         <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100">Billing Details</h3>
         {!editing && (
           <button
@@ -56,14 +56,14 @@ export default function BillingDetailsCard({ details, onSave }) {
                     rows={3}
                     value={draft[key]}
                     onChange={(e) => handleChange(key, e.target.value)}
-                    className="w-full text-sm border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent resize-none transition"
+                    className="w-full text-sm bg-emerald-50 dark:bg-emerald-500/10 dark:text-gray-100 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-teal-400 resize-none transition"
                   />
                 ) : (
                   <input
                     type="text"
                     value={draft[key]}
                     onChange={(e) => handleChange(key, e.target.value)}
-                    className="w-full text-sm border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent transition"
+                    className="w-full text-sm bg-emerald-50 dark:bg-emerald-500/10 dark:text-gray-100 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-teal-400 transition"
                   />
                 )
               ) : (
@@ -75,10 +75,10 @@ export default function BillingDetailsCard({ details, onSave }) {
       </div>
 
       {editing && (
-        <div className="px-6 py-4 bg-teal-50 border-t border-teal-100 flex justify-end gap-3">
+        <div className="px-6 py-4 bg-teal-50 flex justify-end gap-3">
           <button
             onClick={handleCancel}
-            className="px-5 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            className="px-5 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
           >
             Cancel
           </button>

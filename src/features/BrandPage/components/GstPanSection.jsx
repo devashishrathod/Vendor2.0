@@ -13,7 +13,7 @@ const GstPanSection = ({ gstPanInformation }) => {
         {gstPanInformation.subtitle}
       </p>
 
-      <div className="mt-5 rounded-xl border border-gray-100 p-5 dark:border-gray-700">
+      <div className="mt-5 rounded-xl p-5">
         <div className="grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-6">
           <InfoItem label="Brand name" value={gstPanInformation.brandName} valueClassName="capitalize" />
           <div className="lg:col-span-2">

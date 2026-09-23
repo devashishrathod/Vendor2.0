@@ -41,7 +41,7 @@ export default function PlanBenefits({ subscription, onViewAll }) {
           {benefits.map((b) => {
             const Icon = pickBenefitIcon(b);
             return (
-              <div key={b} className="flex items-center gap-2 bg-emerald-50/60 dark:bg-emerald-500/10 border border-emerald-100 rounded-xl px-3 py-2.5">
+              <div key={b} className="flex items-center gap-2 bg-emerald-50/60 dark:bg-emerald-500/10 rounded-xl px-3 py-2.5">
                 <div className="w-7 h-7 rounded-lg bg-white dark:bg-gray-800 text-emerald-600 flex items-center justify-center shrink-0">
                   <Icon className="w-3.5 h-3.5" />
                 </div>

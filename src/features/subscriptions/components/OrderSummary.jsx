@@ -107,7 +107,7 @@ export default function OrderSummary({
 
   return (
     <>
-      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 sticky top-4">
+      <div className="bg-white dark:bg-gray-800 rounded-xl p-6 sticky top-4">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">Order Summary</h2>
 
         <div className="space-y-4 mb-5">
@@ -169,7 +169,7 @@ export default function OrderSummary({
         )}
 
         {payable && (
-          <div className="border-t border-dashed border-gray-200 dark:border-gray-700 pt-4 mb-2">
+          <div className="pt-4 mb-2">
             <div className="flex items-center justify-between">
               <span className="text-base font-bold text-gray-900 dark:text-gray-100">{payable.label}</span>
               <span className="text-xl font-extrabold text-gray-900 dark:text-gray-100">{payable.display}</span>
@@ -180,12 +180,12 @@ export default function OrderSummary({
           </div>
         )}
 
-        <div className="border-t border-gray-100 dark:border-gray-700 my-5" />
+        <div className="my-5" />
 
         {notices?.length > 0 && (
           <div className="mb-5 space-y-2">
             {notices.map((notice, i) => (
-              <p key={i} className="text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+              <p key={i} className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2">
                 {notice}
               </p>
             ))}
@@ -193,7 +193,7 @@ export default function OrderSummary({
         )}
 
         {!canCheckout && blockedReason && (
-          <p className="mb-5 text-sm text-rose-700 bg-rose-50 border border-rose-100 rounded-lg px-3 py-2.5 text-center">
+          <p className="mb-5 text-sm text-rose-700 bg-rose-50 rounded-lg px-3 py-2.5 text-center">
             {blockedReason}
           </p>
         )}

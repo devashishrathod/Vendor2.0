@@ -29,14 +29,14 @@ export default function RequestPlaylistModal({ onClose, onSubmit }) {
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Playlist name"
-          className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-emerald-300"
+          className="w-full bg-emerald-50 dark:bg-emerald-500/10 dark:text-gray-100 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-emerald-300"
         />
         <textarea
           value={note}
           onChange={(e) => setNote(e.target.value)}
           placeholder="Describe the vibe, language, or artist you want..."
           rows={3}
-          className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-lg px-3 py-2 text-sm mb-4 resize-none focus:outline-none focus:ring-2 focus:ring-emerald-300"
+          className="w-full bg-emerald-50 dark:bg-emerald-500/10 dark:text-gray-100 rounded-lg px-3 py-2 text-sm mb-4 resize-none focus:outline-none focus:ring-2 focus:ring-emerald-300"
         />
         <button
           disabled={!name.trim() || submitting}

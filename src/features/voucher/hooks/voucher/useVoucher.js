@@ -9,6 +9,7 @@ import {
   getVouchers,
   submitVoucherForReview,
   publishVoucher,
+  deleteVoucher,
 } from "../../services/voucher/VoucherService";
 import { fetchVoucherTransactionOverview } from "../../../transaction/services/transactionService";
 
@@ -219,6 +220,27 @@ export default function useVoucher(brandId) {
     [loadVouchers]
   );
 
+  // Deletes a voucher (real DELETE /vouchers/:id, confirmed from Postman —
+  // requires a `reason`). Throws on failure so the caller's own modal can
+  // show the error (e.g. a real 409 when the voucher's current status
+  // doesn't allow deletion) instead of it being swallowed here.
+  const removeVoucher = useCallback(
+    async (voucherId, reason) => {
+      setActionLoadingId(voucherId);
+      setActionError(null);
+      try {
+        await deleteVoucher(voucherId, reason);
+        await loadVouchers();
+      } catch (err) {
+        setActionError(err.message);
+        throw err;
+      } finally {
+        setActionLoadingId(null);
+      }
+    },
+    [loadVouchers]
+  );
+
   return {
     stats,
     statsRefreshing,
@@ -243,6 +265,7 @@ export default function useVoucher(brandId) {
     updateDateRange,
     submitForReview,
     publish,
+    removeVoucher,
     refresh: loadVouchers,
   };
 }

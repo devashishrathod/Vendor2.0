@@ -123,7 +123,7 @@ export default function Sidebar({
 
   return (
     <div
-      className="w-64 flex-shrink-0 flex flex-col sticky top-0 h-screen bg-white dark:bg-gray-800 border-r border-gray-100 dark:border-gray-700 relative overflow-y-auto"
+      className="w-64 flex-shrink-0 flex flex-col sticky top-0 h-screen bg-white dark:bg-gray-800 relative overflow-y-auto"
       style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif" }}
     >
       <div className="absolute top-0 left-0 right-0 h-48 pointer-events-none" style={{
@@ -257,8 +257,8 @@ export default function Sidebar({
           onClick={handleLogout}
           className="flex items-center gap-2 text-[11px] font-medium w-full justify-center
             transition-all rounded-xl py-2 px-3
-            text-gray-400 border border-gray-200 dark:border-gray-700
-            hover:text-red-500 hover:border-red-200 hover:bg-red-50 cursor-pointer"
+            text-gray-400
+            hover:text-red-500 hover:bg-red-50 cursor-pointer"
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" strokeWidth="2" strokeLinecap="round">

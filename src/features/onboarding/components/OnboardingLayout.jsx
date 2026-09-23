@@ -4,13 +4,13 @@ import SuccessToast from "@/components/common/SuccessToast";
 function MobileHeader({ title, sub, onMenuOpen, pct, displayIndex, totalSteps, isLast }) {
   return (
     <header className="lg:hidden sticky top-0 z-30 flex items-center justify-between
-      px-4 py-2.5 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
+      px-4 py-2.5 bg-white dark:bg-gray-800">
       <div className="flex items-center gap-3">
         <button
           onClick={onMenuOpen}
           className="w-9 h-9 flex items-center justify-center rounded-xl
-            bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 hover:bg-emerald-50
-            hover:border-emerald-200 hover:text-emerald-600 transition-all cursor-pointer"
+            bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-100 hover:bg-emerald-50
+            hover:text-emerald-600 transition-all cursor-pointer"
           aria-label="Open menu"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
@@ -150,7 +150,7 @@ export default function OnboardingLayout({
         />
 
         <header className="hidden lg:flex px-8 py-2 items-center justify-between
-          border-b border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 flex-shrink-0 sticky top-0 z-20">
+          bg-white dark:bg-gray-800 flex-shrink-0 sticky top-0 z-20">
           <div className="flex items-center gap-3">
             <div className="w-1 h-7 rounded-full bg-emerald-500 flex-shrink-0" />
             <div>
@@ -180,7 +180,7 @@ export default function OnboardingLayout({
           )}
         </header>
 
-        <div className="flex-1 flex flex-col min-h-0 py-2 px-4 sm:py-3 sm:px-6 lg:px-8 bg-[#F8FAF7] overflow-y-auto">
+        <div className="flex-1 flex flex-col min-h-0 py-2 px-4 sm:py-3 sm:px-6 lg:px-8 bg-[#F8FAF7] dark:bg-gray-900 overflow-y-auto">
           {children}
         </div>
       </div>

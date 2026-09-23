@@ -17,7 +17,7 @@ export default function VoucherViewModal({ voucherId, onClose }) {
         className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 rounded-t-2xl z-10">
+        <div className="flex items-center justify-between px-6 py-4 sticky top-0 bg-white dark:bg-gray-800 rounded-t-2xl z-10">
           <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">Voucher Details</h3>
           <button
             onClick={onClose}

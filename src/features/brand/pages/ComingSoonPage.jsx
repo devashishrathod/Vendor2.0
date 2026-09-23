@@ -2,7 +2,7 @@ import React from "react";
 
 const ComingSoonPage = ({ label }) => {
   return (
-    <div className="rounded-2xl border border-dashed border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 py-16 text-center">
+    <div className="rounded-2xl bg-white dark:bg-gray-800 py-16 text-center">
       <p className="text-sm text-gray-400">
         {label ? `"${label}" section` : "This section"} hasn't been built yet.
       </p>

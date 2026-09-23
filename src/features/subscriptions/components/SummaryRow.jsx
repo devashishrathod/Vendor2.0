@@ -1,6 +1,6 @@
 export default function SummaryRow({ label, value, muted, accent, strike, sub }) {
   return (
-    <div className="border-b border-gray-100 dark:border-gray-700 pb-4">
+    <div className="pb-4">
       <div className="flex items-center justify-between">
         <span className={`text-sm ${muted ? "text-gray-500" : "text-gray-700 dark:text-gray-300"}`}>
           {label}

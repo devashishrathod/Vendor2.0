@@ -4,10 +4,11 @@ import { useBrand } from "../../../hooks/useBrand"; // ← path apne project ke 
 import { sendOutletWhatsappOtp, loginOrSignUpWithWhatsapp, verifyOtpWhatsapp } from "../services/subBrandApi"; // ← real API
 import ErrorToast from "@/components/common/ErrorToast";
 import SuccessToast from "@/components/common/SuccessToast";
+import Select from "../../../components/common/Select";
 
 const inputBase =
-  "w-full rounded-xl border border-gray-200 dark:border-gray-700 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-100 dark:bg-gray-800 outline-none transition-colors " +
-  "placeholder:text-gray-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100";
+  "w-full rounded-xl px-4 py-2.5 text-sm text-gray-700 dark:text-gray-100 bg-emerald-50 dark:bg-emerald-500/10 outline-none transition-colors " +
+  "placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-100";
 
 // ─── Outlet Type options (Outlet vs Franchise) ─────────────────────────────
 // Kept local to this file since it's only used here + in CreateBrandOutlet.
@@ -108,7 +109,7 @@ function MapModal({ lat, lng, label, onClose }) {
       }}
     >
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 dark:border-gray-700">
+        <div className="flex items-center justify-between px-5 py-3">
           <div>
             <p className="text-sm font-bold text-gray-900 dark:text-gray-100">{label || "Map Preview"}</p>
             <p className="text-xs text-gray-500">Lat: {lat} · Lng: {lng}</p>
@@ -129,7 +130,7 @@ function MapModal({ lat, lng, label, onClose }) {
           loading="lazy"
           referrerPolicy="no-referrer-when-downgrade"
         />
-        <div className="px-5 py-3 border-t border-gray-100 dark:border-gray-700 flex justify-end">
+        <div className="px-5 py-3 flex justify-end">
           <button onClick={onClose} className="px-5 py-2 bg-emerald-500 text-white text-sm font-bold rounded-xl hover:bg-emerald-600 transition-colors">
             Close Map
           </button>
@@ -150,7 +151,7 @@ function OtpVerifyModal({ phone, otpValue, onOtpChange, otpError, onConfirm, onC
       }}
     >
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+        <div className="flex items-center justify-between px-6 py-4">
           <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">Verify WhatsApp Number</h3>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
             <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -183,7 +184,7 @@ function OtpVerifyModal({ phone, otpValue, onOtpChange, otpError, onConfirm, onC
               }
             }}
             placeholder="Enter OTP"
-            className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-center text-lg tracking-[0.3em] font-semibold outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100"
+            className="w-full rounded-xl px-4 py-3 text-center text-lg tracking-[0.3em] font-semibold outline-none focus:ring-2 focus:ring-emerald-100 bg-emerald-50 dark:bg-emerald-500/10 text-gray-800 dark:text-gray-100 placeholder:text-gray-400"
           />
 
           {otpError && <p className="text-xs text-red-500 mt-2">{otpError}</p>}
@@ -197,7 +198,7 @@ function OtpVerifyModal({ phone, otpValue, onOtpChange, otpError, onConfirm, onC
           </button>
         </div>
 
-        <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-700 flex gap-2">
+        <div className="px-6 py-4 flex gap-2">
           <button
             onClick={onClose}
             className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
@@ -278,7 +279,7 @@ function LocationSaveStatus({ locationSaving, locationSaved, locationError, onRe
             value={manualZipcode}
             onChange={(e) => setManualZipcode(e.target.value.replace(/\D/g, "").slice(0, 6))}
             placeholder="Enter 6-digit pincode"
-            className="flex-1 rounded-xl border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-100"
+            className="flex-1 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-100 bg-emerald-50 dark:bg-emerald-500/10 text-gray-700 dark:text-gray-100 placeholder:text-gray-400"
           />
           <button
             type="button"
@@ -369,9 +370,9 @@ function OutletLocationSearch({ selectedPlace, onSelectPlace, onShowMap, locatio
   };
 
   return (
-    <div className="rounded-2xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 shadow-sm">
+    <div className="rounded-2xl bg-white dark:bg-gray-800 p-4 shadow-sm">
       <div className="flex items-start gap-3 mb-4">
-        <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border border-emerald-100 bg-emerald-50 dark:bg-emerald-500/10">
+        <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-50 dark:bg-emerald-500/10">
           <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -408,7 +409,7 @@ function OutletLocationSearch({ selectedPlace, onSelectPlace, onShowMap, locatio
       {error && <p className="text-xs text-rose-500 mb-3">{error}</p>}
 
       {results.length > 0 && (
-        <div className="mb-4 max-h-64 overflow-y-auto rounded-xl border border-gray-100 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
+        <div className="mb-4 max-h-64 overflow-y-auto rounded-xl divide-y divide-gray-100 dark:divide-gray-700">
           {results.map((place) => (
             <button
               key={place.place_id}
@@ -436,7 +437,7 @@ function OutletLocationSearch({ selectedPlace, onSelectPlace, onShowMap, locatio
       )}
 
       {selectedPlace ? (
-        <div className="bg-gray-50/60 dark:bg-gray-700 rounded-xl border border-gray-100 dark:border-gray-700 p-4">
+        <div className="bg-gray-50/60 dark:bg-gray-700 rounded-xl p-4">
           <p className="text-xs font-semibold text-gray-500 mb-1">Selected Outlet Location</p>
           <p className="text-sm font-bold text-gray-900 dark:text-gray-100">{selectedPlace.name}</p>
           <p className="text-sm text-gray-600 dark:text-gray-300 mt-0.5">{selectedPlace.address}</p>
@@ -522,9 +523,9 @@ function LiveLocationPicker({ selectedPlace, onSelectPlace, onShowMap, locationS
   };
 
   return (
-    <div className="rounded-2xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 shadow-sm">
+    <div className="rounded-2xl bg-white dark:bg-gray-800 p-4 shadow-sm">
       <div className="flex items-start gap-3 mb-4">
-        <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border border-emerald-100 bg-emerald-50 dark:bg-emerald-500/10">
+        <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-50 dark:bg-emerald-500/10">
           <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -554,7 +555,7 @@ function LiveLocationPicker({ selectedPlace, onSelectPlace, onShowMap, locationS
       {error && <p className="text-xs text-rose-500 mt-3">{error}</p>}
 
       {selectedPlace?.source === "live" ? (
-        <div className="bg-gray-50/60 dark:bg-gray-700 rounded-xl border border-gray-100 dark:border-gray-700 p-4 mt-3">
+        <div className="bg-gray-50/60 dark:bg-gray-700 rounded-xl p-4 mt-3">
           <p className="text-xs font-semibold text-gray-500 mb-1">Detected Address</p>
           <p className="text-sm text-gray-800 dark:text-gray-100">{selectedPlace.address}</p>
 
@@ -677,6 +678,12 @@ export default function AddOutletModal({ onClose, onCreated }) {
       setSubBrandId(subBrandId);
       setOtpStage(true);
     } catch (err) {
+      // ⚠️ FIXED: the outlet shell can have been created successfully even
+      // though this call is throwing (the OTP-send half failed after its
+      // own retry) — sendOutletWhatsappOtp attaches the real subBrandId to
+      // the error in that case. Save it here too, so the next "Verify"
+      // click resends the OTP instead of recreating the shell.
+      if (err?.subBrandId) setSubBrandId(err.subBrandId);
       setOtpError(err?.message || "Couldn't send OTP. Please try again.");
     } finally {
       setOtpSending(false);
@@ -777,8 +784,8 @@ export default function AddOutletModal({ onClose, onCreated }) {
         className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-100 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 rounded-t-2xl">
-          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-emerald-100 bg-emerald-50 dark:bg-emerald-500/10">
+        <div className="flex items-center gap-3 px-6 py-4 sticky top-0 bg-white dark:bg-gray-800 rounded-t-2xl">
+          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-50 dark:bg-emerald-500/10">
             <svg className="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
             </svg>
@@ -795,23 +802,13 @@ export default function AddOutletModal({ onClose, onCreated }) {
           {/* ── Outlet Type (Outlet vs Franchise) ── */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Outlet Type *</label>
-            <div className="relative">
-              <select
-                value={form.outletType}
-                onChange={(e) => update("outletType", e.target.value)}
-                className={`${inputBase} appearance-none`}
-              >
-                <option value="">eg : Outlet</option>
-                {OUTLET_TYPE_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-              <svg className="absolute right-3 top-3.5 w-4 h-4 text-gray-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
+            <Select
+              value={form.outletType}
+              onChange={(value) => update("outletType", value)}
+              options={OUTLET_TYPE_OPTIONS}
+              placeholder="eg : Outlet"
+              className="bg-emerald-50 dark:bg-emerald-500/10 text-gray-700 dark:text-gray-100"
+            />
           </div>
 
           {/* ── Description ── */}
@@ -911,7 +908,7 @@ export default function AddOutletModal({ onClose, onCreated }) {
                 validated once (real zipcode/district/coordinates), so
                 picking one can never hit "missing zipcode". */}
             {(loadingSavedLocations || savedLocations.length > 0) && (
-              <div className="mb-3 rounded-2xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 p-3 shadow-sm">
+              <div className="mb-3 rounded-2xl bg-white dark:bg-gray-800 p-3 shadow-sm">
                 <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">
                   Or Pick A Saved Location
                 </p>
@@ -926,10 +923,10 @@ export default function AddOutletModal({ onClose, onCreated }) {
                           key={loc._id}
                           type="button"
                           onClick={() => handleSelectSavedLocation(loc)}
-                          className={`w-full text-left px-3 py-2 rounded-xl text-xs transition-colors border ${
+                          className={`w-full text-left px-3 py-2 rounded-xl text-xs transition-colors ${
                             isSelected
-                              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                              : "border-transparent bg-gray-50/60 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:border-emerald-100 hover:bg-emerald-50/40"
+                              ? "bg-emerald-50 text-emerald-700"
+                              : "bg-gray-50/60 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-emerald-50/40"
                           }`}
                         >
                           <span className="block font-semibold truncate">
@@ -995,10 +992,10 @@ export default function AddOutletModal({ onClose, onCreated }) {
           </div>
         </div>
 
-        <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-700 flex gap-3">
+        <div className="px-6 py-4 flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 font-semibold py-2.5 rounded-xl text-sm hover:bg-gray-50 dark:hover:bg-gray-700"
+            className="flex-1 text-gray-600 dark:text-gray-300 font-semibold py-2.5 rounded-xl text-sm hover:bg-gray-50 dark:hover:bg-gray-700"
           >
             Cancel
           </button>

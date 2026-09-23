@@ -31,7 +31,7 @@ function UploadMediaModal({ files, onClose, onConfirm }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" onClick={onClose}>
       <div
-        className="w-full max-w-md rounded-2xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 shadow-xl"
+        className="w-full max-w-md rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
@@ -51,7 +51,7 @@ function UploadMediaModal({ files, onClose, onConfirm }) {
             type="checkbox"
             checked={isShowInVideoClips}
             onChange={(e) => setIsShowInVideoClips(e.target.checked)}
-            className="h-4 w-4 rounded border-gray-300 accent-emerald-600 focus:ring-emerald-400"
+            className="h-4 w-4 rounded accent-emerald-600 focus:ring-emerald-400"
           />
           <label htmlFor="rowIsShowInVideoClips" className="text-sm text-gray-700 dark:text-gray-300">
             Show in video clips
@@ -65,7 +65,7 @@ function UploadMediaModal({ files, onClose, onConfirm }) {
               type="file"
               accept="image/*"
               onChange={(e) => setThumbnail(e.target.files?.[0] || null)}
-              className="w-full text-sm text-gray-600 file:mr-3 file:rounded-xl file:border-0 file:bg-emerald-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-emerald-700 hover:file:bg-emerald-100"
+              className="w-full text-sm text-gray-600 file:mr-3 file:rounded-xl file:bg-emerald-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-emerald-700 hover:file:bg-emerald-100"
             />
             {thumbnail && <p className="mt-1 text-xs text-gray-500">{thumbnail.name}</p>}
           </div>
@@ -75,7 +75,7 @@ function UploadMediaModal({ files, onClose, onConfirm }) {
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl border border-gray-200 dark:border-gray-700 px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+            className="rounded-xl px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
           >
             Cancel
           </button>
@@ -102,7 +102,7 @@ function OrderRow({ media, index }) {
     <div
       ref={ref}
       style={{ opacity: isDragging ? 0.4 : 1 }}
-      className="flex items-center gap-3 rounded-lg border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2"
+      className="flex items-center gap-3 rounded-lg bg-white dark:bg-gray-800 px-3 py-2"
     >
       <button
         type="button"
@@ -118,13 +118,13 @@ function OrderRow({ media, index }) {
           muted
           playsInline
           preload="metadata"
-          className="h-9 w-9 flex-shrink-0 rounded-md border border-gray-100 dark:border-gray-700 object-cover"
+          className="h-9 w-9 flex-shrink-0 rounded-md object-cover"
         />
       ) : (
         <img
           src={media.thumbnail || media.url}
           alt=""
-          className="h-9 w-9 flex-shrink-0 rounded-md border border-gray-100 dark:border-gray-700 object-cover"
+          className="h-9 w-9 flex-shrink-0 rounded-md object-cover"
         />
       )}
       <span className="min-w-0 flex-1 truncate text-xs text-gray-600 dark:text-gray-300">
@@ -228,7 +228,7 @@ const ShowcaseGroup = ({
     <div
       ref={ref}
       style={{ opacity: isDragging ? 0.5 : 1 }}
-      className="overflow-hidden rounded-xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800"
+      className="overflow-hidden rounded-xl bg-white dark:bg-gray-800"
     >
       <div
         ref={handleRef}
@@ -281,10 +281,10 @@ const ShowcaseGroup = ({
               type="button"
               onClick={() => setOrderPanelOpen((o) => !o)}
               aria-expanded={orderPanelOpen}
-              className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+              className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
                 orderPanelOpen
-                  ? "border-emerald-200 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-                  : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-emerald-200 hover:bg-emerald-50/40 hover:text-emerald-600"
+                  ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                  : "text-gray-600 dark:text-gray-300 hover:bg-emerald-50/40 hover:text-emerald-600"
               }`}
             >
               <ListOrdered size={13} /> Order
@@ -304,7 +304,7 @@ const ShowcaseGroup = ({
       </div>
 
       {orderPanelOpen && (
-        <div className="mx-4 mb-4 rounded-xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 p-4">
+        <div className="mx-4 mb-4 rounded-xl bg-gray-50 dark:bg-gray-700 p-4">
           <p className="mb-3 text-xs font-semibold text-gray-500">
             Drag to reorder — applies across photos and videos in this section.
           </p>

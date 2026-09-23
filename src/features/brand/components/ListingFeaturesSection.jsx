@@ -51,7 +51,7 @@ const FeatureDetailsModal = ({ feature, onClose }) => (
       className="w-full max-w-md rounded-2xl bg-white dark:bg-gray-800 shadow-2xl"
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+      <div className="flex items-center justify-between px-6 py-4">
         <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">Listing Feature</h3>
         <button
           type="button"
@@ -95,7 +95,7 @@ const MediaThumb = ({ src, alt, onPlay, onView, onChangeIcon, changing }) => {
         <img
           src={src}
           alt={alt}
-          className="h-12 w-12 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 object-cover"
+          className="h-12 w-12 rounded-xl bg-gray-50 dark:bg-gray-700 object-cover"
         />
         {(onView || onChangeIcon) && (
           <div className="absolute inset-0 flex items-center justify-center gap-1.5 rounded-xl bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
@@ -145,7 +145,7 @@ const MediaThumb = ({ src, alt, onPlay, onView, onChangeIcon, changing }) => {
     <button
       type="button"
       onClick={onPlay}
-      className="group relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-gray-900"
+      className="group relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl bg-gray-900"
       aria-label={`Play ${alt}`}
     >
       <video src={src} className="h-full w-full object-cover opacity-70" muted />
@@ -222,7 +222,7 @@ const ListingFeaturesSection = ({
     <section>
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 flex items-center justify-center flex-shrink-0">
+          <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
             <ListChecks size={18} className="text-emerald-500 dark:text-emerald-400" />
           </div>
           <div>
@@ -244,15 +244,15 @@ const ListingFeaturesSection = ({
       </div>
 
       {iconError && (
-        <p className="mt-4 rounded-xl border border-red-100 bg-red-50 px-4 py-2.5 text-sm text-red-500">
+        <p className="mt-4 rounded-xl bg-red-50 px-4 py-2.5 text-sm text-red-500">
           {iconError}
         </p>
       )}
 
-      <div className="mt-5 overflow-x-auto no-scrollbar rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm">
+      <div className="mt-5 overflow-x-auto no-scrollbar rounded-xl shadow-sm">
         <table className="w-full min-w-[640px] text-left text-sm">
           <thead>
-            <tr className="border-b border-gray-100 dark:border-gray-700 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+            <tr className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
               <th className="px-5 py-3">S.NO</th>
               <th className="px-5 py-3">Icon</th>
               <th className="px-5 py-3">Title</th>
@@ -266,7 +266,6 @@ const ListingFeaturesSection = ({
             {listingFeatures.features.map((feature) => (
               <tr
                 key={feature.id}
-                className="border-b border-gray-50 dark:border-gray-700 last:border-b-0"
               >
                 <td className="px-5 py-4 text-gray-800 dark:text-gray-100">{feature.sNo}</td>
                 <td className="px-5 py-4">

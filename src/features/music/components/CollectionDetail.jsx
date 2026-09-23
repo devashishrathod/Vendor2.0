@@ -38,14 +38,14 @@ export default function CollectionDetail({
         </button>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden">
         {collection.songs.map((song, i) => {
           const isActive = activeSong?.id === song.id;
           return (
             <div
               key={song.id}
               onClick={() => onPlaySong(collection, i)}
-              className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors border-b border-gray-50 dark:border-gray-700 last:border-b-0 ${
+              className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors ${
                 isActive ? "bg-emerald-50 dark:bg-emerald-500/10" : "hover:bg-gray-50 dark:hover:bg-gray-700"
               }`}
             >

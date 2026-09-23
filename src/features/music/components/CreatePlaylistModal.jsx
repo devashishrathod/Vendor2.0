@@ -28,7 +28,7 @@ export default function CreatePlaylistModal({ onClose, onCreate }) {
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="e.g. Evening Drive"
-          className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-lg px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-emerald-300"
+          className="w-full bg-emerald-50 dark:bg-emerald-500/10 dark:text-gray-100 rounded-lg px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-emerald-300"
         />
         <button
           disabled={!name.trim() || saving}

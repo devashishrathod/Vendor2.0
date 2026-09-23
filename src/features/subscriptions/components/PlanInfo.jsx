@@ -32,8 +32,8 @@ export default function PlanInfo({ plan }) {
         : null;
 
   return (
-    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6">
-      <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-4 pb-4 border-b border-gray-100 dark:border-gray-700">
+    <div className="bg-white dark:bg-gray-800 rounded-xl p-6">
+      <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-4 pb-4">
         Subscribe to {plan.name}
       </h2>
 
@@ -65,7 +65,7 @@ export default function PlanInfo({ plan }) {
       </div>
 
       {/* {(plan.benefits?.length > 0 || plan.limitations?.length > 0) && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-gray-100">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
           {plan.benefits?.length > 0 && (
             <div>
               <p className="text-sm font-bold text-gray-800 mb-1.5">Benefits</p>

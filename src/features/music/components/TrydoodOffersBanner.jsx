@@ -13,7 +13,7 @@ export default function TrydoodOffersBanner() {
         </button>
       </div>
 
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-50 to-emerald-100/50 dark:from-emerald-500/10 dark:to-emerald-500/5 border border-emerald-100 dark:border-emerald-500/20 px-6 py-6 flex items-center justify-between gap-6 flex-wrap">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-50 to-emerald-100/50 dark:from-emerald-500/10 dark:to-emerald-500/5 px-6 py-6 flex items-center justify-between gap-6 flex-wrap">
         <div className="flex items-start gap-3 max-w-sm">
           <div className="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center flex-shrink-0">
             <Gift size={18} className="text-white" />

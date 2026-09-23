@@ -58,15 +58,15 @@ export default function TimePickerAmPm({ value, onChange, className = "" }) {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between gap-2 rounded-xl border border-gray-200 dark:border-gray-700 px-3 py-2.5 text-sm outline-none transition-colors focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+        className="flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-sm outline-none transition-colors focus:ring-2 focus:ring-emerald-100"
       >
         <span className={value ? "text-gray-700 dark:text-gray-300" : "text-gray-400"}>{displayLabel}</span>
         <Clock className="h-4 w-4 flex-shrink-0 text-gray-400" />
       </button>
 
       {open && (
-        <div className="absolute z-30 mt-1 flex overflow-hidden rounded-xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg">
-          <div className="max-h-48 w-14 overflow-y-auto border-r border-gray-100 dark:border-gray-700">
+        <div className="absolute z-30 mt-1 flex overflow-hidden rounded-xl bg-white dark:bg-gray-800 shadow-lg">
+          <div className="max-h-48 w-14 overflow-y-auto">
             {HOURS.map((h) => (
               <button
                 key={h}
@@ -80,7 +80,7 @@ export default function TimePickerAmPm({ value, onChange, className = "" }) {
               </button>
             ))}
           </div>
-          <div className="max-h-48 w-14 overflow-y-auto border-r border-gray-100 dark:border-gray-700">
+          <div className="max-h-48 w-14 overflow-y-auto">
             {MINUTES.map((m) => (
               <button
                 key={m}

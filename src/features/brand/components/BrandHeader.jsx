@@ -16,7 +16,7 @@ const BrandHeader = ({ brandName, merchantId, logo, onChangeLogo, logoUpdating, 
   return (
     <div className="flex items-center justify-between gap-3">
     <div className="flex items-center gap-3">
-      <div className="relative w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
+      <div className="relative w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
         {logo ? (
           <img src={logo} alt={brandName || "Brand logo"} className="w-full h-full object-cover" />
         ) : (

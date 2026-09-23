@@ -2,7 +2,7 @@ export default function DashboardFooter() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 mt-auto">
+    <footer className="bg-white dark:bg-gray-800 mt-auto">
       <div className="px-6 py-4">
 
         {/* ── Company name ── */}
@@ -11,7 +11,6 @@ export default function DashboardFooter() {
         </p>
 
         {/* ── Divider ── */}
-        <div className="border-t border-gray-200 dark:border-gray-700 my-3" />
 
         {/* ── Bottom row: copyright + links ── */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">

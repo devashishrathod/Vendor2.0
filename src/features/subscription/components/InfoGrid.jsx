@@ -48,7 +48,7 @@ export function InfoGrid({ items, cols = 4 }) {
 
 export function InfoSection({ icon, title, subtitle, action, children }) {
   return (
-    <section className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl p-5 sm:p-6">
+    <section className="bg-white dark:bg-gray-800 rounded-2xl p-5 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">

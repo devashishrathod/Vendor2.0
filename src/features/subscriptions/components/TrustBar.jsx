@@ -10,7 +10,7 @@ const DEFAULT_BADGES = [
 
 export default function TrustBar({ badges = DEFAULT_BADGES }) {
   return (
-    <div className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-xl px-8 py-3 mb-6">
+    <div className="w-full bg-gray-50 dark:bg-gray-700 rounded-xl px-8 py-3 mb-6">
       <div className="flex items-center justify-center gap-6 divide-x divide-gray-300 dark:divide-gray-700 overflow-x-auto">
         {badges.map((b, i) => (
           <div

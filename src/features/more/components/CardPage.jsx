@@ -59,7 +59,7 @@ const CardPage = ({ icon, iconBg, title, heading, description, to = "/", comingS
       <div
         aria-disabled="true"
         title="Coming soon"
-        className="group flex cursor-not-allowed flex-col justify-between rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 opacity-70"
+        className="group flex cursor-not-allowed flex-col justify-between rounded-xl bg-white dark:bg-gray-800 p-5 opacity-70"
       >
         {content}
       </div>
@@ -69,7 +69,7 @@ const CardPage = ({ icon, iconBg, title, heading, description, to = "/", comingS
   return (
     <Link
       to={to}
-      className="group flex flex-col justify-between rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+      className="group flex flex-col justify-between rounded-xl bg-white dark:bg-gray-800 p-5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-emerald-400"
     >
       {content}
     </Link>

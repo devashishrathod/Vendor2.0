@@ -136,7 +136,7 @@ export default function Dashboard() {
           {SUMMARY_CARDS.map((card) => (
             <div
               key={card.label}
-              className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl px-4 py-3 flex flex-col gap-2"
+              className="bg-white dark:bg-gray-800 rounded-xl px-4 py-3 flex flex-col gap-2"
             >
               <div className="flex items-center justify-between">
                 <p className="text-xs text-gray-400 font-medium">{card.label}</p>
@@ -163,10 +163,10 @@ export default function Dashboard() {
               key={key}
               onClick={() => setActiveTxnTab(key)}
               className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold
-                border transition-all duration-150
+                transition-all duration-150
                 ${activeTxnTab === key
-                  ? "bg-gray-900 text-white border-gray-900"
-                  : "bg-white dark:bg-gray-800 text-gray-500 border-gray-200 dark:border-gray-700 hover:border-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  ? "bg-gray-900 text-white"
+                  : "bg-white dark:bg-gray-800 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700"
                 }`}
             >
               <TxnIcon type={icon} />
@@ -176,10 +176,10 @@ export default function Dashboard() {
         </div>
 
         {/* Overview section */}
-        <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden mb-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden mb-4">
 
           {/* Section header */}
-          <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 dark:border-gray-700">
+          <div className="flex items-center justify-between px-5 py-3.5">
             <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
               <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
@@ -207,7 +207,7 @@ export default function Dashboard() {
               <div className="overflow-x-auto no-scrollbar">
                 <table className="w-full text-xs">
                   <thead>
-                    <tr className="border-b border-gray-50 dark:border-gray-700">
+                    <tr>
                       {["Overall Bill Amount", "Coupon Paid Amount", "Discount Amount", "Additional discount", "Got Amount"].map((h) => (
                         <th key={h} className="text-left px-5 py-3 text-gray-400 font-medium whitespace-nowrap">
                           {h}
@@ -217,7 +217,7 @@ export default function Dashboard() {
                   </thead>
                   <tbody>
                     {VOUCHER_ROWS.map((row, i) => (
-                      <tr key={i} className="border-b border-gray-50 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                      <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                         <td className="px-5 py-3.5 text-gray-700 dark:text-gray-300 font-medium">{row.bill}</td>
                         <td className="px-5 py-3.5 text-gray-700 dark:text-gray-300">{row.paid}</td>
                         <td className="px-5 py-3.5 text-red-500">{row.discount}</td>
@@ -230,7 +230,7 @@ export default function Dashboard() {
               </div>
 
               {/* Pagination */}
-              <div className="flex items-center justify-between px-5 py-3 border-t border-gray-50 dark:border-gray-700">
+              <div className="flex items-center justify-between px-5 py-3">
                 {/* Rows per page */}
                 <div className="flex items-center gap-2 text-xs text-gray-400">
                   <span>Rows per page:</span>

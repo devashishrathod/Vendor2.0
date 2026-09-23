@@ -87,12 +87,12 @@ const BusinessHoursPage = ({ brand, brandId, brandLoading, brandError }) => {
   return (
     <div>
       {brandError && (
-        <p className="mb-4 rounded-xl border border-red-100 bg-red-50 px-4 py-2.5 text-sm text-red-500">
+        <p className="mb-4 rounded-xl bg-red-50 px-4 py-2.5 text-sm text-red-500">
           Couldn't load live data ({brandError}). Showing cached details.
         </p>
       )}
       {saveError && (
-        <p className="mb-4 rounded-xl border border-red-100 bg-red-50 px-4 py-2.5 text-sm text-red-500">{saveError}</p>
+        <p className="mb-4 rounded-xl bg-red-50 px-4 py-2.5 text-sm text-red-500">{saveError}</p>
       )}
 
       <BusinessHours
@@ -111,7 +111,7 @@ const BusinessHoursPage = ({ brand, brandId, brandLoading, brandError }) => {
           {saving ? "Saving…" : "Save changes"}
         </button>
         {saved && (
-          <span className="inline-flex items-center gap-1 rounded-lg border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+          <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
             Saved successfully.
           </span>
         )}

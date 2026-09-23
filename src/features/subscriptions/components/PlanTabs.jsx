@@ -92,7 +92,7 @@ export default function PlanTabs({ plans = [], selected, onChange, loading = fal
 
   if (loading) {
     return (
-      <div className="flex items-center gap-1 w-fit mx-auto bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-2xl p-1.5">
+      <div className="flex items-center gap-1 w-fit mx-auto bg-gray-50 dark:bg-gray-700 rounded-2xl p-1.5">
         {[0, 1, 2].map((i) => (
           <div key={i} className="h-9 w-28 rounded-xl bg-gray-100 dark:bg-gray-700 animate-pulse" />
         ))}
@@ -109,7 +109,7 @@ export default function PlanTabs({ plans = [], selected, onChange, loading = fal
   return (
     <div
       ref={containerRef}
-      className="relative flex items-center bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-2xl p-1.5 gap-1 w-fit mx-auto"
+      className="relative flex items-center bg-gray-50 dark:bg-gray-700 rounded-2xl p-1.5 gap-1 w-fit mx-auto"
     >
       {pill.ready && (
         <div

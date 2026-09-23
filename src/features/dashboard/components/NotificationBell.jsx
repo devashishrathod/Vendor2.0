@@ -82,8 +82,8 @@ export default function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-80 max-h-96 overflow-y-auto bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 z-50">
-          <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between sticky top-0 bg-white dark:bg-gray-800">
+        <div className="absolute right-0 top-full mt-2 w-80 max-h-96 overflow-y-auto bg-white dark:bg-gray-800 rounded-xl shadow-lg z-50">
+          <div className="px-4 py-3 flex items-center justify-between sticky top-0 bg-white dark:bg-gray-800">
             <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">Notifications</p>
             {unreadCount > 0 && (
               <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">{unreadCount} new</span>
@@ -104,7 +104,7 @@ export default function NotificationBell() {
                   setOpen(false);
                   if (n.meta?.deeplink) navigate(n.meta.deeplink);
                 }}
-                className={`w-full text-left px-4 py-3 border-b border-gray-50 dark:border-gray-700 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
+                className={`w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
                   !n.isRead ? "bg-emerald-50/40 dark:bg-emerald-500/10" : ""
                 }`}
               >

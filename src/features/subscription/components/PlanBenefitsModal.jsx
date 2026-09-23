@@ -39,7 +39,7 @@ export default function PlanBenefitsModal({ open, onClose, planName, features = 
         aria-modal="true"
         aria-label="Plan benefit details"
       >
-        <div className="flex items-center justify-between gap-3 px-6 py-5 border-b border-gray-100 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800">
+        <div className="flex items-center justify-between gap-3 px-6 py-5 sticky top-0 bg-white dark:bg-gray-800">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
               <Crown className="w-4 h-4" />
@@ -86,7 +86,7 @@ export default function PlanBenefitsModal({ open, onClose, planName, features = 
               <p className="text-xs font-bold uppercase tracking-wide text-gray-400 mb-3">Benefits</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 {benefits.map((b) => (
-                  <div key={b} className="flex items-center gap-2 bg-emerald-50/60 dark:bg-emerald-500/10 border border-emerald-100 rounded-xl px-3.5 py-2.5">
+                  <div key={b} className="flex items-center gap-2 bg-emerald-50/60 dark:bg-emerald-500/10 rounded-xl px-3.5 py-2.5">
                     <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{b}</span>
                   </div>

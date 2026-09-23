@@ -21,7 +21,7 @@ export default function LanguagePills({ languages, onSelect }) {
             key={lang.id}
             type="button"
             onClick={() => onSelect(lang)}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-1.5 rounded-full border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-emerald-200 hover:text-emerald-600 transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-1.5 rounded-full bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:text-emerald-600 transition-colors"
           >
             <Music size={12} /> {lang.label}
           </button>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Download, Wallet, Tag, ShoppingBag, CreditCard, User, Activity, LifeBuoy } from "lucide-react";
+import { ArrowLeft, Download, Wallet, Tag, ShoppingBag, CreditCard, User, Activity, LifeBuoy, Store } from "lucide-react";
 // import RaiseTicketModal from "../components/RaiseTicketModal";
 import { getOrderById, TYPE_CONFIG } from "../data/transactionData";
 import { getVoucherClaimPaymentById, mapPaymentToOrderDetail } from "../services/transactionService";
@@ -67,7 +67,7 @@ function CopyButton({ text }) {
 // instead of a bare uppercase heading floating on the page background.
 function Section({ icon: Icon, iconBg = "bg-emerald-50 dark:bg-emerald-500/10", iconText = "text-emerald-500 dark:text-emerald-400", title, subtitle, children }) {
   return (
-    <section className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl p-5 sm:p-6">
+    <section className="bg-white dark:bg-gray-800 rounded-2xl p-5 sm:p-6">
       <div className="flex items-center gap-3 mb-4">
         {Icon && (
           <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${iconBg} ${iconText}`}>
@@ -173,16 +173,17 @@ export default function OrderDetail() {
         if (!data?.payment) { setNotFound(true); return; }
         const order = mapPaymentToOrderDetail(data);
 
-        // Published/Expired come from the full voucher record, not the
-        // claim/payment — same GET /vouchers/versions/get-all the "View
-        // Page" modal uses. Fetched alongside (not blocking): if it fails,
-        // the two fields just stay blank rather than the whole page erroring.
+        if (order.publishedDate) order.publishedDate = formatVoucherDate(order.publishedDate);
+        if (order.expiredDate) order.expiredDate = formatVoucherDate(order.expiredDate);
+
+        // The detail response already contains the voucher version dates.
+        // Keep the fallback fetch for older responses that omit them.
         try {
-          const voucherRes = await getVoucherById(order.refId);
+          const voucherRes = await getVoucherById(order.voucherId);
           const version = voucherRes?.data?.data?.[0];
           if (!cancelled && version) {
-            order.publishedDate = formatVoucherDate(version.startAt);
-            order.expiredDate = formatVoucherDate(version.endAt);
+            if (!order.publishedDate) order.publishedDate = formatVoucherDate(version.startAt);
+            if (!order.expiredDate) order.expiredDate = formatVoucherDate(version.endAt);
             // Countdown to expiry, computed client-side from the real
             // endAt — there's no separate "reminder days" field on the
             // API, but this is exactly what that label means: days left
@@ -214,7 +215,7 @@ export default function OrderDetail() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 font-sans">
+      <div className="min-h-screen bg-[#F8FAF7] dark:bg-gray-900 font-sans">
         <div className="max-w-3xl mx-auto px-6 py-16 text-center">
           <p className="text-gray-400 text-sm">Loading order details…</p>
         </div>
@@ -224,7 +225,7 @@ export default function OrderDetail() {
 
   if (!result || notFound) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 font-sans">
+      <div className="min-h-screen bg-[#F8FAF7] dark:bg-gray-900 font-sans">
         <div className="max-w-3xl mx-auto px-6 py-16 text-center">
           <p className="text-gray-500 mb-4">Order #{orderId} not found.</p>
           <button
@@ -241,10 +242,10 @@ export default function OrderDetail() {
   const { order, typeConfig } = result;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 font-sans">
+    <div className="min-h-screen bg-[#F8FAF7] dark:bg-gray-900 font-sans">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-4">
         {/* Header card: back, title, status badges, actions */}
-        <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl flex flex-wrap items-center gap-4 px-5 sm:px-6 py-5">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl flex flex-wrap items-center gap-4 px-5 sm:px-6 py-5">
           <button
             onClick={() => navigate("/transactions")}
             className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 flex-shrink-0"
@@ -305,6 +306,31 @@ export default function OrderDetail() {
           </div>
         </Section>
 
+        {/* Outlet Information — real fields from outletDetail (address,
+            WhatsApp, description, joined date, active status), not just
+            the thin storeId/state summary Billing Information above shows. */}
+        <Section icon={Store} iconBg="bg-sky-50" iconText="text-sky-500" title="Outlet Information">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-y-5 gap-x-6">
+            <Field
+              label="Outlet Id"
+              value={order.outletUniqueId}
+              action={<CopyButton text={order.outletUniqueId} />}
+            />
+            <Field label="WhatsApp Number" value={order.outletWhatsapp} />
+            <Field label="Joined Date" value={order.outletJoinedDate} />
+            <Field
+              label="Status"
+              value={order.outletStatus}
+              valueClass={order.outletStatus === "Active" ? "text-emerald-500 font-semibold" : "text-gray-900 dark:text-gray-100"}
+            />
+            <Field label="City" value={order.outletCity} />
+            <Field label="State" value={order.outletState} />
+            <Field label="Zipcode" value={order.outletZipcode} />
+            <Field label="Address" value={order.outletFormattedAddress} />
+            <Field label="Description" value={order.outletDescription} />
+          </div>
+        </Section>
+
         {/* Type Information — dynamic: Voucher / Deal Pack / Membership,
             driven entirely by typeConfig so each transaction type shows
             its own relevant fields under its own heading. */}
@@ -330,6 +356,13 @@ export default function OrderDetail() {
             {typeConfig.fields.map((f) => (
               <Field key={f.key} label={f.label} value={order[f.key]} />
             ))}
+            {typeConfig === TYPE_CONFIG.voucher && (
+              <Field
+                label="Claim Code"
+                value={order.claimCode}
+                action={<CopyButton text={order.claimCode} />}
+              />
+            )}
           </div>
         </Section>
 
@@ -341,7 +374,12 @@ export default function OrderDetail() {
             <Field label="Trydood Discount" value={order.trydoodDiscount} />
             {/* <Field label="Membership Discount" value={order.membershipDiscount} valueClass={order.membershipDiscount ? "text-emerald-500 font-semibold" : "text-gray-900"} /> */}
             <Field label="Coupon Code" value={order.couponCode} />
+            {order.convenienceFee && <Field label="Convenience Fee" value={order.convenienceFee} />}
+            <Field label="GST" value={order.gstAmount} />
             <Field label="Paid Amount" value={order.paidAmount} />
+            {order.refundStatus && (
+              <Field label="Refund" value={order.refundStatus} valueClass="text-rose-500 font-medium" />
+            )}
           </div>
         </Section>
 
@@ -436,21 +474,12 @@ export default function OrderDetail() {
           </Section>
         )}
 
-        {/* Footer */}
-        <div className="pt-2 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-xs font-bold tracking-[0.1em] text-gray-800 dark:text-gray-100">TRYDOOD RETAIL PRIVATE LIMITED</p>
-          <div className="flex items-center gap-5 text-xs text-gray-400">
-            <span>Copyright © 2026 Trydood. All rights reserved.</span>
-            <button className="hover:text-gray-600">Terms of Service</button>
-            <button className="hover:text-gray-600">Privacy Policy</button>
-            <button className="hover:text-gray-600">Contact Us</button>
-          </div>
-        </div>
+
       </div>
 
       {showVoucherModal && (
         <VoucherViewModal
-          voucherId={order.refId}
+          voucherId={order.voucherId || order.refId}
           onClose={() => setShowVoucherModal(false)}
         />
       )}

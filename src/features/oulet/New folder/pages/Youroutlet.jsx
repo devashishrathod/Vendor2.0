@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import logo1 from "@/assets/Logo1.jpg";
 import ErrorToast from "@/components/common/ErrorToast";
+import Select from "../../../../components/common/Select";
 import SuccessToast from "@/components/common/SuccessToast";
 
 // "SYSTEM_VERIFIED" → "System Verified", "REJECTED" → "Rejected" — used
@@ -192,7 +193,7 @@ function useSubmitAction(submitFn) {
 
 function FieldCard({ title, children }) {
   return (
-    <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-4 mb-3">
+    <div className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-3">
       <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">{title}</p>
       {children}
     </div>
@@ -212,7 +213,7 @@ function AccordionFieldCard({ title, summary, defaultOpen = false, collapseSigna
     if (collapseSignal) setOpen(false);
   }, [collapseSignal]);
   return (
-    <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl mb-3 overflow-hidden">
+    <div className="bg-white dark:bg-gray-800 rounded-xl mb-3 overflow-hidden">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
@@ -232,14 +233,14 @@ function AccordionFieldCard({ title, summary, defaultOpen = false, collapseSigna
           <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
         </svg>
       </button>
-      {open && <div className="px-4 pb-4 pt-1 border-t border-gray-100 dark:border-gray-700">{children}</div>}
+      {open && <div className="px-4 pb-4 pt-1">{children}</div>}
     </div>
   );
 }
 
 const inputBase =
-  "flex-1 text-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 outline-none transition-colors dark:bg-gray-800 dark:text-gray-100 " +
-  "focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100";
+  "flex-1 text-sm rounded-lg px-3 py-2 outline-none transition-colors bg-emerald-50 dark:bg-emerald-500/10 dark:text-gray-100 " +
+  "focus:ring-2 focus:ring-emerald-100";
 
 // Just the input (or a custom control via `children`, e.g. a <select>)
 // plus its own error/saved message — no per-field button. Basic Details'
@@ -330,7 +331,7 @@ function VerifiedDetailCard({ rows, onChangeDetails, onSave, saving, saveError }
   const visibleRows = rows.filter((r) => r.value && r.value !== "—");
   return (
     <div>
-      <div className="inline-flex items-center gap-1.5 rounded-full border bg-emerald-50 border-emerald-200 text-emerald-700 text-[11px] font-semibold px-2.5 py-1 mb-3">
+      <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-semibold px-2.5 py-1 mb-3">
         <svg className="w-3 h-3 fill-emerald-500" viewBox="0 0 24 24">
           <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1.41 14.08L6.7 12.2l1.41-1.42 2.48 2.49 5.31-5.32 1.41 1.42-6.72 6.71z" />
         </svg>
@@ -357,7 +358,7 @@ function VerifiedDetailCard({ rows, onChangeDetails, onSave, saving, saveError }
           type="button"
           onClick={onChangeDetails}
           disabled={saving}
-          className="flex-1 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs font-semibold transition-colors disabled:opacity-50"
+          className="flex-1 py-2 rounded-lg bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs font-semibold transition-colors disabled:opacity-50"
         >
           Change Details
         </button>
@@ -699,16 +700,16 @@ export default function UnderReview() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <div className="min-h-screen flex items-center justify-center bg-[#F8FAF7] dark:bg-gray-900">
         <p className="text-sm text-gray-400">Loading review status…</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 font-sans">
+    <div className="min-h-screen  dark:bg-gray-900 font-sans">
       {/* ── Navbar ── */}
-      <nav className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-6 h-14 flex items-center justify-between sticky top-0 z-10">
+      <nav className="bg-white dark:bg-gray-800 px-6 h-14 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-2">
           <div className="w-12 h-12 flex items-center justify-center overflow-hidden">
             <img
@@ -741,7 +742,7 @@ export default function UnderReview() {
         </p>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-5 text-xs text-red-600">
+          <div className="bg-red-50 rounded-xl px-4 py-3 mb-5 text-xs text-red-600">
             {error}
           </div>
         )}
@@ -776,9 +777,9 @@ export default function UnderReview() {
                   : status === "APPROVED" ? "ring-emerald-100"
                     : "ring-amber-100";
               const badgeClass =
-                status === "REJECTED" ? "bg-rose-50 text-rose-600 border-rose-200"
-                  : status === "APPROVED" ? "bg-emerald-50 text-emerald-600 border-emerald-200"
-                    : "bg-amber-50 text-amber-600 border-amber-200";
+                status === "REJECTED" ? "bg-rose-50 text-rose-600"
+                  : status === "APPROVED" ? "bg-emerald-50 text-emerald-600"
+                    : "bg-amber-50 text-amber-600";
 
               return {
                 id: entry._id,
@@ -810,7 +811,7 @@ export default function UnderReview() {
           ];
 
           return (
-            <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl px-4 py-4 mb-5">
+            <div className="bg-white dark:bg-gray-800 rounded-xl px-4 py-4 mb-5">
               <p className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide mb-4">
                 Status History
               </p>
@@ -833,7 +834,7 @@ export default function UnderReview() {
                                 {item.actionLabel}
                               </span>
                               {item.statusLabel && (
-                                <span className={`text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full border ${item.badgeClass}`}>
+                                <span className={`text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full ${item.badgeClass}`}>
                                   {item.statusLabel}
                                 </span>
                               )}
@@ -886,7 +887,7 @@ export default function UnderReview() {
 
         {/* Alert banner */}
         {isApproved ? (
-          <div className="relative overflow-hidden rounded-2xl mb-5 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm px-6 py-10 sm:px-10">
+          <div className="relative overflow-hidden rounded-2xl mb-5 bg-white dark:bg-gray-800 shadow-sm px-6 py-10 sm:px-10">
             <style>{`
               @keyframes reviewBadgePop {
                 0%   { transform: scale(0.5); opacity: 0; }
@@ -996,7 +997,7 @@ export default function UnderReview() {
             </div>
 
             <div
-              className="relative mt-7 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-4"
+              className="relative mt-7 bg-white dark:bg-gray-800 rounded-xl px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-4"
               style={{ animation: "reviewFadeUp 0.4s 0.35s ease both", opacity: 0 }}
             >
               <div className="flex items-center gap-4 flex-1 min-w-0">
@@ -1065,8 +1066,8 @@ export default function UnderReview() {
             </div>
           </div>
         ) : (
-          <div className={`rounded-xl px-4 py-3.5 mb-5 border ${
-            isRejected ? "bg-rose-50 border-rose-200" : "bg-amber-50 border-amber-200"
+          <div className={`rounded-xl px-4 py-3.5 mb-5 ${
+            isRejected ? "bg-rose-50" : "bg-amber-50"
           }`}>
             <p className={`text-sm font-semibold mb-1 ${isRejected ? "text-rose-800" : "text-amber-800"}`}>
               {isRejected ? "Some details need to be corrected." : "Your listing is under review."}
@@ -1083,7 +1084,7 @@ export default function UnderReview() {
             celebratory hero above, so this plain card is only for
             pending/rejected states. */}
         {!isApproved && (
-          <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden">
             <div className="flex items-center gap-4 px-5 py-4">
               <div className="w-12 h-16 flex items-center justify-center overflow-hidden">
                 <img
@@ -1111,7 +1112,7 @@ export default function UnderReview() {
               <button
                 onClick={handleRecheck}
                 disabled={refreshing}
-                className="flex-shrink-0 px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800
+                className="flex-shrink-0 px-4 py-2 rounded-lg bg-white dark:bg-gray-800
                   hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs font-semibold
                   transition-all duration-150 active:scale-[0.97] disabled:opacity-50"
               >
@@ -1153,15 +1154,13 @@ export default function UnderReview() {
 
             <FieldCard title="Business Type">
               <PlainFieldRow error={businessTypeError} saved={businessTypeSaved}>
-                <select
+                <Select
                   value={businessType}
-                  onChange={(e) => setBusinessType(e.target.value)}
-                  className={`${inputBase} w-full`}
-                >
-                  {ENTITY_TYPE_OPTIONS.map((o) => (
-                    <option key={o.id} value={o.id}>{o.label}</option>
-                  ))}
-                </select>
+                  onChange={setBusinessType}
+                  options={ENTITY_TYPE_OPTIONS.map((o) => ({ value: o.id, label: o.label }))}
+                  placeholder="Select business type"
+                  className="bg-emerald-50 dark:bg-emerald-500/10 dark:text-gray-100"
+                />
               </PlainFieldRow>
             </FieldCard>
 

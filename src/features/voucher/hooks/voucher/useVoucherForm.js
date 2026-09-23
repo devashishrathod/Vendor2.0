@@ -54,13 +54,12 @@ function createEmptyForm() {
     // Banner — add mode only. Changing an existing voucher's banner is a
     // separate flow (VoucherBannerModal.jsx, opened from VoucherTable),
     // not part of this form at all.
-    bannerType: "IMAGE",
-    bannerImage: null, // newly-picked File, pending upload
-    // ⚠️ Also newly-picked Files now, not URL strings — see
-    // VoucherService.js's comment on why this deviates from what was
-    // actually confirmed from Postman for these two fields.
-    bannerVideo: null,
-    bannerGif: null,
+    // Confirmed from vendor_panel_api_doc.md #54/#59 (V-4): there's no more
+    // `bannerType` — a single `media` file is sent and the backend
+    // determines image/GIF/video from its bytes. `bannerPoster` is only
+    // required when `bannerMedia` turns out to be a video.
+    bannerMedia: null, // newly-picked File, pending upload
+    bannerPoster: null,
   };
 }
 
@@ -180,10 +179,8 @@ const FinalSearchTags = Array.isArray(form.searchTags)
     })),
     images: form.images,
     existingImageUrls: form.existingImageUrls,
-    bannerType: form.bannerType,
-    bannerImage: form.bannerImage,
-    bannerVideo: form.bannerVideo,
-    bannerGif: form.bannerGif,
+    bannerMedia: form.bannerMedia,
+    bannerPoster: form.bannerPoster,
   };
 }
 

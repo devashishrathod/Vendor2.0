@@ -100,7 +100,7 @@ export default function VoucherOutletPickerModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
       <div className="flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-xl bg-white dark:bg-gray-800 shadow-xl">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 px-6 py-4">
+        <div className="flex items-center justify-between px-6 py-4">
           <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-900 dark:text-gray-100">
             Selected Or Deselected The Outlet's
           </h2>
@@ -114,7 +114,7 @@ export default function VoucherOutletPickerModal({
 
         {/* Tabs + search */}
         <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-4">
-          <div className="flex overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
+          <div className="flex overflow-hidden rounded-lg">
             {FILTER_TABS.map((tab) => (
               <button
                 key={tab}
@@ -131,13 +131,13 @@ export default function VoucherOutletPickerModal({
             ))}
           </div>
 
-          <div className="flex w-full max-w-xs items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm text-gray-400">
+          <div className="flex w-full max-w-xs items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-400">
             <Search className="h-4 w-4" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search Here  Outlet."
-              className="w-full bg-transparent text-gray-700 dark:text-gray-100 outline-none placeholder:text-gray-400"
+              className="w-full bg-emerald-50 dark:bg-emerald-500/10 text-gray-700 dark:text-gray-100 outline-none placeholder:text-gray-400"
             />
           </div>
         </div>
@@ -156,16 +156,16 @@ export default function VoucherOutletPickerModal({
               return (
                 <div
                   key={outlet.id}
-                  className="flex items-start justify-between gap-4 rounded-lg border border-gray-200 dark:border-gray-700 p-4"
+                  className="flex items-start justify-between gap-4 rounded-lg p-4"
                 >
                   <div className="flex items-start gap-3">
                     <button
                       type="button"
                       onClick={() => toggleOutlet(outlet.id)}
-                      className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border ${
+                      className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded ${
                         isSelected
-                          ? "border-gray-900 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                          : "border-gray-300 bg-gray-50 dark:bg-gray-700"
+                          ? "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                          : "bg-gray-50 dark:bg-gray-700"
                       }`}
                     >
                       {isSelected && (
@@ -204,7 +204,7 @@ export default function VoucherOutletPickerModal({
         </div>
 
         {/* Footer */}
-        <div className="border-t border-gray-100 dark:border-gray-700 p-4">
+        <div className="p-4">
           <button
             type="button"
             onClick={handleConfirm}

@@ -145,7 +145,7 @@ const More = () => {
   return (
    <div>
 
-     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 px-6 py-8 md:px-10">
+     <div className="min-h-screen bg-[#F8FAF7] dark:bg-gray-900 px-6 py-8 md:px-10">
       <div className="mx-auto max-w-6xl">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">More Settings</h1>
         <p className="mt-1 text-sm text-gray-500">Customize Your Brand Page</p>

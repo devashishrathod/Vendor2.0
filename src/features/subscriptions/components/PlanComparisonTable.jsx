@@ -146,7 +146,7 @@ export default function PlanComparisonTable({ plans = [], selectedId, loading = 
     return (
       <div className="mt-12">
         <div className="h-8 w-64 bg-gray-100 dark:bg-gray-700 rounded mx-auto mb-8 animate-pulse" />
-        <div className="h-64 bg-gray-50 dark:bg-gray-700 rounded-2xl border border-gray-100 dark:border-gray-700 animate-pulse" />
+        <div className="h-64 bg-gray-50 dark:bg-gray-700 rounded-2xl animate-pulse" />
       </div>
     );
   }
@@ -181,7 +181,7 @@ export default function PlanComparisonTable({ plans = [], selectedId, loading = 
         Compare different plans and select the one that fits your requirements best.
       </p>
 
-      <div className="bg-gray-50 dark:bg-gray-700 rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-700 overflow-x-auto">
+      <div className="bg-gray-50 dark:bg-gray-700 rounded-2xl overflow-hidden overflow-x-auto">
         {/* Header row */}
         <div className="grid px-6 py-5 min-w-[640px]" style={gridTemplate}>
           <div />

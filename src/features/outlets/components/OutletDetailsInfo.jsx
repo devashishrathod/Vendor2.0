@@ -34,7 +34,7 @@ function InfoRow({ icon: Icon, label, value, copyable, valueNode, valueClassName
   };
 
   return (
-    <div className="flex items-center justify-between gap-4 py-3 border-b border-gray-50 dark:border-gray-700 last:border-0">
+    <div className="flex items-center justify-between gap-4 py-3">
       <span className="flex items-center gap-2.5 text-sm text-gray-500 shrink-0">
         <Icon className="w-4 h-4 text-gray-400" />
         {label}
@@ -64,7 +64,7 @@ function DescriptionRow({ icon: Icon, label, value }) {
   const shown = expanded || !isLong ? text : `${text.slice(0, 140)}…`;
 
   return (
-    <div className="flex items-start gap-2.5 py-3 border-b border-gray-50 dark:border-gray-700 last:border-0">
+    <div className="flex items-start gap-2.5 py-3">
       <span className="flex items-center gap-2.5 text-sm font-semibold text-gray-700 dark:text-gray-300 shrink-0">
         <Icon className="w-4 h-4 text-gray-400 shrink-0" />
         {label}
@@ -92,7 +92,7 @@ const ACCENTS = {
 function SectionCard({ icon, title, subtitle, accent = "emerald", action, children, className }) {
   const color = ACCENTS[accent];
   return (
-    <div className={cx("bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl p-5 sm:p-6 flex flex-col", className)}>
+    <div className={cx("bg-white dark:bg-gray-800 rounded-2xl p-5 sm:p-6 flex flex-col", className)}>
       <div className="flex flex-wrap items-start justify-between gap-3 mb-1">
         <div className="flex items-center gap-3">
           <div className={cx("flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl", color.bg, color.text)}>
@@ -205,7 +205,7 @@ export default function OutletDetailsInfo({ outlet, brand, onEdit, onEditLocatio
         <InfoRow icon={CalendarDays} label="Joining Date" value={outlet?.joinedDate ? new Date(outlet.joinedDate).toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" }) : "—"} />
         {/* <InfoRow icon={Clock} label="Business Since" value={businessSince} /> */}
 
-        <div className="flex flex-wrap items-center justify-between gap-3 mt-4 bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 mt-4 bg-emerald-50 rounded-xl px-4 py-3">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-emerald-500 text-white flex items-center justify-center shrink-0">
               <Store className="w-4 h-4" />
@@ -249,7 +249,7 @@ export default function OutletDetailsInfo({ outlet, brand, onEdit, onEditLocatio
             <InfoRow icon={Hash} label="Pincode" value={location.zipcode} />
 
             {hasCoords && (
-              <div className="relative mt-4 rounded-xl overflow-hidden border border-gray-100 dark:border-gray-700 h-56">
+              <div className="relative mt-4 rounded-xl overflow-hidden h-56">
                 <div className="absolute left-3 top-3 z-10 flex items-center gap-2 bg-white dark:bg-gray-800 rounded-lg shadow-md px-3 py-2">
                   <div className="w-7 h-7 rounded-md bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
                     <Store className="w-3.5 h-3.5" />
@@ -265,7 +265,7 @@ export default function OutletDetailsInfo({ outlet, brand, onEdit, onEditLocatio
                 </div>
                 <iframe
                   title="Outlet location map"
-                  className="w-full h-full border-0"
+                  className="w-full h-full"
                   src={`https://maps.google.com/maps?q=${lat},${lng}&z=15&output=embed`}
                   loading="lazy"
                 />

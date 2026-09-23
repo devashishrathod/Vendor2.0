@@ -14,7 +14,7 @@ const currency = (n) =>
 
 function StatCard({ icon, label, amount, note, showBreakup, count, isLast }) {
   return (
-    <div className={`flex-1 px-6 py-4 ${!isLast ? "sm:border-r border-slate-100 dark:border-gray-700" : ""}`}>
+    <div className={`flex-1 px-6 py-4 ${!isLast ? "" : ""}`}>
       <div className="flex items-center gap-2 text-slate-400">
         {icon}
         <span className="text-sm font-medium text-slate-500">{label}</span>
@@ -47,7 +47,7 @@ export default function SettlementOverview({
   return (
     <div className="space-y-4">
       {/* Summary card */}
-      <div className="rounded-2xl border border-slate-100 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+      <div className="rounded-2xl bg-white dark:bg-gray-800 shadow-sm">
         <div className="flex items-center justify-between px-6 pt-5 pb-1">
           <h3 className="text-sm font-semibold text-slate-700 dark:text-gray-300">Settlement Overview</h3>
           <button

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { OUTLET_TYPE_OPTIONS, SORT_OPTIONS, STATUS_OPTIONS } from "../constants/outletConstants";
+import Select from "../../../components/common/Select";
 
 // Small dropdown shell shared by Outlet Type / Status / Sort / Date Range —
 // each used to live crammed into one combined "Filter" panel; now every
@@ -22,7 +23,7 @@ function DropdownButton({ label, icon, badgeCount, children }) {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 whitespace-nowrap"
+        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-gray-700 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 whitespace-nowrap"
       >
         {icon}
         {label}
@@ -36,7 +37,7 @@ function DropdownButton({ label, icon, badgeCount, children }) {
         </svg>
       </button>
       {open && (
-        <div className="absolute z-20 mt-2 w-64 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl p-4">
+        <div className="absolute z-20 mt-2 w-64 bg-white dark:bg-gray-800 rounded-xl shadow-xl p-4">
           {children(() => setOpen(false))}
         </div>
       )}
@@ -101,7 +102,7 @@ export default function OutletsToolbar({
                 </label>
               ))}
             </div>
-            <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100 dark:border-gray-700">
+            <div className="flex items-center justify-between mt-4 pt-3">
               <button onClick={() => onClearFilterGroup("type")} className="text-xs font-semibold text-gray-500 hover:text-gray-700">
                 Clear
               </button>
@@ -131,7 +132,7 @@ export default function OutletsToolbar({
                 </label>
               ))}
             </div>
-            <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100 dark:border-gray-700">
+            <div className="flex items-center justify-between mt-4 pt-3">
               <button onClick={() => onClearFilterGroup("status")} className="text-xs font-semibold text-gray-500 hover:text-gray-700">
                 Clear
               </button>
@@ -148,17 +149,12 @@ export default function OutletsToolbar({
         {(close) => (
           <>
             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Sort By</p>
-            <select
+            <Select
               value={sortBy}
-              onChange={(e) => onSortByChange(e.target.value)}
-              className="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-2.5 py-2 text-sm text-gray-700 dark:text-gray-100 dark:bg-gray-800 outline-none focus:border-emerald-500"
-            >
-              {SORT_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
+              onChange={onSortByChange}
+              options={SORT_OPTIONS}
+              className="bg-emerald-50 dark:bg-emerald-500/10 text-gray-700 dark:text-gray-100"
+            />
 
             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mt-4 mb-2">Order</p>
             <div className="space-y-2">
@@ -183,7 +179,7 @@ export default function OutletsToolbar({
                 Descending
               </label>
             </div>
-            <div className="flex justify-end mt-4 pt-3 border-t border-gray-100 dark:border-gray-700">
+            <div className="flex justify-end mt-4 pt-3">
               <button onClick={close} className="text-xs font-bold text-emerald-600 hover:text-emerald-700">
                 Done
               </button>
@@ -204,7 +200,7 @@ export default function OutletsToolbar({
                   type="date"
                   value={dateRange.from}
                   onChange={(e) => onDateRangeChange({ ...dateRange, from: e.target.value })}
-                  className="mt-1 w-full border border-gray-200 dark:border-gray-700 rounded-lg px-2.5 py-2 text-sm text-gray-700 dark:text-gray-100 dark:bg-gray-800 outline-none focus:border-emerald-500"
+                  className="mt-1 w-full rounded-lg bg-emerald-50 dark:bg-emerald-500/10 px-2.5 py-2 text-sm text-gray-700 dark:text-gray-100 outline-none"
                 />
               </div>
               <div>
@@ -213,11 +209,11 @@ export default function OutletsToolbar({
                   type="date"
                   value={dateRange.to}
                   onChange={(e) => onDateRangeChange({ ...dateRange, to: e.target.value })}
-                  className="mt-1 w-full border border-gray-200 dark:border-gray-700 rounded-lg px-2.5 py-2 text-sm text-gray-700 dark:text-gray-100 dark:bg-gray-800 outline-none focus:border-emerald-500"
+                  className="mt-1 w-full rounded-lg bg-emerald-50 dark:bg-emerald-500/10 px-2.5 py-2 text-sm text-gray-700 dark:text-gray-100 outline-none"
                 />
               </div>
             </div>
-            <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100 dark:border-gray-700">
+            <div className="flex items-center justify-between mt-4 pt-3">
               <button onClick={onClearDateRange} className="text-xs font-semibold text-gray-500 hover:text-gray-700">
                 Clear
               </button>
@@ -238,14 +234,14 @@ export default function OutletsToolbar({
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Search Here - Strore Id, Active , Not Active."
-          className="w-full border border-gray-200 dark:border-gray-700 rounded-xl pl-10 pr-4 py-2.5 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 text-gray-700 dark:text-gray-100 dark:bg-gray-800"
+          className="w-full rounded-xl bg-emerald-100 dark:bg-emerald-500/20 pl-10 pr-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-emerald-100 text-gray-700 dark:text-gray-100 placeholder:text-gray-400"
         />
       </div>
 
       <button
         onClick={onExport}
         disabled={exporting}
-        className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
+        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-gray-700 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {exporting ? (
           <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">

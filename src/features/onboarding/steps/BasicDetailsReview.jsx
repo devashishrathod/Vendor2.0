@@ -56,7 +56,7 @@ const ReviewRow = ({ label, value, showEdit = true, onSave, onNavigate, validato
   };
 
   return (
-    <div className="flex items-start justify-between py-3 border-b border-gray-100 dark:border-gray-700 last:border-0 min-h-[52px]">
+    <div className="flex items-start justify-between py-3 min-h-[52px]">
       <div className="flex-1 min-w-0 pr-3">
         <p className="text-[10px] text-gray-400 font-medium mb-0.5 uppercase tracking-wide">{label}</p>
         {isEditing ? (
@@ -66,11 +66,11 @@ const ReviewRow = ({ label, value, showEdit = true, onSave, onNavigate, validato
               value={inputVal}
               onChange={(e) => { setInputVal(e.target.value); if (error) setError(null); }}
               onKeyDown={(e) => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") handleCancel(); }}
-              className={`w-full border rounded-lg px-2.5 py-1.5 text-sm
+              className={`w-full rounded-lg px-2.5 py-1.5 text-sm
                 text-gray-800 outline-none transition-all
                 ${error
-                  ? "border-red-300 bg-red-50 focus:ring-2 focus:ring-red-100 focus:border-red-400"
-                  : "border-emerald-300 bg-emerald-50 focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400"
+                  ? "bg-red-100 dark:bg-red-500/20 focus:ring-2 focus:ring-red-100"
+                  : "bg-emerald-100 dark:bg-emerald-500/20 focus:ring-2 focus:ring-emerald-200"
                 }`}
             />
             {error && (

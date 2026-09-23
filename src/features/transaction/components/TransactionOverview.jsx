@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Search, SlidersHorizontal, CalendarDays, Download } from "lucide-react";
 import TxnIcon from "./TxnIcon";
 import { TRANSACTION_DATA, TRANSACTION_TABS } from "../data/transactionData";
+import Select from "../../../components/common/Select";
 
 // Small helper: deterministic accent color per customer, based on their name.
 // Keeps every row's initials avatar visually distinct without needing real photos.
@@ -131,9 +132,9 @@ export default function TransactionOverview({ activeTxnTab, voucherData, dateRan
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden mb-4">
+    <div className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden mb-4">
       {/* Section header */}
-      <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 dark:border-gray-700">
+      <div className="flex items-center justify-between px-5 py-3.5">
         <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
           <TxnIcon type={activeIcon} />
           {data.sectionTitle}
@@ -156,7 +157,7 @@ export default function TransactionOverview({ activeTxnTab, voucherData, dateRan
       {!collapsed && (
         <>
           {/* Top Overview stat strip — removed per instruction, not needed.
-          <div className="flex flex-wrap divide-x divide-gray-100 px-5 py-4 border-b border-gray-50">
+          <div className="flex flex-wrap divide-x divide-gray-100 px-5 py-4">
             {data.overviewStats.map((stat) => (
               <div key={stat.label} className="px-6 first:pl-0 py-0.5">
                 <p className="text-xs text-gray-400 mb-1 whitespace-nowrap">{stat.label}</p>
@@ -177,10 +178,10 @@ export default function TransactionOverview({ activeTxnTab, voucherData, dateRan
                   <button
                     key={n}
                     onClick={() => { setRowsPerPage(n); setCurrentPage(1); }}
-                    className={`w-7 h-7 rounded-md text-xs font-semibold transition-colors border
+                    className={`w-7 h-7 rounded-md text-xs font-semibold transition-colors
                       ${rowsPerPage === n
-                        ? "bg-gray-900 text-white border-gray-900"
-                        : "text-gray-500 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"
+                        ? "bg-gray-900 text-white"
+                        : "text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700"
                       }`}
                   >
                     {n}
@@ -192,7 +193,7 @@ export default function TransactionOverview({ activeTxnTab, voucherData, dateRan
                 <button
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
-                  className="w-7 h-7 flex items-center justify-center rounded-md border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-400 disabled:opacity-30"
+                  className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-400 disabled:opacity-30"
                 >
                   <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -214,7 +215,7 @@ export default function TransactionOverview({ activeTxnTab, voucherData, dateRan
                 <button
                   onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
-                  className="w-7 h-7 flex items-center justify-center rounded-md border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-400 disabled:opacity-30"
+                  className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-400 disabled:opacity-30"
                 >
                   <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
@@ -225,7 +226,7 @@ export default function TransactionOverview({ activeTxnTab, voucherData, dateRan
 
             <div className="flex flex-nowrap items-center gap-2 overflow-x-auto pb-4">
               {/* Search */}
-              <div className="flex w-52 flex-shrink-0 items-center gap-2 rounded-xl border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm text-gray-400 transition-colors focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-100">
+              <div className="flex w-52 flex-shrink-0 items-center gap-2 rounded-xl bg-emerald-100 dark:bg-emerald-500/20 px-3 py-2 text-sm text-gray-400 transition-colors focus-within:ring-2 focus-within:ring-emerald-100">
                 <Search className="h-4 w-4 flex-shrink-0" />
                 <input
                   type="text"
@@ -238,24 +239,21 @@ export default function TransactionOverview({ activeTxnTab, voucherData, dateRan
 
               {/* Status filter — real statuses present in this tab's rows,
                   not a fixed/fabricated list. */}
-              <div className="flex flex-shrink-0 items-center gap-1.5 rounded-xl border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm text-gray-600 dark:text-gray-300">
+              <div className="relative flex flex-shrink-0 items-center gap-1.5 rounded-xl bg-emerald-100 dark:bg-emerald-500/20 px-3 py-2 pr-7 text-sm text-gray-600 dark:text-gray-300">
                 <SlidersHorizontal className="h-4 w-4 shrink-0 text-gray-400" />
-                <select
+                <Select
+                  compact
                   value={statusFilter}
-                  onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-                  className="bg-transparent text-sm text-gray-600 dark:text-gray-300 outline-none"
-                >
-                  <option value="all">All Statuses</option>
-                  {statusOptions.map((s) => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
+                  onChange={(value) => { setStatusFilter(value); setCurrentPage(1); }}
+                  options={[{ value: "all", label: "All Statuses" }, ...statusOptions.map((s) => ({ value: s, label: s }))]}
+                  className="bg-transparent text-gray-600 dark:text-gray-300"
+                />
               </div>
 
               {/* Date range — real from/to, filters both the table below
                   and the "Voucher Collection" stat above (Transactions.jsx
                   owns this state so the two never disagree). */}
-              <div className="flex flex-shrink-0 items-center gap-1.5 rounded-xl border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm text-gray-600 dark:text-gray-300">
+              <div className="flex flex-shrink-0 items-center gap-1.5 rounded-xl bg-emerald-100 dark:bg-emerald-500/20 px-3 py-2 text-sm text-gray-600 dark:text-gray-300">
                 <CalendarDays className="h-4 w-4 shrink-0 text-gray-400" />
                 <input
                   type="date"
@@ -286,7 +284,7 @@ export default function TransactionOverview({ activeTxnTab, voucherData, dateRan
               {/* Export */}
               <button
                 onClick={handleExport}
-                className="flex flex-shrink-0 items-center gap-1.5 rounded-xl border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                className="flex flex-shrink-0 items-center gap-1.5 rounded-xl bg-gray-100 dark:bg-gray-700 px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
               >
                 <Download className="h-4 w-4" />
                 Export Data
@@ -320,7 +318,7 @@ export default function TransactionOverview({ activeTxnTab, voucherData, dateRan
                   pageRows.map((row) => {
                     const avatar = getAvatarColors(row.customerName);
                     return (
-                      <tr key={row.orderId} className="border-b border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 last:border-b-0 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                      <tr key={row.orderId} className="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                         <td className="px-3 py-2 whitespace-nowrap">
                           {/* Order Id click → detail page. Routes on the
                               real payment _id (row.txnId) when present —
@@ -357,7 +355,7 @@ export default function TransactionOverview({ activeTxnTab, voucherData, dateRan
                         <td className="px-3 py-2 text-rose-500 whitespace-nowrap">{row.offerDiscount}</td>
                         <td className="px-3 py-2 text-rose-500 whitespace-nowrap">{row.promoDiscount}</td>
                         <td className="px-3 py-2 text-gray-700 dark:text-gray-300 whitespace-nowrap">{row.netBill}</td>
-                        <td className="px-3 py-2 text-gray-700 dark:text-gray-300 font-medium whitespace-nowrap">{row.amount}</td>
+                        <td className="px-3 py-2 text-green-700 dark:text-green-600 font-medium whitespace-nowrap">{row.amount}</td>
                         <td className="px-3 py-2 text-gray-500 whitespace-nowrap capitalize">{row.paymentMethod}</td>
                         <td className="px-3 py-2 whitespace-nowrap">
                           <span

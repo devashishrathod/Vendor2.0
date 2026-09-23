@@ -96,7 +96,7 @@ function ModalActions({ type, onReplace, onDelete, onEdit, onToggleClip, isShowI
             type="checkbox"
             checked={!!isShowInVideoClips}
             onChange={(e) => onToggleClip(e.target.checked)}
-            className="h-3.5 w-3.5 rounded border-gray-300 accent-emerald-600 focus:ring-emerald-400"
+            className="h-3.5 w-3.5 rounded accent-emerald-600 focus:ring-emerald-400"
           />
           Show in Video Clips
         </label>
@@ -152,7 +152,7 @@ const VideoModal = ({ src, title, onClose, onReplace, onDelete, onEdit, onToggle
       className="relative w-full max-w-lg overflow-hidden rounded-2xl bg-white dark:bg-gray-800"
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="flex items-center justify-end gap-1.5 border-b border-gray-100 dark:border-gray-700 p-3">
+      <div className="flex items-center justify-end gap-1.5 p-3">
         <ModalActions
           type="video"
           onReplace={onReplace}
@@ -193,7 +193,7 @@ const ImageModal = ({ src, title, onClose, onReplace, onDelete, onEdit }) => (
       className="relative w-full max-w-2xl overflow-hidden rounded-2xl bg-white dark:bg-gray-800"
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="flex items-center justify-end gap-1.5 border-b border-gray-100 dark:border-gray-700 p-3">
+      <div className="flex items-center justify-end gap-1.5 p-3">
         <ModalActions type="image" onReplace={onReplace} onDelete={onDelete} onEdit={onEdit} />
         <button
           type="button"
@@ -250,7 +250,7 @@ function EditMediaModal({ media, onClose, onSave }) {
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-2xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 shadow-xl"
+        className="w-full max-w-md rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
@@ -268,7 +268,7 @@ function EditMediaModal({ media, onClose, onSave }) {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Ambience photo"
-              className="w-full rounded-xl border border-gray-200 dark:border-gray-700 px-3.5 py-2.5 text-sm text-gray-700 dark:bg-gray-800 dark:text-gray-100 outline-none transition-colors placeholder:text-gray-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+              className="w-full rounded-xl px-3.5 py-2.5 text-sm text-gray-700 bg-emerald-50 dark:bg-emerald-500/10 dark:text-gray-100 outline-none transition-colors placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-100"
             />
           </div>
 
@@ -279,7 +279,7 @@ function EditMediaModal({ media, onClose, onSave }) {
               value={altText}
               onChange={(e) => setAltText(e.target.value)}
               placeholder="Short description for accessibility"
-              className="w-full rounded-xl border border-gray-200 dark:border-gray-700 px-3.5 py-2.5 text-sm text-gray-700 dark:bg-gray-800 dark:text-gray-100 outline-none transition-colors placeholder:text-gray-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+              className="w-full rounded-xl px-3.5 py-2.5 text-sm text-gray-700 bg-emerald-50 dark:bg-emerald-500/10 dark:text-gray-100 outline-none transition-colors placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-100"
             />
           </div>
 
@@ -290,12 +290,12 @@ function EditMediaModal({ media, onClose, onSave }) {
                 type="file"
                 accept="image/*"
                 onChange={(e) => setThumbnail(e.target.files?.[0] || null)}
-                className="w-full text-sm text-gray-600 file:mr-3 file:rounded-xl file:border-0 file:bg-emerald-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-emerald-700 hover:file:bg-emerald-100"
+                className="w-full text-sm text-gray-600 file:mr-3 file:rounded-xl file:bg-emerald-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-emerald-700 hover:file:bg-emerald-100"
               />
               {thumbnail ? (
                 <p className="mt-1 text-xs text-gray-500">{thumbnail.name}</p>
               ) : media?.thumbnail ? (
-                <img src={media.thumbnail} alt="" className="mt-2 h-14 w-14 rounded-lg border border-gray-100 dark:border-gray-700 object-cover" />
+                <img src={media.thumbnail} alt="" className="mt-2 h-14 w-14 rounded-lg object-cover" />
               ) : null}
             </div>
           )}
@@ -304,7 +304,7 @@ function EditMediaModal({ media, onClose, onSave }) {
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-gray-200 dark:border-gray-700 px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+              className="rounded-xl px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
             >
               Cancel
             </button>
@@ -344,7 +344,7 @@ function MediaTile({ media, index, onPlay, onPreview, onEdit }) {
     <div
       ref={mergeRefs(ref, handleRef, clickRef)}
       style={{ opacity: isDragging ? 0.4 : 1 }}
-      className="group relative aspect-square cursor-grab touch-none overflow-hidden rounded-xl border border-gray-100 dark:border-gray-700 bg-gray-100 dark:bg-gray-700 transition-opacity active:cursor-grabbing"
+      className="group relative aspect-square cursor-grab touch-none overflow-hidden rounded-xl bg-gray-100 dark:bg-gray-700 transition-opacity active:cursor-grabbing"
     >
       <span className="absolute left-1.5 top-1.5 z-10 flex h-4 min-w-4 items-center justify-center rounded-full bg-gray-900/80 px-1 text-[9px] font-bold text-white">
         {index + 1}

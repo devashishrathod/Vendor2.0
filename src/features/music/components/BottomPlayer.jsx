@@ -27,7 +27,7 @@ export default function BottomPlayer({ player }) {
   if (!activeSong) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 shadow-[0_-4px_16px_rgba(0,0,0,0.05)] z-40">
+    <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 shadow-[0_-4px_16px_rgba(0,0,0,0.05)] z-40">
       <audio ref={audioRef} src={activeSong.src} preload="metadata" />
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2.5 flex items-center gap-4">

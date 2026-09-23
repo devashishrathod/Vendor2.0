@@ -30,6 +30,7 @@ export default function Voucher() {
     updateDateRange,
     submitForReview,
     publish,
+    removeVoucher,
     refresh,
   } = useVoucher();
 
@@ -76,6 +77,7 @@ export default function Voucher() {
         onDateRangeChange={updateDateRange}
         onSubmitForReview={submitForReview}
         onPublish={publish}
+        onDeleteVoucher={removeVoucher}
         onBannerUpdated={refresh}
       />
     </div>

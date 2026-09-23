@@ -8,6 +8,7 @@ import { verifyBank } from "@/features/onboarding/services/api/verify.api";
 import SuccessToast from "@/components/common/SuccessToast";
 import ErrorModal from "@/components/common/ErrorModal";
 import Input from "@/components/common/Input";
+import Select from "../../../components/common/Select";
 
 const BANK_ACCOUNT_TYPES = Object.freeze({
   SAVINGS: "SAVINGS",
@@ -82,16 +83,16 @@ const EyeOffIcon = () => (
 //           onBlur={onBlur}
 //           maxLength={maxLength}
 //           inputMode={inputMode}
-//           className={`w-full py-2.5 bg-white border rounded-lg text-sm font-medium text-gray-800
+//           className={`w-full py-2.5 bg-white rounded-lg text-sm font-medium text-gray-800
 //             ${icon ? "pl-9" : "pl-3"}
 //             ${showEyeToggle ? "pr-16" : "pr-10"}
 //             ${mono ? "font-mono tracking-widest" : ""}
 //             placeholder:text-gray-300 placeholder:font-sans placeholder:tracking-normal outline-none transition-all duration-200
 //             ${!touched
-//               ? "border-gray-200 focus:border-emerald-300 focus:ring-2 focus:ring-emerald-50"
+//               ? "focus:ring-2 focus:ring-emerald-50"
 //               : isValid
-//                 ? "border-emerald-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50"
-//                 : "border-red-200 bg-red-50/30 focus:border-red-300 focus:ring-2 focus:ring-red-50"
+//                 ? "focus:ring-2 focus:ring-emerald-50"
+//                 : "bg-red-50/30 focus:ring-2 focus:ring-red-50"
 //             }`}
 //         />
 //         {showEyeToggle && (
@@ -139,45 +140,16 @@ function AccountTypeSelect({ value, onChange, required }) {
   return (
     <div className="flex flex-col">
       <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
-        Account Type
+        ACCOUNT TYPE
         {required && <span className="text-red-400">*</span>}
       </label>
-      <div className="relative">
-        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
-              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-          </svg>
-        </div>
-        <select
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className={`w-full pl-9 py-2.5 pr-10 bg-white dark:bg-gray-800 border rounded-lg text-sm font-medium
-            outline-none transition-all duration-200 appearance-none cursor-pointer
-            ${value
-              ? "border-emerald-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50 text-gray-800 dark:text-gray-100"
-              : "border-gray-200 dark:border-gray-700 focus:border-emerald-300 focus:ring-2 focus:ring-emerald-50 text-gray-300"
-            }`}
-        >
-          <option value="" disabled className="text-gray-300 font-sans">Select account type</option>
-          {Object.entries(BANK_ACCOUNT_TYPES).map(([key, val]) => (
-            <option key={key} value={val} className="text-gray-800 font-sans">{val}</option>
-          ))}
-        </select>
-        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-          {value ? (
-            <div className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center">
-              <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-          ) : (
-            <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          )}
-        </div>
-      </div>
+      <Select
+        value={value}
+        onChange={onChange}
+        options={Object.values(BANK_ACCOUNT_TYPES).map((val) => ({ value: val, label: val }))}
+        placeholder="Select account type"
+        className="bg-emerald-50 dark:bg-emerald-500/10 text-gray-800 dark:text-gray-100"
+      />
     </div>
   );
 }
@@ -479,278 +451,288 @@ export default function Step11BankEnter({ onFetchSuccess }) {
           .step-in { animation: stepIn 0.3s cubic-bezier(0.34,1.2,0.64,1) both; }
         `}</style>
 
-        <div className="bg-white dark:bg-gray-800 border border-gray-50 dark:border-gray-700 rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-3 sm:p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-3 sm:p-4">
 
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-3 step-in">
-          <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center flex-shrink-0">
-            <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
-                d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-            </svg>
+          {/* Header */}
+          <div className="flex items-center gap-3 mb-3 step-in">
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
+              <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+                  d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-base font-extrabold text-gray-900 dark:text-gray-100 leading-tight tracking-tight">
+                Add Your Business Bank Account
+              </h2>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Add your business bank details for account verification and payments.
+              </p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-base font-extrabold text-gray-900 dark:text-gray-100 leading-tight tracking-tight">
-              Enter Your Business Bank Details
-            </h2>
-            <p className="text-xs text-gray-500 mt-0.5">
-              Provide your business bank account details for verification
-            </p>
-          </div>
-        </div>
 
-        {/* Two column grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3 step-in" style={{ animationDelay: "0.05s" }}>
+          {/* Two column grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3 step-in" style={{ animationDelay: "0.05s" }}>
 
-          {/* LEFT */}
-          <div className="flex flex-col gap-2.5">
-            <Input
-              label="Account Number"
-              required
-              placeholder="Enter account number"
-              value={accountDisplayValue}
-              onChange={handleAccountNumberChange}
-              onFocus={() => setAccountFocused(true)}
-              onBlur={() => { setAccountFocused(false); handleBlur("accountNumber")(); }}
-              touched={touched.accountNumber}
-              isValid={fieldValid.accountNumber}
-              mono
-              inputMode="numeric"
-              maxLength={18}
-              minLength={9}
-              icon={<CardIcon />}
-              showEyeToggle
-              revealed={revealAccount}
-              onToggleReveal={() => setRevealAccount(p => !p)}
-              errorMsg="Enter a valid 9–18 digit account number"
-            />
+            {/* LEFT */}
+            <div className="flex flex-col gap-2.5">
+              <Input
+                label="BUSINESS ACCOUNT NUMBER"
+                description="9–18 digits"
+                required
+                placeholder="Enter account number"
+                value={accountDisplayValue}
+                onChange={handleAccountNumberChange}
+                onFocus={() => setAccountFocused(true)}
+                onBlur={() => { setAccountFocused(false); handleBlur("accountNumber")(); }}
+                touched={touched.accountNumber}
+                isValid={fieldValid.accountNumber}
+                mono
+                inputMode="numeric"
+                maxLength={18}
+                minLength={9}
+                icon={<CardIcon />}
+                showEyeToggle
+                revealed={revealAccount}
+                onToggleReveal={() => setRevealAccount(p => !p)}
+                errorMsg="Enter a valid 9–18 digit account number"
+              />
 
-{/* // IFSC Code: */}
-            <Input
-              label="IFSC Code"
-              required
-              placeholder="e.g. HDFC0001234"
-              value={normalised.ifscCode}
-              onChange={handleChange("ifscCode")}
-              onBlur={handleBlur("ifscCode")}
-              touched={touched.ifscCode}
-              isValid={fieldValid.ifscCode}
-              mono
-              maxLength={11}
-              minLength={11}
-              icon={<LocationIcon />}
-              errorMsg="Enter a valid IFSC code (e.g. HDFC0001234)"
-            />
+              {/* // IFSC Code: */}
+              <Input
+                label="IFSC CODE"
+                description="11 characters · Letters and numbers only"
+                required
+                placeholder="e.g. HDFC0001234"
+                value={normalised.ifscCode}
+                onChange={handleChange("ifscCode")}
+                onBlur={handleBlur("ifscCode")}
+                touched={touched.ifscCode}
+                isValid={fieldValid.ifscCode}
+                mono
+                maxLength={11}
+                minLength={11}
+                icon={<LocationIcon />}
+                errorMsg="Enter a valid IFSC code (e.g. HDFC0001234)"
+              />
 
-            {/* Live IFSC bank info */}
-            {(ifscLoading || ifscInfo || ifscLookupError) && (
-              <div className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg border -mt-1.5
-                ${ifscLookupError ? "bg-red-50 border-red-100" : "bg-emerald-50 border-emerald-100"}`}>
-                {ifscLoading ? (
-                  <>
-                    <svg className="w-3.5 h-3.5 animate-spin text-emerald-500 flex-shrink-0" viewBox="0 0 24 24" fill="none">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-                    </svg>
-                    <span className="text-xs text-emerald-600 font-medium">Fetching bank details…</span>
-                  </>
-                ) : ifscLookupError ? (
-                  <span className="text-xs text-red-500 font-medium">{ifscLookupError}</span>
-                ) : ifscInfo ? (
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-7 h-7 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
-                      <svg className="w-3.5 h-3.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
-                          d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+              {/* Live IFSC bank info */}
+              {(ifscLoading || ifscInfo || ifscLookupError) && (
+                <div className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg -mt-1.5
+                ${ifscLookupError ? "bg-red-50" : "bg-emerald-50"}`}>
+                  {ifscLoading ? (
+                    <>
+                      <svg className="w-3.5 h-3.5 animate-spin text-emerald-500 flex-shrink-0" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
                       </svg>
+                      <span className="text-xs text-emerald-600 font-medium">Fetching bank details…</span>
+                    </>
+                  ) : ifscLookupError ? (
+                    <span className="text-xs text-red-500 font-medium">{ifscLookupError}</span>
+                  ) : ifscInfo ? (
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-7 h-7 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                        <svg className="w-3.5 h-3.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+                            d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                        </svg>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-emerald-800 truncate">{ifscInfo.BANK}</p>
+                        <p className="text-[11px] text-emerald-500 truncate">
+                          {ifscInfo.BRANCH}{ifscInfo.CITY ? `, ${ifscInfo.CITY}` : ""}
+                        </p>
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <p className="text-xs font-bold text-emerald-800 truncate">{ifscInfo.BANK}</p>
-                      <p className="text-[11px] text-emerald-500 truncate">
-                        {ifscInfo.BRANCH}{ifscInfo.CITY ? `, ${ifscInfo.CITY}` : ""}
-                      </p>
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-            )}
-
-            <AccountTypeSelect
-              value={accountType}
-              onChange={(val) => { setAccountType(val); setFetchDone(false); setApiError(null); }}
-              required
-            />
-
-            {/* Optional beneficiary name */}
-            <div className="flex flex-col">
-              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
-                Account Holder Name
-                <span className="text-gray-300 font-normal normal-case tracking-normal">(optional)</span>
-              </label>
-              <div className="relative">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none">
-                  <PersonIcon />
+                  ) : null}
                 </div>
-                <input
-                  type="text"
-                  placeholder="Enter account holder name"
-                  value={fields.beneficiaryName}
-                  onChange={handleChange("beneficiaryName")}
-                  maxLength={80}
-                  className={`w-full pl-9 py-2.5 pr-10 bg-white dark:bg-gray-800 border rounded-lg text-sm font-medium text-gray-800 dark:text-gray-100 capitalize
-                    placeholder:text-gray-300 placeholder:font-sans outline-none transition-all duration-200
-                    ${!hasBeneficiaryInput
-                      ? "border-gray-200 dark:border-gray-700 focus:border-emerald-300 focus:ring-2 focus:ring-emerald-50"
-                      : isBeneficiaryValid
-                        ? "border-emerald-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50"
-                        : "border-red-200 bg-red-50/30 focus:border-red-300 focus:ring-2 focus:ring-red-50"
-                    }`}
-                />
-                {hasBeneficiaryInput && (
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                    {isBeneficiaryValid ? (
-                      <div className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center">
-                        <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                    ) : (
-                      <div className="w-4 h-4 rounded-full bg-red-400 flex items-center justify-center">
-                        <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </div>
-                    )}
+              )}
+
+              <AccountTypeSelect
+                value={accountType}
+                onChange={(val) => { setAccountType(val); setFetchDone(false); setApiError(null); }}
+                required
+              />
+
+              {/* Optional beneficiary name */}
+              <div className="flex flex-col">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                  ACCOUNT HOLDER NAME
+                  <span className="text-gray-300 font-normal normal-case tracking-normal">(optional)</span>
+                </label>
+                <p className="text-[11px] text-gray-600 mb-1.5">
+                  Enter the name exactly as registered with your bank.
+                </p>
+                <div className="relative">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none">
+                    <PersonIcon />
                   </div>
+                  <input
+                    type="text"
+                    placeholder="Enter account holder name"
+                    value={fields.beneficiaryName}
+                    onChange={handleChange("beneficiaryName")}
+                    maxLength={80}
+                    className={`w-full pl-9 py-2.5 pr-10 bg-emerald-50 dark:bg-emerald-500/10 rounded-lg text-sm font-medium text-gray-800 dark:text-gray-100 capitalize
+                    placeholder:text-gray-400 placeholder:font-sans outline-none transition-all duration-200
+                    ${!hasBeneficiaryInput
+                        ? "focus:ring-2 focus:ring-emerald-50"
+                        : isBeneficiaryValid
+                          ? "focus:ring-2 focus:ring-emerald-50"
+                          : "bg-red-50/30 focus:ring-2 focus:ring-red-50"
+                      }`}
+                  />
+                  {hasBeneficiaryInput && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      {isBeneficiaryValid ? (
+                        <div className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center">
+                          <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                      ) : (
+                        <div className="w-4 h-4 rounded-full bg-red-400 flex items-center justify-center">
+                          <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                {/* Beneficiary inline error */}
+                {hasBeneficiaryInput && !isBeneficiaryValid && (
+                  <p className="mt-1 text-[11px] text-red-500 font-medium flex items-center gap-1">
+                    <svg className="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    Name must be at least 3 characters
+                  </p>
                 )}
               </div>
-              {/* Beneficiary inline error */}
-              {hasBeneficiaryInput && !isBeneficiaryValid && (
-                <p className="mt-1 text-[11px] text-red-500 font-medium flex items-center gap-1">
-                  <svg className="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                  </svg>
-                  Name must be at least 3 characters
-                </p>
+            </div>
+
+            {/* RIGHT — Validation checklist (unchanged) */}
+            <div className="bg-gray-50/80 dark:bg-gray-700/40 rounded-xl px-4 py-3 flex flex-col justify-between">
+              <div>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2.5">Bank account requirements</p>
+                <div className="space-y-2">
+                  {FIELD_RULES.accountNumber.map((r, i) => (
+                    <RuleRow key={`acc-${i}`} label={r.label} passed={r.test(normalised.accountNumber)} touched={touched.accountNumber} />
+                  ))}
+                  {FIELD_RULES.ifscCode.map((r, i) => (
+                    <RuleRow key={`ifsc-${i}`} label={r.label} passed={r.test(normalised.ifscCode)} touched={touched.ifscCode} />
+                  ))}
+                  {hasBeneficiaryInput && (
+                    <RuleRow label="Account holder must match the registered business" passed={isBeneficiaryValid} touched={hasBeneficiaryInput} />
+                  )}
+                  <RuleRow label="Account type selected" passed={!!accountType} touched={!!accountType} />
+                  <RuleRow label="Account must be active" passed={false} touched={false} />
+                </div>
+              </div>
+              <p className="text-[11px] text-gray-500 leading-relaxed mt-3 pt-3">
+                We'll verify your account using a small verification deposit. Make sure the account is active and registered to your business.
+              </p>
+            </div>
+          </div>
+
+          {/* Tips */}
+          <div className="bg-gray-50 dark:bg-gray-700/40 rounded-xl px-4 py-2 mb-2.5 step-in" style={{ animationDelay: "0.1s" }}>
+            <p className="text-[10px] font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest flex items-center gap-1.5 mb-2">
+              <svg className="w-3 h-3 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Before you continue
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5">
+              {[
+                "Use an active business bank account.",
+                "Enter the account details exactly as registered with your bank.",
+                "The account holder name should match your registered business details.",
+                "Make sure the IFSC code matches your bank branch.",
+              ].map((tip, i) => (
+                <div key={i} className="flex items-start gap-1.5">
+                  <span className="w-1 h-1 rounded-full bg-gray-400 flex-shrink-0 mt-1.5" />
+                  <span className="text-[11px] text-gray-600 dark:text-gray-300 leading-snug">{tip}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* CTA row */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 step-in" style={{ animationDelay: "0.15s" }}>
+            <div className="flex-1 min-w-0 order-2 sm:order-1">
+              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">
+                Bank account details
+              </p>
+              {anyTouched && (normalised.accountNumber || normalised.ifscCode || fields.beneficiaryName) ? (
+                <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700/40 rounded-xl px-4 py-2.5 overflow-hidden">
+                  <span className="text-[9px] font-bold text-gray-300 uppercase tracking-widest flex-shrink-0">Bank</span>
+                  <span className="w-px h-3 bg-gray-200 flex-shrink-0" />
+                  {normalised.accountNumber && (
+                    <span className="text-sm font-mono font-bold text-gray-800 dark:text-gray-100 tracking-widest flex-shrink-0">{maskedAccount}</span>
+                  )}
+                  {normalised.ifscCode && (
+                    <>
+                      <span className="w-px h-3 bg-gray-200 flex-shrink-0" />
+                      <span className="text-[11px] font-mono font-bold text-gray-500 flex-shrink-0">{normalised.ifscCode}</span>
+                    </>
+                  )}
+                  {accountType && (
+                    <>
+                      <span className="w-px h-3 bg-gray-200 flex-shrink-0" />
+                      <span className="text-[10px] font-bold text-blue-500 flex-shrink-0">{accountType}</span>
+                    </>
+                  )}
+                  {isFormValid && (
+                    <>
+                      <span className="w-px h-3 bg-gray-200 flex-shrink-0" />
+                      <span className="text-[10px] font-bold text-emerald-500 flex-shrink-0">✓ Valid</span>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <p className="text-[11px] text-gray-300 pl-1">Your verified bank details will appear here.</p>
               )}
             </div>
-          </div>
 
-          {/* RIGHT — Validation checklist (unchanged) */}
-          <div className="bg-gray-50/80 dark:bg-gray-700/40 border border-gray-100 dark:border-gray-700 rounded-xl px-4 py-3 flex flex-col justify-between">
-            <div>
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2.5">Validation Rules</p>
-              <div className="space-y-2">
-                {FIELD_RULES.accountNumber.map((r, i) => (
-                  <RuleRow key={`acc-${i}`} label={r.label} passed={r.test(normalised.accountNumber)} touched={touched.accountNumber} />
-                ))}
-                {FIELD_RULES.ifscCode.map((r, i) => (
-                  <RuleRow key={`ifsc-${i}`} label={r.label} passed={r.test(normalised.ifscCode)} touched={touched.ifscCode} />
-                ))}
-                {hasBeneficiaryInput && (
-                  <RuleRow label="Account holder name (min. 3 characters)" passed={isBeneficiaryValid} touched={hasBeneficiaryInput} />
-                )}
-                <RuleRow label="Account type selected" passed={!!accountType} touched={!!accountType} />
-              </div>
-            </div>
-            <p className="text-[11px] text-gray-500 leading-relaxed mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
-              Your account will be verified via penny drop. Ensure it's active and belongs to the registered business.
-            </p>
-          </div>
-        </div>
-
-        {/* Tips */}
-        <div className="bg-gray-50 dark:bg-gray-700/40 border border-gray-100 dark:border-gray-700 rounded-xl px-4 py-2 mb-2.5 step-in" style={{ animationDelay: "0.1s" }}>
-          <p className="text-[10px] font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest flex items-center gap-1.5 mb-2">
-            <svg className="w-3 h-3 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            Tips
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5">
-            {[
-              "Use a business current account",
-              "IFSC is printed on your cheque book",
-              "Beneficiary name must match bank records exactly",
-            ].map((tip, i) => (
-              <div key={i} className="flex items-start gap-1.5">
-                <span className="w-1 h-1 rounded-full bg-gray-400 flex-shrink-0 mt-1.5" />
-                <span className="text-[11px] text-gray-600 dark:text-gray-300 leading-snug">{tip}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* CTA row */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 step-in" style={{ animationDelay: "0.15s" }}>
-          <div className="flex-1 min-w-0 order-2 sm:order-1">
-            {anyTouched && (normalised.accountNumber || normalised.ifscCode || fields.beneficiaryName) ? (
-              <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700/40 border border-gray-100 dark:border-gray-700 rounded-xl px-4 py-2.5 overflow-hidden">
-                <span className="text-[9px] font-bold text-gray-300 uppercase tracking-widest flex-shrink-0">Bank</span>
-                <span className="w-px h-3 bg-gray-200 flex-shrink-0" />
-                {normalised.accountNumber && (
-                  <span className="text-sm font-mono font-bold text-gray-800 dark:text-gray-100 tracking-widest flex-shrink-0">{maskedAccount}</span>
-                )}
-                {normalised.ifscCode && (
-                  <>
-                    <span className="w-px h-3 bg-gray-200 flex-shrink-0" />
-                    <span className="text-[11px] font-mono font-bold text-gray-500 flex-shrink-0">{normalised.ifscCode}</span>
-                  </>
-                )}
-                {accountType && (
-                  <>
-                    <span className="w-px h-3 bg-gray-200 flex-shrink-0" />
-                    <span className="text-[10px] font-bold text-blue-500 flex-shrink-0">{accountType}</span>
-                  </>
-                )}
-                {isFormValid && (
-                  <>
-                    <span className="w-px h-3 bg-gray-200 flex-shrink-0" />
-                    <span className="text-[10px] font-bold text-emerald-500 flex-shrink-0">✓ Valid</span>
-                  </>
-                )}
-              </div>
-            ) : (
-              <p className="text-[11px] text-gray-300 pl-1">Your bank details preview appears here</p>
-            )}
-          </div>
-
-          <button
-            onClick={handleVerify}
-            disabled={!isFormValid || fetching || fetchDone}
-            className={`flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm
+            <button
+              onClick={handleVerify}
+              disabled={!isFormValid || fetching || fetchDone}
+              className={`flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm
               tracking-wide transition-all duration-200 flex-shrink-0 order-1 sm:order-2 w-full sm:w-auto
               ${isFormValid && !fetching && !fetchDone
-                ? "bg-emerald-500 hover:bg-emerald-600 active:scale-[0.97] text-white shadow-sm shadow-emerald-100"
-                : "bg-gray-100 dark:bg-gray-700 text-gray-300 cursor-not-allowed"
-              }`}
-          >
-            {fetching ? (
-              <>
-                <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-                </svg>
-                Verifying…
-              </>
-            ) : fetchDone ? (
-              <>
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                </svg>
-                Verified
-              </>
-            ) : (
-              <>
-                Verify Bank
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-              </>
-            )}
-          </button>
-        </div>
+                  ? "bg-emerald-500 hover:bg-emerald-600 active:scale-[0.97] text-white shadow-sm shadow-emerald-100"
+                  : "bg-gray-100 dark:bg-gray-700 text-gray-300 cursor-not-allowed"
+                }`}
+            >
+              {fetching ? (
+                <>
+                  <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                  </svg>
+                  Verifying…
+                </>
+              ) : fetchDone ? (
+                <>
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Verified
+                </>
+              ) : (
+                <>
+                  Verify Bank Account
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </>
+              )}
+            </button>
+          </div>
 
         </div>
       </div>

@@ -21,7 +21,7 @@ function PrimaryButton({
   const variants = {
     emerald:
       disabled || loading
-        ? "bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed border border-gray-200 dark:border-gray-700"
+        ? "bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed"
         : "bg-emerald-500 hover:bg-emerald-600 text-white active:scale-[0.98]",
     danger: "bg-red-500 hover:bg-red-600 text-white active:scale-[0.98]",
     ghost: "bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 active:scale-[0.98]",
@@ -70,14 +70,14 @@ function OptionCard({
   const styles = {
     emerald: {
       card: selected
-        ? "border-2 border-emerald-400 bg-emerald-50/50 shadow-sm shadow-emerald-100"
-        : "border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-emerald-200 hover:bg-gray-50/40",
+        ? "bg-emerald-50/50 shadow-sm shadow-emerald-100"
+        : "bg-white dark:bg-gray-800 hover:bg-gray-50/40",
       iconWrap: selected ? "bg-emerald-100" : "bg-gray-100 dark:bg-gray-700",
       iconColor: selected ? "text-emerald-600" : "text-gray-400",
       title: selected ? "text-emerald-700" : "text-gray-700 dark:text-gray-300",
       radio: selected
-        ? "border-emerald-500 bg-emerald-500"
-        : "border-gray-300 bg-white dark:bg-gray-800",
+        ? "bg-emerald-500"
+        : "bg-white dark:bg-gray-800",
       badge: selected
         ? "bg-emerald-100 text-emerald-700"
         : "bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400",
@@ -86,14 +86,14 @@ function OptionCard({
     },
     blue: {
       card: selected
-        ? "border-2 border-red-400 bg-red-50/50 shadow-sm shadow-red-100"
-        : "border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-red-200 hover:bg-gray-50/40",
+        ? "bg-red-50/50 shadow-sm shadow-red-100"
+        : "bg-white dark:bg-gray-800 hover:bg-gray-50/40",
       iconWrap: selected ? "bg-red-100" : "bg-gray-100 dark:bg-gray-700",
       iconColor: selected ? "text-red-600" : "text-gray-400",
       title: selected ? "text-red-700" : "text-gray-700 dark:text-gray-300",
       radio: selected
-        ? "border-red-500 bg-red-500"
-        : "border-gray-300 bg-white dark:bg-gray-800",
+        ? "bg-red-500"
+        : "bg-white dark:bg-gray-800",
       badge: selected
         ? "bg-red-100 text-red-700"
         : "bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400",
@@ -126,7 +126,7 @@ function OptionCard({
           </p>
         </div>
         <div
-          className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-all duration-200 ${s.radio}`}
+          className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 transition-all duration-200 ${s.radio}`}
         >
           {selected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
         </div>
@@ -140,7 +140,7 @@ function OptionCard({
         </span>
       )}
 
-      <div className="border-t border-gray-100 dark:border-gray-700 pt-2 mt-auto">
+      <div className="pt-2 mt-auto">
         <p
           className={`text-[9px] font-semibold uppercase tracking-widest mb-1.5 ${s.labelColor}`}
         >
@@ -244,7 +244,7 @@ function CityIllustration({ isUnregistered }) {
 const WHY_ITEMS_REGISTERED = [
   {
     title: "Build Trust",
-    desc: "Registered businesses are more credible to customers and partners.",
+    desc: "Registered businesses can provide greater confidence to customers and partners.",
     icon: (
       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -253,7 +253,7 @@ const WHY_ITEMS_REGISTERED = [
   },
   {
     title: "Unlock Benefits",
-    desc: "Get access to advanced features, higher limits, and financial services.",
+    desc: "Access advanced features, higher limits, and financial services.",
     icon: (
       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -262,7 +262,7 @@ const WHY_ITEMS_REGISTERED = [
   },
   {
     title: "Stay Compliant",
-    desc: "Ensure legal compliance and smooth business operations.",
+    desc: "Keep your business operations aligned with applicable requirements.",
     icon: (
       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -308,10 +308,10 @@ function RightInfoPanel({ selectedOption }) {
   const whyItems = isUnregistered ? WHY_ITEMS_UNREGISTERED : WHY_ITEMS_REGISTERED;
 
   const panelBorder = isUnregistered
-    ? "border-red-100"
+    ? ""
     : isRegistered
-      ? "border-emerald-100"
-      : "border-gray-100";
+      ? ""
+      : "";
 
   const panelBg = isUnregistered
     ? "bg-red-50/40"
@@ -324,16 +324,14 @@ function RightInfoPanel({ selectedOption }) {
   const titleColor = isUnregistered ? "text-red-700" : "text-gray-800";
   const headingColor = isUnregistered ? "text-red-700" : "text-gray-700";
 
-  const whyLabel = isUnregistered
-    ? "Why this is limited?"
-    : "Why registration matters?";
+  const whyLabel = "Why business registration matters";
 
   return (
     // On mobile: no negative top margin, full width. On md+: original sidebar layout
     <div className="w-full md:w-[260px] flex-shrink-0 flex flex-col gap-3 md:mt-[-74px]">
       {/* Illustration */}
       <div
-        className={`rounded-xl overflow-hidden border p-2 transition-all duration-300 ${isUnregistered ? "border-red-100 bg-red-50/40" : "border-emerald-100 bg-emerald-50/40"
+        className={`rounded-xl overflow-hidden p-2 transition-all duration-300 ${isUnregistered ? "bg-red-50/40" : "bg-emerald-50/40"
           }`}
       >
         <CityIllustration isUnregistered={isUnregistered} />
@@ -341,7 +339,7 @@ function RightInfoPanel({ selectedOption }) {
 
       {/* Info card */}
       <div
-        className={`rounded-xl border p-3.5 flex flex-col gap-2.5 transition-all duration-300 ${panelBorder} ${panelBg}`}
+        className={`rounded-xl p-3.5 flex flex-col gap-2.5 transition-all duration-300 ${panelBorder} ${panelBg}`}
       >
         <p className={`text-xs font-semibold transition-colors duration-300 ${titleColor}`}>
           {whyLabel}
@@ -368,7 +366,7 @@ function RightInfoPanel({ selectedOption }) {
       </div>
 
       {/* Tip box */}
-      <div className="rounded-xl border border-amber-100 bg-amber-50/60 p-3 flex items-start gap-2.5">
+      <div className="rounded-xl bg-amber-50/60 p-3 flex items-start gap-2.5">
         <div className="w-6 h-6 rounded-md bg-amber-100 text-amber-500 flex items-center justify-center flex-shrink-0">
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path
@@ -380,9 +378,9 @@ function RightInfoPanel({ selectedOption }) {
           </svg>
         </div>
         <div>
-          <p className="text-[11px] font-semibold text-gray-700">Not sure?</p>
+          <p className="text-[11px] font-semibold text-gray-700">Not registered yet?</p>
           <p className="text-[10px] text-gray-500 mt-0.5 leading-snug">
-            You can always update your registration details later from account settings.
+            You can continue with limited access and update your registration details later.
           </p>
         </div>
       </div>
@@ -403,9 +401,9 @@ function BlockingContent({ onRegister, onDelete, deleting }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2">
       {/* LEFT — Info */}
-      <div className="p-7 flex flex-col gap-5 border-b md:border-b-0 md:border-r border-gray-100 dark:border-gray-700">
+      <div className="p-7 flex flex-col gap-5">
         <div className="flex flex-col gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-red-50 border border-red-100 flex items-center justify-center">
+          <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center">
             <svg className="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
@@ -424,7 +422,7 @@ function BlockingContent({ onRegister, onDelete, deleting }) {
             assistance, our support team is happy to help.
           </p>
         </div>
-        <div className="border-t border-gray-100 dark:border-gray-700" />
+        <div className="" />
         <div>
           <p className="text-[10px] font-semibold text-emerald-600 uppercase tracking-widest mb-2.5">
             Why is registration required?
@@ -432,7 +430,7 @@ function BlockingContent({ onRegister, onDelete, deleting }) {
           <ul className="flex flex-col gap-2">
             {REASONS.map((text, i) => (
               <li key={i} className="flex items-start gap-2.5">
-                <div className="w-4 h-4 rounded-full bg-red-50 border border-red-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <div className="w-4 h-4 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0 mt-0.5">
                   <span className="w-1 h-1 rounded-full bg-red-400 block" />
                 </div>
                 <span className="text-xs text-gray-500 leading-snug">{text}</span>
@@ -444,7 +442,7 @@ function BlockingContent({ onRegister, onDelete, deleting }) {
 
       {/* RIGHT — Actions */}
       <div className="p-7 flex flex-col item-center justify-center gap-4 bg-gray-50/40 dark:bg-gray-900/40">
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5 flex flex-col gap-4">
+        <div className="rounded-2xl bg-emerald-50/60 p-5 flex flex-col gap-4">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center flex-shrink-0">
               <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -463,7 +461,7 @@ function BlockingContent({ onRegister, onDelete, deleting }) {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 flex items-center gap-3">
+        <div className="rounded-2xl bg-white dark:bg-gray-800 p-4 flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
             <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
@@ -509,7 +507,7 @@ function BlockingModal({ onClose, onDelete, onSelectRegistered }) {
         style={{ pointerEvents: "none" }}
       >
         <div
-          className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 w-full max-w-3xl relative overflow-hidden"
+          className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-3xl relative overflow-hidden"
           style={{
             animation: "slideUp 0.3s cubic-bezier(0.34,1.56,0.64,1) both",
             pointerEvents: "auto",
@@ -562,7 +560,7 @@ function BlockingPage({ onDelete }) {
         className="absolute bottom-0 left-0 w-[400px] h-[400px] pointer-events-none"
         style={{ background: "radial-gradient(ellipse at bottom left, rgba(16,185,129,0.07) 0%, transparent 65%)" }}
       />
-      <div className="w-full max-w-3xl bg-white dark:bg-gray-800 rounded-2xl border border-gray-50 dark:border-gray-700 shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden relative z-10">
+      <div className="w-full max-w-3xl bg-white dark:bg-gray-800 rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden relative z-10">
         <BlockingContent
           onRegister={() => goToStep(STEPS.BASIC_DETAILS, BASIC_SUB.REGISTRATION_STATUS)}
           onDelete={handleDelete}
@@ -591,10 +589,10 @@ export default function Step4IsRegistered() {
       await updateRegistrationStatus({ status: "REGISTERED" });
       setSuccessMsg("Registration status updated successfully.");
 
-        useOnboardingStore.getState().setToast("Registration status updated successfully.");
+      useOnboardingStore.getState().setToast("Registration status updated successfully.");
       setSubStep(BASIC_SUB.REGISTRATION_STATUS);
       setSubStep(BASIC_SUB.REGISTRATION_ENTITY_TYPE);
-    
+
     } catch (err) {
       setApiError({
         status: err.status,
@@ -649,7 +647,7 @@ export default function Step4IsRegistered() {
                     Is your business registered?
                   </h2>
                   <p className="text-xs text-gray-500">
-                    Select the most applicable option to continue
+                    Tell us your current business registration status.
                   </p>
                 </div>
               </div>
@@ -661,14 +659,14 @@ export default function Step4IsRegistered() {
                   onClick={() => { setSelected("registered"); setApiError(null); }}
                   accent="emerald"
                   title="Registered Business"
-                  subtitle="My business is officially registered with a valid PAN, GST, or other government documents."
+                  subtitle="Your business is officially registered with a government authority and has valid registration documents."
                   badge="Recommended"
-                  pointsLabel="What you get"
+                  pointsLabel="With registration"
                   points={[
                     "Accept online payments",
-                    "GST invoice & tax compliance",
-                    "Access to all features",
-                    "Eligible for marketplace & loans",
+                    "GST invoicing & tax compliance",
+                    "Access all platform features",
+                    "Eligible for marketplace & financing services",
                   ]}
                   icon={
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -681,14 +679,14 @@ export default function Step4IsRegistered() {
                   onClick={() => { setSelected("unregistered"); setApiError(null); }}
                   accent="blue"
                   title="Unregistered Business"
-                  subtitle="My business is not yet registered with any government authority."
+                  subtitle="Your business is not currently registered with a government authority."
                   badge="Not eligible"
-                  pointsLabel="Please note"
+                  pointsLabel="Limited access"
                   points={[
-                    "Limited features access",
-                    "No GST invoice",
+                    "Limited feature access",
+                    "GST invoicing unavailable",
                     "Lower transaction limits",
-                    "Verification required later",
+                    "Registration may be required later",
                   ]}
                   icon={
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -700,7 +698,7 @@ export default function Step4IsRegistered() {
 
               {/* API Error */}
               {apiError && (
-                <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4">
+                <div className="flex items-center gap-2 bg-red-50 rounded-xl px-4 py-3 mb-4">
                   <svg className="w-4 h-4 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                   </svg>
@@ -711,7 +709,7 @@ export default function Step4IsRegistered() {
               )}
 
               {/* Footer — visible only on md+ (desktop) */}
-              <div className="hidden md:flex items-center justify-between border-t border-gray-100 dark:border-gray-700 pt-3 mt-1">
+              <div className="hidden md:flex items-center justify-between pt-3 mt-1">
                 <PrimaryButton
                   onClick={handleContinue}
                   disabled={!selected}
@@ -732,7 +730,7 @@ export default function Step4IsRegistered() {
         ── Mobile sticky footer button — fixed at bottom, only shown on mobile
         ── Mirrors the exact same disabled/loading state as the desktop button
       */}
-      <div className="fixed bottom-0 left-0 right-0 z-30 md:hidden bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 px-4 py-3 safe-area-pb">
+      <div className="fixed bottom-0 left-0 right-0 z-30 md:hidden bg-white dark:bg-gray-800 px-4 py-3 safe-area-pb">
         <PrimaryButton
           onClick={handleContinue}
           disabled={!selected}

@@ -3,7 +3,7 @@ import { BRAND_TABS } from "../utils/BrandHelpers";
 
 const BrandTabs = ({ activeTab, onTabChange }) => {
   return (
-    <div className="flex flex-wrap gap-x-8 gap-y-3 border-b border-gray-200 dark:border-gray-700">
+    <div className="flex flex-wrap gap-x-8 gap-y-3">
       {BRAND_TABS.map((tab) => {
         const isActive = tab.id === activeTab;
         return (

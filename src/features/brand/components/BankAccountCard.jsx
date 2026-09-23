@@ -3,7 +3,7 @@ import { Eye, EyeOff, User, Hash, Landmark, Building2, MapPin, ShieldCheck } fro
 
 function DetailTile({ icon, iconBg, label, value, wide, mono }) {
   return (
-    <div className={`rounded-xl border border-gray-100 dark:border-gray-700 bg-gray-50/60 dark:bg-gray-700/40 p-3 flex flex-col gap-1.5 ${wide ? "sm:col-span-3" : ""}`}>
+    <div className={`rounded-xl bg-gray-50/60 dark:bg-gray-700/40 p-3 flex flex-col gap-1.5 ${wide ? "sm:col-span-3" : ""}`}>
       <div className="flex items-center gap-2">
         <div
           className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
@@ -29,20 +29,20 @@ const BankAccountCard = ({ account, isSelected, onSelect }) => {
     : account.maskedAccountNumber;
 
   return (
-    <div className="rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+    <div className="rounded-xl overflow-hidden">
       <button
         type="button"
         onClick={() => onSelect(account.id)}
-        className="flex w-full items-center gap-3 border-b border-gray-100 dark:border-gray-700 px-5 py-4 text-left hover:bg-gray-50/60 dark:hover:bg-gray-700 transition-colors"
+        className="flex w-full items-center gap-3 px-5 py-4 text-left hover:bg-gray-50/60 dark:hover:bg-gray-700 transition-colors"
       >
         <span
-          className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 ${
-            isSelected ? "border-emerald-600" : "border-gray-300"
+          className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full ${
+            isSelected ? "" : ""
           }`}
         >
           {isSelected && <span className="h-2 w-2 rounded-full bg-emerald-600" />}
         </span>
-        <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 flex items-center justify-center flex-shrink-0">
+        <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
           <Landmark className="w-4 h-4 text-emerald-500 dark:text-emerald-400" strokeWidth={1.8} />
         </div>
         <div className="flex-1">
@@ -65,7 +65,7 @@ const BankAccountCard = ({ account, isSelected, onSelect }) => {
 
       <div className="p-5 space-y-4">
         {/* Account number — highlighted like the onboarding bank-verification screen */}
-        <div className="relative flex items-center justify-between overflow-hidden rounded-xl border border-emerald-100 bg-emerald-50 dark:bg-emerald-500/10 px-5 py-3.5">
+        <div className="relative flex items-center justify-between overflow-hidden rounded-xl bg-emerald-50 dark:bg-emerald-500/10 px-5 py-3.5">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-widest text-emerald-500/80 mb-1">
               Account Number
@@ -83,7 +83,7 @@ const BankAccountCard = ({ account, isSelected, onSelect }) => {
             type="button"
             onClick={() => setShowAccountNumber((v) => !v)}
             aria-label={showAccountNumber ? "Hide account number" : "Show account number"}
-            className="w-9 h-9 rounded-xl bg-white dark:bg-gray-800 border border-emerald-100 flex items-center justify-center flex-shrink-0 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-colors"
+            className="w-9 h-9 rounded-xl bg-white dark:bg-gray-800 flex items-center justify-center flex-shrink-0 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-colors"
           >
             {showAccountNumber ? <EyeOff size={16} /> : <Eye size={16} />}
           </button>

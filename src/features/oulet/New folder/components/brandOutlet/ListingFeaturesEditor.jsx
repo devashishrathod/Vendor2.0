@@ -170,7 +170,7 @@ export default function ListingFeaturesEditor({ features, onChange, brandId }) {
             onChange={(e) => setTitle(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="eg : Premium Quality"
-            className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50 transition-colors bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-100"
+            className="w-full rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-emerald-50 transition-colors bg-emerald-50 dark:bg-emerald-500/10 text-gray-700 dark:text-gray-100"
           />
         </div>
 
@@ -181,11 +181,11 @@ export default function ListingFeaturesEditor({ features, onChange, brandId }) {
             onChange={(e) => setDescription(e.target.value)}
             placeholder="eg : We provide premium quality products with carefully selected materials."
             rows={3}
-            className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50 transition-colors bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-100 resize-none"
+            className="w-full rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-emerald-50 transition-colors bg-emerald-50 dark:bg-emerald-500/10 text-gray-700 dark:text-gray-100 resize-none"
           />
         </div>
 
-        <div className="flex items-center justify-between bg-[#f8fafc] dark:bg-gray-700/40 border border-gray-100 dark:border-gray-700 rounded-xl px-3 py-2.5">
+        <div className="flex items-center justify-between bg-[#f8fafc] dark:bg-gray-700/40 rounded-xl px-3 py-2.5">
           <button
             type="button"
             onClick={pickIcon}
@@ -193,7 +193,7 @@ export default function ListingFeaturesEditor({ features, onChange, brandId }) {
           >
             {iconPreview ? (
               <span className="flex items-center gap-2">
-                <img src={iconPreview} alt="icon" className="w-7 h-7 rounded-full object-cover border border-gray-300" />
+                <img src={iconPreview} alt="icon" className="w-7 h-7 rounded-full object-cover" />
                 Change icon
               </span>
             ) : (
@@ -253,13 +253,13 @@ export default function ListingFeaturesEditor({ features, onChange, brandId }) {
       </div>
 
       {/* ── RIGHT: Added features list ── */}
-      <div className="lg:border-l lg:border-gray-100 dark:lg:border-gray-700 lg:pl-6">
+      <div className="lg:pl-6">
         <p className="text-xs font-semibold text-gray-500 mb-3">
           Added Features {features.length > 0 && `(${features.length})`}
         </p>
 
         {loading ? (
-          <div className="h-full min-h-[140px] flex items-center justify-center border border-dashed border-gray-200 dark:border-gray-700 rounded-xl">
+          <div className="h-full min-h-[140px] flex items-center justify-center rounded-xl">
             <p className="text-xs text-gray-400">Loading saved features…</p>
           </div>
         ) : features.length > 0 ? (
@@ -267,18 +267,18 @@ export default function ListingFeaturesEditor({ features, onChange, brandId }) {
             {features.map((feature) => (
               <div
                 key={feature.id}
-                className="flex items-start gap-3 bg-[#f8fafc] dark:bg-gray-700/40 border border-gray-100 dark:border-gray-700 rounded-xl px-3 py-2.5"
+                className="flex items-start gap-3 bg-[#f8fafc] dark:bg-gray-700/40 rounded-xl px-3 py-2.5"
               >
                 {feature.icon ? (
                   <button
                     onClick={() => setPreviewFeature(feature)}
-                    className="relative w-9 h-9 rounded-full overflow-hidden border border-gray-300 shrink-0"
+                    className="relative w-9 h-9 rounded-full overflow-hidden shrink-0"
                     title="View icon"
                   >
                     <img src={feature.icon} alt={feature.title} className="w-full h-full object-cover" />
                   </button>
                 ) : (
-                  <div className="w-9 h-9 rounded-full border border-dashed border-gray-300 shrink-0 flex items-center justify-center text-gray-300">
+                  <div className="w-9 h-9 rounded-full shrink-0 flex items-center justify-center text-gray-300">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14M14 8h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
@@ -310,7 +310,7 @@ export default function ListingFeaturesEditor({ features, onChange, brandId }) {
             ))}
           </div>
         ) : (
-          <div className="h-full min-h-[140px] flex items-center justify-center border border-dashed border-gray-200 dark:border-gray-700 rounded-xl">
+          <div className="h-full min-h-[140px] flex items-center justify-center rounded-xl">
             <p className="text-xs text-gray-400 text-center px-4">
               No features added yet.<br />Fill the form and hit Add.
             </p>

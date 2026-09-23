@@ -46,7 +46,7 @@ export default function VoucherStatusBadge({ status, tooltip }) {
 
       <div
         role="tooltip"
-        className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-64 -translate-x-1/2 rounded-xl border border-rose-100 bg-white dark:bg-gray-800 p-3 text-left opacity-0 shadow-lg shadow-rose-100/50 transition-opacity duration-150 group-hover:opacity-100"
+        className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-64 -translate-x-1/2 rounded-xl bg-white dark:bg-gray-800 p-3 text-left opacity-0 shadow-lg shadow-rose-100/50 transition-opacity duration-150 group-hover:opacity-100"
       >
         <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-rose-500">
           Rejection reason
@@ -54,7 +54,7 @@ export default function VoucherStatusBadge({ status, tooltip }) {
         <p className="whitespace-pre-wrap break-words text-xs leading-relaxed text-gray-700 dark:text-gray-300">
           {tooltip}
         </p>
-        <span className="absolute left-1/2 top-full h-2 w-2 -translate-x-1/2 -translate-y-1/2 rotate-45 border-b border-r border-rose-100 bg-white dark:bg-gray-800" />
+        <span className="absolute left-1/2 top-full h-2 w-2 -translate-x-1/2 -translate-y-1/2 rotate-45 bg-white dark:bg-gray-800" />
       </div>
     </span>
   );

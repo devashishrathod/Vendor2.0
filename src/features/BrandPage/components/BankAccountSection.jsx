@@ -17,7 +17,7 @@ const BankAccountSection = ({
         {bankAccountDetails.subtitle}
       </p>
 
-      <div className="mt-6 rounded-xl border border-gray-100 p-5 dark:border-gray-700">
+      <div className="mt-6 rounded-xl p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
             <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">

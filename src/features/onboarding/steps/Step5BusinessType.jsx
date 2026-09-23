@@ -22,7 +22,7 @@ function PrimaryButton({
       className={`py-2.5 px-5 rounded-xl font-medium text-sm tracking-wide transition-all duration-200
         flex items-center justify-center gap-2
         ${disabled || loading
-          ? "bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200"
+          ? "bg-gray-100 text-gray-400 cursor-not-allowed"
           : "bg-emerald-500 hover:bg-emerald-600 text-white active:scale-[0.98]"
         } ${className}`}
     >
@@ -308,11 +308,11 @@ function TypeCard({ type, selected, onClick }) {
   return (
     <button
       onClick={() => onClick(type.id)}
-      className={`relative flex flex-col items-start gap-1.5 p-3 rounded-xl border
+      className={`relative flex flex-col items-start gap-1.5 p-3 rounded-xl
         transition-all duration-200 w-full text-left
         ${isActive
-          ? "border-2 border-emerald-500 bg-emerald-50/50 shadow-sm shadow-emerald-100"
-          : "border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-emerald-200 hover:bg-gray-50/50"
+          ? "bg-emerald-50/50 shadow-sm shadow-emerald-100"
+          : "bg-white dark:bg-gray-800 hover:bg-gray-50/50"
         }`}
     >
       <div className="flex items-start justify-between w-full">
@@ -323,8 +323,8 @@ function TypeCard({ type, selected, onClick }) {
           {type.icon(isActive)}
         </div>
         <div
-          className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center transition-all duration-200
-          ${isActive ? "border-emerald-500 bg-emerald-500" : "border-gray-300 bg-white dark:bg-gray-800"}`}
+          className={`w-3.5 h-3.5 rounded-full flex items-center justify-center transition-all duration-200
+          ${isActive ? "bg-emerald-500" : "bg-white dark:bg-gray-800"}`}
         >
           {isActive && <div className="w-1 h-1 rounded-full bg-white" />}
         </div>
@@ -419,7 +419,7 @@ function CompanyIllustration() {
 function RightInfoPanel({ info }) {
   return (
     <div className="w-full md:w-[270px] md:mt-[-85px] flex-shrink-0 flex flex-col gap-3">
-      <div className="rounded-xl overflow-hidden border border-emerald-100 bg-emerald-50/40 p-2">
+      <div className="rounded-xl overflow-hidden bg-emerald-50/40 p-2">
         <CompanyIllustration />
       </div>
 
@@ -437,7 +437,7 @@ function RightInfoPanel({ info }) {
           {info.features.map((f, i) => (
             <div
               key={i}
-              className="rounded-lg bg-emerald-50/60 border border-emerald-100 p-2 flex flex-col gap-1"
+              className="rounded-lg bg-emerald-50/60 p-2 flex flex-col gap-1"
             >
               <div className="w-5 h-5 rounded-md bg-emerald-100 text-emerald-600 flex items-center justify-center">
                 {FeatureIcon[f.icon]}
@@ -524,7 +524,7 @@ goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_VERIFICATION);
             <div className="flex-1 min-w-0">
               {/* Header */}
               <div className="flex items-start gap-2.5 mb-3.5">
-                <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center flex-shrink-0">
+                <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0">
                   <svg
                     className="w-4 h-4 text-emerald-500"
                     fill="none"
@@ -544,7 +544,7 @@ goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_VERIFICATION);
                     Select your business type
                   </h2>
                   <p className="text-xs text-gray-500">
-                    Please select your business structure to continue
+                    Choose the legal structure of your business.
                   </p>
                 </div>
               </div>
@@ -583,7 +583,7 @@ goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_VERIFICATION);
               <div
                 className={`mb-3 transition-all duration-300 overflow-hidden ${selected ? "max-h-14 opacity-100" : "max-h-0 opacity-0"}`}
               >
-                <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-100 rounded-xl px-3.5 py-2">
+                <div className="flex items-center gap-2 bg-emerald-50 rounded-xl px-3.5 py-2">
                   <svg
                     className="w-4 h-4 text-emerald-500 flex-shrink-0"
                     fill="none"
@@ -611,7 +611,7 @@ goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_VERIFICATION);
               </div>
 
               {/* Footer */}
-              <div className="flex items-center justify-between border-t border-gray-100 dark:border-gray-700 pt-3 mt-1">
+              <div className="flex items-center justify-between pt-3 mt-1">
                 <PrimaryButton
                   onClick={handleContinue}
                   disabled={!selected}

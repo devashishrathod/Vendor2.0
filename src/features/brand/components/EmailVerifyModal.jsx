@@ -67,7 +67,7 @@ export default function EmailVerifyModal({ currentEmail, onClose, onVerified }) 
         className="w-full max-w-sm rounded-2xl bg-white dark:bg-gray-800 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+        <div className="flex items-center justify-between px-6 py-4">
           <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">
             {success ? "Email Verified" : "Verify Email"}
           </h3>
@@ -104,14 +104,14 @@ export default function EmailVerifyModal({ currentEmail, onClose, onVerified }) 
                 Confirm your current email to verify it, or enter a different one to switch to it instead.
               </p>
               <label className="text-xs font-semibold text-gray-900 dark:text-gray-100">Email Address</label>
-              <div className="mt-1.5 flex items-center gap-2 rounded-xl border border-gray-200 dark:border-gray-700 px-3 py-2.5 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-100">
+              <div className="mt-1.5 flex items-center gap-2 rounded-xl px-3 py-2.5 focus-within:ring-2 focus-within:ring-emerald-100">
                 <Mail size={16} className="text-gray-400 flex-shrink-0" />
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
-                  className="w-full text-sm text-gray-800 dark:text-gray-100 dark:bg-transparent outline-none placeholder:text-gray-400"
+                  className="w-full text-sm text-gray-800 dark:text-gray-100 bg-emerald-50 dark:bg-emerald-500/10 outline-none placeholder:text-gray-400"
                   autoFocus
                 />
               </div>
@@ -139,7 +139,7 @@ export default function EmailVerifyModal({ currentEmail, onClose, onVerified }) 
                 value={otp}
                 onChange={(e) => setOtp(e.target.value)}
                 placeholder="Enter OTP"
-                className="mt-1.5 w-full rounded-xl border border-gray-200 dark:border-gray-700 px-3 py-2.5 text-sm text-gray-800 dark:text-gray-100 dark:bg-gray-800 tracking-widest outline-none placeholder:text-gray-400 placeholder:tracking-normal focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                className="mt-1.5 w-full rounded-xl px-3 py-2.5 text-sm text-gray-800 dark:text-gray-100 bg-emerald-50 dark:bg-emerald-500/10 tracking-widest outline-none placeholder:text-gray-400 placeholder:tracking-normal focus:ring-2 focus:ring-emerald-100"
                 autoFocus
               />
               {error && <p className="mt-2 text-xs text-red-500">{error}</p>}

@@ -13,7 +13,7 @@ const NAV_TABS = [
   // { label: "Account Information",       to: "/account-information"        },
   // { label: "Sub Outlets & Franchise",      to: "/outlets"       },
   // { label: "Subscription Plan",      to: "/subscription-plan"       },
-  // { label: "Playlist Music",      to: "/music"       },
+  { label: "Playlist Music",      to: "/music"       },
   // { label: "More",            to: "/more"             },
 ];
 
@@ -60,7 +60,7 @@ export default function DashboardHeader() {
   }, [profileOpen]);
 
   return (
-    <nav className="bg-white/85 dark:bg-gray-900/85 backdrop-blur-md border-b border-gray-100 dark:border-gray-700 sticky top-0 z-50 relative">
+    <nav className="bg-white/85 dark:bg-gray-900/85 backdrop-blur-md sticky top-0 z-50 relative">
       <div className="px-4 sm:px-6 h-16 flex items-center">
 
         {/* ── Left: Logo ── */}
@@ -88,7 +88,7 @@ export default function DashboardHeader() {
             both sides above/below keeps this centered on the header's full
             width regardless of how wide the logo or the right-side icons
             are. ── */}
-        <div className="hidden lg:flex items-center justify-center gap-0.5 flex-shrink-0 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-full p-1">
+        <div className="hidden lg:flex items-center justify-center gap-0.5 flex-shrink-0 bg-gray-100 dark:bg-gray-800 rounded-full p-1">
           {NAV_TABS.map(({ label, to }) => (
             <NavLink
               key={label}
@@ -129,7 +129,7 @@ export default function DashboardHeader() {
             {/* Profile dropdown - now the single Logout entry point on every breakpoint */}
             <div
               className={`absolute right-0 top-full mt-2.5 w-64 origin-top-right
-                bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden z-50
+                bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden z-50
                 transition-all duration-150 ease-out
                 ${profileOpen
                   ? "opacity-100 scale-100 translate-y-0 pointer-events-auto"
@@ -137,7 +137,7 @@ export default function DashboardHeader() {
                 }`}
             >
               {/* Mini identity header — same brand logo as the trigger avatar. */}
-              <div className="flex items-center gap-3 px-4 py-3.5 bg-gradient-to-br from-emerald-50/70 dark:from-emerald-500/10 to-white dark:to-gray-800 border-b border-gray-100 dark:border-gray-700">
+              <div className="flex items-center gap-3 px-4 py-3.5 bg-gradient-to-br from-emerald-50/70 dark:from-emerald-500/10 to-white dark:to-gray-800">
                 <div className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0 shadow-sm shadow-emerald-100 bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center">
                   {brand?.logo ? (
                     <img src={brand.logo} alt={brand.brandName || "Brand logo"} className="w-full h-full object-cover" />
@@ -227,7 +227,6 @@ export default function DashboardHeader() {
                 </button>
               </div>
 
-              <div className="border-t border-gray-100 dark:border-gray-700" />
 
               <div className="p-1.5">
                 <button
@@ -284,7 +283,7 @@ export default function DashboardHeader() {
           style={{ perspective: "1200px" }}
         >
           <div
-            className={`origin-top border-t border-gray-100 dark:border-gray-700 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md
+            className={`origin-top bg-white/95 dark:bg-gray-900/95 backdrop-blur-md
               px-4 py-3 flex flex-col gap-1 shadow-2xl
               transition-all ease-[cubic-bezier(0.22,1,0.36,1)]
               ${menuVisible
