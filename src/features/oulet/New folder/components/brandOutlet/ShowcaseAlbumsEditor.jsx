@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { X, AlertTriangle } from "lucide-react";
+import { X } from "lucide-react";
 import MediaPreviewModal from "./modals/MediaPreviewModal";
+import VideoUploadModal from "./modals/VideoUploadModal";
 import ErrorToast from "../../../../../components/common/ErrorToast";
 import Select from "../../../../../components/common/Select";
 import {
@@ -80,22 +81,17 @@ export default function ShowcaseAlbumsEditor({ albums, onChange, brandId }) {
     setToastError({ message });
   };
 
-  // ── Per-album "Show in Video Clips" toggle ──
-  // Merchant checks this BEFORE uploading — value goes straight into the
-  // isShowInVideoClips form field on addShowcaseMedia, exactly like the
-  // Postman request (form-data: isShowInVideoClips = "true"/"false").
-  // Keyed by album.id so each album remembers its own choice independently.
-  const [showInClipsMap, setShowInClipsMap] = useState({});
-
-  // ── Per-album video-clip thumbnail (poster image) ──
-  // Only relevant once "Show in Video Clips" is checked — a custom poster
-  // for however that surface displays the clip, instead of an arbitrary
-  // auto-picked video frame. Mirrors the same field on
-  // src/features/brand/components/AddShowcaseSectionModal.jsx.
-  // ⚠️ NOT CONFIRMED from Postman: no thumbnail field is documented on
-  // add-media yet, so this is sent as a best-effort "thumbnail" form field
-  // (see showcaseApi.js) — verify the real request/response once tested.
-  const [thumbnailMap, setThumbnailMap] = useState({});
+  // ── Video poster queue ──
+  // Confirmed from the add-media error response: "A video needs a poster
+  // image. Attach one as 'thumbnail'..." — EVERY video needs one, not just
+  // ones marked "Show in Video Clips" (that was the old, wrong gating).
+  // Picked videos are queued here and uploaded one at a time through
+  // VideoUploadModal, which collects the required poster (+ the optional
+  // clips flag) before the request is ever sent — see handleFiles /
+  // handleVideoConfirm / handleVideoCancel below.
+  const [videoQueue, setVideoQueue] = useState([]);
+  const [videoModalBusy, setVideoModalBusy] = useState(false);
+  const currentVideoJob = videoQueue[0] || null;
 
   // ── Prefill already-saved albums + their media in one call ──
   useEffect(() => {
@@ -263,14 +259,6 @@ export default function ShowcaseAlbumsEditor({ albums, onChange, brandId }) {
       return;
     }
 
-    // ⚠️ FIXED: was hardcoded `false` regardless of what the merchant
-    // wanted. Now reads the per-album "Show in Video Clips" checkbox state
-    // (defaults to false only if the merchant never touched the toggle),
-    // and this exact value is what gets sent to the API below and stored
-    // on each media item.
-    const isShowInVideoClips = !!showInClipsMap[album.id];
-    const thumbnail = isShowInVideoClips ? thumbnailMap[album.id] || null : null;
-
     const videoOnly = isVideoOnlyAlbum(album.name);
     const currentVideoCount = album.media.filter((m) => m.type === "video").length;
     const remainingItemSlots = MAX_ITEMS_PER_ALBUM - album.media.length;
@@ -291,8 +279,11 @@ export default function ShowcaseAlbumsEditor({ albums, onChange, brandId }) {
         file,
         preview: URL.createObjectURL(file),
         month: "",
-        isShowInVideoClips,
-        status: "uploading",
+        isShowInVideoClips: false,
+        // Videos wait for a required poster — see VideoUploadModal /
+        // handleVideoConfirm below (backend: "A video needs a poster
+        // image"). Photos have nothing to wait for and upload right away.
+        status: isVideo ? "pending-poster" : "uploading",
         error: "",
         persisted: false,
       });
@@ -305,50 +296,67 @@ export default function ShowcaseAlbumsEditor({ albums, onChange, brandId }) {
       prev.map((a) => (a.id === album.id ? { ...a, media: [...a.media, ...newMedia] } : a))
     );
 
+    const photoItems = newMedia.filter((m) => m.type === "image");
+    const videoItems = newMedia.filter((m) => m.type === "video");
+
+    if (videoItems.length) {
+      setVideoQueue((prev) => [...prev, ...videoItems.map((media) => ({ albumId: album.id, media }))]);
+    }
+    if (photoItems.length) {
+      await uploadMediaBatch(album.id, photoItems, { isShowInVideoClips: false, thumbnail: null });
+    }
+  };
+
+  // ── Shared upload call for a batch of already-staged media items ────
+  // Used for photo batches (handleFiles) and single-video uploads
+  // (handleVideoConfirm) alike.
+  const uploadMediaBatch = async (albumId, items, { isShowInVideoClips, thumbnail }) => {
     try {
       const res = await addShowcaseMedia(
-        album.id,
-        newMedia.map((m) => m.file),
+        albumId,
+        items.map((m) => m.file),
         { isShowInVideoClips, thumbnail }
       );
-      // The response for add-media follows the same shape as the showcase
-      // fetch: `data.medias[]` with UPPERCASE `type` ("PHOTO"/"VIDEO"). We
-      // line the returned items up by position (server appends new media to
-      // the end of the section's medias array) and lowercase `type` the
-      // same way as the prefill mapping so newly uploaded items behave
-      // identically to prefilled ones.
+      // CONFIRMED real response shape (add-media): `data.medias[]`, each
+      // entry { type, media: { url, thumbnail, ... }, title, altText,
+      // sortOrder, isActive, isShowInVideoClips } — NOT the flat
+      // { _id, url, thumbnail } shape get-brand-showcase returns, and it
+      // carries no id at all. We line the returned items up by position
+      // (server appends new media to the end of the section's medias
+      // array) the same way as before, just reading the nested `media`
+      // object for url/thumbnail now.
       const updatedSection = res?.data ?? res;
       const serverMedias = Array.isArray(updatedSection?.medias) ? updatedSection.medias : null;
 
       onChange((prev) =>
         prev.map((a) => {
-          if (a.id !== album.id) return a;
-          const tempIds = new Set(newMedia.map((m) => m.id));
+          if (a.id !== albumId) return a;
+          const tempIds = new Set(items.map((m) => m.id));
           let matchIndex = 0;
           return {
             ...a,
             media: a.media.map((m) => {
               if (!tempIds.has(m.id)) return m;
-              const serverMatch = serverMedias?.slice(-newMedia.length)[matchIndex];
+              const serverMatch = serverMedias?.slice(-items.length)[matchIndex];
               matchIndex += 1;
-              // ⚠️ FIXED: this used to mark every item in the batch
-              // `persisted: true` unconditionally, even when the server's
-              // response didn't actually include a matching item for it
-              // (e.g. one file in the batch was silently rejected
-              // server-side). That left an item with `persisted: true`
-              // but still carrying its local temp id — removeMedia would
-              // then try to delete that fake id on the server and get
-              // back "Params.mediaId contains an invalid value". Only a
-              // real serverMatch counts as persisted now; anything else
-              // is treated the same as a failed upload.
-              if (!serverMatch?._id) {
+              // A present entry at this position IS the success signal now
+              // (there's no `_id` to check) — anything missing (server
+              // silently rejected this one file) is a genuine failed
+              // upload.
+              // ⚠️ No id to swap in for delete/update — until the backend
+              // adds one here, removeMedia's isValidObjectId check falls
+              // back to a local-only remove for a freshly uploaded item
+              // (safe, just means a reload is needed to delete it for real).
+              if (!serverMatch) {
                 return { ...m, status: "error", error: "Upload didn't complete for this file — remove and try again." };
               }
+              const mediaData = serverMatch.media || {};
               return {
                 ...m,
                 status: "idle",
                 persisted: true,
-                id: serverMatch._id,
+                preview: mediaData.url || m.preview,
+                thumbnail: mediaData.thumbnail || m.thumbnail,
                 type: serverMatch.type
                   ? String(serverMatch.type).toLowerCase() === "photo"
                     ? "image"
@@ -366,8 +374,8 @@ export default function ShowcaseAlbumsEditor({ albums, onChange, brandId }) {
     } catch (err) {
       onChange((prev) =>
         prev.map((a) => {
-          if (a.id !== album.id) return a;
-          const tempIds = new Set(newMedia.map((m) => m.id));
+          if (a.id !== albumId) return a;
+          const tempIds = new Set(items.map((m) => m.id));
           return {
             ...a,
             media: a.media.map((m) => (tempIds.has(m.id) ? { ...m, status: "error", error: err.message } : m)),
@@ -376,6 +384,32 @@ export default function ShowcaseAlbumsEditor({ albums, onChange, brandId }) {
       );
       showError(err.message);
     }
+  };
+
+  // ── Video poster modal handlers ──────────────────────────────
+  const handleVideoConfirm = async ({ poster, isShowInVideoClips }) => {
+    if (!currentVideoJob) return;
+    setVideoModalBusy(true);
+    await uploadMediaBatch(currentVideoJob.albumId, [currentVideoJob.media], {
+      isShowInVideoClips,
+      thumbnail: poster,
+    });
+    setVideoModalBusy(false);
+    setVideoQueue((prev) => prev.slice(1));
+  };
+
+  const handleVideoCancel = () => {
+    if (!currentVideoJob) return;
+    // No poster, no upload — the backend rejects a video without one, so
+    // there's nothing to keep; drop the staged item locally.
+    onChange((prev) =>
+      prev.map((a) =>
+        a.id === currentVideoJob.albumId
+          ? { ...a, media: a.media.filter((m) => m.id !== currentVideoJob.media.id) }
+          : a
+      )
+    );
+    setVideoQueue((prev) => prev.slice(1));
   };
 
   // ── Delete a Media Item ──────────────────────────────────────
@@ -588,49 +622,10 @@ export default function ShowcaseAlbumsEditor({ albums, onChange, brandId }) {
                     onChange={(e) => handleFiles(album, e)}
                   />
 
-                  {/* Show in Video Clips toggle — read by handleFiles above
-                    and sent as the isShowInVideoClips form field, matching
-                    the Postman request exactly. */}
-                  <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={!!showInClipsMap[album.id]}
-                      onChange={(e) =>
-                        setShowInClipsMap((prev) => ({ ...prev, [album.id]: e.target.checked }))
-                      }
-                      disabled={!canUpload}
-                      className="w-4 h-4 accent-emerald-600 cursor-pointer disabled:opacity-40"
-                    />
-                    Show in Video Clips
-                  </label>
-
                   <span className="text-xs text-gray-400">
                     {itemCount}/{MAX_ITEMS_PER_ALBUM} items · {videoCount}/{MAX_VIDEOS_PER_ALBUM} videos
                   </span>
                 </div>
-
-                {/* Only relevant once "Show in Video Clips" is checked above —
-                  a custom poster image for however that surface displays the
-                  clip, instead of an arbitrary auto-picked video frame. */}
-                {!!showInClipsMap[album.id] && (
-                  <div className="mb-3 max-w-xs">
-                    <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
-                      Thumbnail for clips (optional)
-                    </label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      disabled={!canUpload}
-                      onChange={(e) =>
-                        setThumbnailMap((prev) => ({ ...prev, [album.id]: e.target.files?.[0] || null }))
-                      }
-                      className="w-full text-sm text-gray-600 dark:text-gray-300 file:mr-3 file:rounded-xl file:bg-emerald-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-emerald-700 hover:file:bg-emerald-100 disabled:opacity-50"
-                    />
-                    {thumbnailMap[album.id] && (
-                      <p className="mt-1 text-xs text-gray-500">{thumbnailMap[album.id].name}</p>
-                    )}
-                  </div>
-                )}
 
                 {itemCount < MIN_ITEMS_PER_ALBUM ? (
                   <p className="text-xs text-amber-600 dark:text-amber-400 font-semibold mb-3">
@@ -672,11 +667,9 @@ export default function ShowcaseAlbumsEditor({ albums, onChange, brandId }) {
                             </span>
                           </div>
                         )}
-                        {m.status === "error" && (
-                          <div className="absolute inset-0 bg-rose-500/90 flex flex-col items-center justify-center gap-0.5 px-1.5 text-center">
-                            <AlertTriangle size={16} className="text-white mb-0.5" />
-                            <span className="text-[9px] font-bold text-white leading-tight">Upload failed</span>
-                            <span className="text-[8px] text-white/90 leading-tight">Tap × to remove</span>
+                        {m.status === "pending-poster" && (
+                          <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-0.5 px-1.5 text-center">
+                            <span className="text-[9px] font-semibold text-white leading-tight">Add a poster to upload</span>
                           </div>
                         )}
 
@@ -717,6 +710,14 @@ export default function ShowcaseAlbumsEditor({ albums, onChange, brandId }) {
 
         {previewItem && (
           <MediaPreviewModal src={previewItem.preview} type={previewItem.type} onClose={() => setPreviewItem(null)} />
+        )}
+        {currentVideoJob && (
+          <VideoUploadModal
+            videoPreviewUrl={currentVideoJob.media.preview}
+            submitting={videoModalBusy}
+            onCancel={handleVideoCancel}
+            onConfirm={handleVideoConfirm}
+          />
         )}
       </div>
       <ErrorToast error={toastError} onDismiss={() => setToastError(null)} />
