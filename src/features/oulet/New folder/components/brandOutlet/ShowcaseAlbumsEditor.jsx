@@ -131,8 +131,8 @@ export default function ShowcaseAlbumsEditor({ albums, onChange, brandId }) {
                   ? "image"
                   : String(m.type).toLowerCase()
                 : /\.(mp4|mov|webm)(\?|$)/i.test(rawUrl)
-                ? "video"
-                : "image",
+                  ? "video"
+                  : "image",
               file: null,
               preview: rawUrl,
               thumbnail: m.thumbnail || rawUrl,
@@ -437,291 +437,289 @@ export default function ShowcaseAlbumsEditor({ albums, onChange, brandId }) {
 
   return (
     <>
-    <div>
-      {canAddAlbum ? (
-        <div className="mb-6">
-          <div className="flex flex-wrap gap-2 justify-start items-center mb-3">
-            {QUICK_ALBUM_PRESETS.filter(
-              (p) => !albums.some((a) => a.name.trim().toLowerCase() === p.toLowerCase())
-            ).map((preset) => (
+      <div>
+        {canAddAlbum ? (
+          <div className="mb-6">
+            <div className="flex flex-wrap gap-2 justify-start items-center mb-3">
+              {QUICK_ALBUM_PRESETS.filter(
+                (p) => !albums.some((a) => a.name.trim().toLowerCase() === p.toLowerCase())
+              ).map((preset) => (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() => {
+                    setNewAlbumName(preset);
+                    setShowAddInput(true);
+                  }}
+                  className="text-xs font-semibold px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-700 text-emerald-600 hover:bg-emerald-50 transition-colors"
+                >
+                  + {preset}
+                </button>
+              ))}
               <button
-                key={preset}
                 type="button"
-                onClick={() => {
-                  setNewAlbumName(preset);
-                  setShowAddInput(true);
-                }}
+                onClick={() => setShowAddInput(true)}
                 className="text-xs font-semibold px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-700 text-emerald-600 hover:bg-emerald-50 transition-colors"
               >
-                + {preset}
-              </button>
-            ))}
-            <button
-              type="button"
-              onClick={() => setShowAddInput(true)}
-              className="text-xs font-semibold px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-700 text-emerald-600 hover:bg-emerald-50 transition-colors"
-            >
-              + Add More
-            </button>
-          </div>
-
-          {showAddInput && (
-            <div className="flex gap-2 mt-3">
-              <input
-                type="text"
-                autoFocus
-                value={newAlbumName}
-                onChange={(e) => setNewAlbumName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    addAlbum();
-                  }
-                  if (e.key === "Escape") {
-                    setShowAddInput(false);
-                    setNewAlbumName("");
-                  }
-                }}
-                placeholder="eg : Gallery Photo"
-                className="w-full rounded-xl px-4 py-2.5 text-sm outline-none bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-100 placeholder:text-gray-400"
-              />
-              <button
-                onClick={() => addAlbum()}
-                disabled={!newAlbumName.trim()}
-                className={`shrink-0 px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
-                  newAlbumName.trim()
-                    ? "bg-emerald-500 text-white hover:bg-emerald-600"
-                    : "bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed"
-                }`}
-              >
-                Add Album
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowAddInput(false);
-                  setNewAlbumName("");
-                }}
-                className="shrink-0 px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-              >
-                Cancel
+                + Add More
               </button>
             </div>
-          )}
-        </div>
-      ) : (
-        <p className="text-xs text-amber-600 font-semibold mb-4">Maximum {MAX_ALBUMS} albums reached.</p>
-      )}
 
-      {loading ? (
-        <p className="text-xs text-gray-400 mb-4">Loading saved albums…</p>
-      ) : (
-        albums.length === 0 && (
-          <p className="text-xs text-gray-400 mb-4">
-            No albums yet. Add one above — e.g. "Gallery Photo", "Menu Photo", "Ambience Photo", "Event Photo".
-          </p>
-        )
-      )}
-
-      <div className="space-y-5">
-        {albums.map((album) => {
-          const videoOnly = isVideoOnlyAlbum(album.name);
-          const monthly = isMonthlyAlbum(album.name);
-          const videoCount = album.media.filter((m) => m.type === "video").length;
-          const itemCount = album.media.length;
-          const remainingItems = MAX_ITEMS_PER_ALBUM - itemCount;
-          const remainingVideos = MAX_VIDEOS_PER_ALBUM - videoCount;
-          const albumBusy = album.status === "creating" || album.status === "deleting";
-          const canUpload = !albumBusy && remainingItems > 0 && (!videoOnly || remainingVideos > 0);
-
-          return (
-            <div key={album.id} className="rounded-xl p-4 bg-white dark:bg-gray-800">
-              <div className="flex items-start justify-between gap-3 mb-1">
+            {showAddInput && (
+              <div className="flex gap-2 mt-3">
                 <input
                   type="text"
-                  value={album.name}
-                  onChange={(e) => renameAlbumLocal(album.id, e.target.value)}
-                  onBlur={() => saveAlbumName(album)}
-                  disabled={albumBusy}
-                  placeholder="Album name"
-                  className="text-sm font-bold text-gray-900 dark:text-gray-100 outline-none bg-emerald-50 dark:bg-emerald-500/10 px-0.5 py-0.5 flex-1 disabled:opacity-50"
+                  autoFocus
+                  value={newAlbumName}
+                  onChange={(e) => setNewAlbumName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addAlbum();
+                    }
+                    if (e.key === "Escape") {
+                      setShowAddInput(false);
+                      setNewAlbumName("");
+                    }
+                  }}
+                  placeholder="eg : Gallery Photo"
+                  className="w-full rounded-xl px-4 py-2.5 text-sm outline-none bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-100 placeholder:text-gray-400"
                 />
                 <button
-                  onClick={() => removeAlbum(album)}
-                  disabled={albumBusy}
-                  className="text-xs font-semibold text-gray-400 hover:text-red-500 whitespace-nowrap disabled:opacity-50"
+                  onClick={() => addAlbum()}
+                  disabled={!newAlbumName.trim()}
+                  className={`shrink-0 px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${newAlbumName.trim()
+                    ? "bg-emerald-500 text-white hover:bg-emerald-600"
+                    : "bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed"
+                    }`}
                 >
-                  {album.status === "deleting" ? "Removing…" : "Remove Album"}
+                  Add Album
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddInput(false);
+                    setNewAlbumName("");
+                  }}
+                  className="shrink-0 px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                >
+                  Cancel
                 </button>
               </div>
+            )}
+          </div>
+        ) : (
+          <p className="text-xs text-amber-600 font-semibold mb-4">Maximum {MAX_ALBUMS} albums reached.</p>
+        )}
 
-              {album.status === "creating" && (
-                <p className="text-xs text-emerald-500 font-semibold mb-2">Creating album…</p>
-              )}
-              {album.status === "saving" && (
-                <p className="text-xs text-emerald-500 font-semibold mb-2">Saving name…</p>
-              )}
-              {album.status === "error" && album.error && (
-                <p className="text-xs text-red-500 font-semibold mb-2">{album.error}</p>
-              )}
+        {loading ? (
+          <p className="text-xs text-gray-400 mb-4">Loading saved albums…</p>
+        ) : (
+          albums.length === 0 && (
+            <p className="text-xs text-gray-400 mb-4">
+              No albums yet. Add one above — e.g. "Gallery Photo", "Menu Photo", "Ambience Photo", "Event Photo".
+            </p>
+          )
+        )}
 
-              <p className="text-xs text-gray-500 mb-3">
-                {videoOnly ? "Video only. " : "Photos & videos. "}
-                At least {MIN_ITEMS_PER_ALBUM} {videoOnly ? "videos" : "photos or videos"} required · Max {MAX_ITEMS_PER_ALBUM} items · Max {MAX_VIDEOS_PER_ALBUM} videos
-                {monthly ? " · Tag each item with a month" : ""}
-              </p>
+        <div className="space-y-5">
+          {albums.map((album) => {
+            const videoOnly = isVideoOnlyAlbum(album.name);
+            const monthly = isMonthlyAlbum(album.name);
+            const videoCount = album.media.filter((m) => m.type === "video").length;
+            const itemCount = album.media.length;
+            const remainingItems = MAX_ITEMS_PER_ALBUM - itemCount;
+            const remainingVideos = MAX_VIDEOS_PER_ALBUM - videoCount;
+            const albumBusy = album.status === "creating" || album.status === "deleting";
+            const canUpload = !albumBusy && remainingItems > 0 && (!videoOnly || remainingVideos > 0);
 
-              <div className="flex items-center gap-3 mb-3 flex-wrap">
-                <button
-                  onClick={() => triggerUpload(album.id)}
-                  disabled={!canUpload}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
-                    canUpload ? "bg-[#1a1a2e] text-white hover:bg-[#2d2d5e]" : "bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed"
-                  }`}
-                >
-                  Upload {videoOnly ? "Video" : "Photo / Video"}
-                </button>
-                <input
-                  ref={(el) => (fileInputRefs.current[album.id] = el)}
-                  type="file"
-                  accept={videoOnly ? "video/*" : "image/*,video/*"}
-                  multiple
-                  className="hidden"
-                  onChange={(e) => handleFiles(album, e)}
-                />
+            return (
+              <div key={album.id} className="rounded-xl p-4 bg-white dark:bg-gray-800">
+                <div className="flex items-start justify-between gap-3 mb-1">
+                  <input
+                    type="text"
+                    value={album.name}
+                    onChange={(e) => renameAlbumLocal(album.id, e.target.value)}
+                    onBlur={() => saveAlbumName(album)}
+                    disabled={albumBusy}
+                    placeholder="Album name"
+                    className="text-sm font-bold text-gray-900 dark:text-gray-100 outline-none bg-emerald-50 dark:bg-emerald-500/10 px-0.5 py-0.5 flex-1 disabled:opacity-50"
+                  />
+                  <button
+                    onClick={() => removeAlbum(album)}
+                    disabled={albumBusy}
+                    className="text-xs font-semibold text-gray-400 hover:text-red-500 whitespace-nowrap disabled:opacity-50"
+                  >
+                    {album.status === "deleting" ? "Removing…" : "Remove Album"}
+                  </button>
+                </div>
 
-                {/* Show in Video Clips toggle — read by handleFiles above
+                {album.status === "creating" && (
+                  <p className="text-xs text-emerald-500 font-semibold mb-2">Creating album…</p>
+                )}
+                {album.status === "saving" && (
+                  <p className="text-xs text-emerald-500 font-semibold mb-2">Saving name…</p>
+                )}
+                {album.status === "error" && album.error && (
+                  <p className="text-xs text-red-500 font-semibold mb-2">{album.error}</p>
+                )}
+
+                <p className="text-xs text-gray-500 mb-3">
+                  {videoOnly ? "Video only. " : "Photos & videos. "}
+                  At least {MIN_ITEMS_PER_ALBUM} {videoOnly ? "videos" : "photos or videos"} required · Max {MAX_ITEMS_PER_ALBUM} items · Max {MAX_VIDEOS_PER_ALBUM} videos
+                  {monthly ? " · Tag each item with a month" : ""}
+                </p>
+
+                <div className="flex items-center gap-3 mb-3 flex-wrap">
+                  <button
+                    onClick={() => triggerUpload(album.id)}
+                    disabled={!canUpload}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${canUpload ? "bg-[#1a1a2e] text-white hover:bg-[#2d2d5e]" : "bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed"
+                      }`}
+                  >
+                    Upload {videoOnly ? "Video" : "Photo / Video"}
+                  </button>
+                  <input
+                    ref={(el) => (fileInputRefs.current[album.id] = el)}
+                    type="file"
+                    accept={videoOnly ? "video/*" : "image/*,video/*"}
+                    multiple
+                    className="hidden"
+                    onChange={(e) => handleFiles(album, e)}
+                  />
+
+                  {/* Show in Video Clips toggle — read by handleFiles above
                     and sent as the isShowInVideoClips form field, matching
                     the Postman request exactly. */}
-                <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={!!showInClipsMap[album.id]}
-                    onChange={(e) =>
-                      setShowInClipsMap((prev) => ({ ...prev, [album.id]: e.target.checked }))
-                    }
-                    disabled={!canUpload}
-                    className="w-4 h-4 accent-emerald-600 cursor-pointer disabled:opacity-40"
-                  />
-                  Show in Video Clips
-                </label>
+                  <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={!!showInClipsMap[album.id]}
+                      onChange={(e) =>
+                        setShowInClipsMap((prev) => ({ ...prev, [album.id]: e.target.checked }))
+                      }
+                      disabled={!canUpload}
+                      className="w-4 h-4 accent-emerald-600 cursor-pointer disabled:opacity-40"
+                    />
+                    Show in Video Clips
+                  </label>
 
-                <span className="text-xs text-gray-400">
-                  {itemCount}/{MAX_ITEMS_PER_ALBUM} items · {videoCount}/{MAX_VIDEOS_PER_ALBUM} videos
-                </span>
-              </div>
+                  <span className="text-xs text-gray-400">
+                    {itemCount}/{MAX_ITEMS_PER_ALBUM} items · {videoCount}/{MAX_VIDEOS_PER_ALBUM} videos
+                  </span>
+                </div>
 
-              {/* Only relevant once "Show in Video Clips" is checked above —
+                {/* Only relevant once "Show in Video Clips" is checked above —
                   a custom poster image for however that surface displays the
                   clip, instead of an arbitrary auto-picked video frame. */}
-              {!!showInClipsMap[album.id] && (
-                <div className="mb-3 max-w-xs">
-                  <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
-                    Thumbnail for clips (optional)
-                  </label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    disabled={!canUpload}
-                    onChange={(e) =>
-                      setThumbnailMap((prev) => ({ ...prev, [album.id]: e.target.files?.[0] || null }))
-                    }
-                    className="w-full text-sm text-gray-600 dark:text-gray-300 file:mr-3 file:rounded-xl file:bg-emerald-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-emerald-700 hover:file:bg-emerald-100 disabled:opacity-50"
-                  />
-                  {thumbnailMap[album.id] && (
-                    <p className="mt-1 text-xs text-gray-500">{thumbnailMap[album.id].name}</p>
-                  )}
-                </div>
-              )}
+                {!!showInClipsMap[album.id] && (
+                  <div className="mb-3 max-w-xs">
+                    <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
+                      Thumbnail for clips (optional)
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      disabled={!canUpload}
+                      onChange={(e) =>
+                        setThumbnailMap((prev) => ({ ...prev, [album.id]: e.target.files?.[0] || null }))
+                      }
+                      className="w-full text-sm text-gray-600 dark:text-gray-300 file:mr-3 file:rounded-xl file:bg-emerald-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-emerald-700 hover:file:bg-emerald-100 disabled:opacity-50"
+                    />
+                    {thumbnailMap[album.id] && (
+                      <p className="mt-1 text-xs text-gray-500">{thumbnailMap[album.id].name}</p>
+                    )}
+                  </div>
+                )}
 
-              {itemCount < MIN_ITEMS_PER_ALBUM ? (
-                <p className="text-xs text-amber-600 dark:text-amber-400 font-semibold mb-3">
-                  Add at least {MIN_ITEMS_PER_ALBUM} {videoOnly ? "videos" : "photos or videos"} to this album
-                  {itemCount > 0 ? ` (${MIN_ITEMS_PER_ALBUM - itemCount} more needed)` : ""}.
-                </p>
-              ) : null}
-              {itemCount > 0 && (
-                <div className="flex flex-wrap gap-3">
-                  {album.media.map((m) => (
-                    <div key={m.id} className="relative w-24 rounded-xl overflow-hidden group shadow-sm bg-gray-100 dark:bg-gray-700">
-                      <button onClick={() => setPreviewItem(m)} className="w-24 h-24 block" title="Preview">
-                        {m.type === "video" ? (
-                          <div className="relative w-full h-full bg-gray-800 flex items-center justify-center">
-                            {m.thumbnail && (
-                              <img
-                                src={m.thumbnail}
-                                alt="thumb"
-                                className="absolute inset-0 w-full h-full object-cover opacity-70"
-                              />
-                            )}
-                            <svg className="relative z-10 w-6 h-6 text-white drop-shadow" fill="currentColor" viewBox="0 0 20 20">
-                              <path d="M6.3 2.841A1.5 1.5 0 004 4.11v11.78a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
+                {itemCount < MIN_ITEMS_PER_ALBUM ? (
+                  <p className="text-xs text-amber-600 dark:text-amber-400 font-semibold mb-3">
+                    Add at least {MIN_ITEMS_PER_ALBUM} {videoOnly ? "videos" : "photos or videos"} to this album
+                    {itemCount > 0 ? ` (${MIN_ITEMS_PER_ALBUM - itemCount} more needed)` : ""}.
+                  </p>
+                ) : null}
+                {itemCount > 0 && (
+                  <div className="flex flex-wrap gap-3">
+                    {album.media.map((m) => (
+                      <div key={m.id} className="relative w-24 rounded-xl overflow-hidden group shadow-sm bg-gray-100 dark:bg-gray-700">
+                        <button onClick={() => setPreviewItem(m)} className="w-24 h-24 block" title="Preview">
+                          {m.type === "video" ? (
+                            <div className="relative w-full h-full bg-gray-800 flex items-center justify-center">
+                              {m.thumbnail && (
+                                <img
+                                  src={m.thumbnail}
+                                  alt="thumb"
+                                  className="absolute inset-0 w-full h-full object-cover opacity-70"
+                                />
+                              )}
+                              <svg className="relative z-10 w-6 h-6 text-white drop-shadow" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M6.3 2.841A1.5 1.5 0 004 4.11v11.78a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
+                              </svg>
+                            </div>
+                          ) : (
+                            <img src={m.preview} alt="thumb" className="w-full h-full object-cover" />
+                          )}
+                        </button>
+
+                        {(m.status === "uploading" || m.status === "deleting") && (
+                          <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-1.5">
+                            <svg className="w-4 h-4 animate-spin text-white" viewBox="0 0 24 24" fill="none">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
                             </svg>
+                            <span className="text-[9px] font-semibold text-white">
+                              {m.status === "uploading" ? "Uploading…" : "Removing…"}
+                            </span>
                           </div>
-                        ) : (
-                          <img src={m.preview} alt="thumb" className="w-full h-full object-cover" />
                         )}
-                      </button>
+                        {m.status === "error" && (
+                          <div className="absolute inset-0 bg-rose-500/90 flex flex-col items-center justify-center gap-0.5 px-1.5 text-center">
+                            <AlertTriangle size={16} className="text-white mb-0.5" />
+                            <span className="text-[9px] font-bold text-white leading-tight">Upload failed</span>
+                            <span className="text-[8px] text-white/90 leading-tight">Tap × to remove</span>
+                          </div>
+                        )}
 
-                      {(m.status === "uploading" || m.status === "deleting") && (
-                        <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-1.5">
-                          <svg className="w-4 h-4 animate-spin text-white" viewBox="0 0 24 24" fill="none">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-                          </svg>
-                          <span className="text-[9px] font-semibold text-white">
-                            {m.status === "uploading" ? "Uploading…" : "Removing…"}
+                        <button
+                          onClick={() => removeMedia(album.id, m)}
+                          disabled={m.status === "uploading" || m.status === "deleting"}
+                          aria-label="Remove"
+                          title="Remove"
+                          className="absolute top-1.5 right-1.5 w-6 h-6 bg-rose-500 text-white rounded-full flex items-center justify-center ring-2 ring-white dark:ring-gray-800 shadow-sm transition-all hover:bg-rose-600 hover:scale-110 disabled:opacity-50 disabled:hover:scale-100"
+                        >
+                          <X size={13} strokeWidth={2.5} />
+                        </button>
+                        {m.isShowInVideoClips && (
+                          <span className="absolute top-1.5 left-1.5 text-[8px] font-bold text-white bg-emerald-600 rounded-full px-1.5 py-0.5 shadow-sm">
+                            Clip
                           </span>
-                        </div>
-                      )}
-                      {m.status === "error" && (
-                        <div className="absolute inset-0 bg-rose-500/90 flex flex-col items-center justify-center gap-0.5 px-1.5 text-center">
-                          <AlertTriangle size={16} className="text-white mb-0.5" />
-                          <span className="text-[9px] font-bold text-white leading-tight">Upload failed</span>
-                          <span className="text-[8px] text-white/90 leading-tight">Tap × to remove</span>
-                        </div>
-                      )}
+                        )}
+                        {monthly && (
+                          <div className="bg-white dark:bg-gray-800">
+                            <Select
+                              compact
+                              value={m.month}
+                              onChange={(value) => setMediaMonth(album.id, m.id, value)}
+                              options={SHOWCASE_MONTHS.map((mo) => ({ value: mo, label: mo }))}
+                              placeholder="Month"
+                              className="bg-transparent text-gray-700 dark:text-gray-200"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
 
-                      <button
-                        onClick={() => removeMedia(album.id, m)}
-                        disabled={m.status === "uploading" || m.status === "deleting"}
-                        aria-label="Remove"
-                        title="Remove"
-                        className="absolute top-1.5 right-1.5 w-6 h-6 bg-rose-500 text-white rounded-full flex items-center justify-center ring-2 ring-white dark:ring-gray-800 shadow-sm transition-all hover:bg-rose-600 hover:scale-110 disabled:opacity-50 disabled:hover:scale-100"
-                      >
-                        <X size={13} strokeWidth={2.5} />
-                      </button>
-                      {m.isShowInVideoClips && (
-                        <span className="absolute top-1.5 left-1.5 text-[8px] font-bold text-white bg-emerald-600 rounded-full px-1.5 py-0.5 shadow-sm">
-                          Clip
-                        </span>
-                      )}
-                      {monthly && (
-                        <div className="bg-white dark:bg-gray-800">
-                          <Select
-                            compact
-                            value={m.month}
-                            onChange={(value) => setMediaMonth(album.id, m.id, value)}
-                            options={SHOWCASE_MONTHS.map((mo) => ({ value: mo, label: mo }))}
-                            placeholder="Month"
-                            className="bg-transparent text-gray-700 dark:text-gray-200"
-                          />
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })}
+        {previewItem && (
+          <MediaPreviewModal src={previewItem.preview} type={previewItem.type} onClose={() => setPreviewItem(null)} />
+        )}
       </div>
-
-      {previewItem && (
-        <MediaPreviewModal src={previewItem.preview} type={previewItem.type} onClose={() => setPreviewItem(null)} />
-      )}
-    </div>
-    <ErrorToast error={toastError} onDismiss={() => setToastError(null)} />
+      <ErrorToast error={toastError} onDismiss={() => setToastError(null)} />
     </>
   );
 }
