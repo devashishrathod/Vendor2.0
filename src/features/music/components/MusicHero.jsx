@@ -26,7 +26,7 @@ export default function MusicHero({ onPlayRecommended }) {
       <p className="absolute right-6 top-6 hidden sm:block text-emerald-200/60 text-sm italic">Music Moves People</p>
 
       <div className="relative max-w-md">
-        <span className="inline-flex items-center gap-1.5 bg-emerald-500/15 border border-emerald-400/30 text-emerald-300 text-[11px] font-semibold px-3 py-1 rounded-full mb-4">
+        <span className="inline-flex items-center gap-1.5 bg-emerald-500/15 text-emerald-300 text-[11px] font-semibold px-3 py-1 rounded-full mb-4">
           🎵 MUSIC FOR YOUR BUSINESS
         </span>
         <h2 className="text-2xl sm:text-3xl font-bold text-white leading-tight mb-2">
@@ -48,7 +48,7 @@ export default function MusicHero({ onPlayRecommended }) {
         {FEATURE_CHIPS.map((label) => (
           <span
             key={label}
-            className="text-[11px] font-medium text-white/80 bg-white/10 border border-white/10 px-3 py-1.5 rounded-full backdrop-blur-sm"
+            className="text-[11px] font-medium text-white/80 bg-white/10 px-3 py-1.5 rounded-full backdrop-blur-sm"
           >
             {label}
           </span>

@@ -123,7 +123,7 @@ export default function Sidebar({
 
   return (
     <div
-      className="w-64 flex-shrink-0 flex flex-col sticky top-0 h-screen bg-white border-r border-gray-100 relative overflow-y-auto"
+      className="w-64 flex-shrink-0 flex flex-col sticky top-0 h-screen bg-white dark:bg-gray-800 relative overflow-y-auto"
       style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif" }}
     >
       <div className="absolute top-0 left-0 right-0 h-48 pointer-events-none" style={{
@@ -146,7 +146,7 @@ export default function Sidebar({
             filling this narrow sidebar. */}
         <div className="flex ml-4 items-start justify-start gap-2">
           <img src={TrydoodIcon} alt="" className="w-8 h-8 rounded-lg object-contain flex-shrink-0" />
-          <span className="text-lg font-extrabold tracking-tight text-gray-900">Trydood</span>
+          <span className="text-lg font-extrabold tracking-tight text-gray-900 dark:text-gray-100">Trydood</span>
         </div>
       </div>
 
@@ -157,7 +157,7 @@ export default function Sidebar({
           className={`flex items-center ml-6 gap-1.5 text-[13px] font-medium transition-colors
             ${backDisabled
               ? "text-gray-400 cursor-not-allowed"
-              : "text-gray-600 hover:text-emerald-500 cursor-pointer"
+              : "text-gray-600 dark:text-gray-300 hover:text-emerald-500 cursor-pointer"
             }`}
         >
           <svg viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
@@ -217,11 +217,11 @@ export default function Sidebar({
                 disabled={nonClickable}
                 className={`flex items-center gap-3 w-full text-left
                   px-2 py-1.5 rounded-xl transition-all duration-200
-                  ${isActive      ? "bg-emerald-50 ring-1 ring-emerald-200 cursor-pointer"
+                  ${isActive      ? "bg-emerald-50 dark:bg-emerald-500/10 ring-1 ring-emerald-200 cursor-pointer"
                   : isDoneLocked  ? "opacity-75 cursor-not-allowed"
                   : isHardLocked  ? "opacity-50 cursor-not-allowed"
                   : isFuture      ? "opacity-40 cursor-not-allowed"
-                                  : "cursor-pointer hover:bg-gray-50"}`}
+                                  : "cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"}`}
               >
                 <div className="flex-shrink-0">
                   {isActive      && <ActiveCircle />}
@@ -232,10 +232,10 @@ export default function Sidebar({
 
                 <div className="flex-1 min-w-0">
                   <span className={`block text-xs font-semibold leading-tight truncate
-                    ${isActive      ? "text-emerald-800"
+                    ${isActive      ? "text-emerald-800 dark:text-emerald-400"
                     : isDoneLocked  ? "text-gray-500"
-                    : isHardLocked  ? "text-gray-800"
-                                    : "text-gray-700"}`}>
+                    : isHardLocked  ? "text-gray-800 dark:text-gray-100"
+                                    : "text-gray-700 dark:text-gray-300"}`}>
                     {step.label}
                   </span>
                 </div>
@@ -257,8 +257,8 @@ export default function Sidebar({
           onClick={handleLogout}
           className="flex items-center gap-2 text-[11px] font-medium w-full justify-center
             transition-all rounded-xl py-2 px-3
-            text-gray-400 border border-gray-200
-            hover:text-red-500 hover:border-red-200 hover:bg-red-50 cursor-pointer"
+            text-gray-400
+            hover:text-red-500 hover:bg-red-50 cursor-pointer"
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" strokeWidth="2" strokeLinecap="round">

@@ -130,7 +130,7 @@ export default function SubscriptionCheckout() {
     : billing;
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4 md:p-8">
+    <div className="min-h-screen bg-[#F8FAF7] dark:bg-gray-900 p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
         <TrustBar />
 

@@ -27,7 +27,6 @@ export default function SuccessToast({ message, onDismiss, duration = 4000 }) {
         className="fixed top-2 right-2 z-[9999]
                    max-w-[350px] w-[calc(100vw-48px)]
                    bg-gradient-to-br from-emerald-700 via-emerald-800 to-[#06150f]
-                   border border-emerald-400/25
                    rounded-2xl px-4 py-4.5
                    flex items-start gap-3
                    shadow-[0_8px_32px_-4px_rgba(16,185,129,0.35),0_4px_16px_rgba(0,0,0,0.45)]"
@@ -45,7 +44,7 @@ export default function SuccessToast({ message, onDismiss, duration = 4000 }) {
         <button
           onClick={onDismiss}
           aria-label="Dismiss"
-          className="bg-transparent border-none cursor-pointer p-1 leading-none
+          className="bg-transparent cursor-pointer p-1 leading-none
                      text-emerald-100/60 rounded-full shrink-0
                      transition-colors hover:bg-white/10 hover:text-white"
         >

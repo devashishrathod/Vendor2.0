@@ -16,28 +16,36 @@ import {
 } from "lucide-react";
 import { useAuthStore } from "../../../onboarding/store/authStore";
 import ErrorToast from "@/components/common/ErrorToast";
+import Select from "../../../../components/common/Select";
 import SuccessToast from "@/components/common/SuccessToast";
 import VoucherOutletPickerModal from "./VoucherOutletPickerModal";
 import TimePickerAmPm from "./TimePickerAmPm";
 
 const inputBase =
-  "w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-700 outline-none transition-colors " +
-  "placeholder:text-gray-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100";
+  "w-full rounded-xl bg-emerald-50 dark:bg-emerald-500/10 px-3 py-2.5 text-sm text-gray-700 dark:text-gray-100 outline-none transition-colors " +
+  "placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-100";
+
+// Same field, but for use inside an already-tinted wrapper (e.g. OfferCard's
+// bg-gray-50/60 panel) — bg-emerald-50 here so the field stands out from its
+// (still-neutral) panel instead of blending into it.
+const inputOnTint =
+  "w-full rounded-xl bg-emerald-50 dark:bg-emerald-500/10 px-3 py-2.5 text-sm text-gray-700 dark:text-gray-100 outline-none transition-colors " +
+  "placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-100";
 
 // ── UI-only helpers ──────────────────────────────────────────────
 
 function SectionCard({ icon: Icon, title, subtitle, action, children }) {
   return (
-    <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+    <section className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           {Icon && (
-            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border border-emerald-100 bg-emerald-50">
-              <Icon className="h-4.5 w-4.5 text-emerald-500" />
+            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-50 dark:bg-emerald-500/10">
+              <Icon className="h-4.5 w-4.5 text-emerald-500 dark:text-emerald-400" />
             </div>
           )}
           <div>
-            <h3 className="text-sm font-bold text-gray-900 leading-tight">{title}</h3>
+            <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 leading-tight">{title}</h3>
             {subtitle && <p className="mt-0.5 text-xs text-gray-400">{subtitle}</p>}
           </div>
         </div>
@@ -58,9 +66,9 @@ function FieldLabel({ children }) {
 // discountApplicableOn, sortOrder (auto), isActive.
 function OfferCard({ offer, index, onChange, onRemove, canRemove }) {
   return (
-    <div className="rounded-xl border border-gray-100 bg-gray-50/60 p-4">
+    <div className="rounded-xl bg-gray-50/60 dark:bg-gray-700/60 p-4">
       <div className="mb-3 flex items-center justify-between">
-        <span className="inline-flex items-center gap-1.5 rounded-md bg-emerald-50 border border-emerald-100 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-emerald-600">
+        <span className="inline-flex items-center gap-1.5 rounded-md bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
           Offer {index + 1}
         </span>
         {canRemove && (
@@ -75,7 +83,7 @@ function OfferCard({ offer, index, onChange, onRemove, canRemove }) {
         )}
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <div>
           <FieldLabel>Title</FieldLabel>
           <input
@@ -83,13 +91,13 @@ function OfferCard({ offer, index, onChange, onRemove, canRemove }) {
             value={offer.title}
             onChange={(e) => onChange("title", e.target.value)}
             placeholder="10% OFF"
-            className={inputBase}
+            className={inputOnTint}
           />
         </div>
 
         <div>
           <FieldLabel>Min Bill Amount</FieldLabel>
-          <div className="flex items-center rounded-xl border border-gray-200 bg-white px-3 py-2.5 transition-colors focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-100">
+          <div className="flex items-center rounded-xl bg-emerald-50 dark:bg-emerald-500/10 px-3 py-2.5 transition-colors focus-within:ring-2 focus-within:ring-emerald-100">
             <span className="mr-1 text-sm text-gray-400">₹</span>
             <input
               required
@@ -97,21 +105,23 @@ function OfferCard({ offer, index, onChange, onRemove, canRemove }) {
               value={offer.minBillAmount}
               onChange={(e) => onChange("minBillAmount", e.target.value)}
               placeholder="500"
-              className="w-full text-sm text-gray-700 outline-none placeholder:text-gray-400"
+              className="w-full text-sm text-gray-700 dark:text-gray-100 outline-none placeholder:text-gray-400"
             />
           </div>
         </div>
 
         <div>
           <FieldLabel>Discount Type</FieldLabel>
-          <select
+          <Select
             value={offer.discountType}
-            onChange={(e) => onChange("discountType", e.target.value)}
-            className={inputBase}
-          >
-            <option value="PERCENTAGE">Percentage</option>
-            <option value="FLAT">Flat</option>
-          </select>
+            onChange={(value) => onChange("discountType", value)}
+            options={[
+              { value: "PERCENTAGE", label: "Percentage" },
+              { value: "FLAT", label: "Flat" },
+            ]}
+            placeholder="Select discount type"
+            className="bg-emerald-50 dark:bg-emerald-500/10 text-gray-700 dark:text-gray-100"
+          />
         </div>
 
         <div>
@@ -124,55 +134,59 @@ function OfferCard({ offer, index, onChange, onRemove, canRemove }) {
             value={offer.discountValue}
             onChange={(e) => onChange("discountValue", e.target.value)}
             placeholder={offer.discountType === "PERCENTAGE" ? "10" : "100"}
-            className={inputBase}
+            className={inputOnTint}
           />
         </div>
 
         <div>
           <FieldLabel>Max Discount Amount</FieldLabel>
-          <div className="flex items-center rounded-xl border border-gray-200 bg-white px-3 py-2.5 transition-colors focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-100">
+          <div className="flex items-center rounded-xl bg-emerald-50 dark:bg-emerald-500/10 px-3 py-2.5 transition-colors focus-within:ring-2 focus-within:ring-emerald-100">
             <span className="mr-1 text-sm text-gray-400">₹</span>
             <input
               type="number"
               value={offer.maxDiscountAmount}
               onChange={(e) => onChange("maxDiscountAmount", e.target.value)}
               placeholder="100"
-              className="w-full text-sm text-gray-700 outline-none placeholder:text-gray-400"
+              className="w-full text-sm text-gray-700 dark:text-gray-100 outline-none placeholder:text-gray-400"
             />
           </div>
         </div>
 
         <div>
           <FieldLabel>Usage Type</FieldLabel>
-          <select
+          <Select
             value={offer.usageType}
-            onChange={(e) => onChange("usageType", e.target.value)}
-            className={inputBase}
-          >
-            <option value="ONCE_PER_USER">Single use per user</option>
-            <option value="MULTIPLE">Multiple use until expiry</option>
-          </select>
+            onChange={(value) => onChange("usageType", value)}
+            options={[
+              { value: "ONCE_PER_USER", label: "Single use per user" },
+              { value: "MULTIPLE", label: "Multiple use until expiry" },
+            ]}
+            placeholder="Select usage type"
+            className="bg-emerald-50 dark:bg-emerald-500/10 text-gray-700 dark:text-gray-100"
+          />
         </div>
 
         <div>
           <FieldLabel>Discount Applicable On</FieldLabel>
-          <select
+          <Select
             value={offer.discountApplicableOn}
-            onChange={(e) => onChange("discountApplicableOn", e.target.value)}
-            className={inputBase}
-          >
-            <option value="SUBTOTAL">Subtotal</option>
-            <option value="FINAL_BILL">Final Bill</option>
-          </select>
+            onChange={(value) => onChange("discountApplicableOn", value)}
+            options={[
+              { value: "SUBTOTAL", label: "Subtotal" },
+              { value: "FINAL_BILL", label: "Final Bill" },
+            ]}
+            placeholder="Select where discount applies"
+            className="bg-emerald-50 dark:bg-emerald-500/10 text-gray-700 dark:text-gray-100"
+          />
         </div>
 
         <div className="flex items-end">
-          <label className="flex items-center gap-2 text-sm text-gray-600">
+          <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
             <input
               type="checkbox"
               checked={offer.isActive}
               onChange={(e) => onChange("isActive", e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+              className="h-4 w-4 rounded text-emerald-600 focus:ring-emerald-500"
             />
             Active
           </label>
@@ -215,12 +229,13 @@ export default function VoucherForm({
 
   // Edit mode has no banner section on this form at all (banners are
   // managed by VoucherBannerModal instead), so it's never gated. Add mode
-  // requires a banner matching whichever bannerType is currently selected.
+  // requires a single banner file, plus a poster if that file is a video
+  // (confirmed from vendor_panel_api_doc.md #54/#59, V-4 — no more
+  // bannerType, the backend tells image/GIF/video apart from the bytes).
+  const isBannerVideo = form.bannerMedia?.type?.startsWith("video/");
   const isBannerUploaded =
     isEdit ||
-    (form.bannerType === "IMAGE" && !!form.bannerImage) ||
-    (form.bannerType === "VIDEO" && !!form.bannerVideo?.trim()) ||
-    (form.bannerType === "GIF" && !!form.bannerGif?.trim());
+    (!!form.bannerMedia && (!isBannerVideo || !!form.bannerPoster));
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6">
@@ -229,15 +244,15 @@ export default function VoucherForm({
         <button
           type="button"
           onClick={() => navigate("/vouchers")}
-          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl text-gray-500 hover:bg-gray-100"
+          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-emerald-100 bg-emerald-50">
-          <Ticket className="h-5 w-5 text-emerald-500" />
+        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-50 dark:bg-emerald-500/10">
+          <Ticket className="h-5 w-5 text-emerald-500 dark:text-emerald-400" />
         </div>
         <div>
-          <h1 className="text-base font-bold text-gray-900 leading-tight">
+          <h1 className="text-base font-bold text-gray-900 dark:text-gray-100 leading-tight">
             {isEdit ? "Edit Voucher & Discount" : "Add Voucher & Discount"}
           </h1>
           <p className="text-xs text-gray-400 mt-0.5">
@@ -275,59 +290,69 @@ export default function VoucherForm({
               VoucherTable), not by this form — editing a voucher never
               shows this section. */}
           {!isEdit && (
-            <div className="mt-4 border-t border-gray-100 pt-4">
+            <div className="mt-4 pt-4">
               <FieldLabel>Voucher Banner</FieldLabel>
+              <p className="mb-3 text-xs text-gray-400">
+                One file — image, GIF or video. It goes live only after admin review.
+              </p>
 
-              <select
-                value={form.bannerType}
-                onChange={(e) => setField("bannerType", e.target.value)}
-                className={`${inputBase} mb-3 max-w-[160px]`}
-              >
-                <option value="IMAGE">Image</option>
-                <option value="VIDEO">Video</option>
-                <option value="GIF">GIF</option>
-              </select>
-
-              {form.bannerType === "IMAGE" && (
-                <div className="flex items-center gap-3">
-                  {form.bannerImage && (
-                    <div className="relative h-20 w-20 overflow-hidden rounded-xl border border-gray-100">
-                      <img
-                        src={URL.createObjectURL(form.bannerImage)}
-                        alt=""
-                        className="h-full w-full object-cover"
-                      />
-                    </div>
-                  )}
-                  <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-gray-200 text-gray-400 hover:border-emerald-400 hover:text-emerald-500 hover:bg-emerald-50/40">
-                    <Upload className="h-4 w-4" />
-                    <span className="text-[10px]">{form.bannerImage ? "Change" : "Add"}</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => setField("bannerImage", e.target.files?.[0] || null)}
+              <div className="flex items-center gap-3">
+                {form.bannerMedia && (
+                  isBannerVideo ? (
+                    <video
+                      src={URL.createObjectURL(form.bannerMedia)}
+                      muted
+                      playsInline
+                      preload="metadata"
+                      className="h-20 w-20 rounded-xl object-cover"
                     />
-                  </label>
+                  ) : (
+                    <img
+                      src={URL.createObjectURL(form.bannerMedia)}
+                      alt=""
+                      className="h-20 w-20 rounded-xl object-cover"
+                    />
+                  )
+                )}
+                <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl text-gray-400 hover:text-emerald-500 hover:bg-emerald-50/40 dark:hover:bg-emerald-500/10">
+                  <Upload className="h-4 w-4" />
+                  <span className="text-[10px]">{form.bannerMedia ? "Change" : "Add"}</span>
+                  <input
+                    type="file"
+                    accept="image/*,video/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] || null;
+                      setField("bannerMedia", file);
+                      if (!file?.type?.startsWith("video/")) setField("bannerPoster", null);
+                    }}
+                  />
+                </label>
+              </div>
+
+              {isBannerVideo && (
+                <div className="mt-3">
+                  <FieldLabel>Banner Poster (required for a video banner)</FieldLabel>
+                  <div className="flex items-center gap-3">
+                    {form.bannerPoster && (
+                      <img
+                        src={URL.createObjectURL(form.bannerPoster)}
+                        alt=""
+                        className="h-20 w-20 rounded-xl object-cover"
+                      />
+                    )}
+                    <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl text-gray-400 hover:text-emerald-500 hover:bg-emerald-50/40 dark:hover:bg-emerald-500/10">
+                      <Upload className="h-4 w-4" />
+                      <span className="text-[10px]">{form.bannerPoster ? "Change" : "Add"}</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => setField("bannerPoster", e.target.files?.[0] || null)}
+                      />
+                    </label>
+                  </div>
                 </div>
-              )}
-
-              {form.bannerType === "VIDEO" && (
-                <input
-                  value={form.bannerVideo}
-                  onChange={(e) => setField("bannerVideo", e.target.value)}
-                  placeholder="Banner video URL"
-                  className={inputBase}
-                />
-              )}
-
-              {form.bannerType === "GIF" && (
-                <input
-                  value={form.bannerGif}
-                  onChange={(e) => setField("bannerGif", e.target.value)}
-                  placeholder="Banner GIF URL"
-                  className={inputBase}
-                />
               )}
             </div>
           )}
@@ -335,7 +360,7 @@ export default function VoucherForm({
           {/* Images — now placed BELOW Voucher Banner per explicit
               instruction. Max 5 images total (existing + newly picked), at
               least 3 required. */}
-          <div className="mt-5 border-t border-gray-100 pt-4">
+          <div className="mt-5 pt-4">
             <FieldLabel>Voucher Images</FieldLabel>
             <p className="mb-2 text-xs text-gray-400">
               Upload 3 to 5 images for this voucher. At least 3 images are required.
@@ -343,7 +368,7 @@ export default function VoucherForm({
 
             <div className="flex flex-wrap gap-3">
               {form.existingImageUrls.map((url) => (
-                <div key={url} className="relative h-20 w-20 overflow-hidden rounded-xl border border-gray-100">
+                <div key={url} className="relative h-20 w-20 overflow-hidden rounded-xl">
                   <img src={url} alt="" className="h-full w-full object-cover" />
                   <button
                     type="button"
@@ -356,7 +381,7 @@ export default function VoucherForm({
               ))}
 
               {form.images.map((file, index) => (
-                <div key={index} className="relative h-20 w-20 overflow-hidden rounded-xl border border-gray-100">
+                <div key={index} className="relative h-20 w-20 overflow-hidden rounded-xl">
                   <img
                     src={URL.createObjectURL(file)}
                     alt=""
@@ -373,7 +398,7 @@ export default function VoucherForm({
               ))}
 
               {form.existingImageUrls.length + form.images.length < 5 && (
-                <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-gray-200 text-gray-400 hover:border-emerald-400 hover:text-emerald-500 hover:bg-emerald-50/40">
+                <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl text-gray-400 hover:text-emerald-500 hover:bg-emerald-50/40 dark:hover:bg-emerald-500/10">
                   <Upload className="h-4 w-4" />
                   <span className="text-[10px]">Add</span>
                   <input
@@ -477,9 +502,9 @@ export default function VoucherForm({
         {/* Applicable outlets — "+ Add More" opens the outlet picker modal */}
         <SectionCard icon={Store} title="Applicable To Specifically Selected Outlet Or Franchise">
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <div className="rounded-xl border border-gray-100 bg-gray-50/60 p-3">
+            <div className="rounded-xl bg-gray-50/60 dark:bg-gray-700/60 p-3">
               <FieldLabel>Selected Brand - Outlet / Sub-Brand</FieldLabel>
-              <p className="text-sm font-bold text-gray-900">
+              <p className="text-sm font-bold text-gray-900 dark:text-gray-100">
                 Count - {form.applicableOutlets.selectedBrandOutletCount}
               </p>
               <button
@@ -490,21 +515,21 @@ export default function VoucherForm({
                 + Add More
               </button>
             </div>
-            <div className="rounded-xl border border-gray-100 bg-gray-50/60 p-3">
+            <div className="rounded-xl bg-gray-50/60 dark:bg-gray-700/60 p-3">
               <FieldLabel>Total Outlet's</FieldLabel>
-              <p className="text-sm font-bold text-gray-900">
+              <p className="text-sm font-bold text-gray-900 dark:text-gray-100">
                 Count - {form.applicableOutlets.totalOutletsCount}
               </p>
             </div>
-            <div className="rounded-xl border border-gray-100 bg-gray-50/60 p-3">
+            <div className="rounded-xl bg-gray-50/60 dark:bg-gray-700/60 p-3">
               <FieldLabel>Sub - Brand</FieldLabel>
-              <p className="text-sm font-bold text-gray-900">
+              <p className="text-sm font-bold text-gray-900 dark:text-gray-100">
                 Count - {form.applicableOutlets.subBrandCount}
               </p>
             </div>
-            <div className="rounded-xl border border-gray-100 bg-gray-50/60 p-3">
+            <div className="rounded-xl bg-gray-50/60 dark:bg-gray-700/60 p-3">
               <FieldLabel>Franchise</FieldLabel>
-              <p className="text-sm font-bold text-gray-900">
+              <p className="text-sm font-bold text-gray-900 dark:text-gray-100">
                 Count - {String(form.applicableOutlets.franchiseCount).padStart(2, "0")}
               </p>
             </div>
@@ -525,11 +550,11 @@ export default function VoucherForm({
           title="Search Tag"
           subtitle="Keywords that help users quickly find this item."
         >
-          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-gray-200 p-3 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-100">
+          <div className="flex flex-wrap items-center gap-2 rounded-xl p-3 focus-within:ring-2 focus-within:ring-emerald-100">
             {form.searchTags.map((tag) => (
               <span
                 key={tag}
-                className="flex items-center gap-1 rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700"
+                className="flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700"
               >
                 {tag}
                 <button
@@ -547,7 +572,7 @@ export default function VoucherForm({
               onKeyDown={handleTagKeyDown}
               onBlur={addTag}
               placeholder="Type here..."
-              className="min-w-[120px] flex-1 border-none text-xs text-gray-700 outline-none placeholder:text-gray-400"
+              className="min-w-[120px] flex-1 bg-emerald-50 dark:bg-emerald-500/10 text-xs text-gray-700 dark:text-gray-100 outline-none placeholder:text-gray-400"
             />
           </div>
         </SectionCard>
@@ -560,7 +585,7 @@ export default function VoucherForm({
               type="checkbox"
               checked={form.isSaveAsDraft}
               onChange={(e) => setField("isSaveAsDraft", e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+              className="h-4 w-4 rounded text-emerald-600 focus:ring-emerald-500"
             />
             Save as draft instead of publishing immediately.
           </label>
@@ -574,7 +599,7 @@ export default function VoucherForm({
           <button
             type="submit"
             disabled={isSubmitting}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 py-3.5 text-sm font-bold tracking-wide text-white shadow-sm shadow-emerald-100 transition-all duration-200 hover:bg-emerald-600 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-300 disabled:shadow-none"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 py-3.5 text-sm font-bold tracking-wide text-white shadow-sm shadow-emerald-100 transition-all duration-200 hover:bg-emerald-600 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:text-gray-300 disabled:shadow-none"
           >
             {isSubmitting ? (
               <>

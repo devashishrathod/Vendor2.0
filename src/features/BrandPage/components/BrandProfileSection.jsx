@@ -5,7 +5,7 @@ import { formatMobileNumber } from "../utils/BrandHelpers";
 const BrandProfileSection = ({ profile, onChangeLogo }) => {
   return (
     <section>
-      <h2 className="text-xs font-bold uppercase tracking-wide text-gray-700">
+      <h2 className="text-xs font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300">
         Brand Profile
       </h2>
 

@@ -64,18 +64,18 @@ export default function EmailVerifyModal({ currentEmail, onClose, onVerified }) 
       onClick={onClose}
     >
       <div
-        className="w-full max-w-sm rounded-2xl bg-white shadow-2xl"
+        className="w-full max-w-sm rounded-2xl bg-white dark:bg-gray-800 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <h3 className="text-base font-bold text-gray-900">
+        <div className="flex items-center justify-between px-6 py-4">
+          <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">
             {success ? "Email Verified" : "Verify Email"}
           </h3>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
           >
             <X size={16} className="text-gray-500" />
           </button>
@@ -84,10 +84,10 @@ export default function EmailVerifyModal({ currentEmail, onClose, onVerified }) 
         <div className="p-6">
           {success ? (
             <div className="text-center py-4">
-              <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-3">
-                <ShieldCheck className="w-6 h-6 text-emerald-500" strokeWidth={1.8} />
+              <div className="w-12 h-12 rounded-full bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center mx-auto mb-3">
+                <ShieldCheck className="w-6 h-6 text-emerald-500 dark:text-emerald-400" strokeWidth={1.8} />
               </div>
-              <p className="text-sm text-gray-700">
+              <p className="text-sm text-gray-700 dark:text-gray-300">
                 {email.trim()} has been verified successfully.
               </p>
               <button
@@ -103,15 +103,15 @@ export default function EmailVerifyModal({ currentEmail, onClose, onVerified }) 
               <p className="text-xs text-gray-400 mb-4">
                 Confirm your current email to verify it, or enter a different one to switch to it instead.
               </p>
-              <label className="text-xs font-semibold text-gray-900">Email Address</label>
-              <div className="mt-1.5 flex items-center gap-2 rounded-xl border border-gray-200 px-3 py-2.5 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-100">
+              <label className="text-xs font-semibold text-gray-900 dark:text-gray-100">Email Address</label>
+              <div className="mt-1.5 flex items-center gap-2 rounded-xl px-3 py-2.5 focus-within:ring-2 focus-within:ring-emerald-100">
                 <Mail size={16} className="text-gray-400 flex-shrink-0" />
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
-                  className="w-full text-sm text-gray-800 outline-none placeholder:text-gray-400"
+                  className="w-full text-sm text-gray-800 dark:text-gray-100 bg-emerald-50 dark:bg-emerald-500/10 outline-none placeholder:text-gray-400"
                   autoFocus
                 />
               </div>
@@ -132,14 +132,14 @@ export default function EmailVerifyModal({ currentEmail, onClose, onVerified }) 
                   ? `We've sent a code to ${sentTo}. Enter it to switch your account to this address.`
                   : `We've sent a code to ${sentTo}. Enter it to verify this email.`}
               </p>
-              <label className="text-xs font-semibold text-gray-900">Verification Code</label>
+              <label className="text-xs font-semibold text-gray-900 dark:text-gray-100">Verification Code</label>
               <input
                 type="text"
                 inputMode="numeric"
                 value={otp}
                 onChange={(e) => setOtp(e.target.value)}
                 placeholder="Enter OTP"
-                className="mt-1.5 w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-800 tracking-widest outline-none placeholder:text-gray-400 placeholder:tracking-normal focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                className="mt-1.5 w-full rounded-xl px-3 py-2.5 text-sm text-gray-800 dark:text-gray-100 bg-emerald-50 dark:bg-emerald-500/10 tracking-widest outline-none placeholder:text-gray-400 placeholder:tracking-normal focus:ring-2 focus:ring-emerald-100"
                 autoFocus
               />
               {error && <p className="mt-2 text-xs text-red-500">{error}</p>}

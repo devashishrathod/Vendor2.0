@@ -8,10 +8,11 @@ import { useState } from "react";
 import { useEditOutletForm } from "../hooks/useEditOutletForm";
 import ErrorToast from "@/components/common/ErrorToast";
 import SuccessToast from "@/components/common/SuccessToast";
+import Select from "../../../components/common/Select";
 
 const inputBase =
-  "w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-700 outline-none transition-colors " +
-  "placeholder:text-gray-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100";
+  "w-full rounded-xl px-4 py-2.5 text-sm text-gray-700 dark:text-gray-100 bg-emerald-50 dark:bg-emerald-500/10 outline-none transition-colors " +
+  "placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-100";
 
 const OUTLET_TYPE_OPTIONS = [
   { value: "outlet", label: "Outlet" },
@@ -140,7 +141,7 @@ function LocationEditor({ location, onSelectPlace }) {
   };
 
   return (
-    <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+    <div className="rounded-2xl bg-white dark:bg-gray-800 p-4 shadow-sm">
       <div className="flex gap-2 mb-3">
         <input
           type="text"
@@ -156,7 +157,7 @@ function LocationEditor({ location, onSelectPlace }) {
           disabled={searching || !query.trim()}
           className={`shrink-0 px-5 py-2.5 rounded-xl text-sm font-bold transition-colors ${
             searching || !query.trim()
-              ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+              ? "bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed"
               : "bg-emerald-500 text-white hover:bg-emerald-600"
           }`}
         >
@@ -167,7 +168,7 @@ function LocationEditor({ location, onSelectPlace }) {
       {error && <p className="text-xs text-rose-500 mb-3">{error}</p>}
 
       {results.length > 0 && (
-        <div className="mb-4 max-h-56 overflow-y-auto rounded-xl border border-gray-100 divide-y divide-gray-100">
+        <div className="mb-4 max-h-56 overflow-y-auto rounded-xl divide-y divide-gray-100 dark:divide-gray-700">
           {results.map((place) => (
             <button
               key={place.place_id}
@@ -176,7 +177,7 @@ function LocationEditor({ location, onSelectPlace }) {
               disabled={detailsLoading}
               className="w-full text-left px-4 py-3 hover:bg-emerald-50/50 transition-colors disabled:opacity-60"
             >
-              <span className="block text-sm font-semibold text-gray-800">{place.name}</span>
+              <span className="block text-sm font-semibold text-gray-800 dark:text-gray-100">{place.name}</span>
               <span className="block text-xs text-gray-500 mt-0.5">{place.formatted_address}</span>
             </button>
           ))}
@@ -189,14 +190,14 @@ function LocationEditor({ location, onSelectPlace }) {
         <p className="text-xs text-gray-400 mb-3">No matches found. Try a different search term.</p>
       )}
 
-      <div className="bg-gray-50/60 rounded-xl border border-gray-100 p-4">
+      <div className="bg-gray-50/60 dark:bg-gray-700 rounded-xl p-4">
         <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">
           {location?.source === "existing" ? "Current Location" : "New Location"}
         </p>
         {location ? (
           <>
-            <p className="text-sm font-bold text-gray-900">{location.name}</p>
-            <p className="text-sm text-gray-600 mt-0.5">{location.address}</p>
+            <p className="text-sm font-bold text-gray-900 dark:text-gray-100">{location.name}</p>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mt-0.5">{location.address}</p>
           </>
         ) : (
           <p className="text-xs text-gray-400">No location saved for this outlet yet.</p>
@@ -231,17 +232,17 @@ export default function EditOutletModal({ outlet, onClose, onUpdated }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+        className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-100 sticky top-0 bg-white rounded-t-2xl">
-          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-emerald-100 bg-emerald-50">
+        <div className="flex items-center gap-3 px-6 py-4 sticky top-0 bg-white dark:bg-gray-800 rounded-t-2xl">
+          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-50 dark:bg-emerald-500/10">
             <svg className="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
             </svg>
           </div>
-          <h3 className="flex-1 text-base font-bold text-gray-900">Edit Outlet</h3>
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100">
+          <h3 className="flex-1 text-base font-bold text-gray-900 dark:text-gray-100">Edit Outlet</h3>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
             <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -250,27 +251,18 @@ export default function EditOutletModal({ outlet, onClose, onUpdated }) {
 
         <div className="px-6 py-5 space-y-5">
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Outlet Type *</label>
-            <div className="relative">
-              <select
-                value={outletType}
-                onChange={(e) => setOutletType(e.target.value)}
-                className={`${inputBase} appearance-none`}
-              >
-                {OUTLET_TYPE_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-              <svg className="absolute right-3 top-3.5 w-4 h-4 text-gray-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Outlet Type *</label>
+            <Select
+              value={outletType}
+              onChange={setOutletType}
+              options={OUTLET_TYPE_OPTIONS}
+              placeholder="eg : Outlet"
+              className="bg-emerald-50 dark:bg-emerald-500/10 text-gray-700 dark:text-gray-100"
+            />
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Description</label>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Description</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -280,7 +272,7 @@ export default function EditOutletModal({ outlet, onClose, onUpdated }) {
             />
           </div>
 
-          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 cursor-pointer">
+          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer">
             <input
               type="checkbox"
               checked={isActive}
@@ -291,22 +283,22 @@ export default function EditOutletModal({ outlet, onClose, onUpdated }) {
           </label>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Outlet Location</label>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Outlet Location</label>
             <LocationEditor location={location} onSelectPlace={setLocation} />
           </div>
         </div>
 
-        <div className="px-6 py-4 border-t border-gray-100 flex gap-3">
+        <div className="px-6 py-4 flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 border border-gray-200 text-gray-600 font-semibold py-2.5 rounded-xl text-sm hover:bg-gray-50"
+            className="flex-1 text-gray-600 dark:text-gray-300 font-semibold py-2.5 rounded-xl text-sm hover:bg-gray-50 dark:hover:bg-gray-700"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
             disabled={submitting || !outletType}
-            className="flex-1 flex items-center justify-center gap-2 bg-emerald-500 text-white font-bold py-2.5 rounded-xl text-sm tracking-wide shadow-sm shadow-emerald-100 hover:bg-emerald-600 transition-colors disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-300 disabled:shadow-none"
+            className="flex-1 flex items-center justify-center gap-2 bg-emerald-500 text-white font-bold py-2.5 rounded-xl text-sm tracking-wide shadow-sm shadow-emerald-100 hover:bg-emerald-600 transition-colors disabled:cursor-not-allowed disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:text-gray-300 disabled:shadow-none"
           >
             {submitting ? (
               <>

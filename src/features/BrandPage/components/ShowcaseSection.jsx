@@ -4,7 +4,7 @@ import ShowcaseGroup from "./ShowcaseGroup";
 const ShowcaseSection = ({ showcase, onUpload, onAddMore }) => {
   return (
     <section>
-      <h2 className="text-xs font-bold uppercase tracking-wide text-gray-700">
+      <h2 className="text-xs font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300">
         Showcase
       </h2>
       <p className="mt-1 text-sm text-gray-500">{showcase.subtitle}</p>

@@ -12,25 +12,25 @@ const ScanQrCode = ({
   return (
     <section>
       <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center flex-shrink-0">
-          <QrCode size={18} className="text-emerald-500" />
+        <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
+          <QrCode size={18} className="text-emerald-500 dark:text-emerald-400" />
         </div>
         <div>
-          <h2 className="text-sm font-bold text-gray-900">Scan QR Code</h2>
+          <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100">Scan QR Code</h2>
           <p className="mt-0.5 text-xs text-gray-400">{subtitle}</p>
         </div>
       </div>
 
-      <div className="mt-4 rounded-2xl border border-gray-100 shadow-sm">
+      <div className="mt-4 rounded-2xl shadow-sm">
         <div className="flex items-center justify-between gap-4 px-5 py-6">
-          <p className="text-xs font-medium text-gray-800">{note}</p>
+          <p className="text-xs font-medium text-gray-800 dark:text-gray-100">{note}</p>
 
           <div className="flex shrink-0 items-center gap-3">
             <button
               type="button"
               onClick={() => setShowPreview((prev) => !prev)}
               aria-label={showPreview ? "Hide QR code" : "Preview QR code"}
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
+              className="flex h-9 w-9 items-center justify-center rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             >
               {showPreview ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
@@ -45,11 +45,11 @@ const ScanQrCode = ({
         </div>
 
         {showPreview && (
-          <div className="flex justify-center border-t border-gray-100 px-5 py-6">
+          <div className="flex justify-center px-5 py-6">
             <img
               src={qrImageUrl}
               alt="QR code"
-              className="h-40 w-40 rounded-xl border border-gray-100"
+              className="h-40 w-40 rounded-xl"
             />
           </div>
         )}

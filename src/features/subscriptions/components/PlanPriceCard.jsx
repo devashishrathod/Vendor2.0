@@ -84,9 +84,9 @@ export default function PlanPriceCard({ plans = [], selectedId, onPurchase, load
   if (loading) {
     return (
       <div className="text-center py-6">
-        <div className="h-8 w-72 bg-gray-100 rounded mx-auto mb-4 animate-pulse" />
-        <div className="h-10 w-40 bg-gray-100 rounded mx-auto mb-6 animate-pulse" />
-        <div className="h-12 w-full max-w-xl bg-gray-100 rounded-xl mx-auto animate-pulse" />
+        <div className="h-8 w-72 bg-gray-100 dark:bg-gray-700 rounded mx-auto mb-4 animate-pulse" />
+        <div className="h-10 w-40 bg-gray-100 dark:bg-gray-700 rounded mx-auto mb-6 animate-pulse" />
+        <div className="h-12 w-full max-w-xl bg-gray-100 dark:bg-gray-700 rounded-xl mx-auto animate-pulse" />
       </div>
     );
   }
@@ -122,12 +122,12 @@ export default function PlanPriceCard({ plans = [], selectedId, onPurchase, load
   return (
     <div className="text-center py-6">
       {/* Title */}
-      <h2 className="text-3xl font-bold text-gray-900 mb-1">Subscribe to {plan.name}</h2>
+      <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-1">Subscribe to {plan.name}</h2>
       {plan.description && <p className="text-sm text-gray-400 mb-5">{plan.description}</p>}
 
       {/* Price row */}
       <div className="flex items-baseline justify-center gap-3 mb-1">
-        <span className="text-4xl font-bold text-gray-900">₹ {fmt(effectivePrice)}</span>
+        <span className="text-4xl font-bold text-gray-900 dark:text-gray-100">₹ {fmt(effectivePrice)}</span>
         <span className="text-gray-400 text-base font-medium">/ {billingLabel(plan.type)}</span>
       </div>
 
@@ -157,7 +157,7 @@ export default function PlanPriceCard({ plans = [], selectedId, onPurchase, load
         onClick={() => (isCurrentPlan ? setShowCurrentPlanModal(true) : onPurchase(plan))}
         className={`w-full max-w-xl mx-auto flex items-center justify-center py-4 rounded-xl font-bold text-base tracking-wide transition-all duration-200 ${
           isCurrentPlan
-            ? "bg-gray-200 text-gray-500 hover:bg-gray-300"
+            ? "bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-700"
             : "bg-emerald-500 hover:bg-emerald-600 active:scale-[0.98] text-white shadow-lg shadow-emerald-200"
         }`}
       >
@@ -169,11 +169,11 @@ export default function PlanPriceCard({ plans = [], selectedId, onPurchase, load
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
           onClick={(e) => { if (e.target === e.currentTarget) setShowCurrentPlanModal(false); }}
         >
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center">
-            <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center">
+            <div className="w-12 h-12 rounded-full bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto mb-4">
               <CheckCircle2 className="w-6 h-6" />
             </div>
-            <h3 className="text-lg font-bold text-gray-900 mb-1.5">You're already on {plan.name}</h3>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1.5">You're already on {plan.name}</h3>
             <p className="text-sm text-gray-500 mb-5">
               This is your current active plan, so there's nothing to purchase here. Pick a different plan above if
               you'd like to upgrade or switch.

@@ -31,13 +31,13 @@ function VerifiedBadge({ verifiedAt }) {
 function InfoCard({ icon, title, subtitle, verified, verifiedAt, children }) {
   const [collapsed, setCollapsed] = useState(false);
   return (
-    <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+    <section className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center flex-shrink-0">
+        <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
           {icon}
         </div>
         <div className="flex-1">
-          <h2 className="text-sm font-bold text-gray-900">{title}</h2>
+          <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100">{title}</h2>
           <p className="text-xs text-gray-400 mt-0.5">{subtitle}</p>
         </div>
         {verified && <VerifiedBadge verifiedAt={verifiedAt} />}
@@ -54,7 +54,7 @@ function InfoCard({ icon, title, subtitle, verified, verifiedAt, children }) {
         </button>
       </div>
 
-      {!collapsed && <div className="mt-5 rounded-xl border border-gray-100 p-5">{children}</div>}
+      {!collapsed && <div className="mt-5 rounded-xl p-5">{children}</div>}
     </section>
   );
 }
@@ -76,7 +76,7 @@ function GstCard({ gst }) {
   return (
     <InfoCard
       icon={
-        <FileText className="w-5 h-5 text-emerald-500" strokeWidth={1.8} />
+        <FileText className="w-5 h-5 text-emerald-500 dark:text-emerald-400" strokeWidth={1.8} />
       }
       title="GST Information"
       subtitle="Your business's registered GST details."
@@ -105,7 +105,7 @@ function GstCard({ gst }) {
             {gst.natureOfBusiness.map((item) => (
               <span
                 key={item}
-                className="text-xs font-medium text-gray-600 bg-gray-50 border border-gray-100 rounded-full px-3 py-1"
+                className="text-xs font-medium text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 rounded-full px-3 py-1"
               >
                 {item}
               </span>
@@ -119,7 +119,7 @@ function GstCard({ gst }) {
           <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400 mb-2">
             Registered Address
           </p>
-          <p className="text-sm text-gray-800 mb-4">{formatGstAddress(address)}</p>
+          <p className="text-sm text-gray-800 dark:text-gray-100 mb-4">{formatGstAddress(address)}</p>
           <div className="grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
             <InfoItem label="Building Number" value={address.buildingNumber || "—"} />
             <InfoItem label="Building Name" value={address.buildingName || "—"} />
@@ -138,7 +138,7 @@ function GstCard({ gst }) {
 function PanCard({ pan }) {
   return (
     <InfoCard
-      icon={<IdCard className="w-5 h-5 text-emerald-500" strokeWidth={1.8} />}
+      icon={<IdCard className="w-5 h-5 text-emerald-500 dark:text-emerald-400" strokeWidth={1.8} />}
       title="PAN Information"
       subtitle="Your business's registered PAN details."
       verified={pan?.isVerified}
@@ -163,12 +163,12 @@ function PanCard({ pan }) {
 const GstPanSection = ({ gst, pan }) => {
   if (!gst && !pan) {
     return (
-      <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+      <section className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6">
         <div className="flex items-center gap-3 mb-1">
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center flex-shrink-0">
-            <FileText className="w-5 h-5 text-emerald-500" strokeWidth={1.8} />
+          <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
+            <FileText className="w-5 h-5 text-emerald-500 dark:text-emerald-400" strokeWidth={1.8} />
           </div>
-          <h2 className="text-sm font-bold text-gray-900">GST &amp; PAN Information</h2>
+          <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100">GST &amp; PAN Information</h2>
         </div>
         <p className="mt-2 text-sm text-gray-400">Not available yet.</p>
       </section>

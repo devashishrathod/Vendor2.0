@@ -2,6 +2,11 @@
 
 @import "tailwindcss";
 
+/* Class-based dark mode (Tailwind v4) — `dark:` utilities fire whenever
+   the `dark` class is present on <html> or an ancestor, toggled by
+   ThemeContext.jsx, instead of only following the OS's prefers-color-scheme. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   --font-display: "DM Serif Display", ui-serif, serif;
@@ -22,4 +27,25 @@ body {
   font-family: var(--font-sans);
   background-color: #ffffff;
   color: #111827;
+}
+
+/* Same palette SettingsPage.jsx's Appearance preview already used
+   (bg-gray-900 page / bg-gray-800 cards / text-gray-100 headings) —
+   the base page background+text now follow the same `dark` class every
+   `dark:` utility elsewhere in the app responds to. */
+html.dark body {
+  background-color: #111827;
+  color: #f3f4f6;
+}
+
+/* Hides the horizontal scrollbar track on wide tables (Settlement/Voucher/
+   Transaction/etc.) while keeping the scrolling itself fully working —
+   via touch, trackpad, or shift+wheel. Applied alongside `overflow-x-auto`
+   on each table's own wrapper div, never on the whole page. */
+.no-scrollbar {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* old Edge/IE */
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, new Edge */
 }

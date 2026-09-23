@@ -4,7 +4,7 @@ import InfoItem from "./InfoItem";
 const CategoryTagSection = ({ categoryTagLine }) => {
   return (
     <section>
-      <h2 className="text-xs font-bold uppercase tracking-wide text-gray-700">
+      <h2 className="text-xs font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300">
         Category Tag Line
       </h2>
       <p className="mt-2 text-sm text-gray-500">

@@ -34,12 +34,12 @@ function InfoRow({ icon: Icon, label, value, copyable, valueNode, valueClassName
   };
 
   return (
-    <div className="flex items-center justify-between gap-4 py-3 border-b border-gray-50 last:border-0">
+    <div className="flex items-center justify-between gap-4 py-3">
       <span className="flex items-center gap-2.5 text-sm text-gray-500 shrink-0">
         <Icon className="w-4 h-4 text-gray-400" />
         {label}
       </span>
-      <span className={`flex items-center gap-2 text-sm font-semibold text-gray-800 text-right break-words ${valueClassName}`}>
+      <span className={`flex items-center gap-2 text-sm font-semibold text-gray-800 dark:text-gray-100 text-right break-words ${valueClassName}`}>
         {valueNode ?? (value ?? "—")}
         {copyable && value && (
           <button
@@ -64,12 +64,12 @@ function DescriptionRow({ icon: Icon, label, value }) {
   const shown = expanded || !isLong ? text : `${text.slice(0, 140)}…`;
 
   return (
-    <div className="flex items-start gap-2.5 py-3 border-b border-gray-50 last:border-0">
-      <span className="flex items-center gap-2.5 text-sm font-semibold text-gray-700 shrink-0">
+    <div className="flex items-start gap-2.5 py-3">
+      <span className="flex items-center gap-2.5 text-sm font-semibold text-gray-700 dark:text-gray-300 shrink-0">
         <Icon className="w-4 h-4 text-gray-400 shrink-0" />
         {label}
       </span>
-      <p className="flex-1 text-sm font-normal text-gray-600 leading-relaxed break-words">
+      <p className="flex-1 text-sm font-normal text-gray-600 dark:text-gray-300 leading-relaxed break-words">
         {shown}
         {isLong && (
           <button
@@ -85,21 +85,21 @@ function DescriptionRow({ icon: Icon, label, value }) {
 }
 
 const ACCENTS = {
-  emerald: { bg: "bg-emerald-50", text: "text-emerald-500" },
+  emerald: { bg: "bg-emerald-50 dark:bg-emerald-500/10", text: "text-emerald-500 dark:text-emerald-400" },
   sky: { bg: "bg-sky-50", text: "text-sky-500" },
 };
 
 function SectionCard({ icon, title, subtitle, accent = "emerald", action, children, className }) {
   const color = ACCENTS[accent];
   return (
-    <div className={cx("bg-white border border-gray-100 rounded-2xl p-5 sm:p-6 flex flex-col", className)}>
+    <div className={cx("bg-white dark:bg-gray-800 rounded-2xl p-5 sm:p-6 flex flex-col", className)}>
       <div className="flex flex-wrap items-start justify-between gap-3 mb-1">
         <div className="flex items-center gap-3">
           <div className={cx("flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl", color.bg, color.text)}>
             {icon}
           </div>
           <div>
-            <h3 className="text-base font-bold text-gray-900">{title}</h3>
+            <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">{title}</h3>
             {subtitle && <p className="text-xs text-gray-400 mt-0.5">{subtitle}</p>}
           </div>
         </div>
@@ -149,10 +149,10 @@ function WorkHoursRow({ label, day, isToday }) {
     <div
       className={cx(
         "flex items-center justify-between gap-4 px-3 py-2.5 rounded-lg",
-        isToday ? "bg-emerald-50" : ""
+        isToday ? "bg-emerald-50 dark:bg-emerald-500/10" : ""
       )}
     >
-      <span className="flex items-center gap-2 text-sm text-gray-600">
+      <span className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
         <span className={cx("w-1.5 h-1.5 rounded-full shrink-0", isOpen ? "bg-emerald-500" : "bg-gray-300")} />
         {label}
         {isToday && (
@@ -161,7 +161,7 @@ function WorkHoursRow({ label, day, isToday }) {
           </span>
         )}
       </span>
-      <span className={cx("text-sm font-semibold", isOpen ? "text-gray-800" : "text-gray-400")}>
+      <span className={cx("text-sm font-semibold", isOpen ? "text-gray-800 dark:text-gray-100" : "text-gray-400")}>
         {isOpen ? `${formatTime12h(day?.start)} – ${formatTime12h(day?.end)}` : "Closed"}
       </span>
     </div>
@@ -190,7 +190,7 @@ export default function OutletDetailsInfo({ outlet, brand, onEdit, onEditLocatio
         action={
           <button
             onClick={onEdit}
-            className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 bg-emerald-50 rounded-lg px-3 py-1.5 hover:bg-emerald-100 transition-colors"
+            className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 rounded-lg px-3 py-1.5 hover:bg-emerald-100 transition-colors"
           >
             <Pencil className="w-3.5 h-3.5" />
             Edit Details
@@ -205,7 +205,7 @@ export default function OutletDetailsInfo({ outlet, brand, onEdit, onEditLocatio
         <InfoRow icon={CalendarDays} label="Joining Date" value={outlet?.joinedDate ? new Date(outlet.joinedDate).toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" }) : "—"} />
         {/* <InfoRow icon={Clock} label="Business Since" value={businessSince} /> */}
 
-        <div className="flex flex-wrap items-center justify-between gap-3 mt-4 bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 mt-4 bg-emerald-50 rounded-xl px-4 py-3">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-emerald-500 text-white flex items-center justify-center shrink-0">
               <Store className="w-4 h-4" />
@@ -249,13 +249,13 @@ export default function OutletDetailsInfo({ outlet, brand, onEdit, onEditLocatio
             <InfoRow icon={Hash} label="Pincode" value={location.zipcode} />
 
             {hasCoords && (
-              <div className="relative mt-4 rounded-xl overflow-hidden border border-gray-100 h-56">
-                <div className="absolute left-3 top-3 z-10 flex items-center gap-2 bg-white rounded-lg shadow-md px-3 py-2">
-                  <div className="w-7 h-7 rounded-md bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+              <div className="relative mt-4 rounded-xl overflow-hidden h-56">
+                <div className="absolute left-3 top-3 z-10 flex items-center gap-2 bg-white dark:bg-gray-800 rounded-lg shadow-md px-3 py-2">
+                  <div className="w-7 h-7 rounded-md bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
                     <Store className="w-3.5 h-3.5" />
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-gray-800 lowercase leading-none">
+                    <p className="text-xs font-bold text-gray-800 dark:text-gray-100 lowercase leading-none">
                       {brand?.brandName || "Outlet"}
                     </p>
                     <p className="text-[11px] text-gray-400 leading-none mt-0.5">
@@ -265,7 +265,7 @@ export default function OutletDetailsInfo({ outlet, brand, onEdit, onEditLocatio
                 </div>
                 <iframe
                   title="Outlet location map"
-                  className="w-full h-full border-0"
+                  className="w-full h-full"
                   src={`https://maps.google.com/maps?q=${lat},${lng}&z=15&output=embed`}
                   loading="lazy"
                 />
@@ -285,7 +285,7 @@ export default function OutletDetailsInfo({ outlet, brand, onEdit, onEditLocatio
         className="lg:col-span-2"
       >
         {workHours ? (
-          <div className="divide-y divide-gray-50">
+          <div className="divide-y divide-gray-50 dark:divide-gray-700">
             {WEEK_DAYS.map(({ key, label }) => (
               <WorkHoursRow key={key} label={label} day={workHours[key]} isToday={key === todayKey} />
             ))}

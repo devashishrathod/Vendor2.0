@@ -2,15 +2,15 @@ import React from "react";
 
 const BankAccountCard = ({ account, isSelected, onSelect }) => {
   return (
-    <div className="rounded-xl border border-gray-100">
+    <div className="rounded-xl">
       <button
         type="button"
         onClick={() => onSelect(account.id)}
-        className="flex w-full items-center gap-3 border-b border-gray-100 px-5 py-4 text-left"
+        className="flex w-full items-center gap-3 px-5 py-4 text-left"
       >
         <span
-          className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 ${
-            isSelected ? "border-blue-600" : "border-gray-300"
+          className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full ${
+            isSelected ? "" : ""
           }`}
         >
           {isSelected && (
@@ -18,7 +18,7 @@ const BankAccountCard = ({ account, isSelected, onSelect }) => {
           )}
         </span>
         <div>
-          <p className="text-sm font-semibold capitalize text-gray-900">
+          <p className="text-sm font-semibold capitalize text-gray-900 dark:text-gray-100">
             {account.bankName}
           </p>
           <p
@@ -36,7 +36,7 @@ const BankAccountCard = ({ account, isSelected, onSelect }) => {
           <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
             Name on bank account
           </p>
-          <p className="mt-1 text-sm text-gray-800">
+          <p className="mt-1 text-sm text-gray-800 dark:text-gray-100">
             {account.nameOnAccount}
           </p>
         </div>
@@ -44,7 +44,7 @@ const BankAccountCard = ({ account, isSelected, onSelect }) => {
           <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
             Account number
           </p>
-          <p className="mt-1 text-sm text-gray-800">
+          <p className="mt-1 text-sm text-gray-800 dark:text-gray-100">
             {account.accountNumber}
           </p>
         </div>
@@ -52,7 +52,7 @@ const BankAccountCard = ({ account, isSelected, onSelect }) => {
           <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
             IFSC code
           </p>
-          <p className="mt-1 text-sm text-gray-800">{account.ifscCode}</p>
+          <p className="mt-1 text-sm text-gray-800 dark:text-gray-100">{account.ifscCode}</p>
         </div>
       </div>
     </div>

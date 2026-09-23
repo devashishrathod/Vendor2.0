@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useOnboardingStore, BANK_SUB } from "@/features/onboarding/store/onboardingStore";
 import { STEPS } from "@/features/onboarding/constants/steps";
+import Select from "../../../components/common/Select";
 
 const BANK_ACCOUNT_TYPES = ["SAVINGS", "CURRENT", "NRE", "NRO", "OD", "CC", "OTHER"];
 
@@ -33,17 +34,17 @@ const ReviewRow = ({ label, value, showEdit = true, onSave }) => {
   const handleCancel = () => { setInputVal(value ?? ""); setIsEditing(false); };
 
   return (
-    <div className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0 min-h-[52px]">
+    <div className="flex items-center justify-between py-3 min-h-[52px]">
       <div className="flex-1 min-w-0 pr-3">
         <p className="text-[10px] text-gray-400 font-medium mb-0.5 uppercase tracking-wide">{label}</p>
         {isEditing ? (
           <input autoFocus value={inputVal}
             onChange={(e) => setInputVal(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") handleCancel(); }}
-            className="w-full border border-emerald-300 rounded-lg px-2.5 py-1.5 text-sm
-              text-gray-800 outline-none focus:ring-2 focus:ring-emerald-200 bg-emerald-50" />
+            className="w-full rounded-lg px-2.5 py-1.5 text-sm
+              text-gray-800 outline-none focus:ring-2 focus:ring-emerald-200 bg-emerald-100 dark:bg-emerald-500/20" />
         ) : (
-          <p className="text-sm font-semibold text-gray-800 truncate">{value || "—"}</p>
+          <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{value || "—"}</p>
         )}
       </div>
       {showEdit && (
@@ -83,20 +84,19 @@ const DropdownRow = ({ label, value, onSave }) => {
   const handleCancel = () => { setSelected(value ?? ""); setIsEditing(false); };
 
   return (
-    <div className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0 min-h-[52px]">
+    <div className="flex items-center justify-between py-3 min-h-[52px]">
       <div className="flex-1 min-w-0 pr-3">
         <p className="text-[10px] text-gray-400 font-medium mb-0.5 uppercase tracking-wide">{label}</p>
         {isEditing ? (
-          <select value={selected} onChange={(e) => setSelected(e.target.value)}
-            className="w-full border border-emerald-300 rounded-lg px-2.5 py-1.5 text-sm
-              text-gray-800 outline-none focus:ring-2 focus:ring-emerald-200 bg-emerald-50 cursor-pointer">
-            <option value="" disabled>Select type</option>
-            {BANK_ACCOUNT_TYPES.map((t) => (
-              <option key={t} value={t}>{t}</option>
-            ))}
-          </select>
+          <Select
+            value={selected}
+            onChange={setSelected}
+            options={BANK_ACCOUNT_TYPES.map((t) => ({ value: t, label: t }))}
+            placeholder="Select type"
+            className="bg-emerald-100 dark:bg-emerald-500/20 text-gray-800"
+          />
         ) : (
-          <p className="text-sm font-semibold text-gray-800">{value || "—"}</p>
+          <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{value || "—"}</p>
         )}
       </div>
       <div className="flex items-center gap-1 flex-shrink-0">
@@ -170,12 +170,12 @@ export default function BankDetailsReview({ accountType, onNavigate, lastStep, l
             Edit Details
           </button>
         </div>
-        <h1 className="text-2xl font-extrabold text-gray-700 leading-tight">Review /&nbsp;Edit</h1>
+        <h1 className="text-2xl font-extrabold text-gray-700 dark:text-gray-100 leading-tight">Review /&nbsp;Edit</h1>
         <p className="text-base font-bold text-gray-500 leading-tight">Bank Details</p>
       </div>
 
       {/* Rows */}
-      <div className="w-full bg-white px-4 divide-y divide-gray-100 rounded-xl border border-gray-100">
+      <div className="w-full bg-white dark:bg-gray-800 px-4 divide-y divide-gray-100 dark:divide-gray-700 rounded-xl">
         <ReviewRow label="Bank Account Number" value={bankAccount} showEdit={true}
           onSave={(val) => {
             setField("bankAccount", val);

@@ -41,7 +41,6 @@ export default function ErrorToast({ error, onDismiss, duration = 5000 }) {
         className="fixed top-2 right-2 z-[9999]
                    max-w-[350px] w-[calc(100vw-48px)]
                    bg-gradient-to-br from-rose-700 via-red-800 to-[#1a0605]
-                   border border-rose-400/25
                    rounded-2xl px-4 py-4.5
                    flex items-start gap-3
                    shadow-[0_8px_32px_-4px_rgba(220,38,38,0.35),0_4px_16px_rgba(0,0,0,0.45)]"
@@ -64,7 +63,7 @@ export default function ErrorToast({ error, onDismiss, duration = 5000 }) {
         <button
           onClick={onDismiss}
           aria-label="Dismiss"
-          className="bg-transparent border-none cursor-pointer p-1 leading-none
+          className="bg-transparent cursor-pointer p-1 leading-none
                      text-rose-100/60 rounded-full shrink-0
                      transition-colors hover:bg-white/10 hover:text-white"
         >

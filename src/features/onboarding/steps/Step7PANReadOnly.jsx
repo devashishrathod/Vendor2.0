@@ -23,7 +23,7 @@ function DetailTile({ icon, iconBg, label, value, wide }) {
   if (!value || value === "—") return null;
   return (
     <div
-      className={`rounded-xl border border-gray-100 bg-gray-50/60 p-3 flex flex-col gap-1.5
+      className={`rounded-xl bg-gray-50/60 dark:bg-gray-700/40 p-3 flex flex-col gap-1.5
         ${wide ? "col-span-2 sm:col-span-3" : ""}`}
     >
       <div className="flex items-center gap-2">
@@ -32,7 +32,7 @@ function DetailTile({ icon, iconBg, label, value, wide }) {
           {label}
         </span>
       </div>
-      <span className="text-sm font-bold text-gray-800 leading-snug">
+      <span className="text-sm font-bold text-gray-800 dark:text-gray-100 leading-snug">
         {value}
       </span>
     </div>
@@ -230,14 +230,14 @@ export default function Step7PANReadOnly() {
         {/* ── Header ── */}
         <div className="flex items-start justify-between mb-5 ">
           <div>
-            <h2 className="text-lg font-bold text-gray-900 leading-tight">
-              PAN Verified
+            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 leading-tight">
+              Business PAN Verified
             </h2>
             <p className="text-xs text-gray-500 mt-0.5">
-              Review your details carefully before continuing
+              Review the verified details before continuing.
             </p>
           </div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border bg-emerald-50 border-emerald-200 text-emerald-700 text-[11px] font-semibold flex-shrink-0">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-semibold flex-shrink-0">
             {/* circle-check icon */}
             <svg className="w-3.5 h-3.5 fill-emerald-500" viewBox="0 0 24 24">
               <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1.41 14.08L6.7 12.2l1.41-1.42 2.48 2.49 5.31-5.32 1.41 1.42-6.72 6.71z" />
@@ -247,7 +247,7 @@ export default function Step7PANReadOnly() {
         </div>
 
         {/* ── PAN Card ── */}
-        <div className="relative bg-emerald-50 border border-emerald-100 rounded-2xl px-5 py-4 mb-4 flex items-center justify-between overflow-hidden">
+        <div className="relative bg-emerald-50 rounded-2xl px-5 py-4 mb-4 flex items-center justify-between overflow-hidden">
           {/* watermark */}
           <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-10 pointer-events-none">
             <svg className="w-20 h-20 text-emerald-500" fill="currentColor" viewBox="0 0 24 24">
@@ -256,7 +256,7 @@ export default function Step7PANReadOnly() {
           </div>
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-widest text-emerald-400 mb-1">
-              PAN Number
+              Business PAN
             </p>
             <div className="flex items-center gap-2.5">
               {/* id-badge icon */}
@@ -280,7 +280,7 @@ export default function Step7PANReadOnly() {
         {/* ── Detail Bento Grid ── */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
           <DetailTile
-            label="Full Name"
+            label="Legal Business Name"
             value={d.fullName}
             iconBg="#EFF6FF"
             icon={
@@ -327,15 +327,14 @@ export default function Step7PANReadOnly() {
         </div>
 
         {/* ── Warning Notice ── */}
-        <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 flex items-start gap-2.5 mb-4">
+        <div className="bg-amber-50 rounded-xl px-4 py-3 flex items-start gap-2.5 mb-4">
           <div className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0 mt-0.5">
             <svg className="w-3.5 h-3.5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
             </svg>
           </div>
           <p className="text-xs text-amber-700 leading-relaxed flex-1">
-            Please verify these details carefully. Incorrect PAN details may
-            cause issues during payment processing.
+            Please confirm that these details match your business records.
           </p>
           <div className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0 mt-0.5">
             <svg className="w-3.5 h-3.5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -350,8 +349,8 @@ export default function Step7PANReadOnly() {
             // onClick={() => setSubStep(BIZ_SUB.PAN_VERIFICATION)}
             onClick={() => setShowConfirm(true)}
             disabled={posting}
-            className="flex-1 py-2.5 rounded-xl border border-gray-200 bg-white
-              hover:border-gray-300 hover:bg-gray-50 text-gray-600 text-sm font-semibold
+            className="flex-1 py-2.5 rounded-xl bg-white dark:bg-gray-800
+              hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 text-sm font-semibold
               transition-all duration-200 active:scale-[0.98] flex items-center justify-center
               gap-2 disabled:opacity-50"
           >

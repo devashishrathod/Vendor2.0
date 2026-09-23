@@ -285,28 +285,36 @@ export async function verifyEmailOtp({ otp, email }) {
 // ══════════════════════════════════════════════════════════════
 // MOBILE VERIFICATION
 // ══════════════════════════════════════════════════════════════
-// ⚠️ TEMPORARY MOCK — there is no confirmed real "send/verify mobile OTP"
-// backend endpoint yet, so these two just fake a network round-trip
-// (setTimeout) instead of calling `api.post(...)`. Wired up per explicit
-// instruction so the UI/UX can be built and tested now; swap the bodies
-// below for real `api.post('/auth/mobile/...')` calls once that endpoint
-// is confirmed — the function signatures are already shaped to match
-// sendEmailVerification/verifyEmailOtp above so that swap should be a
-// drop-in change.
 
-// ── Send Mobile Verification Code (MOCK) ───────────────────────
+// ── Send Mobile Verification Code ──────────────────────────────
+// POST {{TryDood2.0BaseUrl}}/auth/mobile/send-verification
+// body: { mobile } — confirmed from Postman (mirrors
+// sendEmailVerification's endpoint shape, email → mobile).
+// ⚠️ The response's field name for the session id used by the verify
+// call below is NOT confirmed from a real success sample — only a 500
+// error response was shown. Reading it as `data.sessionId`, matching
+// the `sessionId` field the verify endpoint expects in its body and the
+// `sentTo` pattern sendEmailVerification already uses — verify against
+// a real success response and correct this if it turns out wrong.
 export async function sendMobileVerification(mobile) {
-    await new Promise((resolve) => setTimeout(resolve, 600));
-    return { data: { sentTo: mobile } };
+    try {
+        const { data } = await api.post('/auth/mobile/send-verification', { mobile });
+        return data;
+    } catch (error) {
+        handleError(error);
+    }
 }
 
-// ── Verify Mobile OTP (MOCK) — accepts any non-empty OTP ───────
-export async function verifyMobileOtp({ otp, mobile }) {
-    await new Promise((resolve) => setTimeout(resolve, 600));
-    if (!otp || !otp.trim()) {
-        throw new Error("Invalid or expired code. Please try again.");
+// ── Verify Mobile OTP ────────────────────────────────────────────
+// POST {{TryDood2.0BaseUrl}}/auth/mobile/verify
+// body: { mobile, otp, sessionId } — confirmed from Postman.
+export async function verifyMobileOtp({ mobile, otp, sessionId }) {
+    try {
+        const { data } = await api.post('/auth/mobile/verify', { mobile, otp, sessionId });
+        return data;
+    } catch (error) {
+        handleError(error);
     }
-    return { data: { verified: true, mobile } };
 }
 
 // ══════════════════════════════════════════════════════════════

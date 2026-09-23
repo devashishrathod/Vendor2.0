@@ -46,11 +46,11 @@ export default function UpgradeBanner({ onClick, isLoading = false, planName }) 
             if (e.target === e.currentTarget) setShowTopPlanModal(false);
           }}
         >
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center">
-            <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center">
+            <div className="w-12 h-12 rounded-full bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto mb-4">
               <CheckCircle2 className="w-6 h-6" />
             </div>
-            <h3 className="text-lg font-bold text-gray-900 mb-1.5">You're on our top plan</h3>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1.5">You're on our top plan</h3>
             <p className="text-sm text-gray-500 mb-5">
               {planName} already includes everything Trydood offers — there's no higher plan to upgrade to right
               now.

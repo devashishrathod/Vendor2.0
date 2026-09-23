@@ -1,7 +1,7 @@
 export default function ConfirmModal({ title, description, onConfirm, onCancel }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-lg p-6 w-full max-w-sm">
+      <div className="bg-white rounded-2xl shadow-lg p-6 w-full max-w-sm">
         <div className="flex flex-col items-center text-center gap-3">
           <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center">
             <svg className="w-6 h-6 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -16,7 +16,7 @@ export default function ConfirmModal({ title, description, onConfirm, onCancel }
         <div className="flex gap-3 mt-5">
           <button
             onClick={onCancel}
-            className="flex-1 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-600 text-sm font-semibold hover:bg-gray-50 transition-all"
+            className="flex-1 py-2.5 rounded-xl bg-white text-gray-600 text-sm font-semibold hover:bg-gray-50 transition-all"
           >
             Cancel
           </button>
