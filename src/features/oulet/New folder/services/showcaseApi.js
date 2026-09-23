@@ -261,15 +261,39 @@ export async function createShowcaseSectionWithMedia(
 }
 
 
-// ── Get Full Brand Showcase (sections + their media, ONE call) ───
-// GET {{TryDood2.0ServerUrl}}/showcase/get-brand-showcase/:brandId
-// Replaces the separate getShowcaseSections() list call for hydration —
-// this single endpoint returns every section AND its media already
-// nested, which is exactly what ShowcaseAlbumsEditor needs to prefill.
-export async function getBrandShowcase(brandId) {
+// ── Get Full Brand Showcase (sections + their media) ─────────────
+// Built from the two CONFIRMED real routes — router.get("/section/get-all")
+// and router.get("/section/get/:sectionId") — instead of the old single
+// get-brand-showcase call: first list every section, then fetch each one's
+// full detail (its media included) individually, one section at a time.
+// Combined into the same { data: { sections: [...] } } shape the old
+// version returned, so ShowcaseAlbumsEditor's hydration mapping downstream
+// doesn't need to change.
+// `brandId` is kept as a param only for call-site compatibility — the
+// real get-all route takes no brandId (it's scoped by the auth token via
+// isVendorOrAdmin), so it's unused here.
+// ⚠️ Field names inside each list/detail response aren't confirmed from a
+// real Postman sample yet (same caveat as getShowcaseSections/
+// getShowcaseSectionById above) — this reads the common `data`/`sections`/
+// array fallbacks the rest of this file already uses; verify against a
+// real response and adjust if a field comes back under a different key.
+export async function getBrandShowcase(brandId) { // eslint-disable-line no-unused-vars
     try {
-        const { data } = await api.get(`/showcase/get-brand-showcase/${brandId}`);
-        return data;
+        const listRes = await getShowcaseSections();
+        const listPayload = listRes?.data ?? listRes ?? {};
+        const sectionsList = listPayload.sections || listPayload.data || (Array.isArray(listPayload) ? listPayload : []);
+
+        const sections = await Promise.all(
+            (Array.isArray(sectionsList) ? sectionsList : []).map(async (s) => {
+                const sectionId = s._id || s.id;
+                if (!sectionId) return s;
+                const detailRes = await getShowcaseSectionById(sectionId);
+                const detailPayload = detailRes?.data ?? detailRes ?? {};
+                return detailPayload.section || detailPayload;
+            })
+        );
+
+        return { data: { sections } };
     } catch (error) {
         handleError(error);
     }

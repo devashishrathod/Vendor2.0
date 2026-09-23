@@ -108,38 +108,50 @@ export default function ShowcaseAlbumsEditor({ albums, onChange, brandId }) {
         const payload = res?.data ?? res ?? {};
         const sectionsRaw = payload.sections || payload.showcaseSections || (Array.isArray(payload) ? payload : []);
 
-        const mapped = (Array.isArray(sectionsRaw) ? sectionsRaw : []).map((s) => ({
-          id: s._id || `alb${albumIdCounter++}`,
-          name: s.title || s.name || "",
-          status: "idle",
-          error: "",
-          persisted: true,
-          media: (s.medias || s.media || []).map((m) => {
-            const rawUrl = m.url || m.mediaUrl || m.path || "";
-            return {
-              id: m._id || `sm${showcaseMediaIdCounter++}`,
-              // FIX: server sends "PHOTO"/"VIDEO" (uppercase). Lowercase it
-              // so it matches the "video"/"image" checks used everywhere
-              // else in this component. Only fall back to sniffing the
-              // file extension if the server didn't send a type at all.
-              type: m.type
-                ? String(m.type).toLowerCase() === "photo"
-                  ? "image"
-                  : String(m.type).toLowerCase()
-                : /\.(mp4|mov|webm)(\?|$)/i.test(rawUrl)
-                  ? "video"
-                  : "image",
-              file: null,
-              preview: rawUrl,
-              thumbnail: m.thumbnail || rawUrl,
-              month: m.month || "",
-              isShowInVideoClips: !!m.isShowInVideoClips,
-              status: "idle",
-              error: "",
-              persisted: true,
-            };
-          }),
-        }));
+        // CONFIRMED real response (GET /section/get/:sectionId): section
+        // fields are flat (_id, title, ...), but its media list is a
+        // PAGINATED object — `media: { page, limit, total, totalPages,
+        // data: [...] }` — not a bare array, and each item's url/thumbnail
+        // live one level down under its own `media: { url, thumbnail, ... }`
+        // (same nested shape the add-media response uses). `s.medias` /
+        // flat `m.url` kept as fallbacks only in case the list endpoint
+        // (as opposed to this detail one) ever returns a plain array.
+        const mapped = (Array.isArray(sectionsRaw) ? sectionsRaw : []).map((s) => {
+          const mediaList = s.media?.data || s.medias || (Array.isArray(s.media) ? s.media : []) || [];
+          return {
+            id: s._id || `alb${albumIdCounter++}`,
+            name: s.title || s.name || "",
+            status: "idle",
+            error: "",
+            persisted: true,
+            media: mediaList.map((m) => {
+              const mediaData = m.media || {};
+              const rawUrl = mediaData.url || m.url || m.mediaUrl || m.path || "";
+              return {
+                id: m._id || `sm${showcaseMediaIdCounter++}`,
+                // FIX: server sends "PHOTO"/"VIDEO" (uppercase). Lowercase it
+                // so it matches the "video"/"image" checks used everywhere
+                // else in this component. Only fall back to sniffing the
+                // file extension if the server didn't send a type at all.
+                type: m.type
+                  ? String(m.type).toLowerCase() === "photo"
+                    ? "image"
+                    : String(m.type).toLowerCase()
+                  : /\.(mp4|mov|webm)(\?|$)/i.test(rawUrl)
+                    ? "video"
+                    : "image",
+                file: null,
+                preview: rawUrl,
+                thumbnail: mediaData.thumbnail || m.thumbnail || rawUrl,
+                month: m.month || "",
+                isShowInVideoClips: !!m.isShowInVideoClips,
+                status: "idle",
+                error: "",
+                persisted: true,
+              };
+            }),
+          };
+        });
 
         if (mapped.length) onChange(mapped);
       } catch (err) {
