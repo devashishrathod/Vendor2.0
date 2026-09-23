@@ -183,11 +183,12 @@ export async function updateLocation(id, rawPatch = {}) {
 }
 
 // ── Delete Location ───────────────────────────────────────────────
-// DELETE {{TryDood2.0BaseUrl}}/locations/:id
+// CONFIRMED from Postman: DELETE {{base_url}}/locations/delete/{{location_id}}
+// (not /locations/:id — that was the wrong guessed path).
 export async function deleteLocation(id) {
     console.log('[locationApi] deleteLocation → id:', id);
     try {
-        const { data } = await api.delete(`/locations/${id}`);
+        const { data } = await api.delete(`/locations/delete/${id}`);
         console.log('[locationApi] deleteLocation ← response:', data);
         return data;
     } catch (error) {

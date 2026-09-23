@@ -17,6 +17,7 @@ import {
 } from "../services/brandOutletApi";
 import {
   createLocation,
+  deleteLocation,
   mapLocationToSelectedPlace,
   buildLocationPayloadFromPlace,
   hasValidCoordinates,
@@ -253,8 +254,28 @@ export default function CreateBrandOutlet() {
   // ⚠️ FIXED: now passes subBrandId (not brandId) into the payload builder,
   // per the confirmed backend schema — a Brand Outlet's location is a
   // subBrand-level address (isSubBrandAddress: true), not a brand-level one.
-  const persistSelectedPlace = useCallback((place) => {
+  // ⚠️ FIXED: "Clear" (and picking a different search result) used to only
+  // reset local state — the previously-saved location was never actually
+  // removed server-side. The backend only allows ONE location per subBrand
+  // ("This already has an address. Delete the existing one before adding
+  // another."), so the next save (or the very next pick, without Clear in
+  // between) would fail with that exact error. Both paths below now delete
+  // the existing saved location first.
+  const persistSelectedPlace = useCallback(async (place) => {
     if (!place) {
+      if (savedLocationId) {
+        setLocationSaving(true);
+        try {
+          await deleteLocation(savedLocationId);
+        } catch (err) {
+          setLocationSaving(false);
+          const msg = err.message || "Couldn't remove the saved location. Try again.";
+          setLocationSaveError(msg);
+          showError(msg);
+          return; // delete failed — still saved server-side, don't pretend it's cleared
+        }
+        setLocationSaving(false);
+      }
       setSavedLocationId(null);
       setLocationSaveError("");
       return;
@@ -287,8 +308,22 @@ export default function CreateBrandOutlet() {
       showError(msg);
       return;
     }
+    // A location is already saved server-side (e.g. the vendor picked a
+    // different search result without clicking Clear first) — remove it
+    // before creating the new one, or the backend 422s with "This already
+    // has an address. Delete the existing one before adding another."
+    if (savedLocationId) {
+      try {
+        await deleteLocation(savedLocationId);
+      } catch (err) {
+        const msg = err.message || "Couldn't remove the previous location. Try again.";
+        setLocationSaveError(msg);
+        showError(msg);
+        return;
+      }
+    }
     persistLocationPayload(payload);
-  }, [subBrandId, persistLocationPayload, showError]);
+  }, [subBrandId, savedLocationId, persistLocationPayload, showError]);
 
   // ⚠️ CHANGED: the GST checkbox no longer auto-geocodes or auto-saves
   // anything. It used to forward-geocode the raw GST address text and
