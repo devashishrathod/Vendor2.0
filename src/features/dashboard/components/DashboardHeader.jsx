@@ -4,6 +4,7 @@ import { useLogout } from "@/hooks/useLogout";
 import { useBrand } from "@/hooks/useBrand";
 import logo from "@/assets/Logo1.jpg";
 import NotificationBell from "./NotificationBell";
+import ThemeToggleButton from "@/components/common/ThemeToggleButton";
 
 const NAV_TABS = [
   { label: "Dashboard", to: "/analysis-report" },
@@ -108,6 +109,7 @@ export default function DashboardHeader() {
 
         {/* ── Right: Notifications + Avatar + Hamburger ── */}
         <div className="flex items-center gap-2 flex-1 justify-end">
+          <ThemeToggleButton />
           <NotificationBell />
 
           <div className="relative" ref={profileRef}>

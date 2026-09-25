@@ -5,13 +5,12 @@ import { getSubBrands } from "@/features/voucher/services/voucher/VoucherService
 // import CategoryTagSection from "../components/CategoryTagSection";
 
 const BrandProfilePage = ({ brand, brandId, brandLoading, brandError, reload }) => {
-  // Real outlet count for the "Outlet Count" field — same GET
-  // /subBrands/get-all?brandId= the Voucher Details page uses.
+  // Real outlet count for the "Outlet Count" field.
   const [outletCount, setOutletCount] = useState(null);
   useEffect(() => {
     if (!brandId) return;
     let cancelled = false;
-    getSubBrands({ brandId, limit: 200 })
+    getSubBrands({ brandId, limit: 100 })
       .then((res) => {
         if (cancelled) return;
         setOutletCount(res?.data?.total ?? res?.data?.data?.length ?? 0);

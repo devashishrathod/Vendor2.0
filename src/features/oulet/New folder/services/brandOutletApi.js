@@ -24,7 +24,15 @@ function handleError(error) {
         error?.response?.data?.error ||
         error?.message ||
         'Something went wrong. Please try again.';
-    throw new Error(message);
+    const err = new Error(message);
+    // Confirmed real shape on the OTP-send rate-limit rejection: { success:
+    // false, message: "We have already sent you a code...", details: {
+    // retryAfterSeconds } }. Carried onto the thrown Error (not just the
+    // message string) so callers like useWhatsappOtp's sendOtp/resetOtp can
+    // tell "an OTP genuinely already went out, still enter it" apart from a
+    // real failure, instead of just surfacing this as a dead-end error.
+    if (error?.response?.data?.details) err.details = error.response.data.details;
+    throw err;
 }
 
 export const OUTLET_TYPES = { OUTLET: 'OUTLET', FRANCHISE: 'FRANCHISE' };

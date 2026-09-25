@@ -147,6 +147,7 @@
 
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import HeroBanner from "../components/HeroBanner";
 import PlanTabs from "../components/PlanTabs";
 import PlanPriceCard from "../components/PlanPriceCard";
@@ -160,10 +161,18 @@ import { getCurrentSubscription } from "../services/subscriptionApi";
 export default function SubscriptionPlan({
   businessName: propBusinessName = "Yoga Education and Research Pvt Ltd",
 }) {
-  useBlockBack();
   const navigate = useNavigate();
   const { state } = useLocation();
   const { handleLogout } = useLogout();
+  // ⚠️ FIXED: this page is reached two different ways — mid-onboarding
+  // (no state.returnTo — the vendor genuinely shouldn't be able to back
+  // out of choosing a plan there) and via an existing vendor's "Upgrade"
+  // button from the Plan & Billing page (state.returnTo set by
+  // useSubscription's goToPlans). useBlockBack() used to run
+  // unconditionally, so the Upgrade path was ALSO trapped — no browser
+  // back, and no way back to Plan & Billing short of re-typing the URL.
+  // Only block when there's genuinely nowhere real to go back to.
+  useBlockBack(!state?.returnTo);
 
   const { brand, loading: brandLoading } = useBrand();
 
@@ -248,6 +257,18 @@ export default function SubscriptionPlan({
             "radial-gradient(ellipse at bottom left, rgba(16,185,129,0.15) 0%, transparent 70%)",
         }}
       />
+
+      {state?.returnTo && (
+        <div className="absolute top-4 left-5 z-20">
+          <button
+            onClick={() => navigate(state.returnTo)}
+            className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-emerald-600 transition-colors duration-150 px-3 py-1.5 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-500/10"
+          >
+            <ArrowLeft size={15} />
+            Back
+          </button>
+        </div>
+      )}
 
       <div className="absolute top-4 right-5 z-20">
         <button

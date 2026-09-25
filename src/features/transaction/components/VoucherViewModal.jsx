@@ -41,7 +41,7 @@ export default function VoucherViewModal({ voucherId, onClose }) {
           <p className="text-sm text-gray-400 text-center py-16">Voucher not found.</p>
         )}
 
-        {!isLoading && !error && voucher && <VoucherDetailsInfo voucher={voucher} />}
+        {!isLoading && !error && voucher && <VoucherDetailsInfo details={voucher} />}
       </div>
     </div>
   );

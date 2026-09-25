@@ -1,5 +1,6 @@
 import Sidebar from "@/features/onboarding/components/Sidebar";
 import SuccessToast from "@/components/common/SuccessToast";
+import ThemeToggleButton from "@/components/common/ThemeToggleButton";
 
 function MobileHeader({ title, sub, onMenuOpen, pct, displayIndex, totalSteps, isLast }) {
   return (
@@ -26,25 +27,28 @@ function MobileHeader({ title, sub, onMenuOpen, pct, displayIndex, totalSteps, i
         </div>
       </div>
 
-      {!isLast && (
-        <div className="flex items-center gap-2">
-          <div className="text-right hidden sm:block">
-            <p className="text-[11px] font-bold text-emerald-600">Step {displayIndex} of {totalSteps}</p>
-            <p className="text-[9px] text-gray-400">{pct}% Complete</p>
-          </div>
-          <div className="relative w-9 h-9 flex-shrink-0">
-            <svg viewBox="0 0 36 36" className="w-9 h-9 -rotate-90">
-              <circle cx="18" cy="18" r="14" fill="none" stroke="#e5e7eb" strokeWidth="3"/>
-              <circle cx="18" cy="18" r="14" fill="none" stroke="#10b981" strokeWidth="3"
-                strokeDasharray={`${pct * 0.879} ${87.9 - pct * 0.879}`} strokeLinecap="round"/>
-            </svg>
-            <span className="absolute inset-0 flex items-center justify-center
-              text-[9px] font-black text-emerald-600">
-              {pct}%
-            </span>
-          </div>
-        </div>
-      )}
+      <div className="flex items-center gap-2">
+        {!isLast && (
+          <>
+            <div className="text-right hidden sm:block">
+              <p className="text-[11px] font-bold text-emerald-600">Step {displayIndex} of {totalSteps}</p>
+              <p className="text-[9px] text-gray-400">{pct}% Complete</p>
+            </div>
+            <div className="relative w-9 h-9 flex-shrink-0">
+              <svg viewBox="0 0 36 36" className="w-9 h-9 -rotate-90">
+                <circle cx="18" cy="18" r="14" fill="none" stroke="#e5e7eb" strokeWidth="3"/>
+                <circle cx="18" cy="18" r="14" fill="none" stroke="#10b981" strokeWidth="3"
+                  strokeDasharray={`${pct * 0.879} ${87.9 - pct * 0.879}`} strokeLinecap="round"/>
+              </svg>
+              <span className="absolute inset-0 flex items-center justify-center
+                text-[9px] font-black text-emerald-600">
+                {pct}%
+              </span>
+            </div>
+          </>
+        )}
+        <ThemeToggleButton />
+      </div>
     </header>
   );
 }
@@ -159,25 +163,28 @@ export default function OnboardingLayout({
             </div>
           </div>
 
-          {!isLast && (
-            <div className="flex items-center gap-3">
-              <div className="text-right">
-                <p className="text-xs font-bold text-emerald-600">Step {displayIndex} of {totalSteps}</p>
-                <p className="text-[10px] text-gray-400">{pct}% Complete</p>
-              </div>
-              <div className="relative w-9 h-9 flex-shrink-0">
-                <svg viewBox="0 0 36 36" className="w-9 h-9 -rotate-90">
-                  <circle cx="18" cy="18" r="15" fill="none" stroke="#e5e7eb" strokeWidth="3"/>
-                  <circle cx="18" cy="18" r="15" fill="none" stroke="#10b981" strokeWidth="3"
-                    strokeDasharray={`${pct * 0.942} ${94.2 - pct * 0.942}`} strokeLinecap="round"/>
-                </svg>
-                <span className="absolute inset-0 flex items-center justify-center
-                  text-[10px] font-black text-emerald-600">
-                  {pct}%
-                </span>
-              </div>
-            </div>
-          )}
+          <div className="flex items-center gap-3">
+            {!isLast && (
+              <>
+                <div className="text-right">
+                  <p className="text-xs font-bold text-emerald-600">Step {displayIndex} of {totalSteps}</p>
+                  <p className="text-[10px] text-gray-400">{pct}% Complete</p>
+                </div>
+                <div className="relative w-9 h-9 flex-shrink-0">
+                  <svg viewBox="0 0 36 36" className="w-9 h-9 -rotate-90">
+                    <circle cx="18" cy="18" r="15" fill="none" stroke="#e5e7eb" strokeWidth="3"/>
+                    <circle cx="18" cy="18" r="15" fill="none" stroke="#10b981" strokeWidth="3"
+                      strokeDasharray={`${pct * 0.942} ${94.2 - pct * 0.942}`} strokeLinecap="round"/>
+                  </svg>
+                  <span className="absolute inset-0 flex items-center justify-center
+                    text-[10px] font-black text-emerald-600">
+                    {pct}%
+                  </span>
+                </div>
+              </>
+            )}
+            <ThemeToggleButton />
+          </div>
         </header>
 
         <div className="flex-1 flex flex-col min-h-0 py-2 px-4 sm:py-3 sm:px-6 lg:px-8 bg-[#F8FAF7] dark:bg-gray-900 overflow-y-auto">

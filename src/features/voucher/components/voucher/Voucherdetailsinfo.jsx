@@ -1,20 +1,34 @@
 // src/components/voucher/VoucherDetailsInfo.jsx
-// "Voucher Information" / "Which Outlet Applied This Voucher?" / "Search
-// Tag" sections match the reference design exactly — real fields where
-// confirmed, "Not Found" wherever the API genuinely has no value for that
-// spot (never a fabricated number). Banner & Gallery / Offers / Review
-// Timeline below stay as they were — real data already, not part of the
-// requested redesign.
+// Rebuilt against the CONFIRMED real response of GET /vouchers/get/:voucherId:
+//   { voucher, brand, currentVersion, publishedVersion, versions, versionCount, stats }
+// `details` below is that whole object — voucherDoc = details.voucher,
+// version = details.currentVersion. Every field read here traces back to a
+// real key in that response; anywhere the API genuinely has no value shows
+// "Not Found" rather than a fabricated number. The old "Which Outlet
+// Applied" section used to make its own GET /subBrands/get-all call just to
+// get an outlet count — the real response already carries the actual
+// attached outlets (with location/type/etc.) plus outletCount/
+// liveOutletCount/totalBrandOutlets, so that extra fetch is gone.
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Tag, Store, Search, Image as ImageIcon, Percent, History, X, ZoomIn, Clock, AlertTriangle } from "lucide-react";
-import { useOnboardingStore } from "../../../onboarding/store/onboardingStore";
-import { useAuthStore } from "../../../onboarding/store/authStore";
-import useBrandData from "../../../brand/hooks/useBrandData";
-import { getSubBrands } from "../../services/voucher/VoucherService";
+import { Tag, Store, Search, Image as ImageIcon, Percent, History, X, ZoomIn, Clock, AlertTriangle, MapPin, CheckCircle2 } from "lucide-react";
 
 const NOT_FOUND = "Not Found";
+
+// Outlet descriptions come back as one run-on string with several distinct
+// marketing lines mashed together, no real delimiter between them (e.g.
+// "...60% Off* Exciting Offers..."). Splitting on a sentence-ending
+// character (. * !) followed by whitespace and a capital letter breaks
+// it back into its natural lines for display — the underlying text itself
+// is never changed, only how it's laid out.
+function splitDescriptionLines(text) {
+  if (!text) return [];
+  return text
+    .split(/(?<=[.*!])\s+(?=[A-Z])/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
 
 function formatDate(iso) {
   if (!iso) return NOT_FOUND;
@@ -24,15 +38,49 @@ function formatDate(iso) {
 }
 
 function formatINR(n) {
+  if (n == null) return NOT_FOUND;
   return `₹ ${Number(n).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-function formatDiscount(offer) {
+// ── Offer color coding ── one accent per discountType, consistent
+// everywhere an offer shows up (the card's badge, border and icon tile).
+const OFFER_THEME = {
+  FLAT: {
+    badge: "bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400",
+    icon: "bg-indigo-50 text-indigo-500 dark:bg-indigo-500/10 dark:text-indigo-400",
+    row: "border-indigo-300 dark:border-indigo-500/50 bg-indigo-50/30 dark:bg-indigo-500/[0.04]",
+  },
+  PERCENTAGE: {
+    badge: "bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400",
+    icon: "bg-amber-50 text-amber-500 dark:bg-amber-500/10 dark:text-amber-400",
+    row: "border-amber-300 dark:border-amber-500/50 bg-amber-50/30 dark:bg-amber-500/[0.04]",
+  },
+};
+const DEFAULT_OFFER_THEME = {
+  badge: "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300",
+  icon: "bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-300",
+  row: "border-gray-300 dark:border-gray-600 bg-gray-50/60 dark:bg-gray-900/30",
+};
+
+function offerHeadline(offer) {
   if (!offer) return NOT_FOUND;
-  return offer.discountType === "PERCENTAGE"
-    ? `${offer.discountValue}% off`
-    : `₹${offer.discountValue} off`;
+  return offer.discountType === "PERCENTAGE" ? `${offer.discountValue}% OFF` : `₹${offer.discountValue} OFF`;
 }
+
+const WEEK_DAYS = [
+  ["monday", "Mon"],
+  ["tuesday", "Tue"],
+  ["wednesday", "Wed"],
+  ["thursday", "Thu"],
+  ["friday", "Fri"],
+  ["saturday", "Sat"],
+  ["sunday", "Sun"],
+];
+
+const OUTLET_TYPE_THEME = {
+  OUTLET: "bg-sky-50 text-sky-600 dark:bg-sky-500/10 dark:text-sky-400",
+  FRANCHISE: "bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400",
+};
 
 // Icon-tile card header (matching the pattern used across Outlet Details/
 // Settings/Subscription elsewhere in the app) instead of a bare uppercase
@@ -106,69 +154,39 @@ function ReviewStep({ label, at, by, colorClass = "text-gray-900 dark:text-gray-
     <div>
       <p className="text-xs text-gray-400">{label}</p>
       <p className={`mt-1 text-sm font-medium ${colorClass}`}>{formatDate(at)}</p>
-      {by && <p className="text-xs text-gray-400">by {by.name || by.whatsappNumber || by.username}</p>}
+      {by && <p className="text-xs text-gray-400">by {by.name || by.username || by.whatsappNumber || by.role}</p>}
     </div>
   );
 }
 
-export default function VoucherDetailsInfo({ voucher }) {
+export default function VoucherDetailsInfo({ details }) {
   const navigate = useNavigate();
-  const [viewImage, setViewImage] = useState(null); // { src, label } | null — Banner & Gallery "view" modal
+  const [viewImage, setViewImage] = useState(null); // { src, label, kind } | null — Banner & Gallery "view" modal
 
-  // Same brandId-resolution pattern as useVoucher.js — needed to fetch
-  // this brand's real sub-brand/outlet counts for the "Which Outlet
-  // Applied This Voucher?" section below.
-  const onboardingBrandId = useOnboardingStore((s) => s.formData.brandId);
-  const authUserBrandId = useAuthStore((s) => s.user?.brandId);
-  const candidateBrandId = voucher?.brandId || onboardingBrandId || authUserBrandId;
-  const { data: brand } = useBrandData(candidateBrandId);
-  const resolvedBrandId = brand?._id || candidateBrandId;
+  const voucherDoc = details?.voucher;
+  const version = details?.currentVersion;
 
-  // GET /subBrands/get-all?brandId= — real outlet count for the whole
-  // brand, split by outletType (outlet = "Sub-Brand", franchise =
-  // "Franchise" in this page's labels). limit:200 is a pragmatic upper
-  // bound to count client-side in one call rather than paginating; if a
-  // brand genuinely has more outlets than that, this undercounts — the
-  // "Total Outlet's" figure itself still comes straight from the API's
-  // own `total`, so only the Sub-Brand/Franchise split could be affected.
-  const [outletCounts, setOutletCounts] = useState(null);
-  useEffect(() => {
-    if (!resolvedBrandId) return;
-    let cancelled = false;
-    getSubBrands({ brandId: resolvedBrandId, limit: 200 })
-      .then((res) => {
-        if (cancelled) return;
-        const list = res?.data?.data ?? [];
-        setOutletCounts({
-          total: res?.data?.total ?? list.length,
-          subBrand: list.filter((o) => o.outletType === "outlet").length,
-          franchise: list.filter((o) => o.outletType === "franchise").length,
-        });
-      })
-      .catch((err) => console.error("Failed to load outlet counts:", err.message));
-    return () => { cancelled = true; };
-  }, [resolvedBrandId]);
+  if (!voucherDoc || !version) return null;
 
-  if (!voucher) return null;
-
-  // Confirmed shape (vendor_panel_api_doc.md #59, V-4): banner is
-  // { current, pending, status, rejectionReason, reviewedBy, reviewedAt }.
-  // `current` is whatever's actually live/approved right now; a newly
-  // submitted banner sits in `pending` under admin review and never
-  // replaces `current` until approved.
-  const bannerInfo = voucher.voucher?.banner;
+  // Confirmed shape: banner lives on the voucher doc itself — { current,
+  // pending, status, rejectionReason, reviewedBy, reviewedAt }. `current`
+  // is whatever's actually live/approved right now; a newly submitted
+  // banner sits in `pending` under admin review and never replaces
+  // `current` until approved.
+  const bannerInfo = voucherDoc.banner;
   const currentBanner = bannerInfo?.current;
   const pendingBanner = bannerInfo?.status === "PENDING" ? bannerInfo?.pending : null;
   const bannerRejected = bannerInfo?.status === "REJECTED";
   const bannerUrl = currentBanner?.url || null;
   const bannerKind = currentBanner?.kind;
-  const images = Array.isArray(voucher.images) ? voucher.images : [];
-  const offers = Array.isArray(voucher.offers) ? voucher.offers : [];
-  const tags = Array.isArray(voucher.tags) ? voucher.tags : [];
-  const primaryOffer = offers[0];
-  const selectedOutletCount = Array.isArray(voucher.subBrandIds) ? voucher.subBrandIds.length : 0;
 
-  const goToEdit = () => navigate(`/vouchers/${voucher.voucherId}/edit`);
+  const images = Array.isArray(version.images) ? version.images : [];
+  const offers = Array.isArray(version.offers) ? version.offers : [];
+  const tags = Array.isArray(voucherDoc.tags) ? voucherDoc.tags : [];
+  const outlets = Array.isArray(version.outlets) ? version.outlets : [];
+  const primaryOffer = offers[0];
+
+  const goToEdit = () => navigate(`/vouchers/${voucherDoc._id}/edit`);
 
   return (
     <div className="space-y-4">
@@ -176,41 +194,41 @@ export default function VoucherDetailsInfo({ voucher }) {
       <SectionCard icon={Tag} iconBg="bg-emerald-50 dark:bg-emerald-500/10" iconText="text-emerald-500 dark:text-emerald-400" title="Voucher Information">
         <div className="grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-4">
           <Field
-            label="Voucher Id"
-            value={voucher.voucherId ? `#${voucher.voucherId}` : NOT_FOUND}
+            label="Voucher Code"
+            value={voucherDoc.voucherCode}
             action={
               <button onClick={goToEdit} className="text-xs text-blue-500 hover:underline font-medium">
                 Edit Voucher
               </button>
             }
           />
-          <Field
-            label="Voucher Version Id"
-            value={voucher.versionid || NOT_FOUND}
-          />
-          <Field label="Voucher Name" value={voucher.name} />
-          <Field label="Published Date" value={formatDate(voucher.startAt)} />
-          <Field label="Expired" value={formatDate(voucher.endAt)} />
-          <Field label="Tag Line" value={primaryOffer?.title} />
-          <Field label="Best Value" value={primaryOffer?.maxDiscountAmount != null ? formatINR(primaryOffer.maxDiscountAmount) : NOT_FOUND} />
-          <Field label="Percentage" value={primaryOffer?.discountType === "PERCENTAGE" ? `${primaryOffer.discountValue} %` : NOT_FOUND} />
+          <Field label="Version" value={version.versionCode} />
+          <Field label="Voucher Name" value={voucherDoc.name} />
+          <Field label="Category" value={version.category?.name} />
+          <Field label="Sub-Category" value={version.subCategory?.name} />
+          <Field label="Live From" value={formatDate(version.startAt)} />
+          <Field label="Expires" value={formatDate(version.endAt)} />
+          <Field label="Top Offer" value={primaryOffer?.title} />
           <Field
             label="Voucher Status"
             value={
-              <span className={voucher.status === "PUBLISHED" || voucher.status === "APPROVED" ? "text-emerald-600 font-semibold" : ""}>
-                {voucher.status || NOT_FOUND}
+              <span className={voucherDoc.status === "PUBLISHED" || voucherDoc.status === "APPROVED" ? "text-emerald-600 font-semibold" : ""}>
+                {voucherDoc.status || NOT_FOUND}
               </span>
             }
           />
         </div>
+        {voucherDoc.description && (
+          <p className="mt-5 text-sm text-gray-600 dark:text-gray-300 leading-relaxed">{voucherDoc.description}</p>
+        )}
       </SectionCard>
 
       {/* Which Outlet Applied This Voucher? */}
       <SectionCard icon={Store} iconBg="bg-sky-50" iconText="text-sky-500" title="Which Outlet Applied This Voucher?">
-        <div className="grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-4 mb-5">
           <Field
-            label="Selected Brand - Outlet's / Sub - Brand"
-            value={`Count - ${String(selectedOutletCount).padStart(2, "0")}`}
+            label="Applied Outlets"
+            value={`Count - ${String(version.outletCount ?? outlets.length).padStart(2, "0")}`}
             action={
               <button onClick={goToEdit} className="text-xs text-blue-500 hover:underline font-medium">
                 Increase - Decrease
@@ -218,18 +236,101 @@ export default function VoucherDetailsInfo({ voucher }) {
             }
           />
           <Field
-            label="Total Outlet's"
-            value={outletCounts ? `Count - ${String(outletCounts.total).padStart(2, "0")}` : NOT_FOUND}
+            label="Live Outlets"
+            value={version.liveOutletCount != null ? `Count - ${String(version.liveOutletCount).padStart(2, "0")}` : NOT_FOUND}
           />
           <Field
-            label="Sub - Brand"
-            value={outletCounts ? `Count - ${String(outletCounts.subBrand).padStart(2, "0")}` : NOT_FOUND}
+            label="Total Brand Outlets"
+            value={version.totalBrandOutlets != null ? `Count - ${String(version.totalBrandOutlets).padStart(2, "0")}` : NOT_FOUND}
           />
           <Field
-            label="Franchise"
-            value={outletCounts ? `Count - ${String(outletCounts.franchise).padStart(2, "0")}` : NOT_FOUND}
+            label="Applied On All Outlets?"
+            value={version.isAppliedOnAllOutlets == null ? NOT_FOUND : version.isAppliedOnAllOutlets ? "Yes" : "No"}
           />
         </div>
+        {outlets.length > 0 && (
+          <div className="space-y-3">
+            {outlets.map((outlet) => (
+              <div
+                key={outlet._id}
+                className="rounded-xl border border-gray-100 dark:border-gray-700 p-4"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                  <div className="flex items-center gap-2">
+                    {outlet.logo ? (
+                      <img src={outlet.logo} alt="" className="h-8 w-8 rounded-lg object-cover shrink-0" />
+                    ) : (
+                      <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${OUTLET_TYPE_THEME[outlet.outletType] || DEFAULT_OFFER_THEME.icon}`}>
+                        <Store size={14} />
+                      </span>
+                    )}
+                    <div>
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${OUTLET_TYPE_THEME[outlet.outletType] || DEFAULT_OFFER_THEME.badge}`}>
+                        {outlet.outletType || NOT_FOUND}
+                      </span>
+                      <span className="ml-2 text-xs text-gray-400">{outlet.uniqueId}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${outlet.isActive
+                        ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"
+                        : "bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400"
+                        }`}
+                    >
+                      {outlet.isActive ? "Active" : "Inactive"}
+                    </span>
+                    <span className="font-mono text-[10px] text-gray-400">{outlet.storeId}</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4 mb-3">
+                  <Field label="WhatsApp Number" value={outlet.whatsappNumber} />
+                  <Field label="Email" value={outlet.email} />
+                  <Field label="Mobile" value={outlet.mobile} />
+                  <Field label="Joined Date" value={formatDate(outlet.joinedDate)} />
+                </div>
+
+                <p className="mb-2 flex items-start gap-1 text-xs text-gray-500 dark:text-gray-400">
+                  <MapPin size={12} className="mt-0.5 shrink-0" />
+                  {outlet.location?.formattedAddress || outlet.location?.city || NOT_FOUND}
+                </p>
+
+                {outlet.description && (
+                  <div className="mb-3 flex flex-wrap gap-1.5 border-t border-gray-100 dark:border-gray-700 pt-3">
+                    {splitDescriptionLines(outlet.description).map((line, i) => (
+                      <span
+                        key={i}
+                        className="rounded-md bg-gray-50 dark:bg-gray-700 px-2 py-1 text-[10px] font-medium text-gray-600 dark:text-gray-300"
+                      >
+                        {line}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {outlet.workHours && (
+                  <div className="flex flex-wrap gap-1.5 border-t border-gray-100 dark:border-gray-700 pt-3">
+                    {WEEK_DAYS.map(([key, label]) => {
+                      const day = outlet.workHours[key];
+                      return (
+                        <span
+                          key={key}
+                          className={`rounded-md px-2 py-1 text-[10px] font-medium ${day?.isOpen
+                            ? "bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
+                            : "bg-gray-50/60 dark:bg-gray-700/40 text-gray-300 dark:text-gray-500"
+                            }`}
+                        >
+                          {label} {day?.isOpen ? `${day.start}–${day.end}` : "Closed"}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </SectionCard>
 
       {/* Search Tag */}
@@ -238,19 +339,22 @@ export default function VoucherDetailsInfo({ voucher }) {
         iconBg="bg-emerald-50 dark:bg-emerald-500/10"
         iconText="text-emerald-500 dark:text-emerald-400"
         title="Search Tag"
-        subtitle="Keywords that help users quickly find this item. Add keywords to improve search visibility."
+        subtitle="Keywords that help users quickly find this item."
       >
-        <div className="grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-4">
-          <Field
-            label="Selected Brand - Outlet's / Sub - Brand"
-            value={`Count - ${String(tags.length).padStart(2, "0")}`}
-            action={
-              <button onClick={goToEdit} className="text-xs text-blue-500 hover:underline font-medium">
-                Add Tag Line
-              </button>
-            }
-          />
-        </div>
+        {tags.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {tags.map((tag) => (
+              <span
+                key={tag}
+                className="rounded-full bg-emerald-50 dark:bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-400"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-gray-400">{NOT_FOUND}</p>
+        )}
       </SectionCard>
 
       {/* Banner & Gallery */}
@@ -284,7 +388,7 @@ export default function VoucherDetailsInfo({ voucher }) {
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-semibold text-rose-700 dark:text-rose-400">Banner Rejected</p>
                 <p className="mt-0.5 text-xs text-rose-600 dark:text-rose-400/80">
-                  {voucher.voucher?.banner?.rejectionReason || "Your submitted banner was rejected. Please submit a new one."}
+                  {bannerInfo?.rejectionReason || "Your submitted banner was rejected. Please submit a new one."}
                 </p>
               </div>
             </div>
@@ -318,7 +422,7 @@ export default function VoucherDetailsInfo({ voucher }) {
                 <button
                   type="button"
                   key={img._id}
-                  onClick={() => setViewImage({ src: img.url, label: `Gallery Image ${i + 1}` })}
+                  onClick={() => setViewImage({ src: img.media?.url, label: `Gallery Image ${i + 1}`, kind: img.media?.kind })}
                   className="group relative block h-24 w-24 overflow-hidden rounded-xl"
                 >
                   <img src={img?.media?.url} alt="" className="h-full w-full object-cover" />
@@ -331,24 +435,67 @@ export default function VoucherDetailsInfo({ voucher }) {
         </SectionCard>
       )}
 
-      {/* Offers */}
+      {/* Offers — a table, not a card grid, so it stays scannable however
+          many offers a voucher ends up with. Each row is color-keyed to
+          its discountType (indigo = FLAT, amber = PERCENTAGE) via a left
+          accent border + a tinted row background, with the discount
+          itself as a colored pill rather than a plain cell. */}
       {offers.length > 0 && (
-        <SectionCard icon={Percent} iconBg="bg-rose-50" iconText="text-rose-500" title="Offers">
-          <div className="space-y-4">
-            {offers.map((offer) => (
-              <div
-                key={offer._id}
-                className="rounded-xl p-4 grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4"
-              >
-                <Field label="Title" value={offer.title} />
-                <Field label="Discount" value={formatDiscount(offer)} />
-                <Field label="Min Bill Amount" value={`₹${offer.minBillAmount ?? 0}`} />
-                <Field label="Max Discount Cap" value={`₹${offer.maxDiscountAmount ?? 0}`} />
-                <Field label="Usage Type" value={offer.usageType} />
-                <Field label="Applicable On" value={offer.discountApplicableOn} />
-                <Field label="Active" value={offer.isActive ? "Yes" : "No"} />
-              </div>
-            ))}
+        <SectionCard icon={Percent} iconBg="bg-rose-50" iconText="text-rose-500" title="Offers" subtitle={`${offers.length} offer${offers.length > 1 ? "s" : ""} on this voucher`}>
+          <div className="overflow-x-auto -mx-1 px-1">
+            <table className="w-full min-w-[720px] border-separate border-spacing-y-2 text-left">
+              <thead>
+                <tr className="text-[11px] font-bold uppercase tracking-wide text-gray-400">
+                  <th className="pb-2 pl-3 font-bold">Offer</th>
+                  <th className="pb-2 font-bold">Discount</th>
+                  <th className="pb-2 font-bold">Min. Bill</th>
+                  <th className="pb-2 font-bold">Max Discount Cap</th>
+                  <th className="pb-2 font-bold">Usage</th>
+                  <th className="pb-2 font-bold">Applies On</th>
+                  <th className="pb-2 pr-3 text-right font-bold">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {offers
+                  .slice()
+                  .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+                  .map((offer) => {
+                    const theme = OFFER_THEME[offer.discountType] || DEFAULT_OFFER_THEME;
+                    return (
+                      <tr key={offer._id} className={`border-l-4 ${theme.row}`}>
+                        <td className="rounded-l-xl py-3 pl-3">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <span className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-xs font-bold ${theme.icon}`}>
+                              {offer.discountType === "PERCENTAGE" ? <Percent size={14} /> : "₹"}
+                            </span>
+                            <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{offer.title}</span>
+                          </div>
+                        </td>
+                        <td className="py-3">
+                          <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-bold whitespace-nowrap ${theme.badge}`}>
+                            {offerHeadline(offer)}
+                          </span>
+                        </td>
+                        <td className="py-3 text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap">{formatINR(offer.minBillAmount)}</td>
+                        <td className="py-3 text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap">{formatINR(offer.maxDiscountAmount)}</td>
+                        <td className="py-3 text-sm text-gray-700 dark:text-gray-300">{offer.usageType || NOT_FOUND}</td>
+                        <td className="py-3 text-sm text-gray-700 dark:text-gray-300">{offer.discountApplicableOn || NOT_FOUND}</td>
+                        <td className="rounded-r-xl py-3 pr-3 text-right">
+                          <span
+                            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap ${offer.isActive
+                              ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"
+                              : "bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400"
+                              }`}
+                          >
+                            {offer.isActive && <CheckCircle2 size={11} />}
+                            {offer.isActive ? "Active" : "Inactive"}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+              </tbody>
+            </table>
           </div>
         </SectionCard>
       )}
@@ -356,14 +503,15 @@ export default function VoucherDetailsInfo({ voucher }) {
       {/* Review Timeline */}
       <SectionCard icon={History} iconBg="bg-emerald-50 dark:bg-emerald-500/10" iconText="text-emerald-500 dark:text-emerald-400" title="Review Timeline">
         <div className="grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-4">
-          <ReviewStep label="Submitted" at={voucher.submittedAt} by={voucher.submittedByUser} />
-          <ReviewStep label="Reviewed" at={voucher.reviewedAt} by={voucher.reviewedByUser} />
-          <ReviewStep label="Approved" at={voucher.approvedAt} by={voucher.approvedByUser} colorClass="text-emerald-600" />
-          <ReviewStep label="Rejected" at={voucher.rejectedAt} by={voucher.rejectedByUser} colorClass="text-rose-500" />
+          <ReviewStep label="Submitted" at={version.submittedAt} by={version.submittedBy} />
+          <ReviewStep label="Reviewed" at={version.reviewedAt} by={version.reviewedBy} />
+          <ReviewStep label="Approved" at={version.approvedAt} by={version.approvedBy} colorClass="text-emerald-600" />
+          <ReviewStep label="Published" at={version.publishedAt} colorClass="text-emerald-600" />
+          <ReviewStep label="Rejected" at={version.rejectedAt} by={version.rejectedBy} colorClass="text-rose-500" />
         </div>
-        {voucher.rejectionReason && (
+        {version.rejectionReason && (
           <p className="mt-4 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-600">
-            Rejection reason: {voucher.rejectionReason}
+            Rejection reason: {version.rejectionReason}
           </p>
         )}
       </SectionCard>
