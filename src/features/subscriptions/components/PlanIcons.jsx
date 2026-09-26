@@ -1,23 +1,27 @@
-// `isDark` only swaps the INACTIVE fill colors to white — those were
-// near-black/navy hex values that blended into the dark tab background,
-// making the icon nearly invisible in dark mode (per explicit instruction:
-// white for dark mode, light mode stays exactly as it was).
-export const PieIcon = ({ fill = 0.5, size = 28, active = false, isDark = false }) => {
+// Inactive-tab fill: light mode keeps its original near-black/navy tones,
+// dark mode is white (kept visible against the dark tab background, per
+// earlier explicit instruction) — either way, hovering the tab now turns
+// it emerald, matching the tab label's own hover color (see PlanTabs.jsx).
+// Needs Tailwind classes (not inline `fill`/`stroke` styles, which inline
+// styles always win over `group-hover:` classes on specificity) — and the
+// parent <button> must carry `group` for group-hover to reach these.
+export const PieIcon = ({ fill = 0.5, size = 28, active = false }) => {
   // fill: 0.25 = quarter, 0.5 = half, 0.75 = three-quarter, 1 = full
   const r = 10;
   const cx = 14;
   const cy = 14;
 
-  const activeColor = "#16A34A"; // green when tab is active
-  const fullColor = active ? activeColor : isDark ? "#ffffff" : "#1f1b5c";
-  const halfColor = active ? activeColor : isDark ? "#ffffff" : "#000000";
-  const otherColor = active ? activeColor : isDark ? "#ffffff" : "#1e1b4b";
-  const strokeColor = active ? activeColor : "#d1d5db";
+  const HOVER = "group-hover:fill-emerald-500 dark:group-hover:fill-emerald-400 transition-colors";
+  const activeFillClass = "fill-[#16A34A]";
+  const strokeClass = active
+    ? "stroke-[#16A34A]"
+    : "stroke-gray-300 dark:stroke-gray-600 group-hover:stroke-emerald-500 dark:group-hover:stroke-emerald-400 transition-colors";
 
   if (fill >= 1) {
+    const fillClass = active ? activeFillClass : `fill-[#1f1b5c] dark:fill-white ${HOVER}`;
     return (
       <svg width={size} height={size} viewBox="0 0 28 28">
-        <circle cx={cx} cy={cy} r={r} fill={fullColor} />
+        <circle cx={cx} cy={cy} r={r} className={fillClass} />
       </svg>
     );
   }
@@ -34,17 +38,16 @@ export const PieIcon = ({ fill = 0.5, size = 28, active = false, isDark = false 
     "Z",
   ].join(" ");
 
+  const pathFillClass = active
+    ? activeFillClass
+    : fill === 0.5
+      ? `fill-black dark:fill-white ${HOVER}`
+      : `fill-[#1e1b4b] dark:fill-white ${HOVER}`;
+
   return (
     <svg width={size} height={size} viewBox="0 0 28 28">
-      <circle
-        cx={cx}
-        cy={cy}
-        r={r}
-        fill="none"
-        stroke={strokeColor}
-        strokeWidth="1.5"
-      />
-      <path d={d} fill={fill === 0.5 ? halfColor : otherColor} />
+      <circle cx={cx} cy={cy} r={r} fill="none" strokeWidth="1.5" className={strokeClass} />
+      <path d={d} className={pathFillClass} />
     </svg>
   );
 };

@@ -157,6 +157,7 @@ import { useLogout } from "@/hooks/useLogout";
 import { useBrand } from "../../../hooks/useBrand";
 import { useSubscriptionPlans } from "@/features/subscriptions/hooks/useSubscriptionPlans";
 import { getCurrentSubscription } from "../services/subscriptionApi";
+import ErrorToast from "@/components/common/ErrorToast";
 
 export default function SubscriptionPlan({
   businessName: propBusinessName = "Yoga Education and Research Pvt Ltd",
@@ -164,15 +165,32 @@ export default function SubscriptionPlan({
   const navigate = useNavigate();
   const { state } = useLocation();
   const { handleLogout } = useLogout();
-  // ⚠️ FIXED: this page is reached two different ways — mid-onboarding
-  // (no state.returnTo — the vendor genuinely shouldn't be able to back
-  // out of choosing a plan there) and via an existing vendor's "Upgrade"
-  // button from the Plan & Billing page (state.returnTo set by
-  // useSubscription's goToPlans). useBlockBack() used to run
-  // unconditionally, so the Upgrade path was ALSO trapped — no browser
-  // back, and no way back to Plan & Billing short of re-typing the URL.
-  // Only block when there's genuinely nowhere real to go back to.
-  useBlockBack(!state?.returnTo);
+
+  // ⚠️ FIXED: React Router's navigate() `state` (where state.returnTo
+  // lives) doesn't survive a hard page refresh — it's held in memory, not
+  // the URL — so the Back button below would vanish (and useBlockBack
+  // would wrongly re-engage) the moment the vendor reloaded this page
+  // after arriving via Upgrade. Persisting it to sessionStorage the first
+  // time it's seen, and falling back to that on every later render, keeps
+  // both working across a refresh. Cleared once the vendor actually
+  // navigates back out via it (see the Back button's onClick below).
+  const [returnTo] = useState(() => {
+    if (state?.returnTo) {
+      sessionStorage.setItem("subscriptionReturnTo", state.returnTo);
+      return state.returnTo;
+    }
+    return sessionStorage.getItem("subscriptionReturnTo") || null;
+  });
+
+  // This page is reached two different ways — mid-onboarding (no
+  // returnTo — the vendor genuinely shouldn't be able to back out of
+  // choosing a plan there) and via an existing vendor's "Upgrade" button
+  // from the Plan & Billing page (returnTo set by useSubscription's
+  // goToPlans). useBlockBack() used to run unconditionally, so the
+  // Upgrade path was ALSO trapped — no browser back, and no way back to
+  // Plan & Billing short of re-typing the URL. Only block when there's
+  // genuinely nowhere real to go back to.
+  useBlockBack(!returnTo);
 
   const { brand, loading: brandLoading } = useBrand();
 
@@ -209,6 +227,15 @@ export default function SubscriptionPlan({
 
   const currentPlanName = currentSub?.isSubscribed ? currentSub.subscription?.plan?.name : null;
 
+  // `plans` is already sorted lowest → highest by `price` (useSubscriptionPlans.js)
+  // — the same order PlanTabs/PlanComparisonTable already rely on as the
+  // real tier ranking — so comparing `price` against the vendor's current
+  // plan is enough to tell a downgrade from an upgrade, no separate
+  // tier/rank field needed.
+  const currentPlan = currentPlanName ? plans.find((p) => p.name === currentPlanName) : null;
+
+  const [toastError, setToastError] = useState(null);
+
   const businessName = brand?.gst?.legalName || brand?.brandName || propBusinessName;
 
   // plan comes from PlanPriceCard's onPurchase, already carrying the full
@@ -217,7 +244,13 @@ export default function SubscriptionPlan({
   // page was reached via the "Plan & Billing" page's Upgrade button) rides
   // along so checkout knows where to send the vendor back to afterwards.
   const handlePurchase = (plan) => {
-    navigate("/subscription/checkout", { state: { plan, returnTo: state?.returnTo } });
+    if (currentPlan && plan.price < currentPlan.price) {
+      setToastError({
+        message: `You can't downgrade from ${currentPlan.name} to ${plan.name}. Please choose a plan equal to or higher than your current plan.`,
+      });
+      return;
+    }
+    navigate("/subscription/checkout", { state: { plan, returnTo } });
   };
 
   if (brandLoading) {
@@ -258,10 +291,13 @@ export default function SubscriptionPlan({
         }}
       />
 
-      {state?.returnTo && (
+      {returnTo && (
         <div className="absolute top-4 left-5 z-20">
           <button
-            onClick={() => navigate(state.returnTo)}
+            onClick={() => {
+              sessionStorage.removeItem("subscriptionReturnTo");
+              navigate(returnTo);
+            }}
             className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-emerald-600 transition-colors duration-150 px-3 py-1.5 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-500/10"
           >
             <ArrowLeft size={15} />
@@ -360,6 +396,8 @@ export default function SubscriptionPlan({
           All plans include GST · Secure payment · Cancel anytime
         </p>
       </div>
+
+      <ErrorToast error={toastError} onDismiss={() => setToastError(null)} />
     </div>
   );
 }

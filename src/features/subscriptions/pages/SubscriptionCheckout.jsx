@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import { previewCheckout, getCurrentSubscription } from "../services/subscriptionApi";
 import { useBrand } from "../../../hooks/useBrand";
 import TrustBar from "../components/TrustBar";
@@ -36,6 +37,14 @@ export default function SubscriptionCheckout() {
   // comes from POST /transactions/subscribe/preview and is rendered as-is,
   // not recomputed on the frontend.
   const subscriptionId = state?.plan?.id ?? state?.plan?._id;
+
+  // Browser back off this page is handled app-wide by PostAuthRouteGuard
+  // (it always sends "back from /subscription/checkout" to /subscription,
+  // regardless of currentScreen) — that used to be duplicated here with a
+  // second, independent pushState/popstate trap, and the two competing
+  // history-manipulation loops racing on the same back press was what
+  // actually caused it to land on stale entries like /brand-outlet
+  // sometimes. One handler, one place, no race.
 
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -132,6 +141,23 @@ export default function SubscriptionCheckout() {
   return (
     <div className="min-h-screen bg-[#F8FAF7] dark:bg-gray-900 p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
+        {/* Checkout is only ever reached from the plan picker (/subscription)
+            via handlePurchase — so that's always the correct one-step-back
+            target, no returnTo/sessionStorage needed like SubscriptionPlan's
+            own Back button. An explicit button (not the browser's back
+            button) so it isn't caught by PostAuthRouteGuard's app-wide
+            popstate handling, which redirects any browser back/forward to
+            the vendor's currentScreen route regardless of where they
+            actually came from in this side flow. */}
+        <button
+          type="button"
+          onClick={() => navigate("/subscription", { state: { returnTo: state?.returnTo } })}
+          className="mb-3 flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors duration-150 px-3 py-1.5 -ml-3 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-500/10"
+        >
+          <ArrowLeft size={15} />
+          Back
+        </button>
+
         <TrustBar />
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-5">

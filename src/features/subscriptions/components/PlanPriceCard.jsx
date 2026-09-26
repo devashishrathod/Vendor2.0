@@ -63,7 +63,29 @@ import { amountToWords, computeEffectivePrice } from "../utils/priceCalculator";
 const fmt = (n) =>
   new Intl.NumberFormat("en-IN", { minimumFractionDigits: 2 }).format(n || 0);
 
-const billingLabel = (type) => (type === "MONTHLY" ? "Monthly Plan" : "Yearly Plan");
+// ⚠️ FIXED: this used to take `plan.type`, documented (useSubscriptionPlans.js)
+// as only ever "MONTHLY" | "YEARLY" — so any plan whose real type wasn't
+// exactly "MONTHLY" fell through to "Yearly Plan", including the 3-month
+// Trial plan (confirmed: its own `durationInDays` correctly says 90/"3
+// months" below, but its `type` field disagreed and showed "Yearly Plan"
+// right next to "Valid for 3 Months"/"Access for 3 months"). Deriving the
+// label from `durationInDays` instead — the same field `durationLabel`
+// already trusts — keeps both pieces of text consistent regardless of
+// what `type` says.
+const billingLabel = (days) => {
+  if (!days) return "Plan";
+  if (days % 365 === 0) {
+    const yrs = days / 365;
+    return yrs === 1 ? "Yearly Plan" : `${yrs}-Year Plan`;
+  }
+  if (days % 30 === 0) {
+    const mos = days / 30;
+    if (mos === 1) return "Monthly Plan";
+    if (mos === 3) return "Quarterly Plan";
+    return `${mos}-Month Plan`;
+  }
+  return "Plan";
+};
 
 const durationLabel = (days) => {
   if (!days) return "";
@@ -128,7 +150,7 @@ export default function PlanPriceCard({ plans = [], selectedId, onPurchase, load
       {/* Price row */}
       <div className="flex items-baseline justify-center gap-3 mb-1">
         <span className="text-4xl font-bold text-gray-900 dark:text-gray-100">₹ {fmt(effectivePrice)}</span>
-        <span className="text-gray-400 text-base font-medium">/ {billingLabel(plan.type)}</span>
+        <span className="text-gray-400 text-base font-medium">/ {billingLabel(plan.durationInDays)}</span>
       </div>
 
       {(strikeReference != null || discountLabel) && (

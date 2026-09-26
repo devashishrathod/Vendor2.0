@@ -65,10 +65,8 @@
 
 import { useRef, useEffect, useState } from "react";
 import { PieIcon } from "./PlanIcons";
-import { useTheme } from "@/context/ThemeContext";
 
 export default function PlanTabs({ plans = [], selected, onChange, loading = false }) {
-  const { isDark } = useTheme();
   const containerRef = useRef(null);
   const btnRefs = useRef({});
   const [pill, setPill] = useState({ left: 0, width: 0, ready: false });
@@ -109,7 +107,13 @@ export default function PlanTabs({ plans = [], selected, onChange, loading = fal
   return (
     <div
       ref={containerRef}
-      className="relative flex items-center bg-gray-50 dark:bg-gray-700 rounded-2xl p-1.5 gap-1 w-fit mx-auto"
+      // ⚠️ FIXED: `bg-gray-50` (#F9FAFB) was almost the exact same color as
+      // this page's own background (`#F8FAF7`, set in SubscriptionPlan.jsx)
+      // — a ~1-unit-per-channel difference, invisible in light mode. Only
+      // dark mode had real contrast (`bg-gray-700` against `bg-gray-900`).
+      // `bg-gray-200` gives light mode a visibly distinct track again
+      // without matching the active pill's own `bg-white` below.
+      className="relative flex items-center bg-gray-200 dark:bg-gray-700 rounded-2xl p-1.5 gap-1 w-fit mx-auto"
     >
       {pill.ready && (
         <div
@@ -133,11 +137,11 @@ export default function PlanTabs({ plans = [], selected, onChange, loading = fal
             key={plan.id}
             ref={(el) => (btnRefs.current[plan.id] = el)}
             onClick={() => onChange(plan.id)}
-            className={`relative z-10 flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold select-none
+            className={`group relative z-10 flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold select-none
               transition-colors duration-200
-              ${isActive ? "text-black dark:text-gray-100" : "text-gray-400 hover:text-gray-600"}`}
+              ${isActive ? "text-black dark:text-gray-100" : "text-gray-400 dark:text-white hover:text-emerald-600 dark:hover:text-emerald-400"}`}
           >
-            <PieIcon fill={iconFill} active={isActive} size={22} isDark={isDark} />
+            <PieIcon fill={iconFill} active={isActive} size={22} />
             {plan.label}
           </button>
         );

@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import logo from "@/assets/Logo1.jpg";
+import TrydoodIcon from "@/assets/Icon.png";
 import { useBrand } from "../../../../hooks/useBrand";
 import { useLogout } from "@/hooks/useLogout";
+import ThemeToggleButton from "@/components/common/ThemeToggleButton";
 import ErrorToast from "../../../../components/common/ErrorToast";
 import SuccessToast from "../../../../components/common/SuccessToast";
 import Select from "../../../../components/common/Select";
@@ -615,22 +616,16 @@ export default function CreateBrandOutlet() {
 
       {/* Navbar */}
       <nav className="bg-white dark:bg-gray-800 px-6 h-14 flex items-center justify-between sticky top-0 z-10">
+        {/* Same icon + wordmark lockup as the onboarding sidebar
+            (Sidebar.jsx) — kept identical rather than this page's own
+            previous logo treatment. */}
         <div className="flex items-center gap-2">
-          <div className="w-12 h-12 flex items-center justify-center overflow-hidden">
-            <img
-              src={logo}
-              alt="Trydood"
-              className="w-12 h-12 object-contain"
-              onError={(e) => {
-                e.target.style.display = "none";
-                e.target.nextSibling.style.display = "block";
-              }}
-            />
-            <span className="text-emerald-400 text-xs font-bold hidden">T</span>
-          </div>
+          <img src={TrydoodIcon} alt="" className="w-8 h-8 rounded-lg object-contain flex-shrink-0" />
+          <span className="text-lg font-extrabold tracking-tight text-gray-900 dark:text-gray-100">Trydood</span>
         </div>
 
-        <div className="absolute top-4 right-5 z-20">
+        <div className="absolute top-4 right-5 z-20 flex items-center gap-2">
+          <ThemeToggleButton />
           <button
             onClick={handleLogout}
             className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-red-500 transition-colors duration-150 px-3 py-1.5 rounded-lg hover:bg-red-50"

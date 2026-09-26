@@ -217,7 +217,7 @@ export default function Step7PANReadOnly() {
       />
 
       <div
-        className="w-full max-w-3xl mx-auto"
+        className="w-full max-w-5xl mx-auto"
         style={{ animation: "stepIn 0.35s cubic-bezier(0.34,1.4,0.64,1) both" }}
       >
         <style>{`
@@ -226,6 +226,13 @@ export default function Step7PANReadOnly() {
             to   { opacity:1; transform:translateY(0) scale(1); }
           }
         `}</style>
+
+        {/* ⚠️ FIXED: this review step had no outer card at all — its
+            sections just floated directly on the page's own pale
+            background, unlike the entry steps (e.g. Step6PANEnter.jsx),
+            which all wrap their content in this same white card. Matching
+            that here instead of inventing a new look. */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-4 sm:p-5">
 
         {/* ── Header ── */}
         <div className="flex items-start justify-between mb-5 ">
@@ -386,6 +393,7 @@ export default function Step7PANReadOnly() {
               </>
             )}
           </button>
+        </div>
         </div>
       </div>
 

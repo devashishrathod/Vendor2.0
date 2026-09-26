@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useRazorpayCheckout } from "../hooks/useRazorpayCheckout";
 import { formatINR } from "../utils/priceCalculator";
@@ -6,6 +6,7 @@ import SummaryRow from "./SummaryRow";
 import PromoCodePanel from "./PromoCodePanel";
 import WelcomePage from "../pages/WelcomePage"; // 👈 adjust to the real relative path
 import PaymentStatusOverlay from "./PaymentStatusOverlay"; // 👈 adjust to the real relative path
+import ErrorToast from "@/components/common/ErrorToast";
 
 /**
  * OrderSummary
@@ -24,7 +25,6 @@ export default function OrderSummary({
   promo,
   canProceed,
   blockedReason,
-  notices,
   businessName,
   billingDetails,
   onApplyPromo,
@@ -41,6 +41,7 @@ export default function OrderSummary({
   const [paymentError, setPaymentError] = useState("");
 
   const { pay, processing, error } = useRazorpayCheckout();
+  const [toastError, setToastError] = useState(null);
 
   const handleCheckout = async () => {
     if (!subscriptionId) {
@@ -55,7 +56,7 @@ export default function OrderSummary({
     setPaymentError("");
 
     try {
-      await pay({
+      const result = await pay({
         subscriptionId,
         businessDetails: {
           brandName: businessName,
@@ -75,6 +76,17 @@ export default function OrderSummary({
           setPaymentState("failed");
         },
       });
+      // ⚠️ FIXED: useRazorpayCheckout's modal.ondismiss resolves with `null`
+      // when the person closes the Razorpay widget without paying — that's
+      // a clean resolve, not a throw, and neither onSuccess nor onFailure
+      // above ever fires for it. Nothing was resetting paymentState out of
+      // "processing" in that case, so the "Verifying your payment…" overlay
+      // stayed on screen indefinitely even though there was nothing left to
+      // verify. Only reset here when the promise settled with no result —
+      // the success path already moved paymentState to "success" itself.
+      if (result === null) {
+        setPaymentState("idle");
+      }
     } catch (err) {
       // Covers thrown errors from pay() itself (network failure, the
       // Razorpay popup being closed/cancelled by the person, backend
@@ -105,9 +117,24 @@ export default function OrderSummary({
   const payable = orderSummary?.payable;
   const canCheckout = canProceed !== false; // treat undefined as proceedable
 
+  // ⚠️ FIXED: "checkout blocked" (blockedReason) and the create-order
+  // failure (error, from useRazorpayCheckout) used to render as inline
+  // page text sitting right above the Check Out button — per explicit
+  // instruction, every error on this page should surface as the same
+  // toast the rest of the app uses (ErrorToast) instead, never inline.
+  // (The amber `notices` block further up is real business info from the
+  // preview API — proration terms, etc. — not an error, so it's untouched.)
+  useEffect(() => {
+    if (!canCheckout && blockedReason) {
+      setToastError({ message: blockedReason });
+    } else if (error && paymentState === "idle") {
+      setToastError({ message: error });
+    }
+  }, [blockedReason, canCheckout, error, paymentState]);
+
   return (
     <>
-      <div className="bg-white dark:bg-gray-800 rounded-xl p-6 sticky top-4">
+      <div className="bg-white dark:bg-gray-800 rounded-xl p-6 sticky top-4 self-start">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">Order Summary</h2>
 
         <div className="space-y-4 mb-5">
@@ -182,26 +209,6 @@ export default function OrderSummary({
 
         <div className="my-5" />
 
-        {notices?.length > 0 && (
-          <div className="mb-5 space-y-2">
-            {notices.map((notice, i) => (
-              <p key={i} className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2">
-                {notice}
-              </p>
-            ))}
-          </div>
-        )}
-
-        {!canCheckout && blockedReason && (
-          <p className="mb-5 text-sm text-rose-700 bg-rose-50 rounded-lg px-3 py-2.5 text-center">
-            {blockedReason}
-          </p>
-        )}
-
-        {error && paymentState === "idle" && (
-          <p className="text-sm text-red-500 mb-3 text-center">{error}</p>
-        )}
-
         {canCheckout ? (
           <button
             onClick={handleCheckout}
@@ -252,6 +259,8 @@ export default function OrderSummary({
           returnTo={returnTo}
         />
       )}
+
+      <ErrorToast error={toastError} onDismiss={() => setToastError(null)} />
     </>
   );
 }
