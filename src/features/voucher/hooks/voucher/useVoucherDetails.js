@@ -1,6 +1,6 @@
 // src/hooks/voucher/useVoucherDetails.js
 import { useEffect, useState, useCallback } from "react";
-import { getVoucherById } from "../../services/voucher/VoucherService";
+import { getVoucherDetails } from "../../services/voucher/VoucherService";
 
 export default function useVoucherDetails(voucherId) {
   const [voucher, setVoucher] = useState(null);
@@ -12,12 +12,17 @@ export default function useVoucherDetails(voucherId) {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await getVoucherById(voucherId);
-      // Confirmed envelope: { success, message, data: { total, totalPages,
-      // page, limit, data: [...] } } — same shape as getVouchers(); the
-      // single version we asked for (limit: 1) is data.data.data[0].
-      const version = res?.data?.data?.[0] ?? null;
-      setVoucher(version);
+      const res = await getVoucherDetails(voucherId);
+      // CONFIRMED real shape: res.data is
+      // { voucher, brand, currentVersion, publishedVersion, versions,
+      //   versionCount, stats } — NOT the flat "version" object the old
+      // versions/get-all-based getVoucherById returned. Kept as one object
+      // (not flattened) so every field stays traceable to where it really
+      // lives — see VoucherDetails.jsx / VoucherDetailsInfo.jsx for how
+      // each piece is read (voucher.voucher.*, voucher.currentVersion.*,
+      // voucher.brand.*, voucher.stats.*).
+      const details = res?.data ?? null;
+      setVoucher(details);
     } catch (err) {
       // Confirmed backend quirk (same as AnalysisReport.jsx's voucher
       // list fetch): a version that doesn't exist gets an error-shaped

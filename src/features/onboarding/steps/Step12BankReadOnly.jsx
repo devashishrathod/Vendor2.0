@@ -300,7 +300,7 @@ goToStep(STEPS.SYSTEM_VERIFY); // ✅ turant, setTimeout hataya
       />
 
       <div
-        className="w-full max-w-3xl mx-auto"
+        className="w-full max-w-5xl mx-auto"
         style={{ animation: "stepIn 0.35s cubic-bezier(0.34,1.4,0.64,1) both" }}
       >
         <style>{`
@@ -309,6 +309,10 @@ goToStep(STEPS.SYSTEM_VERIFY); // ✅ turant, setTimeout hataya
             to   { opacity:1; transform:translateY(0) scale(1); }
           }
         `}</style>
+
+        {/* Same outer card as Step7PANReadOnly.jsx / Step6PANEnter.jsx —
+            without it this review floated directly on the page background. */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-4 sm:p-5">
 
         <div className="flex items-start justify-between mb-4">
           <div>
@@ -517,6 +521,7 @@ goToStep(STEPS.SYSTEM_VERIFY); // ✅ turant, setTimeout hataya
               </>
             )}
           </button>
+        </div>
         </div>
       </div>
 

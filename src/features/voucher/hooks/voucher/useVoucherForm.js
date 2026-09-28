@@ -10,6 +10,7 @@ import { useOnboardingStore } from "../../../onboarding/store/onboardingStore";
 import useBrandData from "../../../brand/hooks/useBrandData";
 import {
   getVoucherById,
+  getVoucherDetails,
   createVoucher,
   updateVoucher,
 } from "../../services/voucher/VoucherService";
@@ -113,10 +114,14 @@ function voucherToForm(version) {
   const start = fromIsoDateTime(version.startAt);
   const end = fromIsoDateTime(version.endAt);
 
-  // images come back as [{ url, storage, sortOrder, _id }], not bare
-  // strings — the form only tracks the url.
+  // ⚠️ FIXED: images come back as [{ _id, media: { url, ... }, sortOrder }]
+  // — CONFIRMED from GET /vouchers/get/:voucherId's currentVersion.images
+  // (same nested-media shape every other media list in this backend uses:
+  // showcase, add-media, ...). This used to read the flat `img.url`, which
+  // never existed, so existingImageUrls was always empty and the edit form
+  // never showed a voucher's already-uploaded images at all.
   const imageUrls = Array.isArray(version.images)
-    ? version.images.map((img) => (typeof img === "string" ? img : img?.url)).filter(Boolean)
+    ? version.images.map((img) => (typeof img === "string" ? img : img?.media?.url || img?.url)).filter(Boolean)
     : [];
 
   return {
@@ -218,14 +223,16 @@ function formToUpdatePatch(form, originalVersion) {
   // form.existingImageUrls only tracks bare URLs (see voucherToForm), so a
   // removed image is found by url and mapped back to its subdocument _id
   // via the originally-fetched images array (which does carry `_id`).
+  // ⚠️ FIXED: same nested `media.url` shape as voucherToForm's imageUrls
+  // above — was reading the flat (non-existent) `img.url`.
   const originalImages = Array.isArray(originalVersion?.images) ? originalVersion.images : [];
   const urlToImageId = new Map(
     originalImages
-      .filter((img) => img && typeof img === "object" && img.url)
-      .map((img) => [img.url, img._id])
+      .filter((img) => img && typeof img === "object" && (img.media?.url || img.url))
+      .map((img) => [img.media?.url || img.url, img._id])
   );
   const removeImageIds = originalImages
-    .map((img) => (typeof img === "string" ? img : img?.url))
+    .map((img) => (typeof img === "string" ? img : img?.media?.url || img?.url))
     .filter((url) => url && !form.existingImageUrls.includes(url))
     .map((url) => urlToImageId.get(url))
     .filter(Boolean);
@@ -291,19 +298,74 @@ export default function useVoucherForm(voucherId) {
   useEffect(() => {
     if (!isEditMode) return;
     setIsLoading(true);
-    getVoucherById(voucherId)
-      .then((res) => {
-        const version = res?.data?.data?.[0];
+    Promise.all([getVoucherById(voucherId), getVoucherDetails(voucherId)])
+      .then(([listRes, detailsRes]) => {
+        const version = listRes?.data?.data?.[0];
         if (!version) {
           setError("Voucher not found.");
           return;
         }
-        originalVersionRef.current = version;
-        setForm(voucherToForm(version));
+        // ⚠️ FIXED: versions/get-all (`version` above) never returns
+        // subBrandIds at all — voucherToForm's selectedOutletIds always
+        // came back empty on edit, forcing the outlet picker to be
+        // manually re-filled every single time even though the voucher
+        // already had outlets applied. GET /vouchers/get/:voucherId (the
+        // confirmed VoucherDetails endpoint) DOES carry the real, current
+        // outlets under currentVersion.outlets[] — patched onto `version`
+        // here (both for the form's initial value AND originalVersionRef,
+        // so formToUpdatePatch's newSubBrandIds/removeSubBrandIds diff
+        // is computed against the real original list, not an empty one).
+        const realOutlets = detailsRes?.data?.currentVersion?.outlets || [];
+        const realOutletIds = realOutlets.map((o) => o._id).filter(Boolean);
+        const patchedVersion = { ...version, subBrandIds: realOutletIds };
+        originalVersionRef.current = patchedVersion;
+        setForm({
+          ...voucherToForm(patchedVersion),
+          // ⚠️ FIXED: voucherToForm only sets selectedOutletIds (the actual
+          // submit payload) — these display-only counts (VoucherForm.jsx's
+          // "Applicable To..." tiles) were left at their all-zero default
+          // and never updated, so the picker still looked unfilled even
+          // once outlets were correctly pre-selected. Real numbers from the
+          // same confirmed currentVersion: totalOutletsCount from
+          // totalBrandOutlets; subBrand/franchise counts are a breakdown of
+          // THESE APPLIED outlets specifically (this response doesn't carry
+          // a brand-wide type breakdown, only the applied list).
+          applicableOutlets: {
+            selectedBrandOutletCount: realOutletIds.length,
+            totalOutletsCount: detailsRes?.data?.currentVersion?.totalBrandOutlets ?? realOutletIds.length,
+            subBrandCount: realOutlets.filter((o) => o.outletType === "OUTLET").length,
+            franchiseCount: realOutlets.filter((o) => o.outletType === "FRANCHISE").length,
+          },
+        });
       })
       .catch((err) => setError(err.message))
       .finally(() => setIsLoading(false));
   }, [voucherId, isEditMode]);
+
+  // ── Auto-fill outlet selection from the brand's firstSubBrand ──────
+  // Confirmed from GET /brands/get: `data.firstSubBrand._id` (same as
+  // top-level `data.firstSubBrandId`) is the vendor's outlet. The backend
+  // doesn't return subBrandIds on voucher read yet (see voucherToForm's
+  // note above), so edit mode always starts with an empty selection and
+  // forces a manual pick through the outlet modal even though there's
+  // nothing to actually choose between for a single-outlet vendor. Runs
+  // once per mount, only when nothing is already selected (a manual pick,
+  // or a real subBrandIds value once the backend starts sending one, wins).
+  const outletAutoFillRef = useRef(false);
+  useEffect(() => {
+    if (outletAutoFillRef.current || isLoading) return;
+    const firstSubBrandId = brand?.firstSubBrand?._id || brand?.firstSubBrandId;
+    if (!firstSubBrandId) return;
+    outletAutoFillRef.current = true;
+    setForm((prev) => {
+      if (prev.selectedOutletIds.length > 0) return prev;
+      return {
+        ...prev,
+        selectedOutletIds: [firstSubBrandId],
+        applicableOutlets: { ...prev.applicableOutlets, selectedBrandOutletCount: 1 },
+      };
+    });
+  }, [brand, isLoading]);
 
   const setField = useCallback((field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));

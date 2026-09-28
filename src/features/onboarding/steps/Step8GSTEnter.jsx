@@ -337,46 +337,6 @@ export default function Step8GSTEnter({ pan: panProp = "" }) {
 
                 {/* // PANMismatchBanner alag se raho — uska logic alag hai */}
                 <PANMismatchBanner gstin={upper} pan={pan} />
-                {touched && (
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                    {isValid ? (
-                      <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center">
-                        <svg
-                          className="w-3 h-3 text-white"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={3}
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                      </div>
-                    ) : (
-                      <div
-                        className={`w-5 h-5 rounded-full flex items-center justify-center
-                      ${hasPANMismatch ? "bg-orange-400" : "bg-red-400"}`}
-                      >
-                        <svg
-                          className="w-3 h-3 text-white"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={3}
-                            d="M6 18L18 6M6 6l12 12"
-                          />
-                        </svg>
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
               <PANMismatchBanner gstin={upper} pan={pan} />
             </div>
