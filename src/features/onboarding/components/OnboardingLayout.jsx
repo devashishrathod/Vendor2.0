@@ -1,5 +1,6 @@
 import Sidebar from "@/features/onboarding/components/Sidebar";
 import SuccessToast from "@/components/common/SuccessToast";
+import ThemeToggleButton from "@/components/common/ThemeToggleButton";
 
 function MobileHeader({ title, sub, onMenuOpen, pct, displayIndex, totalSteps, isLast }) {
   return (
@@ -26,25 +27,28 @@ function MobileHeader({ title, sub, onMenuOpen, pct, displayIndex, totalSteps, i
         </div>
       </div>
 
-      {!isLast && (
-        <div className="flex items-center gap-2">
-          <div className="text-right hidden sm:block">
-            <p className="text-[11px] font-bold text-emerald-600">Step {displayIndex} of {totalSteps}</p>
-            <p className="text-[9px] text-gray-400">{pct}% Complete</p>
-          </div>
-          <div className="relative w-9 h-9 flex-shrink-0">
-            <svg viewBox="0 0 36 36" className="w-9 h-9 -rotate-90">
-              <circle cx="18" cy="18" r="14" fill="none" stroke="#e5e7eb" strokeWidth="3"/>
-              <circle cx="18" cy="18" r="14" fill="none" stroke="#10b981" strokeWidth="3"
-                strokeDasharray={`${pct * 0.879} ${87.9 - pct * 0.879}`} strokeLinecap="round"/>
-            </svg>
-            <span className="absolute inset-0 flex items-center justify-center
-              text-[9px] font-black text-emerald-600">
-              {pct}%
-            </span>
-          </div>
-        </div>
-      )}
+      <div className="flex items-center gap-2">
+        {!isLast && (
+          <>
+            <div className="text-right hidden sm:block">
+              <p className="text-[11px] font-bold text-emerald-600">Step {displayIndex} of {totalSteps}</p>
+              <p className="text-[9px] text-gray-400">{pct}% Complete</p>
+            </div>
+            <div className="relative w-9 h-9 flex-shrink-0">
+              <svg viewBox="0 0 36 36" className="w-9 h-9 -rotate-90">
+                <circle cx="18" cy="18" r="14" fill="none" stroke="#e5e7eb" strokeWidth="3"/>
+                <circle cx="18" cy="18" r="14" fill="none" stroke="#10b981" strokeWidth="3"
+                  strokeDasharray={`${pct * 0.879} ${87.9 - pct * 0.879}`} strokeLinecap="round"/>
+              </svg>
+              <span className="absolute inset-0 flex items-center justify-center
+                text-[9px] font-black text-emerald-600">
+                {pct}%
+              </span>
+            </div>
+          </>
+        )}
+        <ThemeToggleButton />
+      </div>
     </header>
   );
 }
@@ -57,8 +61,12 @@ function MobileSidebarDrawer({ open, onClose, children }) {
         className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px] lg:hidden"
         onClick={onClose}
       />
+      {/* `inset-y-0` pins this to the full viewport height, matching
+          Sidebar's own `h-screen` — `flex` here just lets that fixed-height
+          child (and this wrapper) size consistently with the desktop one
+          below. */}
       <div
-        className="fixed inset-y-0 left-0 z-50 lg:hidden"
+        className="fixed inset-y-0 left-0 z-50 lg:hidden flex"
         style={{ animation: "drawerIn 0.25s cubic-bezier(0.34,1.2,0.64,1) both" }}
       >
         <style>{`
@@ -92,8 +100,12 @@ function MobileSidebarDrawer({ open, onClose, children }) {
  * sidebar (desktop + mobile drawer), header (desktop + mobile), the
  * global success toast, and the scrollable main-content area.
  *
- * Only the sidebar (`h-screen`, sticky) and the main content area
- * (`overflow-y-auto`) scroll independently — the header stays put.
+ * The sidebar is fixed — always exactly one viewport tall (`h-screen` in
+ * Sidebar.jsx), never scrolling away with the page. Only the main-content
+ * pane (`overflow-y-auto` below) scrolls, independently, when a step's
+ * form is taller than the viewport. A step shorter than the viewport gets
+ * centered inside that fixed-height pane (`m-auto` below) instead of
+ * sitting pinned to the top with blank space left below it.
  */
 export default function OnboardingLayout({
   headerSub,
@@ -129,7 +141,7 @@ export default function OnboardingLayout({
       <div className="absolute top-0 right-0 w-[400px] h-[400px] pointer-events-none"
         style={{ background: "radial-gradient(ellipse at top right,rgba(99,102,241,0.06) 0%,transparent 70%)", zIndex: 0 }} />
 
-      <div className="hidden lg:block relative flex-shrink-0" style={{ zIndex: 1 }}>
+      <div className="hidden lg:flex relative flex-shrink-0" style={{ zIndex: 1 }}>
         <Sidebar {...sidebarProps} />
       </div>
 
@@ -159,29 +171,43 @@ export default function OnboardingLayout({
             </div>
           </div>
 
-          {!isLast && (
-            <div className="flex items-center gap-3">
-              <div className="text-right">
-                <p className="text-xs font-bold text-emerald-600">Step {displayIndex} of {totalSteps}</p>
-                <p className="text-[10px] text-gray-400">{pct}% Complete</p>
-              </div>
-              <div className="relative w-9 h-9 flex-shrink-0">
-                <svg viewBox="0 0 36 36" className="w-9 h-9 -rotate-90">
-                  <circle cx="18" cy="18" r="15" fill="none" stroke="#e5e7eb" strokeWidth="3"/>
-                  <circle cx="18" cy="18" r="15" fill="none" stroke="#10b981" strokeWidth="3"
-                    strokeDasharray={`${pct * 0.942} ${94.2 - pct * 0.942}`} strokeLinecap="round"/>
-                </svg>
-                <span className="absolute inset-0 flex items-center justify-center
-                  text-[10px] font-black text-emerald-600">
-                  {pct}%
-                </span>
-              </div>
-            </div>
-          )}
+          <div className="flex items-center gap-3">
+            {!isLast && (
+              <>
+                <div className="text-right">
+                  <p className="text-xs font-bold text-emerald-600">Step {displayIndex} of {totalSteps}</p>
+                  <p className="text-[10px] text-gray-400">{pct}% Complete</p>
+                </div>
+                <div className="relative w-9 h-9 flex-shrink-0">
+                  <svg viewBox="0 0 36 36" className="w-9 h-9 -rotate-90">
+                    <circle cx="18" cy="18" r="15" fill="none" stroke="#e5e7eb" strokeWidth="3"/>
+                    <circle cx="18" cy="18" r="15" fill="none" stroke="#10b981" strokeWidth="3"
+                      strokeDasharray={`${pct * 0.942} ${94.2 - pct * 0.942}`} strokeLinecap="round"/>
+                  </svg>
+                  <span className="absolute inset-0 flex items-center justify-center
+                    text-[10px] font-black text-emerald-600">
+                    {pct}%
+                  </span>
+                </div>
+              </>
+            )}
+            <ThemeToggleButton />
+          </div>
         </header>
 
         <div className="flex-1 flex flex-col min-h-0 py-2 px-4 sm:py-3 sm:px-6 lg:px-8 bg-[#F8FAF7] dark:bg-gray-900 overflow-y-auto">
-          {children}
+          {/* The PAN/GST/Bank read-only review cards (Step6PANEnter through
+              Step14PartnerContract) are much shorter than the earlier
+              multi-field forms, so on a tall viewport they used to sit
+              pinned to the top with all the leftover space dumped below
+              them. `m-auto` centers them only when there's real leftover
+              space in this pane (a step whose content is already tall
+              enough to fill/scroll the pane is unaffected), and — unlike
+              `justify-center` on the pane itself — never clips the top of
+              a step long enough to need scrolling. */}
+          <div className="m-auto w-full">
+            {children}
+          </div>
         </div>
       </div>
     </div>

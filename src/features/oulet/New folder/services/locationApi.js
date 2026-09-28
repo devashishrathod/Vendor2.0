@@ -181,7 +181,7 @@ export async function updateLocation(id, rawPatch = {}) {
         handleError(error);
     }
 }
-
+// kfhdkjhfjhdskfhsd
 // ── Delete Location ───────────────────────────────────────────────
 // CONFIRMED from Postman: DELETE {{base_url}}/locations/delete/{{location_id}}
 // (not /locations/:id — that was the wrong guessed path).

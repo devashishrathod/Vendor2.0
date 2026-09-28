@@ -49,3 +49,16 @@ html.dark body {
 .no-scrollbar::-webkit-scrollbar {
   display: none; /* Chrome, Safari, new Edge */
 }
+
+/* Continuous left-scrolling "ribbon" track (TrustBar on the checkout page).
+   The track renders its content twice back to back and animates exactly
+   -50% — since both halves are identical, the moment the first copy has
+   fully scrolled off, the second copy is sitting exactly where the first
+   one started, so the loop is seamless with no visible jump/reset. */
+@keyframes marquee-left {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.animate-marquee {
+  animation: marquee-left 22s linear infinite;
+}
