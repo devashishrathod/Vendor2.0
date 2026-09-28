@@ -168,8 +168,8 @@ export default function Step3BusinessName() {
                 </svg>
               </div>
               <div className="flex-1 min-w-0">
-                <h2 className="text-base font-bold text-gray-900 leading-tight">Tell us about your business</h2>
-                <p className="text-xs text-gray-500 mt-0.5">
+                <h2 className="text-base font-bold text-gray-900 dark:text-gray-100 leading-tight">Tell us about your business</h2>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                   Start by adding the official details of your business. These details will be used across your vendor profile and business documents.
                 </p>
               </div>
@@ -260,21 +260,21 @@ export default function Step3BusinessName() {
             {/* CTA row */}
             <div className="flex flex-col sm:flex-row sm:items-center gap-3 step-in" style={{ animationDelay: "0.15s" }}>
               <div className="flex items-center gap-2.5 flex-1 min-w-0 order-2 sm:order-1">
-                <div className="w-9 h-9 rounded-lg bg-gray-50
+                <div className="w-9 h-9 rounded-lg bg-gray-50 dark:bg-gray-700
                   flex items-center justify-center flex-shrink-0">
-                  <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-4 h-4 text-gray-400 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
                       d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                   </svg>
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">
+                  <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-1">
                     Business preview
                   </p>
-                  <p className="text-sm font-bold text-gray-800 truncate">
+                  <p className="text-sm font-bold text-gray-800 dark:text-gray-100 truncate">
                     {name.trim() || "—–"}
                   </p>
-                  <p className="text-[11px] text-gray-600 truncate">
+                  <p className="text-[11px] text-gray-600 dark:text-gray-400 truncate">
                     {name.trim()
                       ? shortName.trim()
                         ? `Short name: ${shortName.trim()}`
@@ -315,13 +315,13 @@ export default function Step3BusinessName() {
 
             {/* Footer note */}
             <div className="flex items-center gap-2 mt-4 pt-3">
-              <div className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
-                <svg className="w-3 h-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="w-5 h-5 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
+                <svg className="w-3 h-3 text-gray-400 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                     d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <p className="text-[11px] text-gray-600">
+              <p className="text-[11px] text-gray-600 dark:text-gray-400">
                 You can update these details later from your business settings.
               </p>
             </div>

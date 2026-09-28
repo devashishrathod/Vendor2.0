@@ -228,6 +228,29 @@ export async function getVoucherById(voucherId) {
     }
 }
 
+// ── Get Single Voucher (for the VoucherDetails page) ──────────────
+// CONFIRMED real route: GET {{TryDood2.0BaseUrl}}/vouchers/get/:voucherId
+// — a genuine single-resource fetch, unlike getVoucherById() above (which
+// still reuses the versions/get-all list endpoint for the Edit form's
+// prefill, on purpose — that "version" shape is what formToPayload/
+// voucherToForm are built around, so it's left untouched here).
+// ⚠️ NOT independently confirmed from a real Postman response body — only
+// the path was given. Assumed to return the voucher object directly under
+// `data` (the standard single-GET shape every other "get one" endpoint in
+// this codebase uses — showcase, location, etc.), matching the flat
+// name/status/voucherId/analysis/... fields VoucherDetails.jsx already
+// reads. Verify against a real response and adjust here if any field
+// comes back under a different key or nested differently.
+export async function getVoucherDetails(voucherId) {
+    try {
+        if (!voucherId) throw new Error('voucherId is required');
+        const { data } = await api.get(`/vouchers/get/${voucherId}`);
+        return data;
+    } catch (error) {
+        handleError(error);
+    }
+}
+
 // ── Get Voucher Stats (e.g. counts for dashboard cards) ──────────
 // GET {{TryDood2.0BaseUrl}}/vouchers/stats?brandId=
 // NOTE: NOT confirmed from Postman — this endpoint wasn't in the shared

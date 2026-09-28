@@ -13,10 +13,12 @@ import {
   Headset,
   ChevronRight,
 } from "lucide-react";
-import logo1 from "@/assets/Logo1.jpg";
+import TrydoodIcon from "@/assets/Icon.png";
 import ErrorToast from "@/components/common/ErrorToast";
 import Select from "../../../../components/common/Select";
 import SuccessToast from "@/components/common/SuccessToast";
+import ThemeToggleButton from "@/components/common/ThemeToggleButton";
+import { useLogout } from "@/hooks/useLogout";
 
 // "SYSTEM_VERIFIED" → "System Verified", "REJECTED" → "Rejected" — used
 // for every raw SCREAMING_SNAKE_CASE enum the verification-history API
@@ -213,7 +215,13 @@ function AccordionFieldCard({ title, summary, defaultOpen = false, collapseSigna
     if (collapseSignal) setOpen(false);
   }, [collapseSignal]);
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl mb-3 overflow-hidden">
+    // ⚠️ FIXED: `overflow-hidden` here was only ever needed to keep this
+    // card's own corners rounded — its children are all padded, none have
+    // a flush edge-to-edge background that would otherwise poke past the
+    // radius — but it also clipped a nested <Select>'s dropdown (the
+    // Business Type field below) the moment it opened wider than this
+    // card's own current bounds.
+    <div className="bg-white dark:bg-gray-800 rounded-xl mb-3">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
@@ -377,6 +385,7 @@ function VerifiedDetailCard({ rows, onChangeDetails, onSave, saving, saveError }
 
 export default function UnderReview() {
   const navigate = useNavigate();
+  const { handleLogout } = useLogout();
   const { formData } = useOnboardingStore();
 
   // ⚠️ brandId abhi formData se maan liya hai — agar authStore me alag
@@ -710,25 +719,27 @@ export default function UnderReview() {
     <div className="min-h-screen  dark:bg-gray-900 font-sans">
       {/* ── Navbar ── */}
       <nav className="bg-white dark:bg-gray-800 px-6 h-14 flex items-center justify-between sticky top-0 z-10">
+        {/* Same icon + wordmark lockup as the onboarding sidebar
+            (Sidebar.jsx) — kept identical rather than this page's own
+            previous logo treatment. */}
         <div className="flex items-center gap-2">
-          <div className="w-12 h-12 flex items-center justify-center overflow-hidden">
-            <img
-              src={logo1}
-              alt="Trydood"
-              className="w-12 h-12 object-contain"
-              onError={(e) => {
-                e.target.style.display = "none";
-                e.target.nextSibling.style.display = "block";
-              }}
-            />
-            <span className="text-emerald-400 text-xs font-bold hidden">T</span>
-          </div>
+          <img src={TrydoodIcon} alt="" className="w-8 h-8 rounded-lg object-contain flex-shrink-0" />
+          <span className="text-lg font-extrabold tracking-tight text-gray-900 dark:text-gray-100">Trydood</span>
         </div>
 
-        <div className="w-[34px] h-[34px] bg-purple-900 rounded-lg flex items-center justify-center cursor-pointer">
-          <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-          </svg>
+        <div className="flex items-center gap-2">
+          <ThemeToggleButton />
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-red-500 transition-colors duration-150 px-3 py-1.5 rounded-lg hover:bg-red-50"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+            Logout
+          </button>
         </div>
       </nav>
 
