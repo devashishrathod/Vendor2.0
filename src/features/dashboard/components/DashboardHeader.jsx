@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useLogout } from "@/hooks/useLogout";
 import { useBrand } from "@/hooks/useBrand";
-import logo from "@/assets/Logo1.jpg";
+import logo from "@/assets/Logo1.png";
 import NotificationBell from "./NotificationBell";
 import ThemeToggleButton from "@/components/common/ThemeToggleButton";
 
@@ -66,7 +66,7 @@ export default function DashboardHeader() {
 
         {/* ── Left: Logo ── */}
         <div className="flex items-center gap-4 flex-1">
-          {/* Logo1.jpg is a full vertical lockup (icon, then "TRYDOOD" wordmark,
+          {/* Logo1.png is a full vertical lockup (icon, then "TRYDOOD" wordmark,
               then a tagline) — squeezing the whole thing into a small square
               made it illegible, so this crops in on just the icon mark
               (a fixed pixel window into the source image, scaled up) and

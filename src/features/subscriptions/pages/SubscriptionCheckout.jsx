@@ -174,6 +174,7 @@ export default function SubscriptionCheckout() {
             pricing={preview.pricing}
             promo={preview.promo}
             canProceed={preview.canProceed}
+            requiresPayment={preview.requiresPayment}
             blockedReason={preview.blockedReason}
             notices={preview.notices}
             businessName={businessName}

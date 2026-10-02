@@ -24,6 +24,7 @@ export default function OrderSummary({
   pricing,
   promo,
   canProceed,
+  requiresPayment,
   blockedReason,
   businessName,
   billingDetails,
@@ -218,7 +219,9 @@ export default function OrderSummary({
             onMouseEnter={(e) => { if (!processing) e.currentTarget.style.background = "linear-gradient(135deg, #07a077 0%, #1a1a3e 100%)"; }}
             onMouseLeave={(e) => { if (!processing) e.currentTarget.style.background = "linear-gradient(135deg, #09B285 0%, #0F0E20 100%)"; }}
           >
-            {processing || paymentState === "processing" ? "Opening secure checkout…" : "Check Out"}
+            {requiresPayment === false
+              ? processing || paymentState === "processing" ? "Activating your plan…" : "Activate Plan"
+              : processing || paymentState === "processing" ? "Opening secure checkout…" : "Check Out"}
           </button>
         ) : (
           // canProceed:false means the backend already considers this

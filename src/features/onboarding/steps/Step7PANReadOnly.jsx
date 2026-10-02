@@ -8,18 +8,17 @@ import SuccessToast from "@/components/common/SuccessToast";
 import ErrorModal from "@/components/common/ErrorModal";
 import ConfirmModal from "@/components/common/ConfirmModal";
 
-function IconBadge({ bgColor, children }) {
+function IconBadge({ className, children }) {
   return (
     <div
-      className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-      style={{ background: bgColor }}
+      className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${className}`}
     >
       {children}
     </div>
   );
 }
 
-function DetailTile({ icon, iconBg, label, value, wide }) {
+function DetailTile({ icon, iconClassName, label, value, wide }) {
   if (!value || value === "—") return null;
   return (
     <div
@@ -27,8 +26,8 @@ function DetailTile({ icon, iconBg, label, value, wide }) {
         ${wide ? "col-span-2 sm:col-span-3" : ""}`}
     >
       <div className="flex items-center gap-2">
-        <IconBadge bgColor={iconBg}>{icon}</IconBadge>
-        <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">
+        <IconBadge className={iconClassName}>{icon}</IconBadge>
+        <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">
           {label}
         </span>
       </div>
@@ -170,7 +169,7 @@ export default function Step7PANReadOnly() {
             errMsg.includes("already in use"))
         ) {
           setSuccessMsg(
-            `PAN ${payload.pan} already verified · ${payload.fullName}`
+            `PAN ${payload.pan} already verified · ${payload.fullName} · ${payload.panType}`
           );
           useOnboardingStore.getState().setToast("PAN details updated successfully.");
           setSubStep(BIZ_SUB.GST_VERIFICATION); // ✅ turant add karo
@@ -181,7 +180,7 @@ export default function Step7PANReadOnly() {
 
       // Ab yeh karo:
       setSuccessMsg(
-        `PAN ${payload.pan} saved · ${payload.fullName} · ${payload.panType}`
+        `PAN ${payload.pan} saved · ${payload.fullName}`
       );
     } catch (err) {
       setPostError({
@@ -240,11 +239,11 @@ export default function Step7PANReadOnly() {
             <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 leading-tight">
               Business PAN Verified
             </h2>
-            <p className="text-xs text-gray-500 mt-0.5">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
               Review the verified details before continuing.
             </p>
           </div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-semibold flex-shrink-0">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-[11px] font-semibold flex-shrink-0">
             {/* circle-check icon */}
             <svg className="w-3.5 h-3.5 fill-emerald-500" viewBox="0 0 24 24">
               <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1.41 14.08L6.7 12.2l1.41-1.42 2.48 2.49 5.31-5.32 1.41 1.42-6.72 6.71z" />
@@ -254,7 +253,14 @@ export default function Step7PANReadOnly() {
         </div>
 
         {/* ── PAN Card ── */}
-        <div className="relative bg-emerald-50 rounded-2xl px-5 py-4 mb-4 flex items-center justify-between overflow-hidden">
+        {/* ⚠️ FIXED: this whole card (bg + PAN number text) had no dark:
+            variant — it stayed a light mint card regardless of theme.
+            `text-emerald-900` (a very dark green, meant for a light bg)
+            would have been the real problem the moment the bg went dark
+            (dark green on dark green ≈ unreadable), so it moves to a
+            lighter dark:text-emerald-300 here rather than just adding a
+            dark bg underneath the same dark text. */}
+        <div className="relative bg-emerald-50 dark:bg-emerald-500/10 rounded-2xl px-5 py-4 mb-4 flex items-center justify-between overflow-hidden">
           {/* watermark */}
           <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-10 pointer-events-none">
             <svg className="w-20 h-20 text-emerald-500" fill="currentColor" viewBox="0 0 24 24">
@@ -267,18 +273,18 @@ export default function Step7PANReadOnly() {
             </p>
             <div className="flex items-center gap-2.5">
               {/* id-badge icon */}
-              <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center flex-shrink-0">
-                <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2" />
                 </svg>
               </div>
-              <span className="font-mono text-xl font-bold tracking-[0.14em] text-emerald-900">
+              <span className="font-mono text-xl font-bold tracking-[0.14em] text-emerald-900 dark:text-emerald-300">
                 {d.pan}
               </span>
             </div>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center flex-shrink-0">
-            <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+            <svg className="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
             </svg>
           </div>
@@ -289,7 +295,7 @@ export default function Step7PANReadOnly() {
           <DetailTile
             label="Legal Business Name"
             value={d.fullName}
-            iconBg="#EFF6FF"
+            iconClassName="bg-blue-50 dark:bg-blue-500/10"
             icon={
               <svg className="w-3.5 h-3.5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -300,7 +306,7 @@ export default function Step7PANReadOnly() {
           <DetailTile
             label="PAN Type"
             value={d.panType}
-            iconBg="#FAF5FF"
+            iconClassName="bg-purple-50 dark:bg-purple-500/10"
             icon={
               <svg className="w-3.5 h-3.5 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
@@ -311,7 +317,7 @@ export default function Step7PANReadOnly() {
           <DetailTile
             label="Date of Incorporation"
             value={d.dob !== "—" ? d.dob : null}
-            iconBg="#FFF7ED"
+            iconClassName="bg-orange-50 dark:bg-orange-500/10"
             icon={
               <svg className="w-3.5 h-3.5 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -323,7 +329,7 @@ export default function Step7PANReadOnly() {
             label="Address"
             value={d.address}
             wide
-            iconBg="#ECFDF5"
+            iconClassName="bg-emerald-50 dark:bg-emerald-500/10"
             icon={
               <svg className="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -334,16 +340,16 @@ export default function Step7PANReadOnly() {
         </div>
 
         {/* ── Warning Notice ── */}
-        <div className="bg-amber-50 rounded-xl px-4 py-3 flex items-start gap-2.5 mb-4">
-          <div className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+        <div className="bg-amber-50 dark:bg-amber-500/10 rounded-xl px-4 py-3 flex items-start gap-2.5 mb-4">
+          <div className="w-7 h-7 rounded-lg bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
             <svg className="w-3.5 h-3.5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
             </svg>
           </div>
-          <p className="text-xs text-amber-700 leading-relaxed flex-1">
+          <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed flex-1">
             Please confirm that these details match your business records.
           </p>
-          <div className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+          <div className="w-7 h-7 rounded-lg bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
             <svg className="w-3.5 h-3.5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
             </svg>
@@ -351,12 +357,16 @@ export default function Step7PANReadOnly() {
         </div>
 
         {/* ── Actions ── */}
-        <div className="flex gap-3">
+        {/* ⚠️ FIXED: both buttons were `flex-1`, stretching each to half
+            the card's full width regardless of their (short) label text —
+            sized to content now, with `justify-between` keeping them at
+            opposite ends the way they already read. */}
+        <div className="flex items-center justify-between gap-3">
           <button
             // onClick={() => setSubStep(BIZ_SUB.PAN_VERIFICATION)}
             onClick={() => setShowConfirm(true)}
             disabled={posting}
-            className="flex-1 py-2.5 rounded-xl bg-white dark:bg-gray-800
+            className="px-5 py-2.5 rounded-xl bg-white dark:bg-gray-800
               hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 text-sm font-semibold
               transition-all duration-200 active:scale-[0.98] flex items-center justify-center
               gap-2 disabled:opacity-50"
@@ -371,7 +381,7 @@ export default function Step7PANReadOnly() {
           <button
             onClick={handleContinue}
             disabled={posting}
-            className="flex-1 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white
+            className="px-8 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white
               text-sm font-semibold transition-all duration-200 active:scale-[0.98]
               shadow-sm shadow-emerald-200 flex items-center justify-center gap-2
               disabled:opacity-60 disabled:cursor-not-allowed"

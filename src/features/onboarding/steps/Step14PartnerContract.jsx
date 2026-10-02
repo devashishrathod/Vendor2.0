@@ -81,7 +81,7 @@ export default function Step14PartnerContract({ onComplete, locked }) {
                 to finish onboarding with Trydood.
               </p>
               <a
-                href="https://community.docusign.com/salesforce-30/url-link-with-the-docusign-agreement-1353"
+                href="https://trydood.com/partner-agreement"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 hover:text-emerald-700 hover:underline transition-colors"
@@ -101,7 +101,7 @@ export default function Step14PartnerContract({ onComplete, locked }) {
               </svg>
               Also review the full{" "}
               <a
-                href="https://community.docusign.com/salesforce-30/url-link-with-the-docusign-agreement-1353"
+                href="https://trydood.com/terms-of-service"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-emerald-500 font-semibold hover:text-emerald-600 hover:underline transition-colors"
@@ -129,7 +129,7 @@ export default function Step14PartnerContract({ onComplete, locked }) {
               <span className="text-sm text-gray-600 dark:text-gray-300">
                 I have read and agree to the{" "}
                 <a
-                  href="https://community.docusign.com/salesforce-30/url-link-with-the-docusign-agreement-1353"
+                  href="https://trydood.com/partner-agreement"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-emerald-500 font-semibold hover:underline cursor-pointer"
@@ -139,7 +139,7 @@ export default function Step14PartnerContract({ onComplete, locked }) {
                 and all associated{" "}
                 
                 <a
-                  href="https://community.docusign.com/salesforce-30/url-link-with-the-docusign-agreement-1353"
+                  href="https://trydood.com/terms-of-service"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-emerald-500 font-semibold hover:underline cursor-pointer"

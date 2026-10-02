@@ -59,11 +59,16 @@ export default function BillingDetailsCard({ details, onSave }) {
                     className="w-full text-sm bg-emerald-50 dark:bg-emerald-500/10 dark:text-gray-100 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-teal-400 resize-none transition"
                   />
                 ) : (
+                  // ⚠️ FIXED: only Address should be editable here — Brand
+                  // Name/GSTIN/PAN come from verified KYC data, so they're
+                  // shown disabled (still visible, not editable) instead
+                  // of a normal input.
                   <input
                     type="text"
                     value={draft[key]}
                     onChange={(e) => handleChange(key, e.target.value)}
-                    className="w-full text-sm bg-emerald-50 dark:bg-emerald-500/10 dark:text-gray-100 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-teal-400 transition"
+                    disabled={key !== "address"}
+                    className="w-full text-sm bg-emerald-50 dark:bg-emerald-500/10 dark:text-gray-100 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-teal-400 transition disabled:opacity-60 disabled:cursor-not-allowed"
                   />
                 )
               ) : (

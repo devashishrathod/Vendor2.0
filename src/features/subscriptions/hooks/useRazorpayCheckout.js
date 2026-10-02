@@ -4,6 +4,8 @@
 //   1. createOrder()      -> our backend creates a Razorpay order
 //      -> stored locally immediately (state + sessionStorage) so it's
 //         available to WelcomePage even before payment finishes
+//      -> `requiresPayment: false` (₹0 checkout) ends the flow here: the
+//         plan is already active/queued, steps 2–3 are skipped
 //   2. open Razorpay widget with that order
 //   3. on success, verifyPayment() -> our backend verifies the signature
 //      -> result is MERGED into the stored order (not replacing it), since
@@ -64,8 +66,6 @@ export function useRazorpayCheckout() {
     setError("");
     setProcessing(true);
     try {
-      await loadRazorpayScript();
-
       // 1. Create the order on our backend
       const orderRes = await razorpayAPI.createOrder({
         subscriptionId,
@@ -81,6 +81,21 @@ export function useRazorpayCheckout() {
       // amount/contact/_id — those were guessed before anyone had seen a
       // real response.
       const order = orderRes?.data;
+
+      // ₹0 checkout (trial, 100% promo, credit covers the bill, round-off):
+      // create-order itself already activated/queued the plan and returns
+      // `razorpay: null` — no widget, no verify-transaction call.
+      if (order?.requiresPayment === false) {
+        const zeroOrder = { ...order, amount: 0 };
+        setOrderData(zeroOrder);
+        persistOrder(zeroOrder);
+        setProcessing(false);
+        onSuccess?.(zeroOrder);
+        return zeroOrder;
+      }
+
+      await loadRazorpayScript();
+
       const razorpayOrder = order?.razorpay;
       if (!razorpayOrder?.orderId) {
         throw new Error("Could not create payment order. Please try again.");

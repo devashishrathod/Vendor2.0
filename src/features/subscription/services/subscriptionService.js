@@ -56,17 +56,31 @@ export async function getCurrentSubscription(brandId) {
   }
 }
 
-// durationLabel is a string like "1 Year" / "6 Months" — parsed for the
-// leading number rather than guessed from raw days, falling back to a
-// start/end date diff if durationLabel is ever missing.
-function subscriptionTermYears(durationLabel, startDate, endDate) {
-  const match = durationLabel && /(\d+(?:\.\d+)?)\s*year/i.exec(durationLabel);
-  if (match) return Number(match[1]);
+// ⚠️ FIXED: this used to force every plan's term into a whole-number-of-
+// years count (parsed from durationLabel, or days/365 rounded as a
+// fallback) — a Trial/Quarterly plan (~88 days, well under a year) always
+// rounded down to 0, showing the nonsensical "0 Years". durationLabel is
+// itself the real, confirmed field (a ready-to-display string like
+// "1 Year" / "6 Months" / "Trial") — showing it as-is avoids the whole
+// years-only assumption. The day-diff fallback below only runs if
+// durationLabel is ever missing, and picks whichever unit (years/months/
+// days) actually divides evenly instead of always defaulting to years.
+function formatSubscriptionTerm(durationLabel, startDate, endDate) {
+  if (durationLabel) return durationLabel;
   if (startDate && endDate) {
-    const days = (new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24);
-    return Math.round(days / 365) || 0;
+    const days = Math.round((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24));
+    if (days <= 0) return '—';
+    if (days % 365 === 0) {
+      const years = days / 365;
+      return `${years} Year${years === 1 ? '' : 's'}`;
+    }
+    if (days % 30 === 0) {
+      const months = days / 30;
+      return `${months} Month${months === 1 ? '' : 's'}`;
+    }
+    return `${days} Day${days === 1 ? '' : 's'}`;
   }
-  return 0;
+  return '—';
 }
 
 /**
@@ -99,7 +113,7 @@ export function mapSubscriptionResponse(res, brand) {
     brandName: brand?.brandName || brand?.legalBusinessName || '—',
     nextRenewalDate: sub.endDate,
     createdOnDate: sub.startDate,
-    subscriptionTermYears: subscriptionTermYears(sub.durationLabel, sub.startDate, sub.endDate),
+    subscriptionTerm: formatSubscriptionTerm(sub.durationLabel, sub.startDate, sub.endDate),
     expirationDate: sub.endDate,
     originalPrice: pricing.listPrice,
     discountedPrice,

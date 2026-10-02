@@ -149,6 +149,7 @@ import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import HeroBanner from "../components/HeroBanner";
+import OffersRibbon from "../components/OffersRibbon";
 import PlanTabs from "../components/PlanTabs";
 import PlanPriceCard from "../components/PlanPriceCard";
 import PlanComparisonTable from "../components/PlanComparisonTable";
@@ -332,6 +333,10 @@ export default function SubscriptionPlan({
       </div>
 
       <div className="relative z-10 max-w-5xl mx-auto px-6 py-6">
+        <div style={{ animation: "slideDown 0.4s ease both" }}>
+          <OffersRibbon plans={plans} />
+        </div>
+
         <div className="text-center" style={{ animation: "slideDown 0.5s ease both" }}>
           <span className="inline-flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-semibold px-3 py-1 rounded-full">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
@@ -389,7 +394,7 @@ export default function SubscriptionPlan({
         </div>
 
         <div style={{ animation: "fadeUp 0.5s 0.3s ease both", opacity: 0 }}>
-          <PlanComparisonTable plans={plans} selectedId={selectedPlan} loading={plansLoading} />
+          <PlanComparisonTable plans={plans} selectedId={selectedPlan} onSelect={setSelectedPlan} loading={plansLoading} />
         </div>
 
         <p className="text-center text-xs text-gray-400 mt-10">

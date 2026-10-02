@@ -4,10 +4,10 @@ import {
   useOnboardingStore,
   BASIC_SUB,
 } from "@/features/onboarding/store/onboardingStore";
-import { STEPS } from "@/features/onboarding/constants/steps";
 import { updateRegistrationStatus } from "@/features/onboarding/services/api/brand.api";
 import SuccessToast from "@/components/common/SuccessToast";
 import ErrorToast from "@/components/common/ErrorToast";
+import { useTheme } from "@/context/ThemeContext";
 
 // ── Primary Button ────────────────────────────────────────────────────────────
 function PrimaryButton({
@@ -70,35 +70,40 @@ function OptionCard({
   const styles = {
     emerald: {
       card: selected
-        ? "bg-emerald-50/50 shadow-sm shadow-emerald-100"
-        : "bg-white dark:bg-gray-800 hover:bg-gray-50/40",
-      iconWrap: selected ? "bg-emerald-100" : "bg-gray-100 dark:bg-gray-700",
-      iconColor: selected ? "text-emerald-600" : "text-gray-400",
-      title: selected ? "text-emerald-700" : "text-gray-700 dark:text-gray-300",
+        ? "bg-emerald-50/50 dark:bg-emerald-500/10 shadow-sm shadow-emerald-100 dark:shadow-none"
+        : "bg-white dark:bg-gray-800 hover:bg-gray-50/40 dark:hover:bg-gray-700/40",
+      iconWrap: selected ? "bg-emerald-100 dark:bg-emerald-500/20" : "bg-gray-100 dark:bg-gray-700",
+      iconColor: selected ? "text-emerald-600 dark:text-emerald-400" : "text-gray-400",
+      title: selected ? "text-emerald-700 dark:text-emerald-400" : "text-gray-700 dark:text-gray-300",
       radio: selected
         ? "bg-emerald-500"
         : "bg-white dark:bg-gray-800",
       badge: selected
-        ? "bg-emerald-100 text-emerald-700"
+        ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400"
         : "bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400",
       bullet: "text-emerald-500",
-      labelColor: "text-gray-500",
+      labelColor: "text-gray-500 dark:text-gray-400",
     },
-    blue: {
+    // ⚠️ FIXED: this key was already misleadingly named "blue" while
+    // actually rendering red — swapped the palette to amber (harsh
+    // error-red read as "you did something wrong"; amber reads as
+    // "action needed", which is what an unregistered business actually
+    // needs to see) and renamed the key to match.
+    amber: {
       card: selected
-        ? "bg-red-50/50 shadow-sm shadow-red-100"
-        : "bg-white dark:bg-gray-800 hover:bg-gray-50/40",
-      iconWrap: selected ? "bg-red-100" : "bg-gray-100 dark:bg-gray-700",
-      iconColor: selected ? "text-red-600" : "text-gray-400",
-      title: selected ? "text-red-700" : "text-gray-700 dark:text-gray-300",
+        ? "bg-amber-50/50 dark:bg-amber-500/10 shadow-sm shadow-amber-100 dark:shadow-none"
+        : "bg-white dark:bg-gray-800 hover:bg-gray-50/40 dark:hover:bg-gray-700/40",
+      iconWrap: selected ? "bg-amber-100 dark:bg-amber-500/20" : "bg-gray-100 dark:bg-gray-700",
+      iconColor: selected ? "text-amber-600 dark:text-amber-400" : "text-gray-400",
+      title: selected ? "text-amber-700 dark:text-amber-400" : "text-gray-700 dark:text-gray-300",
       radio: selected
-        ? "bg-red-500"
+        ? "bg-amber-500"
         : "bg-white dark:bg-gray-800",
       badge: selected
-        ? "bg-red-100 text-red-700"
+        ? "bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400"
         : "bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400",
-      bullet: "text-red-500",
-      labelColor: "text-gray-500",
+      bullet: "text-amber-500",
+      labelColor: "text-gray-500 dark:text-gray-400",
     },
   };
   const s = styles[accent] || styles.emerald;
@@ -152,7 +157,7 @@ function OptionCard({
               <span className={`text-xs ${s.bullet}`}>
                 {accent === "emerald" ? "✓" : "•"}
               </span>
-              <span className="text-[11px] text-gray-500 leading-snug">{p}</span>
+              <span className="text-[11px] text-gray-500 dark:text-gray-400 leading-snug">{p}</span>
             </li>
           ))}
         </ul>
@@ -163,16 +168,28 @@ function OptionCard({
 
 // ── City Illustration ─────────────────────────────────────────────────────────
 function CityIllustration({ isUnregistered }) {
-  const bg = isUnregistered ? "#fef2f2" : "#eef6f1";
-  const circleFill = isUnregistered ? "#fee2e2" : "#dff1e6";
-  const tallBuild = isUnregistered ? "#f87171" : "#10b981";
-  const midBuild = isUnregistered ? "#fca5a5" : "#34d399";
-  const lightBuild = isUnregistered ? "#fecaca" : "#6ee7b7";
-  const windowFill = isUnregistered ? "#fde8e8" : "#a7f3d0";
-  const cardStroke = isUnregistered ? "#ef4444" : "#10b981";
-  const cardText = isUnregistered ? "#ef4444" : "#10b981";
-  const cardAccent = isUnregistered ? "#fca5a5" : "#a7f3d0";
-  const circleBg = isUnregistered ? "#ef4444" : "#10b981";
+  // ⚠️ FIXED: these were fixed light hex values regardless of theme — in
+  // dark mode this whole illustration rendered as a bright pastel card
+  // sitting on the dark page. Only the two background fills (the card and
+  // buildings keep their normal saturated colors, which read fine on
+  // either background) get a muted dark-mode equivalent.
+  const { isDark } = useTheme();
+  // Amber palette for "unregistered" (was red — see OptionCard's `amber`
+  // accent above for why), Tailwind's amber-50/100/300/400/500 hex values.
+  const bg = isDark
+    ? (isUnregistered ? "#2a2013" : "#122a22")
+    : (isUnregistered ? "#fffbeb" : "#eef6f1");
+  const circleFill = isDark
+    ? (isUnregistered ? "#453619" : "#173a2d")
+    : (isUnregistered ? "#fef3c7" : "#dff1e6");
+  const tallBuild = isUnregistered ? "#fbbf24" : "#10b981";
+  const midBuild = isUnregistered ? "#fcd34d" : "#34d399";
+  const lightBuild = isUnregistered ? "#fde68a" : "#6ee7b7";
+  const windowFill = isUnregistered ? "#fef3c7" : "#a7f3d0";
+  const cardStroke = isUnregistered ? "#f59e0b" : "#10b981";
+  const cardText = isUnregistered ? "#b45309" : "#10b981";
+  const cardAccent = isUnregistered ? "#fcd34d" : "#a7f3d0";
+  const circleBg = isUnregistered ? "#f59e0b" : "#10b981";
 
   return (
     <svg viewBox="0 0 320 180" className="w-full h-auto">
@@ -271,19 +288,15 @@ const WHY_ITEMS_REGISTERED = [
   },
 ];
 
+// ⚠️ FIXED: the previous 3 items ("Restricted Features"/"Lower Limits")
+// implied a reduced-but-working tier still existed for an unregistered
+// business — it doesn't; they can't use the platform at all until
+// registered on trydood.com. Rewritten to match that (and the same flow
+// described in the "Unregistered Business" option card above).
 const WHY_ITEMS_UNREGISTERED = [
   {
-    title: "No GST Invoice",
-    desc: "Cannot issue tax invoices — limits B2B sales and compliance.",
-    icon: (
-      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-      </svg>
-    ),
-  },
-  {
-    title: "Restricted Features",
-    desc: "Payments, marketplace access, and loan eligibility are blocked.",
+    title: "No Platform Access",
+    desc: "You can't list products, accept orders, or use vendor tools until you're registered.",
     icon: (
       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
@@ -291,11 +304,20 @@ const WHY_ITEMS_UNREGISTERED = [
     ),
   },
   {
-    title: "Lower Limits",
-    desc: "Transaction limits are much lower without formal registration.",
+    title: "Get Started Online",
+    desc: "Visit trydood.com and submit the Get Started form to begin registration.",
     icon: (
       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+      </svg>
+    ),
+  },
+  {
+    title: "We'll Reach Out",
+    desc: "Our team will contact you and guide you through the rest of the process.",
+    icon: (
+      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
       </svg>
     ),
   },
@@ -314,15 +336,19 @@ function RightInfoPanel({ selectedOption }) {
       : "";
 
   const panelBg = isUnregistered
-    ? "bg-red-50/40"
+    ? "bg-amber-50/40 dark:bg-amber-500/10"
     : isRegistered
-      ? "bg-emerald-50/40"
-      : "bg-gray-50/40";
+      ? "bg-emerald-50/40 dark:bg-emerald-500/10"
+      : "bg-gray-50/40 dark:bg-gray-700/40";
 
-  const iconBg = isUnregistered ? "bg-red-100" : "bg-emerald-100";
-  const iconColor = isUnregistered ? "text-red-600" : "text-emerald-600";
-  const titleColor = isUnregistered ? "text-red-700" : "text-gray-800";
-  const headingColor = isUnregistered ? "text-red-700" : "text-gray-700";
+  const iconBg = isUnregistered ? "bg-amber-100 dark:bg-amber-500/20" : "bg-emerald-100 dark:bg-emerald-500/20";
+  const iconColor = isUnregistered ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400";
+  // ⚠️ FIXED: these had no dark: variant at all — text-gray-800/700 on the
+  // app's dark-mode page background (bg-gray-900) is barely distinguishable,
+  // effectively invisible. Also swapped unregistered's red for amber (see
+  // OptionCard's `amber` accent above for why).
+  const titleColor = isUnregistered ? "text-amber-700 dark:text-amber-400" : "text-gray-800 dark:text-gray-100";
+  const headingColor = isUnregistered ? "text-amber-700 dark:text-amber-400" : "text-gray-700 dark:text-gray-300";
 
   const whyLabel = "Why business registration matters";
 
@@ -331,7 +357,7 @@ function RightInfoPanel({ selectedOption }) {
     <div className="w-full md:w-[260px] flex-shrink-0 flex flex-col gap-3 md:mt-[-74px]">
       {/* Illustration */}
       <div
-        className={`rounded-xl overflow-hidden p-2 transition-all duration-300 ${isUnregistered ? "bg-red-50/40" : "bg-emerald-50/40"
+        className={`rounded-xl overflow-hidden p-2 transition-all duration-300 ${isUnregistered ? "bg-amber-50/40 dark:bg-amber-500/10" : "bg-emerald-50/40 dark:bg-emerald-500/10"
           }`}
       >
         <CityIllustration isUnregistered={isUnregistered} />
@@ -356,32 +382,12 @@ function RightInfoPanel({ selectedOption }) {
                 <p className={`text-[11px] font-semibold transition-colors duration-300 ${headingColor}`}>
                   {item.title}
                 </p>
-                <p className="text-[10px] text-gray-400 mt-0.5 leading-snug">
+                <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5 leading-snug">
                   {item.desc}
                 </p>
               </div>
             </div>
           ))}
-        </div>
-      </div>
-
-      {/* Tip box */}
-      <div className="rounded-xl bg-amber-50/60 p-3 flex items-start gap-2.5">
-        <div className="w-6 h-6 rounded-md bg-amber-100 text-amber-500 flex items-center justify-center flex-shrink-0">
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={1.8}
-              d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a4 4 0 115.657 0c-.62.62-1.026 1.13-1.184 1.766A2 2 0 0112 19.5h-1a2 2 0 01-1.937-1.563c-.158-.636-.564-1.146-1.184-1.766z"
-            />
-          </svg>
-        </div>
-        <div>
-          <p className="text-[11px] font-semibold text-gray-700">Not registered yet?</p>
-          <p className="text-[10px] text-gray-500 mt-0.5 leading-snug">
-            You can continue with limited access and update your registration details later.
-          </p>
         </div>
       </div>
     </div>
@@ -397,13 +403,13 @@ const REASONS = [
   "Protects both businesses and consumers.",
 ];
 
-function BlockingContent({ onRegister, onDelete, deleting }) {
+function BlockingContent({ onDelete, deleting }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2">
       {/* LEFT — Info */}
       <div className="p-7 flex flex-col gap-5">
         <div className="flex flex-col gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center">
+          <div className="w-12 h-12 rounded-2xl bg-red-50 dark:bg-red-500/10 flex items-center justify-center">
             <svg className="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
@@ -412,28 +418,29 @@ function BlockingContent({ onRegister, onDelete, deleting }) {
             <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 leading-snug mb-1">
               Business Registration Required
             </h3>
-            <p className="text-xs text-gray-500 leading-relaxed">
+            <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
               To maintain a trusted and compliant marketplace, Trydood currently
               supports only registered businesses and brands.
             </p>
           </div>
-          <p className="text-xs text-gray-500 leading-relaxed">
-            Please complete your business registration to continue. If you need
-            assistance, our support team is happy to help.
+          <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+            Visit trydood.com and click Get Started to begin your registration.
+            Once you submit the form there, our team will reach out to guide
+            you through the next steps.
           </p>
         </div>
         <div className="" />
         <div>
-          <p className="text-[10px] font-semibold text-emerald-600 uppercase tracking-widest mb-2.5">
+          <p className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-2.5">
             Why is registration required?
           </p>
           <ul className="flex flex-col gap-2">
             {REASONS.map((text, i) => (
               <li key={i} className="flex items-start gap-2.5">
-                <div className="w-4 h-4 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <div className="w-4 h-4 rounded-full bg-red-50 dark:bg-red-500/10 flex items-center justify-center flex-shrink-0 mt-0.5">
                   <span className="w-1 h-1 rounded-full bg-red-400 block" />
                 </div>
-                <span className="text-xs text-gray-500 leading-snug">{text}</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400 leading-snug">{text}</span>
               </li>
             ))}
           </ul>
@@ -442,22 +449,32 @@ function BlockingContent({ onRegister, onDelete, deleting }) {
 
       {/* RIGHT — Actions */}
       <div className="p-7 flex flex-col item-center justify-center gap-4 bg-gray-50/40 dark:bg-gray-900/40">
-        <div className="rounded-2xl bg-emerald-50/60 p-5 flex flex-col gap-4">
+        <div className="rounded-2xl bg-emerald-50/60 dark:bg-emerald-500/10 p-5 flex flex-col gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center flex-shrink-0">
-              <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+              <svg className="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
               </svg>
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">Complete Registration</p>
-              <p className="text-xs text-gray-400 mt-0.5">Unlock all features on Trydood</p>
+              <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">Get Started on Trydood.com</p>
+              <p className="text-xs text-gray-400 mt-0.5">Fill the Get Started form on our website</p>
             </div>
           </div>
           <div className="flex justify-center">
-            <PrimaryButton className="w-auto px-8" onClick={onRegister}>
-              Complete Business Registration
-            </PrimaryButton>
+            {/* ⚠️ FIXED: this used to just flip the vendor back to
+                "registered" and continue in-app — an unregistered business
+                is no longer registered here at all. It now sends them to
+                trydood.com's own Get Started form; the Trydood team reaches
+                out from there to take them through registration. */}
+            <a
+              href="https://trydood.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-auto px-8 py-3 rounded-xl font-medium text-sm tracking-wide transition-all duration-200 flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white active:scale-[0.98]"
+            >
+              Visit Trydood.com
+            </a>
           </div>
         </div>
 
@@ -469,8 +486,8 @@ function BlockingContent({ onRegister, onDelete, deleting }) {
           </div>
           <div>
             <p className="text-xs text-gray-400 mb-0.5">Need help with registration?</p>
-            <a href="mailto:TrydoodTeam@gmail.com" className="text-sm text-emerald-500 hover:text-emerald-600 font-medium hover:underline transition">
-              trydoodteam@gmail.com
+            <a href="mailto:Helpdesk@trydood.com" className="text-sm text-emerald-500 hover:text-emerald-600 font-medium hover:underline transition">
+              Helpdesk@trydood.com
             </a>
           </div>
         </div>
@@ -480,7 +497,7 @@ function BlockingContent({ onRegister, onDelete, deleting }) {
 }
 
 // ── Blocking Modal ────────────────────────────────────────────────────────────
-function BlockingModal({ onClose, onDelete, onSelectRegistered }) {
+function BlockingModal({ onClose, onDelete }) {
   const [deleting, setDeleting] = useState(false);
 
   const handleDelete = async () => {
@@ -488,11 +505,6 @@ function BlockingModal({ onClose, onDelete, onSelectRegistered }) {
     await new Promise((r) => setTimeout(r, 1200));
     setDeleting(false);
     onDelete();
-  };
-
-  const handleRegister = () => {
-    onSelectRegistered();
-    onClose();
   };
 
   return (
@@ -526,7 +538,6 @@ function BlockingModal({ onClose, onDelete, onSelectRegistered }) {
             </svg>
           </button>
           <BlockingContent
-            onRegister={handleRegister}
             onDelete={handleDelete}
             deleting={deleting}
           />
@@ -538,7 +549,6 @@ function BlockingModal({ onClose, onDelete, onSelectRegistered }) {
 
 // ── Blocking Page ─────────────────────────────────────────────────────────────
 function BlockingPage({ onDelete }) {
-  const { goToStep } = useOnboardingStore();
   const navigate = useNavigate();
   const [deleting, setDeleting] = useState(false);
 
@@ -562,7 +572,6 @@ function BlockingPage({ onDelete }) {
       />
       <div className="w-full max-w-3xl bg-white dark:bg-gray-800 rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden relative z-10">
         <BlockingContent
-          onRegister={() => goToStep(STEPS.BASIC_DETAILS, BASIC_SUB.REGISTRATION_STATUS)}
           onDelete={handleDelete}
           deleting={deleting}
         />
@@ -613,11 +622,6 @@ export default function Step4IsRegistered() {
     await proceedAsRegistered();
   };
 
-  const handleSelectRegisteredFromModal = () => {
-    setSelected("registered");
-    setShowModal(false);
-  };
-
   const handleDeleteAccount = () => {
     setShowModal(false);
     navigate("/");
@@ -637,7 +641,7 @@ export default function Step4IsRegistered() {
             <div className="flex-1 min-w-0">
               {/* Header */}
               <div className="flex items-start gap-2.5 mb-3.5">
-                <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0">
+                <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
                   <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12h6m-6 4h6M9 8h1M5 21h14a2 2 0 002-2V8.414a2 2 0 00-.586-1.414l-4.414-4.414A2 2 0 0014.586 2H5a2 2 0 00-2 2v15a2 2 0 002 2z" />
                   </svg>
@@ -646,7 +650,7 @@ export default function Step4IsRegistered() {
                   <h2 className="text-base md:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-0.5">
                     Is your business registered?
                   </h2>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
                     Tell us your current business registration status.
                   </p>
                 </div>
@@ -677,16 +681,16 @@ export default function Step4IsRegistered() {
                 <OptionCard
                   selected={selected === "unregistered"}
                   onClick={() => { setSelected("unregistered"); setApiError(null); }}
-                  accent="blue"
+                  accent="amber"
                   title="Unregistered Business"
                   subtitle="Your business is not currently registered with a government authority."
                   badge="Not eligible"
-                  pointsLabel="Limited access"
+                  pointsLabel="What happens next"
                   points={[
-                    "Limited feature access",
-                    "GST invoicing unavailable",
-                    "Lower transaction limits",
-                    "Registration may be required later",
+                    "Visit trydood.com and click Get Started",
+                    "Fill out the registration form there",
+                    "Our team will reach out to guide you",
+                    "Continue here once you're registered",
                   ]}
                   icon={
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -698,11 +702,11 @@ export default function Step4IsRegistered() {
 
               {/* API Error */}
               {apiError && (
-                <div className="flex items-center gap-2 bg-red-50 rounded-xl px-4 py-3 mb-4">
+                <div className="flex items-center gap-2 bg-red-50 dark:bg-red-500/10 rounded-xl px-4 py-3 mb-4">
                   <svg className="w-4 h-4 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                   </svg>
-                  <p className="text-xs text-red-600 font-medium">
+                  <p className="text-xs text-red-600 dark:text-red-400 font-medium">
                     {apiError.message || "Something went wrong. Please try again."}
                   </p>
                 </div>
@@ -745,7 +749,6 @@ export default function Step4IsRegistered() {
         <BlockingModal
           onClose={() => setShowModal(false)}
           onDelete={handleDeleteAccount}
-          onSelectRegistered={handleSelectRegisteredFromModal}
         />
       )}
 

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Image1 from "@/assets/svg/device-sync.svg";
-import Image2 from "../../../assets/Logo1.jpg";
+import Image2 from "../../../assets/Logo1.png";
 import Step2OTP from "./Step2VerifyOTP";
 import { validateWhatsApp } from "../validation";
 import { useAuthStore } from "@/features/onboarding/store/authStore";

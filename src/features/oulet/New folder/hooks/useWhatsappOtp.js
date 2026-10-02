@@ -112,6 +112,12 @@ export function useWhatsappOtp({ brandId, brandWhatsappNumber, isFirstOutlet } =
     resetOtpUiState();
   };
 
+  const restoreWhatsappDraft = ({ outletWhatsapp: number = "", useBrandNumber: useBrand = false } = {}) => {
+    if (whatsappVerified) return;
+    setUseBrandNumber(useBrand);
+    setOutletWhatsapp(useBrand ? brandWhatsappNumber : number);
+  };
+
   // ── First send (Case 3 — no shell exists yet): create the subBrand
   // shell + trigger the OTP. ─────────────────────────────────────────
   const sendOtp = async (outletType) => {
@@ -277,6 +283,7 @@ export function useWhatsappOtp({ brandId, brandWhatsappNumber, isFirstOutlet } =
     setOtpValue,
     handleUseBrandNumberToggle,
     handleOutletWhatsappChange,
+    restoreWhatsappDraft,
     sendOtp,
     resetOtp,
     confirmOtp,
