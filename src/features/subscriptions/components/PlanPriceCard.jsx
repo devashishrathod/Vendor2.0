@@ -57,6 +57,7 @@
 
 // ── Price section — changes per selected tab, sourced from the API ────────────
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { CheckCircle2 } from "lucide-react";
 import { amountToWords, computeEffectivePrice } from "../utils/priceCalculator";
 
@@ -186,9 +187,12 @@ export default function PlanPriceCard({ plans = [], selectedId, onPurchase, load
         {isCurrentPlan ? "Current Plan" : "Purchase Now"}
       </button>
 
-      {showCurrentPlanModal && (
+      {/* Portaled to <body>: the parent wrapper's fadeUp animation leaves a
+          `transform` on it, which would otherwise make this `fixed` overlay
+          center inside the card area instead of the viewport. */}
+      {showCurrentPlanModal && createPortal(
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
           onClick={(e) => { if (e.target === e.currentTarget) setShowCurrentPlanModal(false); }}
         >
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center">
@@ -207,7 +211,8 @@ export default function PlanPriceCard({ plans = [], selectedId, onPurchase, load
               Got it
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
