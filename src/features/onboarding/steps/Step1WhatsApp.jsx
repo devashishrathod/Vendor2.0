@@ -1,5 +1,13 @@
 import { useState } from "react";
-import Image1 from "@/assets/svg/device-sync.svg";
+import {
+  AlertCircle,
+  ArrowRight,
+  Loader2,
+  Mail,
+  MessageCircle,
+  ShieldCheck,
+} from "lucide-react";
+import Image1 from "@/assets/images/Login1.png";
 import Image2 from "../../../assets/Logo1.png";
 import Step2OTP from "./Step2VerifyOTP";
 import { validateWhatsApp } from "../validation";
@@ -9,18 +17,8 @@ import { ROLES } from "@/constants";
 function ErrorMessage({ message }) {
   if (!message) return null;
   return (
-    <div className="flex items-start gap-2 mt-2 text-red-500 bg-red-50 rounded-lg px-3 py-2">
-      <svg
-        className="w-4 h-4 mt-0.5 flex-shrink-0"
-        viewBox="0 0 20 20"
-        fill="currentColor"
-      >
-        <path
-          fillRule="evenodd"
-          d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-          clipRule="evenodd"
-        />
-      </svg>
+    <div className="flex items-start gap-2 text-red-600 bg-red-50 dark:bg-red-500/10 dark:text-red-400 border border-red-100 dark:border-red-500/20 rounded-xl px-3 py-2">
+      <AlertCircle size={16} className="mt-0.5 shrink-0" />
       <span className="text-xs font-medium">{message}</span>
     </div>
   );
@@ -31,6 +29,8 @@ export default function Step1WhatsApp() {
   const [phoneOrEmail, setPhoneOrEmail] = useState("");
   const [error, setError] = useState(null);
   const [otpModalOpen, setOtpModalOpen] = useState(false);
+
+  const isDisabled = loading || phoneOrEmail.length < 10;
 
   const handleSendOTP = async () => {
     const err = validateWhatsApp(phoneOrEmail);
@@ -44,192 +44,138 @@ export default function Step1WhatsApp() {
     }
   };
 
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter") handleSendOTP();
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!isDisabled) handleSendOTP();
   };
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row relative overflow-hidden bg-[#F8FAF7] dark:bg-gray-900">
-      {/* ── Glow ── */}
-      <div
-        className="absolute bottom-0 left-0 w-[500px] h-[500px] pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(ellipse at bottom left, rgba(16,185,129,0.15) 0%, transparent 70%)",
-        }}
-      />
-
-      <style>{`
-        @keyframes floatB {
-          0%,100% { transform: translateY(0px) scale(1); }
-          50%     { transform: translateY(-14px) scale(1.03); }
-        }
-      `}</style>
-
-      {/* ── Left Panel ── */}
-      <div className="w-full md:w-1/2 flex flex-col items-center justify-center px-6 pt-10 pb-4 md:pt-0 md:pb-0 md:pl-10 md:pr-6 relative z-10 gap-4 md:gap-6">
-        <img
-          src={Image1}
-          alt="Business Growth Illustration"
-          className="w-48 sm:w-64 md:w-full md:max-w-md h-auto object-contain drop-shadow-sm"
-        />
-        <div className="text-center max-w-xs px-4">
-          <p className="text-gray-700 dark:text-gray-300 text-sm md:text-md font-medium leading-relaxed">
-            Grow your business with ease on <br />
-            <span className="text-emerald-500 font-bold">Trydood.</span>
-          </p>
-          <p className="text-gray-500 text-xs leading-relaxed mt-1">
-            Enjoy low-cost subscriptions and easy access
-            <br />
-            to powerful business tools.
-          </p>
+    <div className="min-h-screen w-full bg-white dark:bg-gray-950 lg:grid lg:h-screen lg:grid-cols-2 lg:overflow-hidden">
+      {/* ── Left Panel (image) ── */}
+      <aside className="p-3 sm:p-4 lg:h-screen lg:p-5">
+        <div className="h-56 w-full overflow-hidden rounded-3xl bg-emerald-50 dark:bg-emerald-500/10 sm:h-72 lg:h-full">
+          <img
+            src={Image1}
+            alt="Vendor using Trydood"
+            className="h-full w-full object-cover object-[80%_center]"
+          />
         </div>
-      </div>
+      </aside>
 
-      {/* ── Divider (mobile only) ── */}
-      <div className="block md:hidden w-full px-8">
-        <div className="" />
-      </div>
-
-      {/* ── Right Panel ── */}
-      <div className="w-full md:w-1/2 flex items-center justify-center relative z-10 px-4 py-8 md:py-0">
-        <div className="w-full max-w-sm px-6 sm:px-8 py-8 md:py-10 flex flex-col">
+      {/* ── Right Panel (form) ── */}
+      <main className="flex items-start justify-center px-4 py-6 sm:px-6 lg:h-screen lg:items-center lg:overflow-y-auto lg:px-10 lg:py-8">
+        <div className="w-full max-w-md p-2 sm:p-6">
           {/* Logo */}
-          <div className="flex justify-center mb-4">
-            <img
-              src={Image2}
-              alt="Trydood"
-              className="w-28 h-20 md:w-36 md:h-24 object-contain"
-            />
-          </div>
+          <img
+            src={Image2}
+            alt="Trydood"
+            className="mx-auto h-16 w-auto object-cover sm:h-20"
+          />
 
           {/* Heading */}
-          <div className="text-center mb-6">
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
+          <div className="mt-5 text-center">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 sm:text-3xl">
               Welcome <span className="text-emerald-500">Back!</span>
             </h2>
-            <p className="text-sm text-gray-500">
+            <p className="mt-1.5 text-sm text-gray-500 dark:text-gray-400">
               Enter your WhatsApp number to continue
             </p>
           </div>
 
           {/* Form */}
-          <div className="flex flex-col gap-3">
-            <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-gray-500 select-none">
-                +91
-              </span>
-              <input
-                type="tel"
-                inputMode="numeric"
-                placeholder="Enter WhatsApp number"
-                value={phoneOrEmail}
-                onChange={(e) => {
-                  setPhoneOrEmail(
-                    e.target.value.replace(/\D/g, "").slice(0, 10),
-                  );
-                  setError(null);
-                }}
-                onKeyDown={handleKeyDown}
-                maxLength={10}
-                className="w-full pl-12 pr-4 py-3 bg-emerald-50 dark:bg-emerald-500/10 rounded-xl text-sm text-gray-800 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/30 transition duration-200"
-              />
+          <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="whatsapp-number"
+                className="text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400"
+              >
+                WhatsApp Number
+              </label>
+              <div
+                className={`flex items-center overflow-hidden rounded-xl border bg-white dark:bg-gray-800 transition focus-within:ring-4
+                  ${
+                    error
+                      ? "border-red-300 focus-within:ring-red-500/10"
+                      : "border-gray-200 dark:border-gray-700 focus-within:border-emerald-400 focus-within:ring-emerald-500/15"
+                  }`}
+              >
+                <span className="flex items-center gap-1.5 self-stretch border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 px-3 text-sm font-semibold text-gray-600 dark:text-gray-300 select-none">
+                  <MessageCircle size={16} className="text-emerald-500" />
+                  +91
+                </span>
+                <input
+                  id="whatsapp-number"
+                  type="tel"
+                  inputMode="numeric"
+                  autoComplete="tel-national"
+                  placeholder="98765 43210"
+                  value={phoneOrEmail}
+                  onChange={(e) => {
+                    setPhoneOrEmail(e.target.value.replace(/\D/g, "").slice(0, 10));
+                    setError(null);
+                  }}
+                  maxLength={10}
+                  className="w-full bg-transparent px-4 py-3.5 text-sm tracking-wide text-gray-800 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none"
+                />
+                <span className="pr-4 text-xs font-medium tabular-nums text-gray-400">
+                  {phoneOrEmail.length}/10
+                </span>
+              </div>
             </div>
 
             <ErrorMessage message={error} />
 
-            <div className="flex justify-center">
-              <button
-                onClick={handleSendOTP}
-                disabled={loading || phoneOrEmail.length < 10}
-                className={`w-3/4 py-2.5 font-bold rounded-xl text-sm tracking-widest transition duration-200 active:scale-95 flex items-center justify-center gap-2
-                  ${
-                    loading || phoneOrEmail.length < 10
-                      ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                      : "bg-emerald-500 hover:bg-emerald-600 text-white"
-                  }`}
-              >
-                {loading ? (
-                  <>
-                    <svg
-                      className="w-4 h-4 animate-spin"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                      />
-                    </svg>
-                    Sending…
-                  </>
-                ) : (
-                  <>
-                    Verification Code <span>→</span>
-                  </>
-                )}
-              </button>
-            </div>
+            <button
+              type="submit"
+              disabled={isDisabled}
+              className={`group flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-semibold tracking-wide transition duration-200 active:scale-[0.98]
+                ${
+                  isDisabled
+                    ? "cursor-not-allowed bg-emerald-500/40 text-white dark:bg-emerald-500/20 dark:text-emerald-100/60"
+                    : "bg-emerald-500 text-white shadow-lg shadow-emerald-500/25 hover:bg-emerald-600"
+                }`}
+            >
+              {loading ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  Sending…
+                </>
+              ) : (
+                <>
+                  Get Verification Code
+                  <ArrowRight
+                    size={16}
+                    className="transition-transform group-enabled:group-hover:translate-x-0.5"
+                  />
+                </>
+              )}
+            </button>
 
-            <p className="text-xs text-gray-500 text-center flex items-center justify-center gap-1 mt-1">
-              <svg
-                className="w-3.5 h-3.5 text-emerald-400"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-                />
-              </svg>
+            <p className="flex items-center justify-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+              <ShieldCheck size={14} className="text-emerald-500" />
               We will never share your number with anyone.
             </p>
-          </div>
+          </form>
 
           {/* Footer */}
-          <div className="mt-8 pt-5 flex items-center justify-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="w-4 h-4 text-emerald-500 dark:text-emerald-400"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
-                />
-              </svg>
+          <div className="mt-8 flex items-center gap-3 border-t border-gray-100 dark:border-gray-800 pt-6">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-500/10">
+              <Mail size={18} className="text-emerald-500" />
             </div>
-            <div className="text-center">
-              <p className="text-xs text-gray-500 mb-0.5">
+            <div className="min-w-0">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
                 In case of any queries, reach out to
               </p>
               <a
-                href="mailto:TrydoodTeam@gmail.com"
-                className="text-sm text-emerald-500 hover:text-emerald-600 font-medium hover:underline transition"
+                href="mailto:helpdesk@trydood.com"
+                className="block truncate text-sm font-semibold text-emerald-600 hover:underline dark:text-emerald-400"
               >
-                trydoodteam@gmail.com
+                helpdesk@trydood.com
               </a>
             </div>
           </div>
         </div>
-      </div>
+      </main>
 
       {/* ── OTP Modal ── */}
       <Step2OTP

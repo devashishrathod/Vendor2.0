@@ -9,6 +9,7 @@ import ThemeToggleButton from "@/components/common/ThemeToggleButton";
 const NAV_TABS = [
   { label: "Dashboard", to: "/analysis-report" },
   { label: "Transactions",    to: "/transactions"        },
+  { label: "Refunds",         to: "/refunds"             },
   { label: "Settlements",     to: "/settlements"      },
   { label: "Voucher",         to: "/vouchers"          },
   // { label: "Account Information",       to: "/account-information"        },
