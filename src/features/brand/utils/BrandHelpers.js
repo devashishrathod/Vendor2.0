@@ -10,7 +10,7 @@ export const BRAND_TABS = [
   { id: "listing-features", label: "Listing Features" },
   { id: "business-hours", label: "Business Hours" },
   { id: "gst-pan-information", label: "Business Profile" },
-  { id: "scan-qr-code", label: "Scan QR Code" },
+  // { id: "scan-qr-code", label: "Scan QR Code" },
 ];
 
 /**

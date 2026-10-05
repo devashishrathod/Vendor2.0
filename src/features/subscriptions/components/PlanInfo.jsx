@@ -1,8 +1,11 @@
 import { formatINR, amountToWords, computeEffectivePrice } from "../utils/priceCalculator";
 
-const billingLabel = (type) => (type === "MONTHLY" ? "Monthly" : "Yearly");
+// Server-derived labels (typeLabel: "Weekly"/"Quarterly"/"18 Months",
+// durationLabel: "7 days"/"3 months") — `type` alone can't describe CUSTOM
+// lengths and `durationInDays` no longer exists on the plan.
+const billingLabel = (plan) => plan.typeLabel || plan.durationLabel || "Plan";
 
-const durationLabel = (days) => {
+const legacyDurationLabel = (days) => {
   if (!days) return "—";
   if (days % 365 === 0) {
     const y = days / 365;
@@ -39,7 +42,7 @@ export default function PlanInfo({ plan }) {
 
       <div className="flex items-center gap-3 mb-1">
         <span className="text-3xl font-extrabold text-gray-900 dark:text-gray-100">{formatINR(effectivePrice)}</span>
-        <span className="text-gray-500 font-medium">/ {billingLabel(plan.type)}</span>
+        <span className="text-gray-500 font-medium">/ {billingLabel(plan)}</span>
       </div>
 
       {(strikeReference != null || discountLabel) && (
@@ -61,7 +64,7 @@ export default function PlanInfo({ plan }) {
 
       <div className="mb-5">
         <p className="text-sm font-bold text-gray-800 dark:text-gray-100 mb-1">Plan Duration</p>
-        <p className="text-sm text-gray-600 dark:text-gray-300">{durationLabel(plan.durationInDays)}</p>
+        <p className="text-sm text-gray-600 dark:text-gray-300">{plan.durationLabel || legacyDurationLabel(plan.durationInDays)}</p>
       </div>
 
       {/* {(plan.benefits?.length > 0 || plan.limitations?.length > 0) && (
