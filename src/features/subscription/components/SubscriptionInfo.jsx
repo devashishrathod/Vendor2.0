@@ -11,7 +11,7 @@ export default function SubscriptionInfo({ subscription }) {
   const {
     planName,
     createdOnDate,
-    subscriptionTermYears,
+    subscriptionTerm,
     expirationDate,
     originalPrice,
     discountedPrice,
@@ -21,7 +21,7 @@ export default function SubscriptionInfo({ subscription }) {
   const items = [
     { icon: <Crown className="w-4 h-4" />, iconBg: 'bg-emerald-50 dark:bg-emerald-500/10', iconText: 'text-emerald-500 dark:text-emerald-400', label: 'Plan Name', value: planName, valueClassName: 'capitalize' },
     { icon: <CalendarDays className="w-4 h-4" />, iconBg: 'bg-blue-50', iconText: 'text-blue-500', label: 'Created On', value: formatDateDMY(createdOnDate) },
-    { icon: <Clock className="w-4 h-4" />, iconBg: 'bg-gray-100 dark:bg-gray-700', iconText: 'text-gray-500', label: 'Subscription Term', value: `${subscriptionTermYears} Year${subscriptionTermYears === 1 ? '' : 's'}` },
+    { icon: <Clock className="w-4 h-4" />, iconBg: 'bg-gray-100 dark:bg-gray-700', iconText: 'text-gray-500', label: 'Subscription Term', value: subscriptionTerm },
     { icon: <Hourglass className="w-4 h-4" />, iconBg: 'bg-gray-100 dark:bg-gray-700', iconText: 'text-gray-500', label: 'Expiration Status', value: getExpirationStatus(expirationDate) },
     { icon: <Tag className="w-4 h-4" />, iconBg: 'bg-blue-50', iconText: 'text-blue-500', label: 'Original Price', value: formatCurrencyINR(originalPrice) },
     { icon: <Percent className="w-4 h-4" />, iconBg: 'bg-rose-50', iconText: 'text-rose-500', label: 'Discounted Price', value: formatCurrencyINR(discountedPrice) },

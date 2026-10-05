@@ -8,7 +8,7 @@ const SIDEBAR_STEPS = [
   { id: STEPS.BASIC_DETAILS,         label: "Basic Details",         icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" },
   { id: STEPS.BUSINESS_VERIFICATION, label: "Business Verification", icon: "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" },
   { id: STEPS.BANK_VERIFICATION,     label: "Bank Verification",     icon: "M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" },
-  { id: STEPS.SYSTEM_VERIFY,         label: "System Verify",         icon: "M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2v-4M9 21H5a2 2 0 01-2-2v-4m0 0h18" },
+  { id: STEPS.SYSTEM_VERIFY,         label: "System Verification",         icon: "M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2v-4M9 21H5a2 2 0 01-2-2v-4m0 0h18" },
   { id: STEPS.PARTNER_CONTRACT,      label: "Partner Contract",      icon: "M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" },
 ];
 
@@ -169,13 +169,17 @@ export default function Sidebar({
         </button>
       </div>
 
-      <div className="flex flex-1 pb-4 pt-2 px-4">
-        {/* ml-4 (not ml-2.5) so each row's icon lines up with the logo/Back
-            button above (px-4 + ml-6 there vs px-4 + ml-4 + the button's
-            own px-2 here — both land at the same 40px inset). gap-3 (not
-            the invalid gap-4.5, which Tailwind silently dropped, collapsing
-            the rows together with no spacing at all). */}
-        <div className="flex flex-col flex-1 ml-4 gap-3">
+      <div className="flex flex-1 pb-4 pt-14 px-8">
+        {/* ⚠️ FIXED: the `ml-4` here (on top of this wrapper's own `px-4`)
+            gave the step rows a 32px left inset against only a 16px right
+            inset — visibly off-center/shifted to one side within the
+            sidebar. It used to line the icons up with the logo/Back
+            button above, but centering the step list took priority.
+            Vertically centering the whole list (a prior attempt) didn't
+            look right in practice, so this stays top-anchored like the
+            original — just with a bit more breathing room between rows
+            (gap-4, up from gap-3) instead. */}
+        <div className="flex flex-col gap-6">
           {SIDEBAR_STEPS.map((step) => {
             const isPartnerContract = step.id === STEPS.PARTNER_CONTRACT;
 
@@ -257,6 +261,7 @@ export default function Sidebar({
           onClick={handleLogout}
           className="flex items-center gap-2 text-[11px] font-medium w-full justify-center
             transition-all rounded-xl py-2 px-3
+            bg-gray-50 dark:bg-gray-700
             text-gray-400
             hover:text-red-500 hover:bg-red-50 cursor-pointer"
         >

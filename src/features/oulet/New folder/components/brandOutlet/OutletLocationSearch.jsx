@@ -103,6 +103,10 @@ export default function OutletLocationSearch({
       setQuery(selectedPlace.address || selectedPlace.name || "");
       setResults([]);
       setHasSearched(false);
+    } else if (!selectedPlace) {
+      setQuery("");
+      setResults([]);
+      setHasSearched(false);
     }
   }, [selectedPlace]);
 
@@ -165,7 +169,7 @@ export default function OutletLocationSearch({
       setHasError(true);
       onError?.(
         err?.message ||
-          "Couldn't fetch results."
+        "Couldn't fetch results."
       );
 
       setResults([]);
@@ -254,87 +258,87 @@ export default function OutletLocationSearch({
         );
       }
 
-     const finalPlace = {
-  // Basic information
-  name:
-    details.name ||
-    place.name ||
-    "",
+      const finalPlace = {
+        // Basic information
+        name:
+          details.name ||
+          place.name ||
+          "",
 
-  address:
-    details.address ||
-    place.address ||
-    "",
+        address:
+          details.address ||
+          place.address ||
+          "",
 
-  // Location
-  lat:
-    details.lat ??
-    place.lat ??
-    null,
+        // Location
+        lat:
+          details.lat ??
+          place.lat ??
+          null,
 
-  lng:
-    details.lng ??
-    place.lng ??
-    null,
+        lng:
+          details.lng ??
+          place.lng ??
+          null,
 
-  // Google Place ID
-  placeId:
-    details.placeId ||
-    place.placeId,
+        // Google Place ID
+        placeId:
+          details.placeId ||
+          place.placeId,
 
-  // Address components
-  addressComponents:
-    details.addressComponents ||
-    place.addressComponents ||
-    [],
+        // Address components
+        addressComponents:
+          details.addressComponents ||
+          place.addressComponents ||
+          [],
 
-  // ⭐ PLACE PHOTO
-  photos:
-    details.photos ||
-    [],
+        // ⭐ PLACE PHOTO
+        photos:
+          details.photos ||
+          [],
 
-  // ⭐ RATING
-  rating:
-    details.rating ??
-    null,
+        // ⭐ RATING
+        rating:
+          details.rating ??
+          null,
 
-  // ⭐ TOTAL REVIEWS
-  userRatingsTotal:
-    details.userRatingsTotal ??
-    null,
+        // ⭐ TOTAL REVIEWS
+        userRatingsTotal:
+          details.userRatingsTotal ??
+          null,
 
-  // ⭐ OPENING HOURS
-  openingHours:
-    details.openingHours ||
-    null,
+        // ⭐ OPENING HOURS
+        openingHours:
+          details.openingHours ||
+          null,
 
-  // ⭐ PHONE
-  phone:
-    details.phone ||
-    "",
+        // ⭐ PHONE
+        phone:
+          details.phone ||
+          "",
 
-  // ⭐ WEBSITE
-  website:
-    details.website ||
-    "",
+        // ⭐ WEBSITE
+        website:
+          details.website ||
+          "",
 
-  // ⭐ GOOGLE MAPS URL
-  googleMapsUrl:
-    details.googleMapsUrl ||
-    "",
+        // ⭐ GOOGLE MAPS URL
+        googleMapsUrl:
+          details.googleMapsUrl ||
+          "",
 
-  // ⭐ BUSINESS STATUS
-  businessStatus:
-    details.businessStatus ||
-    "",
+        // ⭐ BUSINESS STATUS
+        businessStatus:
+          details.businessStatus ||
+          "",
 
-  // ⭐ PLACE TYPES
-  types:
-    details.types ||
-    [],
+        // ⭐ PLACE TYPES
+        types:
+          details.types ||
+          [],
 
-  source: "search",
-};
+        source: "search",
+      };
 
       console.log(
         "🎯 STEP 15: FINAL selectedPlace:"
@@ -388,7 +392,7 @@ export default function OutletLocationSearch({
 
       onError?.(
         err?.message ||
-          "Couldn't fetch place details."
+        "Couldn't fetch place details."
       );
     } finally {
       setDetailsLoading(false);
@@ -433,9 +437,9 @@ export default function OutletLocationSearch({
 
     if (
       typeof selectedPlace.lat !==
-        "number" ||
+      "number" ||
       typeof selectedPlace.lng !==
-        "number"
+      "number"
     ) {
       console.error(
         "❌ Cannot open map: invalid coordinates",
@@ -505,12 +509,11 @@ export default function OutletLocationSearch({
             searching ||
             !query.trim()
           }
-          className={`shrink-0 px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
-            searching ||
-            !query.trim()
+          className={`shrink-0 px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${searching ||
+              !query.trim()
               ? "bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed"
               : "bg-emerald-500 text-white hover:bg-emerald-600"
-          }`}
+            }`}
         >
           {searching
             ? "Searching..."
@@ -664,9 +667,8 @@ export default function OutletLocationSearch({
                 onSelectPlace(null);
                 setQuery("");
               }}
-              className={`px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
-                selectedPlace.source === "search" ? "" : "flex-1"
-              }`}
+              className={`px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${selectedPlace.source === "search" ? "" : "flex-1"
+                }`}
             >
               Clear
             </button>

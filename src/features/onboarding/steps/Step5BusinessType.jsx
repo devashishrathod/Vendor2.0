@@ -53,8 +53,17 @@ const ENTITY_TYPE_MAP = {
   llp: "LLP",
   partnership: "PARTNERSHIP",
   proprietorship: "PROPRIETORSHIP",
-  others: "TRUST",
 };
+
+// Sub-options shown when the "Others" card is selected — each one is sent
+// as its own businessEntityType instead of everything collapsing to TRUST.
+const OTHER_ENTITY_TYPES = [
+  { id: "one_person_company", label: "One Person Company", entityType: "ONE_PERSON_COMPANY" },
+  { id: "trust", label: "Trust", entityType: "TRUST" },
+  { id: "ngo", label: "NGO", entityType: "NGO" },
+  { id: "society", label: "Society", entityType: "SOCIETY" },
+  { id: "others", label: "Others", entityType: "OTHERS" },
+];
 
 const BUSINESS_TYPES = [
   {
@@ -144,7 +153,7 @@ const BUSINESS_TYPES = [
   {
     id: "others",
     label: "Others",
-    description: "Trust, Society, NGO, etc.",
+    description: "OPC, Trust, NGO, Society, etc.",
     badge: null,
     icon: (active) => (
       <svg
@@ -311,14 +320,18 @@ function TypeCard({ type, selected, onClick }) {
       className={`relative flex flex-col items-start gap-1.5 p-3 rounded-xl
         transition-all duration-200 w-full text-left
         ${isActive
-          ? "bg-emerald-50/50 shadow-sm shadow-emerald-100"
-          : "bg-white dark:bg-gray-800 hover:bg-gray-50/50"
+          // ⚠️ FIXED: no dark: variant at all — a light emerald-tinted
+          // near-white card rendered as a jarring light-grey block against
+          // the dark-mode page, unlike every unselected card (which does
+          // have its own dark:bg-gray-800).
+          ? "bg-emerald-50/50 dark:bg-emerald-500/10 shadow-sm shadow-emerald-100 dark:shadow-none"
+          : "bg-white dark:bg-gray-800 hover:bg-gray-50/50 dark:hover:bg-gray-700/50"
         }`}
     >
       <div className="flex items-start justify-between w-full">
         <div
           className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-200
-          ${isActive ? "bg-emerald-100" : "bg-gray-100 dark:bg-gray-700"}`}
+          ${isActive ? "bg-emerald-100 dark:bg-emerald-500/20" : "bg-gray-100 dark:bg-gray-700"}`}
         >
           {type.icon(isActive)}
         </div>
@@ -333,11 +346,11 @@ function TypeCard({ type, selected, onClick }) {
       <div className="flex flex-col gap-0.5">
         <span
           className={`text-[13px] font-semibold leading-tight transition-colors duration-200
-          ${isActive ? "text-emerald-700" : "text-gray-800 dark:text-gray-100"}`}
+          ${isActive ? "text-emerald-700 dark:text-emerald-400" : "text-gray-800 dark:text-gray-100"}`}
         >
           {type.label}
         </span>
-        <p className="text-[10px] text-gray-400 leading-tight">
+        <p className="text-[10px] text-gray-400 dark:text-gray-500 leading-tight">
           {type.description}
         </p>
       </div>
@@ -345,7 +358,7 @@ function TypeCard({ type, selected, onClick }) {
       {type.badge && (
         <span
           className={`text-[9px] font-semibold px-2 py-0.5 rounded-full transition-colors duration-200
-          ${isActive ? "bg-emerald-500 text-white" : "bg-emerald-100 text-emerald-700"}`}
+          ${isActive ? "bg-emerald-500 text-white" : "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400"}`}
         >
           {type.badge}
         </span>
@@ -419,7 +432,7 @@ function CompanyIllustration() {
 function RightInfoPanel({ info }) {
   return (
     <div className="w-full md:w-[270px] md:mt-[-85px] flex-shrink-0 flex flex-col gap-3">
-      <div className="rounded-xl overflow-hidden bg-emerald-50/40 p-2">
+      <div className="rounded-xl overflow-hidden bg-emerald-50/40 dark:bg-emerald-500/10 p-2">
         <CompanyIllustration />
       </div>
 
@@ -428,24 +441,28 @@ function RightInfoPanel({ info }) {
           <p className="text-[13px] font-semibold text-gray-800 dark:text-gray-100">
             {info.title}
           </p>
-          <p className="text-[11px] text-gray-400 mt-1 leading-snug">
+          <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-1 leading-snug">
             {info.description}
           </p>
         </div>
 
+        {/* ⚠️ FIXED: `bg-emerald-50/60` (and the icon box's `bg-emerald-100`)
+            had no dark: variant — a near-white, low-opacity tint on the
+            dark page background renders as a washed-out grey blob, and
+            text-gray-400 on top of that is close to unreadable. */}
         <div className="grid grid-cols-2 gap-2">
           {info.features.map((f, i) => (
             <div
               key={i}
-              className="rounded-lg bg-emerald-50/60 p-2 flex flex-col gap-1"
+              className="rounded-lg bg-emerald-50/60 dark:bg-emerald-500/10 p-2 flex flex-col gap-1"
             >
-              <div className="w-5 h-5 rounded-md bg-emerald-100 text-emerald-600 flex items-center justify-center">
+              <div className="w-5 h-5 rounded-md bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
                 {FeatureIcon[f.icon]}
               </div>
               <p className="text-[10.5px] font-semibold text-gray-700 dark:text-gray-300 leading-tight">
                 {f.title}
               </p>
-              <p className="text-[9.5px] text-gray-400 leading-snug">
+              <p className="text-[9.5px] text-gray-400 dark:text-gray-500 leading-snug">
                 {f.desc}
               </p>
             </div>
@@ -453,7 +470,7 @@ function RightInfoPanel({ info }) {
         </div>
 
         <div>
-          <p className="text-[10px] font-semibold text-gray-500 mb-1.5">
+          <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 mb-1.5">
             Commonly Required Documents
           </p>
           <div className="flex flex-wrap gap-1.5">
@@ -475,20 +492,25 @@ function RightInfoPanel({ info }) {
 export default function Step5BusinessType() {
   const { goToStep } = useOnboardingStore();
   const [selected, setSelected] = useState(null);
+  const [otherSelected, setOtherSelected] = useState(null);
 
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
 
+  const isOthers = selected === "others";
+  const selectedOther = OTHER_ENTITY_TYPES.find((o) => o.id === otherSelected);
+  const canContinue = !!selected && (!isOthers || !!selectedOther);
+
   const handleContinue = async () => {
-    if (!selected) return;
-    const entityType = ENTITY_TYPE_MAP[selected];
+    if (!canContinue) return;
+    const entityType = isOthers ? selectedOther.entityType : ENTITY_TYPE_MAP[selected];
     setLoading(true);
     setApiError(null);
     setSuccessMsg(null);
     try {
       await updateBusinessEntityType({ entityType });
-      useOnboardingStore.getState().setField("businessType", selected);
+      useOnboardingStore.getState().setField("businessType", isOthers ? selectedOther.id : selected);
      setSuccessMsg("Business type saved successfully!");
       useOnboardingStore.getState().setToast("Business type saved successfully!");
 goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_VERIFICATION);
@@ -579,11 +601,43 @@ goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_VERIFICATION);
                 ))}
               </div>
 
+              {/* "Others" sub-types */}
+              {isOthers && (
+                <div className="mb-3">
+                  <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 mb-1.5">
+                    Select your entity type
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {OTHER_ENTITY_TYPES.map((o) => {
+                      const isActive = otherSelected === o.id;
+                      return (
+                        <button
+                          key={o.id}
+                          type="button"
+                          onClick={() => {
+                            setOtherSelected(o.id);
+                            setApiError(null);
+                            setSuccessMsg(null);
+                          }}
+                          className={`text-xs font-medium px-3 py-1.5 rounded-full transition-colors duration-200
+                            ${isActive
+                              ? "bg-emerald-500 text-white"
+                              : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-emerald-50 dark:hover:bg-emerald-500/10"
+                            }`}
+                        >
+                          {o.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {/* Selected summary */}
               <div
                 className={`mb-3 transition-all duration-300 overflow-hidden ${selected ? "max-h-14 opacity-100" : "max-h-0 opacity-0"}`}
               >
-                <div className="flex items-center gap-2 bg-emerald-50 rounded-xl px-3.5 py-2">
+                <div className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-500/10 rounded-xl px-3.5 py-2">
                   <svg
                     className="w-4 h-4 text-emerald-500 flex-shrink-0"
                     fill="none"
@@ -597,10 +651,12 @@ goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_VERIFICATION);
                       d="M5 13l4 4L19 7"
                     />
                   </svg>
-                  <p className="text-xs font-medium text-emerald-700">
+                  <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400">
                     Selected:{" "}
-                    <span className="font-semibold">{selectedType?.label}</span>
-                    {selectedType && (
+                    <span className="font-semibold">
+                      {isOthers && selectedOther ? selectedOther.label : selectedType?.label}
+                    </span>
+                    {selectedType && !(isOthers && selectedOther) && (
                       <span className="text-emerald-500">
                         {" "}
                         — {selectedType.description}
@@ -614,7 +670,7 @@ goToStep(STEPS.BUSINESS_VERIFICATION, BIZ_SUB.PAN_VERIFICATION);
               <div className="flex items-center justify-between pt-3 mt-1">
                 <PrimaryButton
                   onClick={handleContinue}
-                  disabled={!selected}
+                  disabled={!canContinue}
                   loading={loading}
                   className="w-full sm:w-auto"
                 >
