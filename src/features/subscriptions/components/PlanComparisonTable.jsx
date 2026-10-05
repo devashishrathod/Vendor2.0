@@ -127,8 +127,9 @@ function entitlementsToFeatures(entitlements) {
       if ("isEnabled" in e) {
         return { title, value: e.isEnabled ? "Yes" : "No", available: !!e.isEnabled };
       }
-      const value = e.isUnlimited ? "Unlimited" : String(e.limit ?? 0);
-      return { title, value, available: e.isUnlimited || (e.limit ?? 0) > 0 };
+      const available = e.isUnlimited || (e.limit ?? 0) > 0;
+      const value = e.isUnlimited ? "Unlimited" : available ? String(e.limit) : "—";
+      return { title, value, available };
     });
 }
 
@@ -141,7 +142,7 @@ function fullFeatureList(plan) {
   return [...base, ...extra];
 }
 
-export default function PlanComparisonTable({ plans = [], selectedId, loading = false }) {
+export default function PlanComparisonTable({ plans = [], selectedId, onSelect, loading = false }) {
   if (loading) {
     return (
       <div className="mt-12">
@@ -186,14 +187,22 @@ export default function PlanComparisonTable({ plans = [], selectedId, loading = 
         <div className="grid px-6 py-5 min-w-[640px]" style={gridTemplate}>
           <div />
           {plans.map((plan) => (
-            <div key={plan.id} className="text-center">
+            <button
+              key={plan.id}
+              type="button"
+              onClick={() => onSelect?.(plan.id)}
+              className="text-center rounded-lg py-1 transition-colors hover:bg-gray-100 dark:hover:bg-gray-600"
+            >
               <p className={`text-sm font-bold ${selectedId === plan.id ? "text-violet-600" : "text-gray-800 dark:text-gray-100"}`}>
                 {plan.label}
               </p>
+              {plan.durationLabel && (
+                <p className="text-xs mt-0.5 text-gray-400">{plan.durationLabel}</p>
+              )}
               <p className={`text-xs mt-1 font-semibold ${selectedId === plan.id ? "text-violet-500" : "text-gray-400"}`}>
-                ₹ {fmt(computeEffectivePrice(plan))}
+                ₹ {fmt(plan.discountedPrice ?? computeEffectivePrice(plan))}
               </p>
-            </div>
+            </button>
           ))}
         </div>
 

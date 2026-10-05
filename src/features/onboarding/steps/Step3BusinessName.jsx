@@ -79,7 +79,7 @@ export default function Step3BusinessName() {
   const { setSubStep, setField, markComplete } = useOnboardingStore();
 
   const NAME_MAX = 60;
-  const SHORT_MAX = 10;
+  const SHORT_MAX = 15;
 
   const [name, setName] = useState(savedName ?? "");
   const [nameError, setNameError] = useState(null);
@@ -96,7 +96,7 @@ export default function Step3BusinessName() {
   };
 
   const handleShortChange = (e) => {
-    const val = e.target.value.toUpperCase();
+    const val = e.target.value;
     setShortName(val);
     if (shortTouched) setShortError(validateShortName(val));
   };
@@ -138,7 +138,7 @@ export default function Step3BusinessName() {
   const handleKeyDown = (e) => { if (e.key === "Enter") handleContinue(); };
   const nameValid = !validateBusinessName(name) && name.trim().length > 0;
   const shortValid = !validateShortName(shortName) && shortName.trim().length > 0;
-  const canContinue = name.trim().length > 0 && !loading;
+  const canContinue = name.trim().length > 0 && shortName.trim().length > 0 && !loading;
 
   return (
     <div className="relative w-full max-w-6xl mx-auto">
@@ -210,9 +210,9 @@ export default function Step3BusinessName() {
               />
 
               <Input
-                label="BRAND SHORT NAME"
+                label="BRAND NAME"
                 description="This is the name customers will see across the platform."
-                optional
+                required
                 placeholder="e.g., KFC"
                 value={shortName}
                 onChange={handleShortChange}
@@ -221,8 +221,7 @@ export default function Step3BusinessName() {
                 touched={shortTouched}
                 isValid={shortValid}
                 mono
-                uppercase
-                maxLength={10}
+                maxLength={15}
                 minLength={2}
                 errorMsg={shortError}
               />
@@ -277,9 +276,9 @@ export default function Step3BusinessName() {
                   <p className="text-[11px] text-gray-600 dark:text-gray-400 truncate">
                     {name.trim()
                       ? shortName.trim()
-                        ? `Short name: ${shortName.trim()}`
+                        ? `Brand name: ${shortName.trim()}`
                         : ""
-                      : "Your business name and short name will appear here as you enter them."}
+                      : "Your business name and brand name will appear here as you enter them."}
                   </p>
                 </div>
               </div>

@@ -99,8 +99,14 @@ function mapSettlementRow(s) {
 }
 
 export default function useSettlement() {
+  // Was hardcoded to reference/mock content ("Wednesday Settlements Done"
+  // etc.) — that wasn't real data, so it's back to null until there's an
+  // actual "latest settlement" API response to map into this shape.
   const [banner] = useState(null);
-  const [holidayNotice] = useState(null);
+  const [holidayNotice] = useState({
+    title: "Happy Merry Christmas! 🎄",
+    message: "December 25 is a bank holiday. So, your settlement amount will be settled on the next working day.",
+  });
   const [showHolidayNotice, setShowHolidayNotice] = useState(true);
   const [showBanner, setShowBanner] = useState(true);
 

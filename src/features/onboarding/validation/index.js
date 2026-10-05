@@ -26,14 +26,14 @@ export function validateBusinessName(name) {
 }
 
 export function validateShortName(short) {
-  if (!short?.trim()) return null; // optional
+  if (!short?.trim()) return "Brand name is required";
   const s = short.trim();
-  if (s.length < 2) return "Short name must be at least 2 characters";
-  if (s.length > 10) return "Short name must be 10 characters or less";
+  if (s.length < 2) return "Brand name must be at least 2 characters";
+  if (s.length > 15) return "Brand name must be 15 characters or less";
   if (!/^[A-Za-z0-9 &.'-]+$/.test(s))
     return "Only letters, numbers, spaces, &, ., ' and - allowed";
   if (!/[A-Za-z]/.test(s))
-    return "Short name must contain at least one letter";
+    return "Brand name must contain at least one letter";
   return null;
 }
 

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useBrand } from "../../../hooks/useBrand";
 import { getCurrentSubscription } from "../services/subscriptionApi";
+import ErrorToast from "@/components/common/ErrorToast";
 
 const CONFETTI_COLORS = [
   "#f472b6", "#818cf8", "#34d399", "#fb923c", "#facc15",
@@ -45,6 +46,7 @@ const fmt = (amount) =>
 function getInvoiceUrl(source) {
   if (!source) return null;
   return (
+    source.invoiceDownloadUrl ||
     source.invoiceUrl ||
     source.invoicePdfUrl ||
     source.invoice?.url ||
@@ -56,14 +58,23 @@ function getInvoiceUrl(source) {
 
 // Content-width (not full-width) — sits top-right in a card's header row,
 // next to the plan name/status, rather than as its own full block.
-function DownloadInvoiceButton({ invoiceUrl, className = "" }) {
+//
+// ⚠️ FIXED: this used to render `disabled` whenever `invoiceUrl` was
+// missing — which, per the note above, is always right now (no real API
+// sends one yet) — so the button was permanently greyed out and
+// unclickable. Per explicit instruction, it now stays a normal clickable
+// button; clicking it without a real invoiceUrl calls `onUnavailable`
+// (which shows a toast) instead of opening nothing.
+function DownloadInvoiceButton({ invoiceUrl, onUnavailable, className = "" }) {
   return (
     <button
       type="button"
-      onClick={() => invoiceUrl && window.open(invoiceUrl, "_blank", "noopener,noreferrer")}
-      disabled={!invoiceUrl}
-      title={invoiceUrl ? "Download invoice" : "Invoice not available yet"}
-      className={`inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-semibold rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 active:scale-[0.97] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white dark:disabled:hover:bg-gray-700 flex-shrink-0 ${className}`}
+      onClick={() =>
+        invoiceUrl
+          ? window.open(invoiceUrl, "_blank", "noopener,noreferrer")
+          : onUnavailable?.()
+      }
+      className={`inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-semibold rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 active:scale-[0.97] transition-all flex-shrink-0 ${className}`}
     >
       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
@@ -352,6 +363,7 @@ export default function WelcomePage({ orderData = null, asModal = true, onClose,
   // SUMMARY shown still prefers `orderData` when present (see the render
   // below).
   const [currentSub, setCurrentSub] = useState(null);
+  const [invoiceToast, setInvoiceToast] = useState(null);
   useEffect(() => {
     if (!brand?._id) return;
     let cancelled = false;
@@ -388,6 +400,8 @@ export default function WelcomePage({ orderData = null, asModal = true, onClose,
           : "relative min-h-screen bg-white dark:bg-gray-800"
       }
     >
+      <ErrorToast error={invoiceToast} onDismiss={() => setInvoiceToast(null)} />
+
       {/*
         Fixed: pieces now stay opaque for most of the fall and only fade
         right at the end, and they travel 600px so they're visible the
@@ -407,7 +421,7 @@ export default function WelcomePage({ orderData = null, asModal = true, onClose,
       <div
         className={
           asModal
-            ? "relative w-full max-w-3xl max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-800 rounded-2xl shadow-2xl"
+            ? "relative w-full max-w-3xl max-h-[90vh] overflow-y-auto no-scrollbar bg-white dark:bg-gray-800 rounded-2xl shadow-2xl"
             : "relative w-full overflow-hidden font-sans"
         }
       >
@@ -437,7 +451,7 @@ export default function WelcomePage({ orderData = null, asModal = true, onClose,
           <div className={`text-center ${asModal ? "pt-8 pb-6" : "pt-10 pb-10"}`}>
             {orderData && (
               <div className="inline-flex items-center gap-2 mb-3 px-4 py-1.5 rounded-full bg-teal-50 dark:bg-teal-500/10 text-teal-700 dark:text-teal-400 text-sm font-semibold">
-                ✅ Payment Successful
+                {orderData.requiresPayment === false ? "✅ Plan Activated — Nothing to Pay" : "✅ Payment Successful"}
               </div>
             )}
             <h1 className={`font-semibold text-[#1a1a2e] dark:text-gray-100 mb-2 ${asModal ? "text-2xl" : "text-3xl md:text-4xl"}`}>
@@ -471,12 +485,17 @@ export default function WelcomePage({ orderData = null, asModal = true, onClose,
 
             <div className={`flex flex-wrap gap-x-6 gap-y-2 mb-6 text-sm text-gray-700 dark:text-gray-300 ${asModal ? "flex-col sm:flex-row" : ""}`}>
               <span>Merchant Token : <span className="text-emerald-500 font-medium">{brandData.merchantToken}</span></span>
-              <span>GST No : <span className="text-emerald-500 font-medium">{brandData.gstNo}</span></span>
-              <span>PAN No : <span className="text-emerald-500 font-medium">{brandData.panNo}</span></span>
+              <span>GST  : <span className="text-emerald-500 font-medium">{brandData.gstNo}</span></span>
+              <span>PAN  : <span className="text-emerald-500 font-medium">{brandData.panNo}</span></span>
             </div>
 
             <div className="flex justify-end mb-2">
-              <DownloadInvoiceButton invoiceUrl={invoiceUrl} />
+              <DownloadInvoiceButton
+                invoiceUrl={invoiceUrl}
+                onUnavailable={() =>
+                  setInvoiceToast({ message: "Invoice not available yet" })
+                }
+              />
             </div>
 
             {orderData ? (

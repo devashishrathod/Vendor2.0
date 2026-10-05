@@ -10,18 +10,17 @@ import SuccessToast from "@/components/common/SuccessToast";
 import ErrorModal from "@/components/common/ErrorModal";
 import ConfirmModal from "@/components/common/ConfirmModal";
 
-function IconBadge({ bgColor, children }) {
+function IconBadge({ className, children }) {
   return (
     <div
-      className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-      style={{ background: bgColor }}
+      className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${className}`}
     >
       {children}
     </div>
   );
 }
 
-function DetailTile({ icon, iconBg, label, value, wide }) {
+function DetailTile({ icon, iconClassName, label, value, wide }) {
   if (!value || value === "—" || value === "null" || value === null)
     return null;
   return (
@@ -30,8 +29,8 @@ function DetailTile({ icon, iconBg, label, value, wide }) {
         ${wide ? "col-span-2" : ""}`}
     >
       <div className="flex items-center gap-2">
-        <IconBadge bgColor={iconBg}>{icon}</IconBadge>
-        <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">
+        <IconBadge className={iconClassName}>{icon}</IconBadge>
+        <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">
           {label}
         </span>
       </div>
@@ -166,7 +165,15 @@ export default function Step9GSTReadOnly() {
         providerRequestId: verifyData.clientRefNum,
         verifiedAt: verifyData.timestamp || new Date().toISOString(),
         verificationResponse: verifyResponse,
-        tradeName: verifyData.tradeName || undefined,
+        // ⚠️ FIXED: `verifyData.tradeName || undefined` only caught a
+        // genuinely empty string — a whitespace-only value from the GST
+        // lookup (e.g. " ") is still truthy, so it was sent through as-is
+        // and the backend rejected it with "Trade name must be at least 3
+        // characters long". Trimming first means a blank/whitespace value
+        // is correctly treated as "no trade name" and left out of the
+        // request entirely — no new length rule added on the frontend,
+        // just not sending a field that has nothing real in it.
+        tradeName: verifyData.tradeName?.trim() || undefined,
         cancellationDate: verifyData.cancellationDate || undefined,
         filingStatus: verifyData.filingStatus || undefined,
         stateCode: verifyData.stateCode || undefined,
@@ -205,18 +212,41 @@ export default function Step9GSTReadOnly() {
         currentScreen: "BANK_VERIFICATION",
       };
 
-      const res = await fetch(`${BASE_URL}/brands/onboarding/add-gst-details`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token && { Authorization: `Bearer ${token}` }),
-        },
-        body: JSON.stringify(payload),
-      });
+      const postGstDetails = (body) =>
+        fetch(`${BASE_URL}/brands/onboarding/add-gst-details`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
+          body: JSON.stringify(body),
+        });
+
+      let res = await postGstDetails(payload);
 
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        const errMsg = err?.message?.toLowerCase() || "";
+        let err = await res.json().catch(() => ({}));
+        let errMsg = err?.message?.toLowerCase() || "";
+
+        // ⚠️ FIXED: the trim above only catches a whitespace-only
+        // tradeName — a real GST lookup can still return one that's
+        // genuinely present but under the backend's 3-character minimum
+        // (e.g. a 1-2 letter trade name, or literally "NA" — confirmed via
+        // a real response). That's not something the vendor did wrong or
+        // can fix here, so rather than blocking their onboarding on it,
+        // retry once with tradeName left out entirely — same as if the
+        // lookup hadn't returned one at all. Matches on the error message
+        // alone (not a specific status code) — this backend uses 422 for
+        // this validation, not 400, which is what the earlier version of
+        // this fix incorrectly assumed, so it never actually ran.
+        if (payload.tradeName && errMsg.includes("trade name")) {
+          res = await postGstDetails({ ...payload, tradeName: undefined });
+          if (!res.ok) {
+            err = await res.json().catch(() => ({}));
+            errMsg = err?.message?.toLowerCase() || "";
+          }
+        }
+
         if (
           res.status === 400 &&
           (errMsg.includes("already exists") ||
@@ -225,7 +255,9 @@ export default function Step9GSTReadOnly() {
           goToStep(STEPS.BANK_VERIFICATION, BANK_SUB.BANK_VERIFICATION);
           return;
         }
-        throw new Error(err?.message || `Server error ${res.status}`);
+        if (!res.ok) {
+          throw new Error(err?.message || `Server error ${res.status}`);
+        }
       }
       setSuccessMsg(true);
       useOnboardingStore.getState().setToast("GST details saved successfully.");
@@ -288,11 +320,11 @@ export default function Step9GSTReadOnly() {
             <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 leading-tight">
               GST Registration Verified
             </h2>
-            <p className="text-xs text-gray-500 mt-0.5">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
               Review your verified business details before continuing.
             </p>
           </div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-semibold flex-shrink-0">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-[11px] font-semibold flex-shrink-0">
             {/* circle-check icon */}
             <svg className="w-3.5 h-3.5 fill-emerald-500" viewBox="0 0 24 24">
               <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1.41 14.08L6.7 12.2l1.41-1.42 2.48 2.49 5.31-5.32 1.41 1.42-6.72 6.71z" />
@@ -302,7 +334,10 @@ export default function Step9GSTReadOnly() {
         </div>
 
         {/* ── GSTIN Card ── */}
-        <div className="relative bg-emerald-50 rounded-2xl px-5 py-3 mb-3 flex items-center justify-between overflow-hidden">
+        {/* ⚠️ FIXED: same dark-mode gap as Step7PANReadOnly.jsx — this card,
+            its icon badges, and the GSTIN text (text-emerald-900, a very
+            dark green meant for a light bg) had no dark: variant. */}
+        <div className="relative bg-emerald-50 dark:bg-emerald-500/10 rounded-2xl px-5 py-3 mb-3 flex items-center justify-between overflow-hidden">
           {/* watermark */}
           <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-10 pointer-events-none">
             <svg className="w-20 h-20 text-emerald-500" fill="currentColor" viewBox="0 0 24 24">
@@ -315,18 +350,18 @@ export default function Step9GSTReadOnly() {
             </p>
             <div className="flex items-center gap-2.5">
               {/* shield icon */}
-              <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center flex-shrink-0">
-                <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
               </div>
-              <span className="font-mono text-lg font-bold tracking-[0.14em] text-emerald-900">
+              <span className="font-mono text-lg font-bold tracking-[0.14em] text-emerald-900 dark:text-emerald-300">
                 {d.gstNumber}
               </span>
             </div>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center flex-shrink-0">
-            <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+            <svg className="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
             </svg>
           </div>
@@ -337,7 +372,7 @@ export default function Step9GSTReadOnly() {
           <DetailTile
             label="Legal Business Name"
             value={d.legalName}
-            iconBg="#EFF6FF"
+            iconClassName="bg-blue-50 dark:bg-blue-500/10"
             icon={
               <svg className="w-3.5 h-3.5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -348,7 +383,7 @@ export default function Step9GSTReadOnly() {
           <DetailTile
             label="Trade Name"
             value={d.tradeName}
-            iconBg="#ECFEFF"
+            iconClassName="bg-cyan-50 dark:bg-cyan-500/10"
             icon={
               <svg className="w-3.5 h-3.5 text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21h18M5 21V7l8-4v18M13 21V11l6 3v7M9 9h.01M9 13h.01M9 17h.01" />
@@ -359,7 +394,7 @@ export default function Step9GSTReadOnly() {
           <DetailTile
             label="Business Structure"
             value={d.constitutionOfBusiness}
-            iconBg="#FAF5FF"
+            iconClassName="bg-purple-50 dark:bg-purple-500/10"
             icon={
               <svg className="w-3.5 h-3.5 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
@@ -370,7 +405,7 @@ export default function Step9GSTReadOnly() {
           <DetailTile
             label="Taxpayer Type"
             value={d.taxpayerType}
-            iconBg="#FFF1F2"
+            iconClassName="bg-pink-50 dark:bg-pink-500/10"
             icon={
               <svg className="w-3.5 h-3.5 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16" />
@@ -381,7 +416,7 @@ export default function Step9GSTReadOnly() {
           <DetailTile
             label="Registration Date"
             value={d.registrationDate}
-            iconBg="#FFF7ED"
+            iconClassName="bg-orange-50 dark:bg-orange-500/10"
             icon={
               <svg className="w-3.5 h-3.5 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -392,7 +427,7 @@ export default function Step9GSTReadOnly() {
           <DetailTile
             label="Cancellation Date"
             value={d.cancellationDate}
-            iconBg="#FEF2F2"
+            iconClassName="bg-red-50 dark:bg-red-500/10"
             icon={
               <svg className="w-3.5 h-3.5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2zM10 13l4 4m0-4l-4 4" />
@@ -403,7 +438,7 @@ export default function Step9GSTReadOnly() {
           <DetailTile
             label="Nature of Business"
             value={d.natureOfBusiness}
-            iconBg="#F0FDFA"
+            iconClassName="bg-teal-50 dark:bg-teal-500/10"
             icon={
               <svg className="w-3.5 h-3.5 text-teal-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7h-9m9 4h-9m9 4h-9m9 4h-9M4 7h1m-1 4h1m-1 4h1m-1 4h1" />
@@ -415,7 +450,7 @@ export default function Step9GSTReadOnly() {
             label="Registered Business Address"
             value={d.address}
             wide
-            iconBg="#ECFDF5"
+            iconClassName="bg-emerald-50 dark:bg-emerald-500/10"
             icon={
               <svg className="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -426,16 +461,16 @@ export default function Step9GSTReadOnly() {
         </div>
 
         {/* ── Warning Notice ── */}
-        <div className="bg-amber-50 rounded-xl px-4 py-2.5 flex items-start gap-2.5 mb-3">
-          <div className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+        <div className="bg-amber-50 dark:bg-amber-500/10 rounded-xl px-4 py-2.5 flex items-start gap-2.5 mb-3">
+          <div className="w-7 h-7 rounded-lg bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
             <svg className="w-3.5 h-3.5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
             </svg>
           </div>
-          <p className="text-xs text-amber-700 leading-relaxed flex-1">
+          <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed flex-1">
             Please confirm these details match your GST registration records before continuing.
           </p>
-          <div className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+          <div className="w-7 h-7 rounded-lg bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
             <svg className="w-3.5 h-3.5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
             </svg>
@@ -443,12 +478,16 @@ export default function Step9GSTReadOnly() {
         </div>
 
         {/* ── Actions ── */}
-        <div className="flex gap-3">
+        {/* ⚠️ FIXED: both buttons were `flex-1`, stretching each to half
+            the card's full width regardless of their (short) label text —
+            sized to content now, with `justify-between` keeping them at
+            opposite ends the way they already read. */}
+        <div className="flex items-center justify-between gap-3">
           <button
             // onClick={() => setSubStep(BIZ_SUB.GST_VERIFICATION)}
             onClick={() => setShowConfirm(true)}
             disabled={posting}
-            className="flex-1 py-2.5 rounded-xl bg-white dark:bg-gray-800
+            className="px-5 py-2.5 rounded-xl bg-white dark:bg-gray-800
               hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 text-sm font-semibold
               transition-all duration-200 active:scale-[0.98] flex items-center justify-center
               gap-2 disabled:opacity-50"
@@ -463,7 +502,7 @@ export default function Step9GSTReadOnly() {
           <button
             onClick={handleContinue}
             disabled={posting}
-            className="flex-1 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white
+            className="px-8 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white
               text-sm font-semibold transition-all duration-200 active:scale-[0.98]
               shadow-sm shadow-emerald-200 flex items-center justify-center gap-2
               disabled:opacity-60 disabled:cursor-not-allowed"

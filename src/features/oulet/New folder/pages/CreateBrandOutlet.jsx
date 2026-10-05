@@ -39,9 +39,13 @@ import {
   WorkingHoursEditor,
   OutletLocationSearch,
   LiveLocationPicker,
+  AccordionFieldCard,
+  StepProgress,
+  ReviewStep,
 } from "../components/brandOutlet";
 
 const WEEK_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+const OUTLET_DRAFT_STORAGE_PREFIX = "trydood:create-brand-outlet-draft:";
 
 export default function CreateBrandOutlet() {
   const { brand, loading } = useBrand();
@@ -65,6 +69,17 @@ export default function CreateBrandOutlet() {
   const [workingHours, setWorkingHours] = useState(DEFAULT_WORKING_HOURS);
   const [showcaseAlbums, setShowcaseAlbums] = useState([]);
   const [logoFile, setLogoFile] = useState(null);
+  // ⚠️ FIXED: a newly-picked logo's preview used to live only inside
+  // UploadBox's own local state — but the wizard's Step 1 JSX (including
+  // UploadBox) unmounts whenever the user moves to Step 2, so coming back
+  // to Step 1 remounted UploadBox with an empty preview even though
+  // `logoFile` itself was still correctly held here. Tracking the preview
+  // URL in this parent (which never unmounts across step changes) keeps it
+  // visible on Step 1 after navigating away and back, and lets Review show
+  // it too — Review only ever had `existingLogoUrl` (the server's saved
+  // logo) to show, so a brand-new pick with no existing logo never showed
+  // there at all.
+  const [logoPreviewUrl, setLogoPreviewUrl] = useState(null);
   // Vendor ne pehle se logo upload kiya ho to uska URL yahan aata hai
   // (brands/get response se) — sirf preview ke liye. Jab tak user naya
   // file na chune, upload par existingLogoUrl hi kaam aayega (naya file
@@ -105,10 +120,21 @@ export default function CreateBrandOutlet() {
   const [guidelineType, setGuidelineType] = useState(null);
   const [showMap, setShowMap] = useState(false);
 
+  // ── Wizard step (UI-only — purely controls which of the same fields/
+  // handlers below are currently visible; no state shape, API call, or
+  // validation rule changes with it). 1 = Basic Details, 2 = Outlet
+  // Details, 3 = Review.
+  const [wizardStep, setWizardStep] = useState(1);
+  const [draftReady, setDraftReady] = useState(false);
+  // Bumped to force the Step 1 "Advanced Details" accordion open when
+  // Review's showcase-albums warning links back to it.
+  const [advancedOpenSignal, setAdvancedOpenSignal] = useState(0);
+
   // Guards the one-time mount prefill effect so it can't double-fire (e.g.
   // React StrictMode double-invoke in dev) or fight with in-progress user
   // edits.
   const hydratedBrandDetailsRef = useRef(false);
+  const outletDraftKey = brand?._id ? `${OUTLET_DRAFT_STORAGE_PREFIX}${brand._id}` : null;
 
   const brandWhatsappNumber = brand?.whatsappNumber || brand?.phone || brand?.mobile || "";
 
@@ -127,6 +153,7 @@ export default function CreateBrandOutlet() {
     setOtpValue,
     handleUseBrandNumberToggle,
     handleOutletWhatsappChange,
+    restoreWhatsappDraft,
     sendOtp,
     resetOtp, // resend/reset — calls loginOrSignUp-with-whatsapp only
     confirmOtp,
@@ -392,7 +419,7 @@ export default function CreateBrandOutlet() {
     try {
       const res = await getBrandById(brand._id);
       const data = res?.data ?? res;
-      if (!data) return;
+      if (!data) return { verifiedOutlet: false };
 
       // ── Brand-level fields ──
       if (data.brandName) setBrandName(data.brandName);
@@ -409,7 +436,7 @@ export default function CreateBrandOutlet() {
       // which creates the subBrand shell (subBrands/signUp-with-whatsapp)
       // AND sends the first OTP. Location/working-hours/outlet-type stay
       // blocked until that shell exists (outletSectionsBlocked = !subBrandId).
-      if (!fsb) return;
+      if (!fsb) return { verifiedOutlet: false };
 
       // ── Outlet type ──
       // ⚠️ CONFIRM: OUTLET_TYPE_OPTIONS values assumed to be the
@@ -480,8 +507,10 @@ export default function CreateBrandOutlet() {
         setWorkingHours(wh);
         setWorkingHoursSaved(true); // already saved on the backend
       }
+      return { verifiedOutlet: isNumberVerified && !!fsb._id };
     } catch (err) {
       console.error("Couldn't load existing brand/outlet details:", err.message);
+      return { verifiedOutlet: false };
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [brand?._id]);
@@ -489,9 +518,110 @@ export default function CreateBrandOutlet() {
   useEffect(() => {
     if (!brand?._id || hydratedBrandDetailsRef.current) return;
     hydratedBrandDetailsRef.current = true;
-    hydrateOutletFromBrand().finally(() => setLocationLoading(false));
+    hydrateOutletFromBrand().then(({ verifiedOutlet } = {}) => {
+      try {
+        const savedDraft = outletDraftKey ? sessionStorage.getItem(outletDraftKey) : null;
+        const draft = savedDraft ? JSON.parse(savedDraft) : null;
+        if (draft && typeof draft === "object") {
+          if (Number.isInteger(draft.wizardStep) && draft.wizardStep >= 1 && draft.wizardStep <= 3) setWizardStep(draft.wizardStep);
+          if (typeof draft.brandName === "string") setBrandName(draft.brandName);
+          if (typeof draft.brandEmail === "string") setBrandEmail(draft.brandEmail);
+          if (typeof draft.brandMobile === "string") setBrandMobile(draft.brandMobile);
+          if (typeof draft.mobileSameAsWhatsapp === "boolean") setMobileSameAsWhatsapp(draft.mobileSameAsWhatsapp);
+          if (typeof draft.brandDescription === "string") setBrandDescription(draft.brandDescription);
+          if (typeof draft.brandType === "string") setBrandType(draft.brandType);
+          if (typeof draft.brandSubType === "string") setBrandSubType(draft.brandSubType);
+          if (Array.isArray(draft.listingFeatures)) setListingFeatures(draft.listingFeatures);
+          if (Array.isArray(draft.showcaseAlbums)) setShowcaseAlbums(draft.showcaseAlbums);
+          if (draft.workingHours && typeof draft.workingHours === "object") setWorkingHours(draft.workingHours);
+          if (typeof draft.workingHoursSaved === "boolean") setWorkingHoursSaved(draft.workingHoursSaved);
+          if (typeof draft.outletType === "string") setOutletType(draft.outletType);
+          if (typeof draft.gstSameAsOutlet === "boolean") setGstSameAsOutlet(draft.gstSameAsOutlet);
+          if (typeof draft.locationMode === "string") setLocationMode(draft.locationMode);
+          if ("selectedPlace" in draft) setSelectedPlace(draft.selectedPlace);
+          if ("savedLocationId" in draft) setSavedLocationId(draft.savedLocationId);
+          if (!verifiedOutlet) {
+            restoreWhatsappDraft({ outletWhatsapp: draft.outletWhatsapp, useBrandNumber: draft.useBrandNumber });
+          }
+        }
+      } catch (err) {
+        console.error("Couldn't restore outlet form draft:", err);
+      }
+    }).finally(() => {
+      try {
+        setDraftReady(true);
+        setLocationLoading(false);
+      } catch (err) {
+        console.error("Couldn't finish restoring outlet form draft:", err);
+      }
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [brand?._id]);
+
+  useEffect(() => {
+    if (!draftReady || !outletDraftKey) return;
+    const draft = {
+      wizardStep,
+      brandName,
+      brandEmail,
+      brandMobile,
+      mobileSameAsWhatsapp,
+      brandDescription,
+      brandType,
+      brandSubType,
+      listingFeatures,
+      showcaseAlbums: showcaseAlbums.map((album) => ({
+        id: album.id,
+        name: album.name,
+        persisted: album.persisted,
+        media: (album.media || []).filter((media) => media.persisted).map((media) => ({
+          id: media.id,
+          type: media.type,
+          preview: media.preview,
+          thumbnail: media.thumbnail,
+          month: media.month,
+          isShowInVideoClips: media.isShowInVideoClips,
+          persisted: true,
+        })),
+      })),
+      workingHours,
+      workingHoursSaved,
+      outletType,
+      gstSameAsOutlet,
+      locationMode,
+      selectedPlace,
+      savedLocationId,
+      outletWhatsapp,
+      useBrandNumber,
+    };
+    try {
+      sessionStorage.setItem(outletDraftKey, JSON.stringify(draft));
+    } catch (err) {
+      console.error("Couldn't save outlet form draft:", err);
+    }
+  }, [
+    draftReady,
+    outletDraftKey,
+    wizardStep,
+    brandName,
+    brandEmail,
+    brandMobile,
+    mobileSameAsWhatsapp,
+    brandDescription,
+    brandType,
+    brandSubType,
+    listingFeatures,
+    showcaseAlbums,
+    workingHours,
+    workingHoursSaved,
+    outletType,
+    gstSameAsOutlet,
+    locationMode,
+    selectedPlace,
+    savedLocationId,
+    outletWhatsapp,
+    useBrandNumber,
+  ]);
 
   // ── Post-verify catch-up: right after a LIVE OTP confirm (not the
   // mount-time hydration above — that only ever runs once), subBrandId
@@ -565,6 +695,8 @@ export default function CreateBrandOutlet() {
       // independently via handleSaveWorkingHours, and this button is gated
       // behind workingHoursSaved being true, so they're guaranteed saved.
       await finalizeOutlet(subBrandId, subBrandPatch, brand._id, brandPayload, logoFile);
+      if (outletDraftKey) sessionStorage.removeItem(outletDraftKey);
+      setDraftReady(false);
       showSuccess("Outlet saved! Redirecting…");
       navigate("/under-review");
     } catch (err) {
@@ -582,6 +714,21 @@ export default function CreateBrandOutlet() {
   const showcaseAlbumsMeetMinimum = showcaseAlbums.every((a) => a.media.length >= MIN_ITEMS_PER_ALBUM);
 
   const canFinalSave = whatsappVerified && !!subBrandId && !!savedLocationId && workingHoursSaved && showcaseAlbumsMeetMinimum;
+
+  // ── Wizard step gates (UI-only — purely control when "Continue"/"Review
+  // Outlet" become clickable; canFinalSave above, and everything it's built
+  // from, is untouched). Sub-Category counts as satisfied once its list for
+  // the chosen category has finished loading and is empty, or errored — so
+  // a category with genuinely zero sub-categories (or a flaky API) can
+  // never become an unrecoverable dead end under this new gate.
+  const subCategorySatisfied =
+    !!brandSubType ||
+    (!!brandType && !subCategoriesLoading && (!!subCategoriesError || subCategories.length === 0));
+  const canContinueStep1 = !!brandEmail.trim() && !!effectiveMobile.trim() && !!brandType && subCategorySatisfied;
+  const canContinueStep2 = whatsappVerified && !!savedLocationId && workingHoursSaved;
+
+  const categoryName = categories.find((c) => c._id === brandType)?.name || "";
+  const subCategoryName = subCategories.find((s) => s._id === brandSubType)?.name || "";
 
   return (
     <div className="min-h-screen bg-[#F8FAF7] dark:bg-gray-900 font-sans">
@@ -625,6 +772,9 @@ export default function CreateBrandOutlet() {
         </div>
 
         <div className="absolute top-4 right-5 z-20 flex items-center gap-2">
+          <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-xs font-semibold text-gray-600 dark:text-gray-300 whitespace-nowrap">
+            Merchant Token: <span className="text-gray-900 dark:text-gray-100">{merchantToken}</span>
+          </span>
           <ThemeToggleButton />
           <button
             onClick={handleLogout}
@@ -641,411 +791,491 @@ export default function CreateBrandOutlet() {
       </nav>
 
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-          <div className="flex items-center gap-3">
-            <div className="w-1 h-9 rounded-full bg-emerald-500 flex-shrink-0" />
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 leading-tight">Create Your Brand Outlet</h1>
-              <p className="text-sm text-gray-500 mt-1">You are just a few steps away from listing your event on Trydood!</p>
-            </div>
-          </div>
-          <div className="rounded-xl px-6 py-3 bg-emerald-50 dark:bg-emerald-500/10 text-sm font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">
-            Merchant Token : <span className="text-gray-900 dark:text-gray-100">{merchantToken}</span>
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-1 h-9 rounded-full bg-emerald-500 flex-shrink-0" />
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 leading-tight">Create Your Brand Outlet</h1>
+            <p className="text-sm text-gray-500 mt-1">You are just a few steps away from listing your event on Trydood!</p>
           </div>
         </div>
 
-        {/* ══════════════════════ BRAND FORM ══════════════════════ */}
-        <div className="brand-form-section bg-emerald-50/40 dark:bg-gray-800 rounded-3xl p-4 sm:p-6 mb-8">
-          <FormDivider
-            title="Brand Details"
-            subtitle="Tell customers who you are — this stays the same across every outlet under this brand."
-            icon={
-              <svg className="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-              </svg>
-            }
-          />
+        <StepProgress currentStep={wizardStep} />
 
-          <SectionCard>
-            <SectionHeader title="Brand Logo" subtitle="Upload Your Brand Identity Logo" guidelineKey="logo" onGuidelineClick={openGuideline} />
-            {existingLogoUrl && !logoFile && (
-              <div className="mb-3 flex items-center gap-3">
-                <img
-                  src={existingLogoUrl}
-                  alt="Current brand logo"
-                  className="w-16 h-16 rounded-lg object-cover"
-                />
-                <span className="text-xs text-gray-500">Current logo — upload a new file below to replace it.</span>
-              </div>
-            )}
-            <UploadBox
-              accept="image/*"
-              mediaType="image"
-              sizeRule="1:1 ratio (min 500×500 px)"
-              sizeLimit="1.5 MB"
-              maxFiles={1}
-              onFileSelect={(file) => setLogoFile(file)}
-            />
-          </SectionCard>
-
-          <SectionCard>
-            <SectionHeader title="Brand Email" subtitle="Used for order and account notifications." />
-            <input
-              type="email"
-              value={brandEmail}
-              onChange={(e) => setBrandEmail(e.target.value)}
-              placeholder="eg : hello@yourbrand.com"
-              className="w-full rounded-xl px-4 py-2.5 text-sm outline-none bg-emerald-50 dark:bg-emerald-500/10 text-gray-700 dark:text-gray-100"
-            />
-          </SectionCard>
-
-          <SectionCard>
-            <SectionHeader title="Mobile Number" subtitle="A direct contact number for this brand." />
-            <input
-              type="tel"
-              value={effectiveMobile}
-              disabled={mobileSameAsWhatsapp}
-              onChange={(e) => setBrandMobile(e.target.value)}
-              placeholder="eg : 9876543210"
-              className="w-full rounded-xl px-4 py-2.5 text-sm outline-none bg-emerald-50 dark:bg-emerald-500/10 text-gray-700 dark:text-gray-100 disabled:bg-gray-50 dark:disabled:bg-gray-700 disabled:text-gray-400"
-            />
-            <label className="flex items-center gap-2 mt-2 text-xs font-semibold text-gray-600 dark:text-gray-300 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={mobileSameAsWhatsapp}
-                disabled={!brandWhatsappNumber}
-                onChange={(e) => setMobileSameAsWhatsapp(e.target.checked)}
-                className="w-4 h-4 accent-emerald-600 cursor-pointer disabled:opacity-40"
+        {wizardStep === 1 && (
+          <>
+            {/* ══════════════════════ BRAND FORM ══════════════════════ */}
+            <div className="brand-form-section bg-emerald-50/40 dark:bg-emerald-500/5 rounded-3xl p-4 sm:p-6 mb-8">
+              <FormDivider
+                title="Brand Details"
+                subtitle="Tell customers who you are — this stays the same across every outlet under this brand."
+                icon={
+                  <svg className="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
+                }
               />
-              Same as Brand WhatsApp Number
-              {brandWhatsappNumber ? ` (${brandWhatsappNumber})` : " (not available on your brand profile)"}
-            </label>
-          </SectionCard>
 
-          <SectionCard>
-            <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">Brand Description</label>
-              <button onClick={() => openGuideline("brandDescription")} className="text-sm text-emerald-600 hover:underline whitespace-nowrap flex items-center gap-1">
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                More Guidelines
+              <SectionCard>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  {/* Logo — full width */}
+                  <div className="sm:col-span-2">
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                        Brand Logo <span className="text-gray-400 font-normal">(optional)</span>
+                      </label>
+                      <button onClick={() => openGuideline("logo")} className="text-sm text-emerald-600 hover:underline whitespace-nowrap flex items-center gap-1">
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        More Guidelines
+                      </button>
+                    </div>
+                    {(logoPreviewUrl || existingLogoUrl) && (
+                      <div className="mb-3 flex items-center gap-3">
+                        <img
+                          src={logoPreviewUrl || existingLogoUrl}
+                          alt={logoPreviewUrl ? "Selected brand logo" : "Current brand logo"}
+                          className="w-16 h-16 rounded-lg object-cover"
+                        />
+                        <span className="text-xs text-gray-500">
+                          {logoPreviewUrl ? "New logo selected — upload again below to replace it." : "Current logo — upload a new file below to replace it."}
+                        </span>
+                      </div>
+                    )}
+                    <UploadBox
+                      accept="image/*"
+                      mediaType="image"
+                      sizeRule="1:1 ratio (min 500×500 px)"
+                      sizeLimit="1.5 MB"
+                      maxFiles={1}
+                      onFileSelect={(file) => {
+                        setLogoFile(file);
+                        setLogoPreviewUrl(file ? URL.createObjectURL(file) : null);
+                      }}
+                    />
+                  </div>
+
+                  {/* Email */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Brand Email *</label>
+                    <input
+                      type="email"
+                      value={brandEmail}
+                      onChange={(e) => setBrandEmail(e.target.value)}
+                      placeholder="eg : hello@yourbrand.com"
+                      className="w-full rounded-xl px-4 py-2.5 text-sm outline-none bg-emerald-50 dark:bg-emerald-500/10 text-gray-700 dark:text-gray-100"
+                    />
+                  </div>
+
+                  {/* Mobile */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Contact Number *</label>
+                    <input
+                      type="tel"
+                      value={effectiveMobile}
+                      disabled={mobileSameAsWhatsapp}
+                      onChange={(e) => setBrandMobile(e.target.value)}
+                      placeholder="eg : 9876543210"
+                      className="w-full rounded-xl px-4 py-2.5 text-sm outline-none bg-emerald-50 dark:bg-emerald-500/10 text-gray-700 dark:text-gray-100 disabled:bg-gray-50 dark:disabled:bg-gray-700 disabled:text-gray-400"
+                    />
+                    <label className="flex items-center gap-2 mt-2 text-xs font-semibold text-gray-600 dark:text-gray-300 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={mobileSameAsWhatsapp}
+                        disabled={!brandWhatsappNumber}
+                        onChange={(e) => setMobileSameAsWhatsapp(e.target.checked)}
+                        className="w-4 h-4 accent-emerald-600 cursor-pointer disabled:opacity-40"
+                      />
+                      Same as Brand WhatsApp Number
+                      {brandWhatsappNumber ? ` (${brandWhatsappNumber})` : " (not available)"}
+                    </label>
+                  </div>
+
+                  {/* Description — full width */}
+                  <div className="sm:col-span-2">
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                        Brand Description <span className="text-gray-400 font-normal">(optional)</span>
+                      </label>
+                      <button onClick={() => openGuideline("brandDescription")} className="text-sm text-emerald-600 hover:underline whitespace-nowrap flex items-center gap-1">
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        More Guidelines
+                      </button>
+                    </div>
+                    <textarea
+                      value={brandDescription}
+                      onChange={(e) => setBrandDescription(e.target.value)}
+                      placeholder="eg : A cosy neighbourhood cafe known for its wood-fired pizzas and weekend live music."
+                      rows={3}
+                      maxLength={300}
+                      className="w-full rounded-xl px-4 py-3 text-sm outline-none transition-colors bg-emerald-50 dark:bg-emerald-500/10 text-gray-800 dark:text-gray-100 resize-none"
+                    />
+                    <p className="text-xs text-gray-400 mt-1 text-right">{brandDescription.length}/300</p>
+                  </div>
+                </div>
+              </SectionCard>
+
+              <SectionCard>
+                <SectionHeader title="Category" subtitle="Add category and sub-category tags to help the right audience discover your event." />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Category *</label>
+                    <Select
+                      value={brandType}
+                      onChange={handleCategoryChange}
+                      options={categories.map((c) => ({ value: c._id, label: c.name }))}
+                      placeholder={categoriesLoading ? "Loading categories…" : "eg : Food & Drinks"}
+                      disabled={categoriesLoading}
+                      className="bg-emerald-50 dark:bg-emerald-500/10 text-gray-700 dark:text-gray-100"
+                    />
+                    {categoriesError && <p className="text-xs text-red-500 mt-1">{categoriesError}</p>}
+                    {!categoriesLoading && !categoriesError && categories.length === 0 && (
+                      <p className="text-xs text-gray-400 mt-1">No categories available right now.</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Sub-Category *</label>
+                    <Select
+                      value={brandSubType}
+                      onChange={setBrandSubType}
+                      options={subCategories.map((s) => ({ value: s._id, label: s.name }))}
+                      placeholder={subCategoriesLoading ? "Loading…" : "eg : buffet restaurants"}
+                      disabled={!brandType || subCategoriesLoading}
+                      className="bg-emerald-50 dark:bg-emerald-500/10 text-gray-700 dark:text-gray-100"
+                    />
+                    {subCategoriesError && <p className="text-xs text-red-500 mt-1">{subCategoriesError}</p>}
+                    {brandType && !subCategoriesLoading && !subCategoriesError && subCategories.length === 0 && (
+                      <p className="text-xs text-gray-400 mt-1">No sub-categories for this category.</p>
+                    )}
+                  </div>
+                </div>
+              </SectionCard>
+
+              <AccordionFieldCard
+                title="Advanced Details"
+                subtitle="Listing Features & Showcase Collection — optional, add anytime"
+                defaultOpen={false}
+                openSignal={advancedOpenSignal}
+                badge={
+                  !showcaseAlbumsMeetMinimum && showcaseAlbums.length > 0 ? (
+                    <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 rounded-full px-2 py-0.5">
+                      Needs attention
+                    </span>
+                  ) : null
+                }
+              >
+                <SectionCard>
+                  <SectionHeader
+                    title="Listing Features"
+                    subtitle="Add up to 10 active features that describe this listing. Each is saved immediately."
+                    guidelineKey="listingFeatures"
+                    onGuidelineClick={openGuideline}
+                  />
+                  <ListingFeaturesEditor features={listingFeatures} onChange={setListingFeatures} brandId={brand?._id} />
+                </SectionCard>
+
+                <SectionCard>
+                  <SectionHeader
+                    title="Showcase Collection"
+                    subtitle="Create up to 5 albums (e.g. Gallery Photo, Menu Photo, Ambience Photo, Event Photo) and upload photos or videos to each. Need something else? Add My Custom Collection."
+                    guidelineKey="showcase"
+                    onGuidelineClick={openGuideline}
+                  />
+                  <ShowcaseAlbumsEditor albums={showcaseAlbums} onChange={setShowcaseAlbums} brandId={brand?._id} />
+                </SectionCard>
+              </AccordionFieldCard>
+            </div>
+
+            <div className="flex justify-end mt-2">
+              <button
+                type="button"
+                onClick={() => setWizardStep(2)}
+                disabled={!canContinueStep1}
+                className="px-8 py-2.5 rounded-xl text-sm font-semibold bg-emerald-500 text-white hover:bg-emerald-600 active:scale-[0.99] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Continue →
               </button>
             </div>
-            <textarea
-              value={brandDescription}
-              onChange={(e) => setBrandDescription(e.target.value)}
-              placeholder="eg : A cosy neighbourhood cafe known for its wood-fired pizzas and weekend live music."
-              rows={4}
-              maxLength={300}
-              className="w-full rounded-xl px-4 py-3 text-sm outline-none transition-colors bg-emerald-50 dark:bg-emerald-500/10 text-gray-800 dark:text-gray-100 resize-none"
-            />
-            <p className="text-xs text-gray-400 mt-1 text-right">{brandDescription.length}/300</p>
-          </SectionCard>
+          </>
+        )}
 
-          <SectionCard>
-            <SectionHeader title="Brand Type" subtitle="Add category and sub-category tags to help the right audience discover your event." />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Category *</label>
-                <Select
-                  value={brandType}
-                  onChange={handleCategoryChange}
-                  options={categories.map((c) => ({ value: c._id, label: c.name }))}
-                  placeholder={categoriesLoading ? "Loading categories…" : "eg : Food & Drinks"}
-                  disabled={categoriesLoading}
-                  className="bg-emerald-50 dark:bg-emerald-500/10 text-gray-700 dark:text-gray-100"
-                />
-                {categoriesError && <p className="text-xs text-red-500 mt-1">{categoriesError}</p>}
-                {!categoriesLoading && !categoriesError && categories.length === 0 && (
-                  <p className="text-xs text-gray-400 mt-1">No categories available right now.</p>
-                )}
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Sub-Category</label>
-                <Select
-                  value={brandSubType}
-                  onChange={setBrandSubType}
-                  options={subCategories.map((s) => ({ value: s._id, label: s.name }))}
-                  placeholder={subCategoriesLoading ? "Loading…" : "eg : buffet restaurants"}
-                  disabled={!brandType || subCategoriesLoading}
-                  className="bg-emerald-50 dark:bg-emerald-500/10 text-gray-700 dark:text-gray-100"
-                />
-                {subCategoriesError && <p className="text-xs text-red-500 mt-1">{subCategoriesError}</p>}
-                {brandType && !subCategoriesLoading && !subCategoriesError && subCategories.length === 0 && (
-                  <p className="text-xs text-gray-400 mt-1">No sub-categories for this category.</p>
-                )}
-              </div>
-            </div>
-          </SectionCard>
-
-          <SectionCard>
-            <SectionHeader
-              title="Listing Features"
-              subtitle="Add up to 10 active features that describe this listing. Each is saved immediately."
-              guidelineKey="listingFeatures"
-              onGuidelineClick={openGuideline}
-            />
-            <ListingFeaturesEditor features={listingFeatures} onChange={setListingFeatures} brandId={brand?._id} />
-          </SectionCard>
-
-          <SectionCard>
-            <SectionHeader
-              title="Showcase Collection"
-              subtitle="Create up to 5 albums (e.g. Gallery Photo, Menu Photo, Ambience Photo, Event Photo) and upload photos or videos to each. Need something else? Add My Custom Collection."
-              guidelineKey="showcase"
-              onGuidelineClick={openGuideline}
-            />
-            <ShowcaseAlbumsEditor albums={showcaseAlbums} onChange={setShowcaseAlbums} brandId={brand?._id} />
-          </SectionCard>
-        </div>
-
-        {/* ══════════════════════ OUTLET FORM ══════════════════════ */}
-        {/* Order: WhatsApp Number (+ Outlet Type) → Location → Working Hours */}
-        <div className="outlet-form-section bg-white dark:bg-gray-800 rounded-3xl p-4 sm:p-6 mb-8">
-          <FormDivider
-            title="Outlet Details"
-            subtitle="Details specific to this particular outlet's location and presentation."
-            icon={
-              <svg className="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 21h18M5 21V10l7-6 7 6v11M9 21v-6h6v6" />
-              </svg>
-            }
-          />
-
-          {/* ── 1. Outlet WhatsApp Number ── */}
-          <SectionCard>
-            <SectionHeader title="Outlet WhatsApp Number" subtitle="Customers will reach this outlet on WhatsApp using this verified number." />
-
-            <label className="flex items-center gap-2 text-xs font-semibold text-gray-600 dark:text-gray-300 mb-4 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={useBrandNumber}
-                onChange={(e) => handleUseBrandNumberToggle(e.target.checked)}
-                disabled={!brandWhatsappNumber}
-                className="w-4 h-4 accent-emerald-600 cursor-pointer disabled:opacity-40"
+        {wizardStep === 2 && (
+          <>
+            {/* ══════════════════════ OUTLET FORM ══════════════════════ */}
+            {/* Order: WhatsApp Number (+ Outlet Type) → Location → Working Hours */}
+            <div className="outlet-form-section bg-white dark:bg-transparent rounded-3xl p-4 sm:p-6 mb-8">
+              <FormDivider
+                title="Outlet Details"
+                subtitle="Details specific to this particular outlet's location and presentation."
+                icon={
+                  <svg className="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 21h18M5 21V10l7-6 7 6v11M9 21v-6h6v6" />
+                  </svg>
+                }
               />
-              Same as Brand Business WhatsApp Number
-              {brandWhatsappNumber ? ` (${brandWhatsappNumber})` : " (not available on your brand profile)"}
-            </label>
 
-            <div
-              className={`grid gap-4 max-w-2xl ${
-                !whatsappVerified && !subBrandId ? "grid-cols-1 sm:grid-cols-[200px_1fr]" : "grid-cols-1"
-              }`}
-            >
-              {!whatsappVerified && !subBrandId && (
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Outlet Type *</label>
-                  <Select
-                    value={outletType}
-                    onChange={setOutletType}
-                    options={OUTLET_TYPE_OPTIONS}
-                    placeholder="eg : Outlet"
-                    className="bg-emerald-50 dark:bg-emerald-500/10 text-gray-700 dark:text-gray-100"
-                  />
-                </div>
-              )}
+              {/* ── 1. Outlet WhatsApp Number ── */}
+              <SectionCard>
+                <SectionHeader title="Outlet WhatsApp Number" subtitle="Customers will reach this outlet on WhatsApp using this verified number." />
 
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Outlet WhatsApp Number *</label>
-                <div className="flex flex-col sm:flex-row gap-2">
+                <label className="flex items-center gap-2 text-xs font-semibold text-gray-600 dark:text-gray-300 mb-4 cursor-pointer">
                   <input
-                    type="tel"
-                    value={outletWhatsapp}
-                    onChange={(e) => handleOutletWhatsappChange(e.target.value)}
-                    disabled={useBrandNumber || whatsappVerified}
-                    placeholder="eg : 9876543210"
-                    className="w-full rounded-xl px-4 py-2.5 text-sm outline-none bg-emerald-50 dark:bg-emerald-500/10 text-gray-700 dark:text-gray-100 disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:text-gray-500"
+                    type="checkbox"
+                    checked={useBrandNumber}
+                    onChange={(e) => handleUseBrandNumberToggle(e.target.checked)}
+                    disabled={!brandWhatsappNumber || whatsappVerified}
+                    className="w-4 h-4 accent-emerald-600 cursor-pointer disabled:opacity-40"
                   />
-                  {!whatsappVerified && (
-                    <button
-                      onClick={handleVerifyClick}
-                      disabled={!isValidPhone(outletWhatsapp) || otpSending || (!subBrandId && !outletType)}
-                      className={`shrink-0 sm:min-w-[112px] px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2 ${isValidPhone(outletWhatsapp) && !otpSending && (subBrandId || outletType)
-                          ? "bg-emerald-500 text-white hover:bg-emerald-600"
-                          : "bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed"
-                        }`}
-                    >
-                      {otpSending && (
-                        <svg
-                          className="w-4 h-4 animate-spin"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <circle
-                            className="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                          />
-                          <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                          />
-                        </svg>
-                      )}
-                      {otpSending ? "Sending…" : subBrandId ? "Resend OTP" : "Send OTP"}
-                    </button>
+                  Same as Brand Business WhatsApp Number
+                  {brandWhatsappNumber ? ` (${brandWhatsappNumber})` : " (not available on your brand profile)"}
+                </label>
+
+                <div
+                  className={`grid gap-4 max-w-2xl ${!whatsappVerified && !subBrandId ? "grid-cols-1 sm:grid-cols-[200px_1fr]" : "grid-cols-1"
+                    }`}
+                >
+                  {!whatsappVerified && !subBrandId && (
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Outlet Type *</label>
+                      <Select
+                        value={outletType}
+                        onChange={setOutletType}
+                        options={OUTLET_TYPE_OPTIONS}
+                        placeholder="eg : Outlet"
+                        className="bg-emerald-50 dark:bg-emerald-500/10 text-gray-700 dark:text-gray-100"
+                      />
+                    </div>
                   )}
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Outlet WhatsApp Number *</label>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <input
+                        type="tel"
+                        value={outletWhatsapp}
+                        onChange={(e) => handleOutletWhatsappChange(e.target.value)}
+                        disabled={useBrandNumber || whatsappVerified}
+                        placeholder="eg : 9876543210"
+                        className="w-full rounded-xl px-4 py-2.5 text-sm outline-none bg-emerald-50 dark:bg-emerald-500/10 text-gray-700 dark:text-gray-100 disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:text-gray-500"
+                      />
+                      {!whatsappVerified && (
+                        <button
+                          onClick={handleVerifyClick}
+                          disabled={!isValidPhone(outletWhatsapp) || otpSending || (!subBrandId && !outletType)}
+                          className={`shrink-0 sm:min-w-[112px] px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2 ${isValidPhone(outletWhatsapp) && !otpSending && (subBrandId || outletType)
+                            ? "bg-emerald-500 text-white hover:bg-emerald-600"
+                            : "bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed"
+                            }`}
+                        >
+                          {otpSending && (
+                            <svg
+                              className="w-4 h-4 animate-spin"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              xmlns="http://www.w3.org/2000/svg"
+                            >
+                              <circle
+                                className="opacity-25"
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="currentColor"
+                                strokeWidth="4"
+                              />
+                              <path
+                                className="opacity-75"
+                                fill="currentColor"
+                                d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                              />
+                            </svg>
+                          )}
+                          {otpSending ? "Sending…" : subBrandId ? "Resend OTP" : "Send OTP"}
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
 
-            {whatsappVerified && (
-              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 rounded-full px-3 py-1.5 mt-3">
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-                {whatsappHydrated ? "Already verified for this outlet" : "Number verified"}
-              </span>
-            )}
-            {!whatsappVerified && <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">Verify your WhatsApp number to enable Save & Process.</p>}
-          </SectionCard>
+                {whatsappVerified && (
+                  <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 rounded-full px-3 py-1.5 mt-3">
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    {whatsappHydrated ? "Already verified for this outlet" : "Number verified"}
+                  </span>
+                )}
+                {!whatsappVerified && <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">Verify your WhatsApp number to enable Save & Process.</p>}
+              </SectionCard>
 
-          {/* ── 2. Location ── */}
-          <SectionCard>
-            <SectionHeader
-              title="Location"
-              subtitle="Help people in the area discover your event and let attendees know where to show up."
-              guidelineKey="location"
-              onGuidelineClick={openGuideline}
-            />
+              {/* ── 2. Location ── */}
+              <SectionCard>
+                <SectionHeader
+                  title="Location *"
+                  subtitle="Help people in the area discover your event and let attendees know where to show up."
+                  guidelineKey="location"
+                  onGuidelineClick={openGuideline}
+                />
 
-            {locationLoading && (
-              <p className="text-xs text-gray-400 mb-3">Loading your saved outlet location…</p>
-            )}
-            {/* {outletSectionsBlocked && !locationLoading && (
+                {locationLoading && (
+                  <p className="text-xs text-gray-400 mb-3">Loading your saved outlet location…</p>
+                )}
+                {/* {outletSectionsBlocked && !locationLoading && (
               <p className="text-xs text-amber-600 mb-3">
                 Verify your outlet's WhatsApp number above before setting a location.
               </p>
             )} */}
 
-            <div onClick={() => notifyBlocked("Verify your outlet's WhatsApp number above before setting a location.")}>
-              <div className={outletSectionsBlocked ? "opacity-50 pointer-events-none" : ""}>
-                <div className="px-1 mb-5">
-                  <div className="flex items-start gap-3 mb-4">
-                    <input
-                      type="checkbox"
-                      id="gstSame"
-                      checked={gstSameAsOutlet}
-                      onChange={(e) => handleGstSameToggle(e.target.checked)}
-                      disabled={outletSectionsBlocked}
-                      className="mt-0.5 w-4 h-4 accent-emerald-600 cursor-pointer"
-                    />
-                    <div>
-                      <label htmlFor="gstSame" className="text-sm font-bold text-gray-800 dark:text-gray-100 cursor-pointer">
-                        GST Address Is The Same As The Outlet Location.
-                      </label>
-                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Search and select your Outlet address</p>
-                    </div>
-                  </div>
+                <div onClick={() => notifyBlocked("Verify your outlet's WhatsApp number above before setting a location.")}>
+                  <div className={outletSectionsBlocked ? "opacity-50 pointer-events-none" : ""}>
+                    <div className="px-1 mb-5">
+                      <div className="flex items-start gap-3 mb-4">
+                        <input
+                          type="checkbox"
+                          id="gstSame"
+                          checked={gstSameAsOutlet}
+                          onChange={(e) => handleGstSameToggle(e.target.checked)}
+                          disabled={outletSectionsBlocked}
+                          className="mt-0.5 w-4 h-4 accent-emerald-600 cursor-pointer"
+                        />
+                        <div>
+                          <label htmlFor="gstSame" className="text-sm font-bold text-gray-800 dark:text-gray-100 cursor-pointer">
+                            GST Address Is The Same As The Outlet Location.
+                          </label>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Search and select your Outlet address</p>
+                        </div>
+                      </div>
 
-                  {/* {gstSameAsOutlet && !savedLocationId && !locationSaving && !locationSaveError && (
+                      {/* {gstSameAsOutlet && !savedLocationId && !locationSaving && !locationSaveError && (
                     <p className="text-xs text-amber-600 mt-3">
                       We've filled in your GST address below — pick the matching result from the dropdown to confirm and save it.
                     </p>
                   )} */}
 
-                  {/* Saving/success status only here — any error is about the
+                      {/* Saving/success status only here — any error is about the
                       search RESULT picked below, so it's shown there instead,
                       right next to the control the vendor needs to fix it. */}
-                  {!locationSaveError && (locationSaving || (savedLocationId && gstSameAsOutlet)) && (
-                    <p className="text-xs mt-3 text-emerald-600">
-                      {locationSaving ? "Saving this address…" : "✓ GST address saved as your outlet location."}
-                    </p>
-                  )}
-                </div>
+                      {!locationSaveError && (locationSaving || (savedLocationId && gstSameAsOutlet)) && (
+                        <p className="text-xs mt-3 text-emerald-600">
+                          {locationSaving ? "Saving this address…" : "✓ GST address saved as your outlet location."}
+                        </p>
+                      )}
+                    </div>
 
-                <div className="flex flex-wrap items-center gap-6 mb-4 px-1">
-                  <label className="flex items-center gap-2 text-sm font-bold text-gray-800 dark:text-gray-100 cursor-pointer">
-                    <input type="checkbox" checked={locationMode === "search"} onChange={() => switchLocationMode("search")} disabled={outletSectionsBlocked} className="w-4 h-4 accent-emerald-600 cursor-pointer" />
-                    Search My Outlet Location
-                  </label>
-                  <label className="flex items-center gap-2 text-sm font-bold text-gray-800 dark:text-gray-100 cursor-pointer">
-                    <input type="checkbox" checked={locationMode === "live"} onChange={() => switchLocationMode("live")} disabled={outletSectionsBlocked} className="w-4 h-4 accent-emerald-600 cursor-pointer" />
-                    Use My Live Location
-                  </label>
-                </div>
+                    <div className="flex flex-wrap items-center gap-6 mb-4 px-1">
+                      <label className="flex items-center gap-2 text-sm font-bold text-gray-800 dark:text-gray-100 cursor-pointer">
+                        <input type="checkbox" checked={locationMode === "search"} onChange={() => switchLocationMode("search")} disabled={outletSectionsBlocked} className="w-4 h-4 accent-emerald-600 cursor-pointer" />
+                        Search My Outlet Location
+                      </label>
+                      <label className="flex items-center gap-2 text-sm font-bold text-gray-800 dark:text-gray-100 cursor-pointer">
+                        <input type="checkbox" checked={locationMode === "live"} onChange={() => switchLocationMode("live")} disabled={outletSectionsBlocked} className="w-4 h-4 accent-emerald-600 cursor-pointer" />
+                        Use My Live Location
+                      </label>
+                    </div>
 
-                {locationMode === "search" ? (
-                  <OutletLocationSearch selectedPlace={selectedPlace} onSelectPlace={handleSelectPlace} onShowMap={() => setShowMap(true)} onError={showError} />
-                ) : (
-                  <LiveLocationPicker selectedPlace={selectedPlace} onSelectPlace={handleSelectPlace} onShowMap={() => setShowMap(true)} onError={showError} />
-                )}
+                    {locationMode === "search" ? (
+                      <OutletLocationSearch selectedPlace={selectedPlace} onSelectPlace={handleSelectPlace} onShowMap={() => setShowMap(true)} onError={showError} />
+                    ) : (
+                      <LiveLocationPicker selectedPlace={selectedPlace} onSelectPlace={handleSelectPlace} onShowMap={() => setShowMap(true)} onError={showError} />
+                    )}
 
-                {/* Errors already surface as a toast (see showError calls
+                    {/* Errors already surface as a toast (see showError calls
                     around setLocationSaveError above) — this stays purely
                     informational (saving/saved) so it isn't a second,
                     louder red banner for the same failure. */}
-                {!locationSaveError && (locationSaving || (savedLocationId && !gstSameAsOutlet)) && (
-                  <p className="text-xs mt-3 px-1 text-emerald-600">
-                    {locationSaving ? "Saving this location…" : "✓ Location saved."}
-                  </p>
-                )}
-              </div>
-            </div>
-          </SectionCard>
+                    {!locationSaveError && (locationSaving || (savedLocationId && !gstSameAsOutlet)) && (
+                      <p className="text-xs mt-3 px-1 text-emerald-600">
+                        {locationSaving ? "Saving this location…" : "✓ Location saved."}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </SectionCard>
 
-          {/* ── 3. Working Hours ── */}
-          <SectionCard>
-            <SectionHeader title="Working Hours" subtitle="Set your open hours for each day of the week." guidelineKey="workingHours" onGuidelineClick={openGuideline} />
+              {/* ── 3. Working Hours ── */}
+              <SectionCard>
+                <SectionHeader title="Working Hours *" subtitle="Set your open hours for each day of the week." guidelineKey="workingHours" onGuidelineClick={openGuideline} />
 
-            {/* Blocked until the outlet's WhatsApp number is verified —
+                {/* Blocked until the outlet's WhatsApp number is verified —
                 upsertWorkHours needs subBrandId, which doesn't exist yet. */}
-            {/* {outletSectionsBlocked && (
+                {/* {outletSectionsBlocked && (
               <p className="text-xs text-amber-600 mb-3">
                 Verify your outlet's WhatsApp number above before setting working hours.
               </p>
             )} */}
 
-            <div onClick={() => notifyBlocked("Verify your outlet's WhatsApp number above before setting working hours.")}>
-              <div className={outletSectionsBlocked ? "opacity-50 pointer-events-none" : ""}>
-                <WorkingHoursEditor
-                  hours={workingHours}
-                  onChange={handleWorkingHoursChange}
-                  onSave={subBrandId ? handleSaveWorkingHours : undefined}
-                  saving={workingHoursSaving}
-                />
-                {/* workingHoursSaveError already surfaces as a toast (see
+                <div onClick={() => notifyBlocked("Verify your outlet's WhatsApp number above before setting working hours.")}>
+                  <div className={outletSectionsBlocked ? "opacity-50 pointer-events-none" : ""}>
+                    <WorkingHoursEditor
+                      hours={workingHours}
+                      onChange={handleWorkingHoursChange}
+                      onSave={subBrandId ? handleSaveWorkingHours : undefined}
+                      saving={workingHoursSaving}
+                      hydrated={!locationLoading}
+                    />
+                    {/* workingHoursSaveError already surfaces as a toast (see
                     showError call inside handleSaveWorkingHours) — no
                     second inline red banner needed for the same failure. */}
-                {workingHoursSaved && !workingHoursSaveError && (
-                  <p className="text-xs font-semibold text-emerald-600 mt-2 flex items-center gap-1">
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                    Working hours saved.
-                  </p>
-                )}
-              </div>
+                    {workingHoursSaved && !workingHoursSaveError && (
+                      <p className="text-xs font-semibold text-emerald-600 mt-2 flex items-center gap-1">
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                        Working hours saved.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </SectionCard>
+
             </div>
-          </SectionCard>
 
-        </div>
+            <div className="flex items-center justify-between mt-2">
+              <button
+                type="button"
+                onClick={() => setWizardStep(1)}
+                className="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-500 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              >
+                ← Back
+              </button>
+              <button
+                type="button"
+                onClick={() => setWizardStep(3)}
+                disabled={!canContinueStep2}
+                className="px-8 py-2.5 rounded-xl text-sm font-semibold bg-emerald-500 text-white hover:bg-emerald-600 active:scale-[0.99] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Review Outlet →
+              </button>
+            </div>
+          </>
+        )}
 
-        {/* ── Create ── */}
-        <button
-          onClick={handleSave}
-          disabled={saving || !canFinalSave}
-          className="w-full bg-emerald-500 text-white font-bold py-4 rounded-2xl text-base tracking-wide hover:bg-emerald-600 active:scale-[0.99] transition-all shadow-sm shadow-emerald-100 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none mt-2"
-        >
-          {saving
-            ? "Saving…"
-            : !whatsappVerified
-              ? "Verify WhatsApp Number to Continue"
-              : !savedLocationId
-                ? "Select & Save Your Outlet Location"
-                : !workingHoursSaved
-                  ? "Save Working Hours to Continue"
-                  : !showcaseAlbumsMeetMinimum
-                    ? `Add at least ${MIN_ITEMS_PER_ALBUM} Photos/Videos to Each Showcase Album`
-                    : "Save & Process"}
-        </button>
+        {wizardStep === 3 && (
+          <ReviewStep
+            logoUrl={logoPreviewUrl || existingLogoUrl}
+            brandName={brandName}
+            brandEmail={brandEmail}
+            mobile={effectiveMobile}
+            categoryName={categoryName}
+            subCategoryName={subCategoryName}
+            outletWhatsapp={outletWhatsapp}
+            whatsappVerified={whatsappVerified}
+            address={outletAddress}
+            workingHours={workingHours}
+            showcaseAlbums={showcaseAlbums}
+            minItemsPerAlbum={MIN_ITEMS_PER_ALBUM}
+            canFinalSave={canFinalSave}
+            saving={saving}
+            onEditStep1={() => setWizardStep(1)}
+            onEditStep2={() => setWizardStep(2)}
+            onOpenAdvanced={() => {
+              setWizardStep(1);
+              setAdvancedOpenSignal((n) => n + 1);
+            }}
+            onCreate={handleSave}
+          />
+        )}
       </div>
     </div>
   );

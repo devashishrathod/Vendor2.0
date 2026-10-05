@@ -50,6 +50,10 @@ export function useSubscriptionPlans({ page = 1, limit = 10 } = {}) {
         discountAmount: p.discountAmount,
         discountPercent: p.discountPercent,
         discountType: p.discountType,
+        discountedPrice: p.discountedPrice,
+        durationLabel: p.durationLabel,
+        typeLabel: p.typeLabel,
+        tier: p.tier,
         isActive: p.isActive,
         createdAt: p.createdAt,
       }));

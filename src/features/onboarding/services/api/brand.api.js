@@ -41,7 +41,7 @@ export async function updateRegistrationStatus({ status }) {
 // currentScreen: "BUSINESS_VERIFICATION"
 // Sends: businessEntityType — one of:
 //   PROPRIETORSHIP | PARTNERSHIP | LLP | PRIVATE_LIMITED |
-//   PUBLIC_LIMITED | ONE_PERSON_COMPANY | TRUST | NGO | SOCIETY
+//   PUBLIC_LIMITED | ONE_PERSON_COMPANY | TRUST | NGO | SOCIETY | OTHERS
 /**
  * @param {{ entityType: string }} params
  */

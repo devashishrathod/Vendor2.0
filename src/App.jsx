@@ -12,6 +12,7 @@ import OnboardingPage from './features/onboarding/pages/VendorOnboarding';
 import AnalysisReport from './features/dashboard/pages/AnalysisReport';
 import Transactions from './features/transaction/pages/Transactions';
 import OrderDetail from './features/transaction/pages/OrderDetail';
+import Refunds from './features/refund/pages/Refunds';
 import { Voucher, VoucherDetails } from './features/voucher/pages/voucher';
 import { Settlement, SettlementDetails } from './features/Settlement/pages/settlement';
 import VoucherFormPage from './features/voucher/pages/voucher/VoucherFormPage';
@@ -110,6 +111,9 @@ function App() {
           {/* Transactions */}
           <Route path="/transactions" element={<Transactions />} />
           <Route path="/transactions/order/:orderId" element={<OrderDetail />} />
+
+          {/* Refunds */}
+          <Route path="/refunds" element={<Refunds />} />
 
           {/* Vouchers */}
           <Route path="/vouchers" element={<Voucher />} />

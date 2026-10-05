@@ -4,6 +4,7 @@ import { STEPS } from "@/features/onboarding/constants/steps";
 import { systemVerify } from "@/features/onboarding/services/api/verify.api";
 import { parseApiError } from "@/hooks/useApiError";
 import { Loader2Icon, AlertTriangleIcon, XIcon, CheckIcon, InfoIcon, ShieldCheckIcon, RotateCwIcon, FileSearchIcon, ArrowRightIcon } from 'lucide-react';
+import { useTheme } from "@/context/ThemeContext";
 
 // ── Multi-Boom Confetti (emoji boom removed, particle confetti kept) ──────────
 function Confetti({ active }) {
@@ -78,12 +79,15 @@ function CheckCard({ label, status, detail, index }) {
     return () => clearTimeout(t);
   }, [index]);
 
+  // ⚠️ FIXED: warn/failed rows had no dark: variant at all on their bg or
+  // badge — a bright amber/red-tinted card sitting among otherwise
+  // dark-mode-correct rows.
   const cfg = {
-    done:     { wrap:"bg-white dark:bg-gray-800",      icon:"bg-emerald-500 text-white", label:"text-slate-800 dark:text-gray-100", sub:"text-slate-400", badge:"bg-emerald-50 text-emerald-600" },
-    warn:     { wrap:"bg-amber-50",    icon:"bg-amber-400 text-white",   label:"text-slate-800 dark:text-gray-100", sub:"text-slate-500", badge:"bg-amber-100 text-amber-700" },
-    failed:   { wrap:"bg-red-50",        icon:"bg-red-400 text-white",     label:"text-slate-800 dark:text-gray-100", sub:"text-slate-500", badge:"bg-red-100 text-red-700" },
-    checking: { wrap:"bg-white dark:bg-gray-800",       icon:"bg-emerald-100 text-emerald-500", label:"text-slate-400", sub:"text-slate-300", badge:"" },
-    pending:  { wrap:"bg-white dark:bg-gray-800",       icon:"bg-slate-100",              label:"text-slate-300", sub:"",                badge:"" },
+    done:     { wrap:"bg-white dark:bg-gray-800",      icon:"bg-emerald-500 text-white", label:"text-slate-800 dark:text-gray-100", sub:"text-slate-400 dark:text-gray-500", badge:"bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
+    warn:     { wrap:"bg-amber-50 dark:bg-amber-500/10",    icon:"bg-amber-400 text-white",   label:"text-slate-800 dark:text-gray-100", sub:"text-slate-500 dark:text-gray-400", badge:"bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400" },
+    failed:   { wrap:"bg-red-50 dark:bg-red-500/10",        icon:"bg-red-400 text-white",     label:"text-slate-800 dark:text-gray-100", sub:"text-slate-500 dark:text-gray-400", badge:"bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400" },
+    checking: { wrap:"bg-white dark:bg-gray-800",       icon:"bg-emerald-100 text-emerald-500", label:"text-slate-400 dark:text-gray-500", sub:"text-slate-300 dark:text-gray-600", badge:"" },
+    pending:  { wrap:"bg-white dark:bg-gray-800",       icon:"bg-slate-100",              label:"text-slate-300 dark:text-gray-600", sub:"",                badge:"" },
   }[status] || {};
 
   const Icon = () => {
@@ -166,6 +170,7 @@ function clearSession() {
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function Step10SystemVerify({ onSuccess }) {
   const { goToStep, setVerificationFailedChecks, formData } = useOnboardingStore();
+  const { isDark } = useTheme();
 
   const [phase, setPhase]               = useState("loading");
   const [checks, setChecks]             = useState([]);
@@ -282,7 +287,19 @@ export default function Step10SystemVerify({ onSuccess }) {
       <div className="w-full max-w-3xl" style={{ animation:"stepIn 0.4s cubic-bezier(0.34,1.4,0.64,1) both" }}>
 
         {/* ── Hero ── */}
-        <div className="relative rounded-3xl px-7 py-6 mb-5 overflow-hidden" style={{ background: "linear-gradient(120deg, #ecfdf5 0%, #f0fdf9 55%, #ffffff 100%)" }}>
+        {/* ⚠️ FIXED: this gradient was a fixed light mint→white background
+            regardless of theme — a bright white card sitting on the dark
+            page. Swapped for a dark, muted equivalent (matching the app's
+            dark surfaces) when `isDark`, same approach used for
+            Step4IsRegistered.jsx's illustration. */}
+        <div
+          className="relative rounded-3xl px-7 py-6 mb-5 overflow-hidden"
+          style={{
+            background: isDark
+              ? "linear-gradient(120deg, #0f2a20 0%, #12241f 55%, #1f2937 100%)"
+              : "linear-gradient(120deg, #ecfdf5 0%, #f0fdf9 55%, #ffffff 100%)",
+          }}
+        >
           {/* dotted pattern */}
           <div className="absolute right-44 top-1/2 -translate-y-1/2 grid grid-cols-6 gap-1.5 opacity-40 pointer-events-none">
             {[...Array(24)].map((_, i) => (
@@ -306,7 +323,7 @@ export default function Step10SystemVerify({ onSuccess }) {
                 <h2 className="text-[22px] font-bold text-slate-800 dark:text-gray-100 leading-tight">
                   {phase === "loading" ? "Verifying your details" : "System verification"}
                 </h2>
-                <p className="text-[13px] text-slate-500 mt-1 leading-relaxed">
+                <p className="text-[13px] text-slate-500 dark:text-gray-400 mt-1 leading-relaxed">
                   {phase === "loading"
                     ? "Cross-checking PAN, GST and bank…"
                     : "Verification complete. See results below."}
@@ -349,17 +366,17 @@ export default function Step10SystemVerify({ onSuccess }) {
 
         {/* ── Remarks ── */}
         {sysData?.remarks?.length > 0 && (
-          <div className="bg-sky-50 rounded-2xl px-5 py-4 mb-5">
+          <div className="bg-sky-50 dark:bg-sky-500/10 rounded-2xl px-5 py-4 mb-5">
             <div className="flex items-center gap-2 mb-2">
               <div className="w-4 h-4 rounded-full bg-sky-500 flex items-center justify-center flex-shrink-0">
                 <InfoIcon className="w-2.5 h-2.5 text-white" strokeWidth={3} />
               </div>
-              <p className="text-[11px] font-bold text-sky-600 uppercase tracking-widest">Remarks</p>
+              <p className="text-[11px] font-bold text-sky-600 dark:text-sky-400 uppercase tracking-widest">Remarks</p>
             </div>
             {sysData.remarks.map((r, i) => (
               <div key={i} className="flex items-start gap-1.5 mb-1 last:mb-0 pl-6">
                 <span className="w-1 h-1 rounded-full bg-sky-400 flex-shrink-0 mt-1.5" />
-                <span className="text-[12.5px] text-sky-700 leading-snug">{r}</span>
+                <span className="text-[12.5px] text-sky-700 dark:text-sky-400 leading-snug">{r}</span>
               </div>
             ))}
           </div>

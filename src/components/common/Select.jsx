@@ -1,10 +1,23 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Check, ChevronDown } from "lucide-react";
 
 /**
  * Custom dropdown select. Native <select>/<option> popups mostly ignore
  * CSS and render with OS colors, which breaks in dark mode — this renders
  * the open option list ourselves so it always matches the app theme.
+ *
+ * ⚠️ FIXED: the open option list used to be a plain `position: absolute`
+ * child of the trigger. Several onboarding steps wrap their sections in a
+ * `.step-in` entrance animation, and ANY element with a `transform` (even
+ * one that's already settled, like that animation's final `scale(1)`)
+ * creates a new CSS stacking context — that trapped the dropdown's
+ * z-index inside its own section, so a later sibling section with its own
+ * `.step-in` context painted over it (confirmed on Step11BankEnter.jsx's
+ * Account Type dropdown). Rendering the list through a portal into
+ * document.body, positioned from the trigger's own bounding rect, escapes
+ * that entirely — this fixes every place this component is used, not
+ * just that one screen.
  *
  * @param {Object} props
  * @param {string} props.value
@@ -25,25 +38,58 @@ export default function Select({
   compact = false,
 }) {
   const [open, setOpen] = useState(false);
-  const rootRef = useRef(null);
+  const [menuRect, setMenuRect] = useState(null);
+  const triggerRef = useRef(null);
+  const menuRef = useRef(null);
 
   const selected = options.find((o) => o.value === value);
+
+  const openMenu = () => {
+    const rect = triggerRef.current?.getBoundingClientRect();
+    if (rect) {
+      setMenuRect({ top: rect.bottom + 6, left: rect.left, width: rect.width });
+    }
+    setOpen(true);
+  };
 
   useEffect(() => {
     if (!open) return;
 
     function handleClickOutside(e) {
-      if (rootRef.current && !rootRef.current.contains(e.target)) setOpen(false);
+      if (
+        !triggerRef.current?.contains(e.target) &&
+        !menuRef.current?.contains(e.target)
+      ) {
+        setOpen(false);
+      }
     }
     function handleEscape(e) {
       if (e.key === "Escape") setOpen(false);
     }
+    // Closing on scroll/resize (rather than continuously repositioning)
+    // keeps this simple and avoids the menu drifting out of sync with its
+    // trigger. `true` (capture) is needed because the actual scrolling
+    // element is often an inner pane (e.g. the onboarding content area),
+    // not the window — scroll doesn't bubble, so only capture catches it.
+    // ⚠️ FIXED: that same capture-phase listener also caught scrolling
+    // *inside the option list itself* (its own `overflow-auto`) and
+    // closed the menu the instant you tried to scroll through a longer
+    // list of options — skip closing when the scroll happened inside the
+    // menu.
+    function handleScrollOrResize(e) {
+      if (menuRef.current?.contains(e.target)) return;
+      setOpen(false);
+    }
 
     document.addEventListener("mousedown", handleClickOutside);
     document.addEventListener("keydown", handleEscape);
+    window.addEventListener("scroll", handleScrollOrResize, true);
+    window.addEventListener("resize", handleScrollOrResize);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("keydown", handleEscape);
+      window.removeEventListener("scroll", handleScrollOrResize, true);
+      window.removeEventListener("resize", handleScrollOrResize);
     };
   }, [open]);
 
@@ -56,11 +102,12 @@ export default function Select({
   );
 
   return (
-    <div ref={rootRef} className="relative">
+    <div className="relative">
       <button
+        ref={triggerRef}
         type="button"
         disabled={disabled}
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => (open ? setOpen(false) : openMenu())}
         className={`w-full flex items-center justify-between gap-2 rounded-xl outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
           compact ? "px-2 py-1.5 text-[10px]" : "px-4 py-3 text-sm"
         } ${className}`}
@@ -73,8 +120,12 @@ export default function Select({
         />
       </button>
 
-      {open && (
-        <div className={`absolute z-20 w-full rounded-xl bg-white dark:bg-gray-700 shadow-xl overflow-auto ${compact ? "mt-1 py-1 max-h-40" : "mt-1.5 py-1.5 max-h-60"}`}>
+      {open && menuRect && createPortal(
+        <div
+          ref={menuRef}
+          style={{ position: "fixed", top: menuRect.top, left: menuRect.left, width: menuRect.width }}
+          className={`z-50 rounded-xl bg-white dark:bg-gray-700 shadow-xl overflow-auto no-scrollbar ${compact ? "py-1 max-h-40" : "py-1.5 max-h-60"}`}
+        >
           {options.map((option) => {
             const isSelected = option.value === value;
             return (
@@ -95,7 +146,8 @@ export default function Select({
               </button>
             );
           })}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
