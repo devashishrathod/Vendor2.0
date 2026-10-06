@@ -132,7 +132,7 @@ function ModalActions({ type, onReplace, onDelete, onEdit, onToggleClip, isShowI
         <button
           type="button"
           onClick={onDelete}
-          className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-rose-500 hover:bg-rose-50"
+          className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10"
         >
           <Trash2 size={13} /> Delete
         </button>
@@ -165,7 +165,7 @@ const VideoModal = ({ src, title, onClose, onReplace, onDelete, onEdit, onToggle
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="flex h-7 w-7 items-center justify-center rounded-full text-gray-500 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
+          className="flex h-7 w-7 items-center justify-center rounded-full text-gray-500 dark:text-gray-400 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
         >
           <X size={16} />
         </button>
@@ -176,7 +176,7 @@ const VideoModal = ({ src, title, onClose, onReplace, onDelete, onEdit, onToggle
         </video>
       </div>
       {title && (
-        <p className="px-4 py-3 text-center text-xs text-gray-500">{title}</p>
+        <p className="px-4 py-3 text-center text-xs text-gray-500 dark:text-gray-400">{title}</p>
       )}
     </div>
   </div>
@@ -199,7 +199,7 @@ const ImageModal = ({ src, title, onClose, onReplace, onDelete, onEdit }) => (
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="flex h-7 w-7 items-center justify-center rounded-full text-gray-500 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
+          className="flex h-7 w-7 items-center justify-center rounded-full text-gray-500 dark:text-gray-400 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
         >
           <X size={16} />
         </button>
@@ -212,7 +212,7 @@ const ImageModal = ({ src, title, onClose, onReplace, onDelete, onEdit }) => (
         />
       </div>
       {title && (
-        <p className="px-4 py-3 text-center text-xs text-gray-500">{title}</p>
+        <p className="px-4 py-3 text-center text-xs text-gray-500 dark:text-gray-400">{title}</p>
       )}
     </div>
   </div>
@@ -255,7 +255,7 @@ function EditMediaModal({ media, onClose, onSave }) {
       >
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">Edit {isVideo ? "Video" : "Photo"}</h3>
-          <button type="button" onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-600">
+          <button type="button" onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
             <X size={18} />
           </button>
         </div>
@@ -290,10 +290,10 @@ function EditMediaModal({ media, onClose, onSave }) {
                 type="file"
                 accept="image/*"
                 onChange={(e) => setThumbnail(e.target.files?.[0] || null)}
-                className="w-full text-sm text-gray-600 file:mr-3 file:rounded-xl file:bg-emerald-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-emerald-700 hover:file:bg-emerald-100"
+                className="w-full text-sm text-gray-600 dark:text-gray-300 file:mr-3 file:rounded-xl file:bg-emerald-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-emerald-700 hover:file:bg-emerald-100 dark:file:bg-emerald-500/15 dark:file:text-emerald-300 dark:hover:file:bg-emerald-500/25"
               />
               {thumbnail ? (
-                <p className="mt-1 text-xs text-gray-500">{thumbnail.name}</p>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{thumbnail.name}</p>
               ) : media?.thumbnail ? (
                 <img src={media.thumbnail} alt="" className="mt-2 h-14 w-14 rounded-lg object-cover" />
               ) : null}
@@ -311,7 +311,7 @@ function EditMediaModal({ media, onClose, onSave }) {
             <button
               type="submit"
               disabled={submitting}
-              className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-bold text-white shadow-sm shadow-emerald-100 transition-all duration-200 hover:bg-emerald-600 active:scale-[0.97] disabled:bg-gray-100 disabled:text-gray-300 disabled:shadow-none disabled:cursor-not-allowed"
+              className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-bold text-white shadow-sm shadow-emerald-100 transition-all duration-200 hover:bg-emerald-600 active:scale-[0.97] disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:text-gray-300 disabled:shadow-none disabled:cursor-not-allowed"
             >
               {submitting ? "Saving…" : "Save Changes"}
             </button>

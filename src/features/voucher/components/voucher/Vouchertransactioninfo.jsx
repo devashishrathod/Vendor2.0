@@ -1,9 +1,10 @@
 // src/components/voucher/VoucherTransactionInfo.jsx
 import React, { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Search, Calendar, Download } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const ROWS_PER_PAGE_OPTIONS = [10, 20, 50, 100];
-const FILTER_TABS = ["All", "Sub-Brand", "Franchise"];
+const FILTER_TABS = ["All", "Outlet", "Franchise"];
 
 const AVATAR_COLORS = [
     "bg-emerald-200 text-emerald-700",
@@ -64,7 +65,7 @@ export default function VoucherTransactionInfo({
         return transactions.filter((row) => {
             const matchesFilter = activeFilter === "All" || row.storeType === activeFilter;
             const matchesSearch = search
-                ? [row.customerName, row.customerId, row.voucherVersionId, row.orderId, row.outletName]
+                ? [row.customerName, row.customerId, row.voucherVersionId, row.orderId, row.outletName, row.storeId]
                     .join(" ")
                     .toLowerCase()
                     .includes(search.toLowerCase())
@@ -247,7 +248,13 @@ export default function VoucherTransactionInfo({
                                 paginatedRows.map((row, index) => (
                                     <tr key={`${row.orderId}-${index}`} className="">
                                         <td className="whitespace-nowrap px-3 py-3 font-medium text-emerald-600">
-                                            #{row.orderId}
+                                            {row.txnId ? (
+                                                <Link to={`/transactions/order/${row.txnId}`} className="hover:underline">
+                                                    {row.orderId}
+                                                </Link>
+                                            ) : (
+                                                row.orderId
+                                            )}
                                         </td>
                                         <td className="px-3 py-3">
                                             <div className="flex items-center gap-2">
@@ -285,8 +292,9 @@ export default function VoucherTransactionInfo({
                                                 {row.status}
                                             </span>
                                         </td>
-                                        <td className="whitespace-nowrap px-3 py-3 font-medium text-gray-900 dark:text-gray-100">
-                                            {formatCurrency(row.amount)}
+                                        <td className="whitespace-nowrap px-3 py-3">
+                                            <p className="font-medium text-gray-900 dark:text-gray-100">{formatCurrency(row.amount)}</p>
+                                            <p className="text-xs capitalize text-gray-400">{row.paymentMethod}</p>
                                         </td>
                                     </tr>
                                 ))

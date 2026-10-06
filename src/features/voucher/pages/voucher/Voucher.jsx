@@ -37,7 +37,7 @@ export default function Voucher() {
   return (
   <div>
 
-      <div className="mx-auto max-w-6xl px-4 py-6">
+      <div className="max-w-7xl mx-auto px-4 py-8">
       {/* Header */}
       <div className="mb-6 text-center">
         <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">

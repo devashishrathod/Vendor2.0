@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { updateSubBrand } from "../services/subBrandApi";
+import { signUpSubBrandWithWhatsapp, updateSubBrand } from "../services/subBrandApi";
 import {
   createLocation,
   buildLocationPayloadFromPlace,
@@ -9,52 +9,44 @@ import {
   mapLocationToSelectedPlace,
 } from "../services/locationApi";
 
-const initialState = {
-  // ── Outlet Type (Outlet vs Franchise) ──
-  outletType: "", // "outlet" | "franchise"
+// Add Outlet — NOTHING is created on the server until "Create Outlet":
+//   1. the WhatsApp number is verified first (OTP, or the first outlet's
+//      already-verified number) — the modal handles that, no outlet yet;
+//   2. a location is only PICKED here (kept locally, not saved);
+//   3. submit() then, in order: validates the location (so a bad address
+//      can't leave a half-created outlet), creates the outlet
+//      (subBrands/signUp-with-whatsapp), creates its location
+//      (locations/create), and sends the final subBrands/update.
+// If a later step fails, the ids already created (subBrandId / locationId)
+// are kept, so clicking Create Outlet again resumes instead of duplicating.
 
-  // ── Fields that go on the FINAL subBrands/update body, per the
-  // confirmed Postman request: { outletType, description, isActive }.
-  // (email / joinedDate are commented out in that request — not sent.)
-  description: "",
+const initialState = {
+  outletType: "", // "outlet" | "franchise"
   isActive: true,
 
-  // ── Outlet WhatsApp Number, verified via OTP (or copied + verified
-  // from the brand's own number). subBrandId is set once the OTP
-  // sign-up call (sendOutletWhatsappOtp) has returned — it is the id
-  // updateSubBrand() and the location payload both need, and must be
-  // response.data.subBrandId, never response.data._id.
-  whatsapp: {
-    number: "",
-    isBrandNumber: false,
-    verified: false,
-  },
+  // Different-number path only: `verified` flips true after the OTP is
+  // confirmed. The first outlet's number needs no OTP (see the modal).
+  whatsapp: { number: "", verified: false },
 
-  // ── Mobile Number — separate contact number, optionally mirroring the
-  // WhatsApp number via the "Same as WhatsApp Number" checkbox. ⚠️ NOT
-  // independently confirmed from a Postman sample for subBrands/update
-  // (only email/outletType/joinedDate/description/isActive are documented
-  // there) — sent as a `mobile` key per explicit instruction; verify the
-  // real saved value once tested and correct the key name here if wrong.
-  mobile: "",
-  mobileSameAsWhatsapp: false,
+  brandId: null,
 
+  // Set during submit() — kept so a retry doesn't re-create the outlet.
   subBrandId: null,
-  brandId: null, // set from useBrand() by the modal — used as an optional reference on the location payload
+  locationId: null,
 
-  // ── Outlet Location. Unlike outletType/description/isActive, this is
-  // its OWN separate API call (locations/create) that fires as soon as
-  // the merchant picks a place — NOT bundled into the final Save. These
-  // flags track that: locationSaving while the POST is in flight,
-  // locationSaved once it succeeds, locationError if it fails and needs
-  // a retry.
   locationMode: "search", // "search" | "live"
-  location: null, // { name, address, lat, lng, placeId, addressComponents, source }
-  locationId: null, // the created location doc's _id, once saved
-  locationSaved: false,
-  locationSaving: false,
+  // { name, address, lat, lng, placeId, addressComponents, source, savedDoc? }
+  location: null,
+  manualZipcode: "",
   locationError: "",
 };
+
+// Pull the outlet id out of signUp-with-whatsapp's confirmed response:
+// { data: { subBrand: { _id }, user: { subBrandId }, otpSent, ... } }.
+function extractSubBrandId(res) {
+  const data = res?.data ?? res ?? {};
+  return data.subBrand?._id ?? data.user?.subBrandId ?? data.subBrandId ?? null;
+}
 
 export function useAddOutletForm(onSuccess) {
   const [form, setForm] = useState(initialState);
@@ -62,88 +54,53 @@ export function useAddOutletForm(onSuccess) {
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
-  // ── Previously-saved locations for this brand — an alternative to a
-  // fresh Google Places search. Each one already passed validation once
-  // (real zipcode/district/coordinates), so picking one can never hit the
-  // "missing zipcode" error a fresh search sometimes does.
+  // Brand's previously-saved addresses — picking one can never hit
+  // "missing zipcode" (each already passed validation once).
   const [savedLocations, setSavedLocations] = useState([]);
   const [loadingSavedLocations, setLoadingSavedLocations] = useState(false);
 
   const update = (field, value) => setForm((prev) => ({ ...prev, [field]: value }));
+  const updateWhatsapp = (patch) =>
+    setForm((prev) => ({ ...prev, whatsapp: { ...prev.whatsapp, ...patch } }));
+  const setBrandId = (brandId) => setForm((prev) => ({ ...prev, brandId }));
 
   const clearError = () => setError("");
   const clearSuccessMessage = () => setSuccessMessage("");
 
-  // Patches the nested `whatsapp` object instead of replacing it outright,
-  // so callers can update just `number`, `verified`, etc. one at a time.
-  const updateWhatsapp = (patch) =>
-    setForm((prev) => ({ ...prev, whatsapp: { ...prev.whatsapp, ...patch } }));
+  // ── Location: picks are local only ─────────────────────────────────────
+  const setLocation = (location) =>
+    setForm((prev) => ({ ...prev, location, manualZipcode: "", locationError: "", locationId: null }));
 
-  // Set once sendOutletWhatsappOtp() resolves — callers must pass
-  // res.data.subBrandId here, NOT res.data._id.
-  const setSubBrandId = (subBrandId) => setForm((prev) => ({ ...prev, subBrandId }));
+  const selectSavedLocation = (loc) =>
+    setLocation({ ...mapLocationToSelectedPlace(loc), savedDoc: loc });
 
-  const setBrandId = (brandId) => setForm((prev) => ({ ...prev, brandId }));
-
-  // ── Save the outlet's location the moment it's picked ──────────────
-  // Separate API, separate timing from the "Save Outlet" button (same as
-  // WhatsApp verification already being its own thing). Requires
-  // subBrandId to already exist, i.e. the merchant must verify WhatsApp
-  // BEFORE picking a location — if they haven't yet, this just stores the
-  // pick locally and locationSaved stays false; submit() below retries it
-  // as a fallback right before the final save.
-  //
-  // `manualZipcode` lets a caller retry the SAME place after the merchant
-  // types a pincode by hand — this is the recovery path for Google Places
-  // results that don't carry a postal_code (bare localities, some POIs),
-  // so a missing zipcode becomes a quick manual fix instead of a dead end.
-  const persistLocation = async (place, subBrandIdOverride, brandIdOverride, manualZipcode) => {
-    const subBrandId = subBrandIdOverride ?? form.subBrandId;
-    if (!place || !subBrandId) return { success: false };
-
-    setForm((prev) => ({ ...prev, locationSaving: true, locationError: "" }));
-
-    const payload = buildLocationPayloadFromPlace(place, {
-      subBrandId,
-      brandId: (brandIdOverride ?? form.brandId) || undefined,
-      ...(manualZipcode ? { manualZipcode } : {}),
+  const buildLocationPayload = (state, subBrandId) => {
+    const overrides = { subBrandId, brandId: state.brandId || undefined };
+    if (state.location?.savedDoc) return buildLocationPayloadFromSavedLocation(state.location.savedDoc, overrides);
+    return buildLocationPayloadFromPlace(state.location, {
+      ...overrides,
+      ...(state.manualZipcode ? { manualZipcode: state.manualZipcode } : {}),
     });
-    const errors = validateLocationPayload(payload, { requireSubBrandId: true });
-    if (errors.length) {
-      const message =
-        errors.length === 1 && errors[0] === "zipcode"
-          ? "This location is missing a zipcode. Enter it below to save this address."
-          : `This location is missing ${errors.join(", ")}. Try picking a more specific result.`;
-      setForm((prev) => ({ ...prev, locationSaving: false, locationError: message }));
-      return { success: false, error: message, missingFields: errors };
-    }
-
-    try {
-      const res = await createLocation(payload);
-      const locationId = res?.data?._id ?? res?._id ?? null;
-      setForm((prev) => ({
-        ...prev,
-        locationSaving: false,
-        locationSaved: true,
-        locationId,
-        locationError: "",
-      }));
-      setSuccessMessage("Location saved successfully.");
-      return { success: true, locationId };
-    } catch (err) {
-      const message = err?.message || "Couldn't save this location. Please try again.";
-      setForm((prev) => ({ ...prev, locationSaving: false, locationError: message }));
-      return { success: false, error: message };
-    }
   };
 
-  // Retries the currently-picked place with a merchant-typed pincode —
-  // the fix for the "missing zipcode" dead end above.
-  const retryLocationWithZipcode = (zipcode) => persistLocation(form.location, form.subBrandId, form.brandId, zipcode);
+  // Returns an error message for the picked location, or "" if it's valid.
+  const validateLocation = (state) => {
+    const errors = validateLocationPayload(buildLocationPayload(state, "pending"), { requireSubBrandId: true });
+    if (!errors.length) return "";
+    return errors.length === 1 && errors[0] === "zipcode"
+      ? "This location is missing a zipcode. Enter it below to use this address."
+      : `This location is missing ${errors.join(", ")}. Try picking a more specific result.`;
+  };
 
-  // ── Saved locations (GET /locations) — an alternative to a fresh Google
-  // search. Each doc already passed validation once (real zipcode/district/
-  // coordinates), so reusing one can never hit "missing zipcode".
+  // The pincode fix for a Google result without a postal code — re-checks
+  // the same pick with the typed pincode (still nothing saved yet).
+  const retryLocationWithZipcode = (zipcode) => {
+    const next = { ...form, manualZipcode: zipcode };
+    const message = validateLocation(next);
+    setForm({ ...next, locationError: message });
+    return { success: !message, error: message };
+  };
+
   const loadSavedLocations = async ({ brandId: brandIdOverride } = {}) => {
     const brandId = brandIdOverride ?? form.brandId;
     if (!brandId) {
@@ -162,95 +119,65 @@ export function useAddOutletForm(onSuccess) {
     }
   };
 
-  // Reuses a previously-saved location doc for THIS outlet — builds a new
-  // locations/create payload straight off its already-valid fields (no
-  // Google address_components involved), so it can't fail zipcode/district
-  // validation the way a fresh search sometimes does.
-  const selectSavedLocation = async (loc) => {
-    const subBrandId = form.subBrandId;
-    const place = mapLocationToSelectedPlace(loc);
-
-    if (!subBrandId) {
-      setForm((prev) => ({ ...prev, location: place, locationId: null, locationSaved: false, locationError: "" }));
-      return { success: false };
-    }
-
-    setForm((prev) => ({ ...prev, location: place, locationSaving: true, locationError: "" }));
-    const payload = buildLocationPayloadFromSavedLocation(loc, {
-      subBrandId,
-      brandId: form.brandId || undefined,
-    });
-
-    try {
-      const res = await createLocation(payload);
-      const locationId = res?.data?._id ?? res?._id ?? null;
-      setForm((prev) => ({ ...prev, locationSaving: false, locationSaved: true, locationId, locationError: "" }));
-      setSuccessMessage("Location saved successfully.");
-      return { success: true, locationId };
-    } catch (err) {
-      const message = err?.message || "Couldn't save this location. Please try again.";
-      setForm((prev) => ({ ...prev, locationSaving: false, locationError: message }));
-      return { success: false, error: message };
-    }
-  };
-
-  // Called by the modal's onSelectPlace — updates the local pick AND
-  // fires the real locations/create call right away. Passing `null`
-  // (Clear) just resets local state without touching the server; the
-  // previously-created location record is left as-is (no delete call
-  // here — wire deleteLocation(form.locationId) in if you want Clear to
-  // also remove it server-side).
-  const setLocation = (location) => {
-    setForm((prev) => ({
-      ...prev,
-      location,
-      locationId: null,
-      locationSaved: false,
-      locationError: "",
-    }));
-    if (location) {
-      persistLocation(location);
-    }
-  };
-
   const reset = () => setForm(initialState);
 
-  const submit = async () => {
-    if (!form.outletType || !form.whatsapp.verified || !form.location || !form.subBrandId) {
-      setError("Please pick an outlet type, verify a WhatsApp number, and select a location.");
-      return;
+  /**
+   * Creates the outlet: validate location → signUp-with-whatsapp →
+   * locations/create → subBrands/update.
+   * @param {{ whatsappNumber: string, numberVerified: boolean }} number
+   *   the number to register and whether it's verified (first outlet's
+   *   number, or a different number whose OTP was confirmed)
+   * @returns {Promise<{ success: boolean, error?: string }>}
+   */
+  const submit = async ({ whatsappNumber, numberVerified }) => {
+    if (!form.outletType || !numberVerified || !whatsappNumber || !form.location) {
+      const message = "Choose the outlet type, verify the WhatsApp number, and pick a location.";
+      setError(message);
+      return { success: false, error: message };
+    }
+
+    const locationProblem = validateLocation(form);
+    if (locationProblem) {
+      setForm((prev) => ({ ...prev, locationError: locationProblem }));
+      setError(locationProblem);
+      return { success: false, error: locationProblem };
     }
 
     setSubmitting(true);
     setError("");
     try {
-      // Fallback: location should already be saved (persistLocation fires
-      // on selection), but if it somehow isn't yet — e.g. subBrandId
-      // wasn't ready at selection time — retry it here before finishing.
-      if (!form.locationSaved) {
-        const result = await persistLocation(form.location);
-        if (!result.success) {
-          setError(result.error || "Couldn't save this location. Please try again.");
-          setSubmitting(false);
-          return;
-        }
+      let subBrandId = form.subBrandId;
+      if (!subBrandId) {
+        const res = await signUpSubBrandWithWhatsapp({
+          brandId: form.brandId,
+          whatsappNumber,
+          outletType: form.outletType,
+          isFirstOutlet: false,
+        });
+        subBrandId = extractSubBrandId(res);
+        if (!subBrandId) throw new Error("Couldn't create the outlet. Please try again.");
+        setForm((prev) => ({ ...prev, subBrandId }));
       }
 
-      // Final Save button sends the confirmed subBrands/update fields
-      // (outletType, description, isActive) plus `mobile` — see the
-      // initialState comment above on why that key isn't independently
-      // Postman-confirmed yet.
-      const subBrand = await updateSubBrand(form.subBrandId, {
+      if (!form.locationId) {
+        const res = await createLocation(buildLocationPayload(form, subBrandId));
+        const locationId = res?.data?._id ?? res?._id ?? "created";
+        setForm((prev) => ({ ...prev, locationId, locationError: "" }));
+      }
+
+      const subBrand = await updateSubBrand(subBrandId, {
         outletType: form.outletType.toUpperCase(),
-        description: form.description || undefined,
         isActive: form.isActive,
-        mobile: form.mobile || undefined,
       });
 
       reset();
+      setSuccessMessage("Outlet created successfully.");
       onSuccess?.({ subBrand });
+      return { success: true };
     } catch (err) {
-      setError(err?.message || "Couldn't save the outlet. Please try again.");
+      const message = err?.message || "Couldn't create the outlet. Please try again.";
+      setError(message);
+      return { success: false, error: message };
     } finally {
       setSubmitting(false);
     }
@@ -260,15 +187,13 @@ export function useAddOutletForm(onSuccess) {
     form,
     update,
     updateWhatsapp,
-    setSubBrandId,
     setBrandId,
     setLocation,
-    persistLocation,
+    selectSavedLocation,
     retryLocationWithZipcode,
     savedLocations,
     loadingSavedLocations,
     loadSavedLocations,
-    selectSavedLocation,
     submit,
     submitting,
     error,

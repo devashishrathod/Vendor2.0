@@ -110,7 +110,7 @@ export default function Transactions() {
       {/* Header — apna routing khud NavLink se handle karta hai, koi prop nahi chahiye */}
 
 
-      <div className="max-w-6xl mx-auto px-6 py-6">
+      <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Page heading */}
         <div className="text-center mb-6">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Transaction's Overview</h1>

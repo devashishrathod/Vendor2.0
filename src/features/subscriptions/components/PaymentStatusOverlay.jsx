@@ -102,7 +102,7 @@ export default function PaymentStatusOverlay({
                 />
               </div>
               <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">Verifying your payment…</h2>
-              <p className="text-sm text-gray-500">This usually takes just a few seconds. Please don't close this window.</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">This usually takes just a few seconds. Please don't close this window.</p>
             </div>
           </>
         )}
@@ -110,7 +110,7 @@ export default function PaymentStatusOverlay({
         {/* ---------- SUCCESS ---------- */}
         {status === "success" && (
           <div className="relative z-10" style={{ animation: "circle-pop 0.5s ease-out" }}>
-            <div className="mx-auto mb-6 w-20 h-20 rounded-full bg-teal-50 flex items-center justify-center">
+            <div className="mx-auto mb-6 w-20 h-20 rounded-full bg-teal-50 dark:bg-teal-500/15 flex items-center justify-center">
               <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
                 <circle cx="22" cy="22" r="20" stroke="#09B285" strokeWidth="2.5" opacity="0.25" />
                 <path
@@ -127,21 +127,21 @@ export default function PaymentStatusOverlay({
               </svg>
             </div>
             <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">Payment Successful!</h2>
-            <p className="text-sm text-gray-500">Setting up your welcome page…</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Setting up your welcome page…</p>
           </div>
         )}
 
         {/* ---------- FAILED ---------- */}
         {status === "failed" && (
           <div className="relative z-10" style={{ animation: "error-pop 0.4s ease-out, error-shake 0.5s ease-out 0.4s" }}>
-            <div className="mx-auto mb-6 w-20 h-20 rounded-full bg-red-50 flex items-center justify-center">
+            <div className="mx-auto mb-6 w-20 h-20 rounded-full bg-red-50 dark:bg-red-500/15 flex items-center justify-center">
               <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
                 <circle cx="20" cy="20" r="18" stroke="#ef4444" strokeWidth="2.5" opacity="0.25" />
                 <path d="M14 14l12 12M26 14L14 26" stroke="#ef4444" strokeWidth="3" strokeLinecap="round" />
               </svg>
             </div>
             <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">Payment Failed</h2>
-            <p className="text-sm text-gray-500 mb-6">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
               {errorMessage || "Your payment couldn't be completed. No amount has been deducted, or it will be refunded automatically."}
             </p>
             <div className="flex gap-3">

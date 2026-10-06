@@ -1,8 +1,9 @@
 import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { Search, SlidersHorizontal, CalendarDays, Download } from "lucide-react";
+import { Search, SlidersHorizontal, CalendarDays, Download, Store } from "lucide-react";
 import TxnIcon from "./TxnIcon";
 import { TRANSACTION_DATA, TRANSACTION_TABS } from "../data/transactionData";
+import { STORE_TYPE_LABELS } from "../services/transactionService";
 import Select from "../../../components/common/Select";
 
 // Small helper: deterministic accent color per customer, based on their name.
@@ -37,6 +38,11 @@ function getAvatarColors(name = "") {
 // an option for a status you hadn't already scrolled to.
 const STATUS_OPTIONS = ["Paid", "Failed", "Refunded", "Authorized", "Created", "Pending"];
 
+const STORE_TYPE_OPTIONS = [
+  { value: "all", label: "All Store Types" },
+  ...Object.values(STORE_TYPE_LABELS).map((label) => ({ value: label, label })),
+];
+
 // Shown only until the real GET /voucher-claims/payments response lands —
 // zeroed out rather than reusing any dummy numbers, so nothing fabricated
 // ever flashes on screen even for a moment.
@@ -66,6 +72,7 @@ export default function TransactionOverview({ activeTxnTab, voucherData, dateRan
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [storeTypeFilter, setStoreTypeFilter] = useState("all");
 
   const data =
     activeTxnTab === "voucher"
@@ -96,9 +103,10 @@ export default function TransactionOverview({ activeTxnTab, voucherData, dateRan
           .toLowerCase()
           .includes(term);
       const matchesStatus = statusFilter === "all" || row.status === statusFilter;
-      return matchesSearch && matchesStatus;
+      const matchesStoreType = storeTypeFilter === "all" || row.storeType === storeTypeFilter;
+      return matchesSearch && matchesStatus && matchesStoreType;
     });
-  }, [data.rows, searchTerm, statusFilter]);
+  }, [data.rows, searchTerm, statusFilter, storeTypeFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / rowsPerPage));
   const pageRows = filteredRows.slice(
@@ -110,12 +118,12 @@ export default function TransactionOverview({ activeTxnTab, voucherData, dateRan
   // (not just what the table itself shows), per explicit instruction.
   const handleExport = () => {
     const headers = [
-      "Order Id", "Txn Id", "Customer", "Customer Code", data.idLabel, "Razorpay Order Id", "Created On", "Outlet",
+      "Order Id", "Txn Id", "Customer", "Customer Code", data.idLabel, "Razorpay Order Id", "Created On", "Outlet", "Store Type",
       "Bill Amount", "Offer Discount", "Promo Discount", "Net Bill", "Amount", "Payment Method", "Status",
     ];
     const csvRows = filteredRows.map((r) =>
       [
-        r.orderId, r.txnId, r.customerName, r.customerCode, r.refId, r.razorpayOrderId, r.createdOn, r.outlet,
+        r.orderId, r.txnId, r.customerName, r.customerCode, r.refId, r.razorpayOrderId, r.createdOn, r.outlet, r.storeType ?? "—",
         r.billAmount, r.offerDiscount, r.promoDiscount, r.netBill, r.amount, r.paymentMethod, r.status,
       ]
         .map((v) => `"${v}"`)
@@ -250,6 +258,18 @@ export default function TransactionOverview({ activeTxnTab, voucherData, dateRan
                 />
               </div>
 
+              {/* Store Type filter — Outlet / Franchise */}
+              <div className="relative flex flex-shrink-0 items-center gap-1.5 rounded-xl bg-emerald-100 dark:bg-emerald-500/20 px-3 py-2 pr-7 text-sm text-gray-600 dark:text-gray-300">
+                <Store className="h-4 w-4 shrink-0 text-gray-400" />
+                <Select
+                  compact
+                  value={storeTypeFilter}
+                  onChange={(value) => { setStoreTypeFilter(value); setCurrentPage(1); }}
+                  options={STORE_TYPE_OPTIONS}
+                  className="bg-transparent text-gray-600 dark:text-gray-300"
+                />
+              </div>
+
               {/* Date range — real from/to, filters both the table below
                   and the "Voucher Collection" stat above (Transactions.jsx
                   owns this state so the two never disagree). */}
@@ -298,7 +318,7 @@ export default function TransactionOverview({ activeTxnTab, voucherData, dateRan
               <thead>
                 <tr className="bg-[#1a1a2e]">
                   {[
-                    "Order Id", "Customer detail", "Voucher Version ID",  "Created on", "Outlet Store ID",
+                    "Order Id", "Customer detail", "Voucher Version ID",  "Created on", "Outlet Store ID", "Store Type",
                     "Bill Amount", "Offer Discount", "Promo Discount", "Net Bill", "Paid Amount", "Payment Method", "Status",
                   ].map((h) => (
                     <th key={h} className="text-left px-3 py-2.5 text-[11px] font-bold uppercase tracking-wide text-white/80 whitespace-nowrap">
@@ -351,6 +371,21 @@ export default function TransactionOverview({ activeTxnTab, voucherData, dateRan
                         {/* <td className="px-3 py-2 text-gray-500 whitespace-nowrap">{row.razorpayOrderId}</td> */}
                         <td className="px-3 py-2 text-gray-500 whitespace-nowrap">{row.createdOn}</td>
                         <td className="px-3 py-2 text-gray-500 whitespace-nowrap">{row.outlet}</td>
+                        <td className="px-3 py-2 whitespace-nowrap">
+                          {row.storeType && row.storeType !== "—" ? (
+                            <span
+                              className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                                row.storeType === STORE_TYPE_LABELS.FRANCHISE
+                                  ? "bg-violet-50 text-violet-700"
+                                  : "bg-sky-50 text-sky-700"
+                              }`}
+                            >
+                              {row.storeType}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">—</span>
+                          )}
+                        </td>
                         <td className="px-3 py-2 text-gray-700 dark:text-gray-300 whitespace-nowrap">{row.billAmount}</td>
                         <td className="px-3 py-2 text-rose-500 whitespace-nowrap">{row.offerDiscount}</td>
                         <td className="px-3 py-2 text-rose-500 whitespace-nowrap">{row.promoDiscount}</td>
