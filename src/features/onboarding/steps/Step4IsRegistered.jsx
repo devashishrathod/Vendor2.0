@@ -468,7 +468,7 @@ function BlockingContent({ onDelete, deleting }) {
                 trydood.com's own Get Started form; the Trydood team reaches
                 out from there to take them through registration. */}
             <a
-              href="https://trydood.com"
+              href="https://trydood.com/register"
               target="_blank"
               rel="noopener noreferrer"
               className="w-auto px-8 py-3 rounded-xl font-medium text-sm tracking-wide transition-all duration-200 flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white active:scale-[0.98]"
@@ -486,8 +486,8 @@ function BlockingContent({ onDelete, deleting }) {
           </div>
           <div>
             <p className="text-xs text-gray-400 mb-0.5">Need help with registration?</p>
-            <a href="mailto:Helpdesk@trydood.com" className="text-sm text-emerald-500 hover:text-emerald-600 font-medium hover:underline transition">
-              Helpdesk@trydood.com
+            <a href="mailto:helpdesk@trydood.com" className="text-sm text-emerald-500 hover:text-emerald-600 font-medium hover:underline transition">
+              helpdesk@trydood.com
             </a>
           </div>
         </div>
@@ -531,7 +531,7 @@ function BlockingModal({ onClose, onDelete }) {
           `}</style>
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center text-gray-500 transition"
+            className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center text-gray-500 dark:text-gray-400 transition"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

@@ -30,6 +30,7 @@ import BrandPage from './features/brand';
 import CreateBrandOutlet from './features/oulet/New folder/pages/CreateBrandOutlet';
 import UnderReview from './features/oulet/New folder/pages/Youroutlet';
 import PostAuthRouteGuard from './routes/PostAuthRouteGuard';
+import OnboardingOnlyRoute from './routes/OnboardingOnlyRoute';
 
 
 function App() {
@@ -100,7 +101,7 @@ function App() {
         <Route path="/subscription" element={<ProtectedRoute><SubscriptionPlan /></ProtectedRoute>} />
         <Route path="/subscription/checkout" element={<ProtectedRoute><SubscriptionCheckout /></ProtectedRoute>} />
         {/* <Route path="/oulet" element={<ProtectedRoute><TrydoodOutlet /></ProtectedRoute>} /> */}
-        <Route path="/brand-outlet" element={<ProtectedRoute><CreateBrandOutlet /></ProtectedRoute>} />
+        <Route path="/brand-outlet" element={<ProtectedRoute><OnboardingOnlyRoute><CreateBrandOutlet /></OnboardingOnlyRoute></ProtectedRoute>} />
         <Route path="/under-review" element={<ProtectedRoute><UnderReview /></ProtectedRoute>} />
 
         {/* ─── DASHBOARD GROUP: header/footer YAHAN chahiye ─── */}

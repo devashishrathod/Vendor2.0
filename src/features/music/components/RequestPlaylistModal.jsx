@@ -41,7 +41,7 @@ export default function RequestPlaylistModal({ onClose, onSubmit }) {
         <button
           disabled={!name.trim() || submitting}
           onClick={handleSubmit}
-          className="w-full inline-flex items-center justify-center gap-2 bg-gray-900 disabled:bg-gray-200 dark:disabled:bg-gray-700 disabled:text-gray-400 text-white text-sm font-semibold rounded-lg py-2.5 hover:bg-gray-800 transition-colors"
+          className="w-full inline-flex items-center justify-center gap-2 bg-gray-900 dark:bg-gray-100 disabled:bg-gray-200 dark:disabled:bg-gray-700 disabled:text-gray-400 dark:disabled:text-gray-400 text-white dark:text-gray-900 text-sm font-semibold rounded-lg py-2.5 hover:bg-gray-800 dark:hover:bg-white transition-colors"
         >
           <Send size={14} /> {submitting ? "Sending…" : "Send request"}
         </button>

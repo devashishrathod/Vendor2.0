@@ -213,7 +213,7 @@ export default function Step2VerifyOTP({ isOpen, onClose, phoneNumber, onVerifie
 
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 flex items-center justify-center text-gray-500 transition"
+            className="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center text-gray-500 dark:text-gray-400 transition"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -228,7 +228,7 @@ export default function Step2VerifyOTP({ isOpen, onClose, phoneNumber, onVerifie
               </svg>
             </div>
             <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">Verification Code </h2>
-            <p className="text-xs text-gray-500 leading-relaxed">
+            <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
               We have sent a 6-digit OTP on<br />
               <span className="text-gray-600 dark:text-gray-300 font-semibold">{maskedNumber}</span>
             </p>
@@ -247,7 +247,7 @@ export default function Step2VerifyOTP({ isOpen, onClose, phoneNumber, onVerifie
                 onKeyDown={(e) => handleKeyDown(i, e)}
                 className={`w-11 h-12 text-center text-lg font-bold rounded-xl outline-none transition-all duration-150
                   ${digit ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" : "bg-emerald-50 dark:bg-emerald-500/10 text-gray-800 dark:text-gray-100"}
-                  focus:bg-emerald-50 focus:ring-2 focus:ring-emerald-100`}
+                  focus:bg-emerald-50 focus:ring-2 focus:ring-emerald-100 dark:focus:bg-emerald-500/10 dark:focus:ring-emerald-500/30`}
               />
             ))}
           </div>
@@ -277,7 +277,7 @@ export default function Step2VerifyOTP({ isOpen, onClose, phoneNumber, onVerifie
             {loading ? "Verifying…" : "Continue →"}
           </PrimaryButton>
 
-          <p className="text-center text-xs text-gray-500 mt-4">
+          <p className="text-center text-xs text-gray-500 dark:text-gray-400 mt-4">
             🔒 We will never share your number with anyone.
           </p>
         </div>

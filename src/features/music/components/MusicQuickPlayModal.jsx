@@ -36,7 +36,7 @@ export default function MusicQuickPlayModal({ open, onClose, player }) {
               }}
               aria-label="Stop music"
               title="Stop music"
-              className="flex h-8 w-8 items-center justify-center rounded-full text-gray-500 transition-colors hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10"
+              className="flex h-8 w-8 items-center justify-center rounded-full text-gray-500 dark:text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10"
             >
               <Square size={14} fill="currentColor" />
             </button>
@@ -44,7 +44,7 @@ export default function MusicQuickPlayModal({ open, onClose, player }) {
               type="button"
               onClick={onClose}
               aria-label="Close"
-              className="flex h-8 w-8 items-center justify-center rounded-full text-gray-500 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
+              className="flex h-8 w-8 items-center justify-center rounded-full text-gray-500 dark:text-gray-400 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
             >
               <X size={16} />
             </button>

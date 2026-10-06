@@ -15,6 +15,34 @@ function InfoRow({ label, value, valueClassName = "" }) {
   );
 }
 
+// The outlet's WhatsApp verification (useOutlets reads the confirmed
+// user.isWhatsappVerified). `null` = the API didn't say, so no badge.
+function VerificationBadge({ verified }) {
+  if (verified === null || verified === undefined) return null;
+  return verified ? (
+    <span
+      title="WhatsApp number verified"
+      className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400"
+    >
+      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 2.3l2.2 1.1 2.4-.5 1.3 2.1 2.1 1.3-.5 2.4L20.7 11l-1.2 2.3.5 2.4-2.1 1.3-1.3 2.1-2.4-.5L12 19.9l-2.2-1.1-2.4.5-1.3-2.1-2.1-1.3.5-2.4L3.3 11l1.2-2.3-.5-2.4 2.1-1.3L7.4 2.9l2.4.5L12 2.3z" />
+        <path d="M9.5 12.1l1.8 1.8 3.3-3.6" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      </svg>
+      Verified
+    </span>
+  ) : (
+    <span
+      title="WhatsApp number not verified yet"
+      className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-600 dark:bg-amber-500/15 dark:text-amber-400"
+    >
+      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+      </svg>
+      Unverified
+    </span>
+  );
+}
+
 export default function OutletCard({ outlet, selected, onSelect, onToggleStatus, onExploreDetails, onEdit }) {
   // outletName no longer exists on the outlet record. `address`, however,
   // IS available whenever the outlet has a saved location (see
@@ -40,7 +68,10 @@ export default function OutletCard({ outlet, selected, onSelect, onToggleStatus,
             <span className="text-sm font-bold text-gray-900 dark:text-gray-100">Store Id : {maskStoreId(outlet.storeId)}</span>
           </div>
         </div>
-        <StatusBadge status={outlet.status} />
+        <div className="flex flex-wrap items-center justify-end gap-1.5">
+          <VerificationBadge verified={whatsapp.verified} />
+          <StatusBadge status={outlet.status} />
+        </div>
       </div>
 
       <div className="px-5 py-1 flex-1">

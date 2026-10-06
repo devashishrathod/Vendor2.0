@@ -52,16 +52,16 @@ export default function RaiseTicketModal({ open, onClose, onSubmit }) {
       onClick={handleClose}
     >
       <div
-        className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden"
+        className="w-full max-w-2xl bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5">
-          <h2 className="text-sm font-bold tracking-[0.15em] text-gray-900">RAISE TICKET</h2>
+          <h2 className="text-sm font-bold tracking-[0.15em] text-gray-900 dark:text-gray-100">RAISE TICKET</h2>
           <button
             onClick={handleClose}
             aria-label="Close"
-            className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-800 hover:bg-black text-white flex-shrink-0"
+            className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-800 hover:bg-black dark:bg-gray-700 dark:hover:bg-gray-600 text-white flex-shrink-0"
           >
             <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -89,8 +89,8 @@ export default function RaiseTicketModal({ open, onClose, onSubmit }) {
                   onClick={() => toggleCategory(cat)}
                   className={`text-xs font-semibold rounded-full px-4 py-2 transition-colors ${
                     isSelected
-                      ? "text-gray-900 bg-white"
-                      : "text-gray-700 bg-white"
+                      ? "text-gray-900 bg-white dark:text-gray-100 dark:bg-gray-700"
+                      : "text-gray-700 bg-white dark:text-gray-200 dark:bg-gray-700"
                   }`}
                 >
                   {cat}
@@ -104,7 +104,7 @@ export default function RaiseTicketModal({ open, onClose, onSubmit }) {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="DESCRIBE THE PROBLEM"
-            className="w-full h-64 resize-none bg-emerald-100 rounded-xl px-4 py-4 text-xs font-semibold tracking-[0.1em] text-gray-500 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+            className="w-full h-64 resize-none bg-emerald-100 dark:bg-emerald-500/15 rounded-xl px-4 py-4 text-xs font-semibold tracking-[0.1em] text-gray-500 dark:text-gray-200 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
           />
         </div>
 
@@ -112,7 +112,7 @@ export default function RaiseTicketModal({ open, onClose, onSubmit }) {
         <div className="px-6 pb-6">
           <button
             onClick={handleSubmit}
-            className="w-full bg-gray-900 hover:bg-black text-white text-sm font-bold tracking-wide rounded-xl py-3.5"
+            className="w-full bg-gray-900 hover:bg-black dark:bg-gray-100 dark:hover:bg-white text-white dark:text-gray-900 text-sm font-bold tracking-wide rounded-xl py-3.5"
           >
             Submit
           </button>

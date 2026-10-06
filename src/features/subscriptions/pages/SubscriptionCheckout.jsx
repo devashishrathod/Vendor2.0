@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { previewCheckout, getCurrentSubscription } from "../services/subscriptionApi";
 import { useBrand } from "../../../hooks/useBrand";
+import { isOnboardingCompleteNow } from "@/features/onboarding/utils/onboardingStatus";
 import TrustBar from "../components/TrustBar";
 import PlanInfo from "../components/PlanInfo";
 import BillingDetailsCard from "../components/BillingDetailsCard";
@@ -67,10 +68,19 @@ export default function SubscriptionCheckout() {
 
   useEffect(() => {
     if (!subscriptionId) {
-      // Before bouncing back to plan-picking, confirm the vendor hasn't
-      // already paid — a reload here (state lost) used to always send an
-      // already-successful payment back to /subscription instead of
-      // forward, letting them stumble into paying again.
+      // ⚠️ FIXED: an already-onboarded brand here is UPGRADING (Plan &
+      // Billing → Upgrade). Its active subscription is the OLD plan, not
+      // proof this upgrade was paid — so a reload must go back to the plan
+      // picker, never forward to the onboarding-only Create Outlet page
+      // (which is where it used to send approved brands, leaving them stuck).
+      if (isOnboardingCompleteNow()) {
+        navigate("/subscription", { replace: true });
+        return;
+      }
+      // Still onboarding: before bouncing back to plan-picking, confirm the
+      // vendor hasn't already paid — a reload here (state lost) used to
+      // always send an already-successful payment back to /subscription
+      // instead of forward, letting them stumble into paying again.
       getCurrentSubscription(brand?._id)
         .then((sub) => {
           navigate(hasActiveSubscription(sub) ? "/brand-outlet" : "/subscription", { replace: true });
