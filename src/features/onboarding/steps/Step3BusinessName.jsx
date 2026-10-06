@@ -242,7 +242,7 @@ export default function Step3BusinessName() {
                 {[
                   "Use your registered business name.",
                   "Make sure the name matches your official documents.",
-                  "Keep your short name simple and recognizable.",
+                  "Keep your Brand name simple and recognizable.",
                   "Avoid unnecessary symbols or special characters.",
                 ].map((tip, i) => (
                   <div key={i} className="flex items-start gap-1.5">

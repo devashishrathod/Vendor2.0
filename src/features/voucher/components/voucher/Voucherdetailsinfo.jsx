@@ -130,7 +130,7 @@ function ImageViewModal({ src, label, kind, onClose }) {
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="flex h-7 w-7 items-center justify-center rounded-full text-gray-500 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
+            className="flex h-7 w-7 items-center justify-center rounded-full text-gray-500 dark:text-gray-400 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
           >
             <X size={16} />
           </button>
@@ -142,7 +142,7 @@ function ImageViewModal({ src, label, kind, onClose }) {
             <img src={src} alt={label || "Voucher image"} className="max-h-[70vh] rounded-xl object-contain" />
           )}
         </div>
-        {label && <p className="px-4 py-3 text-center text-xs text-gray-500">{label}</p>}
+        {label && <p className="px-4 py-3 text-center text-xs text-gray-500 dark:text-gray-400">{label}</p>}
       </div>
     </div>
   );

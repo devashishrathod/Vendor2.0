@@ -22,7 +22,7 @@ export default function CollectionPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#F8FAF7] dark:bg-gray-900 pb-28">
-        <div className="max-w-4xl mx-auto px-6 py-10">
+        <div className="max-w-7xl mx-auto px-4 py-10">
           <div className="h-40 rounded-2xl bg-gray-100 dark:bg-gray-700 animate-pulse" />
         </div>
       </div>
@@ -32,7 +32,7 @@ export default function CollectionPage() {
   if (!collection) {
     return (
       <div className="min-h-screen bg-[#F8FAF7] dark:bg-gray-900 pb-28">
-        <div className="max-w-4xl mx-auto px-6 py-10">
+        <div className="max-w-7xl mx-auto px-4 py-10">
           <button
             type="button"
             onClick={handleBack}
@@ -56,7 +56,7 @@ export default function CollectionPage() {
         )}
         <div className="absolute inset-0 bg-black/25" />
 
-        <div className="relative max-w-4xl mx-auto">
+        <div className="relative max-w-7xl mx-auto">
           <button
             type="button"
             onClick={handleBack}
@@ -78,7 +78,7 @@ export default function CollectionPage() {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-6 py-6">
+      <div className="max-w-7xl mx-auto px-4 py-6">
         <button
           type="button"
           onClick={() => player.playCollection(collection)}

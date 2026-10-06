@@ -238,7 +238,7 @@ export default function VoucherForm({
     (!!form.bannerMedia && (!isBannerVideo || !!form.bannerPoster));
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-6">
+    <div className="max-w-7xl mx-auto px-4 py-8">
       {/* Header */}
       <div className="mb-6 flex items-center gap-3">
         <button

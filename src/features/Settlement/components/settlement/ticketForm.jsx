@@ -116,22 +116,22 @@ function NewTicketModal({ open, onClose, onSubmit, submitting }) {
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           <div>
-            <label className="text-xs font-medium text-slate-500">Subject</label>
+            <label className="text-xs font-medium text-slate-500 dark:text-gray-400">Subject</label>
             <input
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               placeholder="e.g. Settlement amount mismatch"
-              className="mt-1 w-full rounded-lg bg-emerald-50 dark:bg-emerald-500/10 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-400"
+              className="mt-1 w-full rounded-lg bg-emerald-50 dark:bg-emerald-500/10 dark:text-gray-100 dark:placeholder:text-gray-400 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-400"
             />
           </div>
           <div>
-            <label className="text-xs font-medium text-slate-500">Message</label>
+            <label className="text-xs font-medium text-slate-500 dark:text-gray-400">Message</label>
             <textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               rows={4}
               placeholder="Describe the issue in detail…"
-              className="mt-1 w-full rounded-lg bg-emerald-50 dark:bg-emerald-500/10 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-400"
+              className="mt-1 w-full rounded-lg bg-emerald-50 dark:bg-emerald-500/10 dark:text-gray-100 dark:placeholder:text-gray-400 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-400"
             />
           </div>
           {error && <p className="text-xs text-rose-500">{error}</p>}

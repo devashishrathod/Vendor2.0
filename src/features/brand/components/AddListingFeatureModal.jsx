@@ -81,7 +81,7 @@ const AddListingFeatureModal = ({ mode = "add", feature = null, onClose, onSubmi
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="text-gray-400 hover:text-gray-600"
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
           >
             <X size={18} />
           </button>
@@ -126,7 +126,7 @@ const AddListingFeatureModal = ({ mode = "add", feature = null, onClose, onSubmi
               type="file"
               accept="image/*,video/*"
               onChange={handleFileChange}
-              className="w-full text-sm text-gray-600 dark:text-gray-100 file:mr-3 file:rounded-xl file:bg-emerald-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-emerald-700 hover:file:bg-emerald-100"
+              className="w-full text-sm text-gray-600 dark:text-gray-100 file:mr-3 file:rounded-xl file:bg-emerald-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-emerald-700 hover:file:bg-emerald-100 dark:file:bg-emerald-500/15 dark:file:text-emerald-300 dark:hover:file:bg-emerald-500/25"
             />
             {currentPreviewUrl && (
               <div className="mt-2">

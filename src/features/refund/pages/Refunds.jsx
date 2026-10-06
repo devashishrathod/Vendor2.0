@@ -96,7 +96,7 @@ export default function Refunds() {
 
   return (
     <div className="min-h-screen dark:bg-gray-900 font-sans">
-      <div className="max-w-6xl mx-auto px-6 py-6">
+      <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="text-center mb-6">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Refund's Overview</h1>
           <p className="text-xs text-gray-400 mt-1">

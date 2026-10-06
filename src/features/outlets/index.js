@@ -10,5 +10,4 @@ export { useOutletFilters } from "./hooks/useOutletFilters";
 export { useAddOutletForm } from "./hooks/useAddOutletForm";
 export { useOutletDetails } from "./hooks/useOutletDetails";
 export * from "./constants/outletConstants";
-export * from "./constants/transactionConstants";
 export * as outletService from "./services/outletService";

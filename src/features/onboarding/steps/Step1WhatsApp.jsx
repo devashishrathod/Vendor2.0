@@ -93,10 +93,9 @@ export default function Step1WhatsApp() {
               </label>
               <div
                 className={`flex items-center overflow-hidden rounded-xl border bg-white dark:bg-gray-800 transition focus-within:ring-4
-                  ${
-                    error
-                      ? "border-red-300 focus-within:ring-red-500/10"
-                      : "border-gray-200 dark:border-gray-700 focus-within:border-emerald-400 focus-within:ring-emerald-500/15"
+                  ${error
+                    ? "border-red-300 focus-within:ring-red-500/10"
+                    : "border-gray-200 dark:border-gray-700 focus-within:border-emerald-400 focus-within:ring-emerald-500/15"
                   }`}
               >
                 <span className="flex items-center gap-1.5 self-stretch border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 px-3 text-sm font-semibold text-gray-600 dark:text-gray-300 select-none">
@@ -129,10 +128,9 @@ export default function Step1WhatsApp() {
               type="submit"
               disabled={isDisabled}
               className={`group flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-semibold tracking-wide transition duration-200 active:scale-[0.98]
-                ${
-                  isDisabled
-                    ? "cursor-not-allowed bg-emerald-500/40 text-white dark:bg-emerald-500/20 dark:text-emerald-100/60"
-                    : "bg-emerald-500 text-white shadow-lg shadow-emerald-500/25 hover:bg-emerald-600"
+                ${isDisabled
+                  ? "cursor-not-allowed bg-emerald-500/40 text-white dark:bg-emerald-500/20 dark:text-emerald-100/60"
+                  : "bg-emerald-500 text-white shadow-lg shadow-emerald-500/25 hover:bg-emerald-600"
                 }`}
             >
               {loading ? (

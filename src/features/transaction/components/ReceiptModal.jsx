@@ -8,7 +8,7 @@ export default function ReceiptModal({ order, typeConfig, onClose }) {
   const row = (label, value) =>
     value ? (
       <div className="flex items-start justify-between gap-3 py-1.5">
-        <span className="text-xs text-gray-500">{label}</span>
+        <span className="text-xs text-gray-500 dark:text-gray-400">{label}</span>
         <span className="text-xs font-semibold text-gray-800 dark:text-gray-100 text-right">{value}</span>
       </div>
     ) : null;
@@ -85,7 +85,7 @@ export default function ReceiptModal({ order, typeConfig, onClose }) {
           </button>
           <button
             onClick={() => window.print()}
-            className="flex-1 flex items-center justify-center gap-1.5 text-sm font-semibold text-white bg-gray-900 hover:bg-black rounded-xl px-4 py-2.5 transition-colors"
+            className="flex-1 flex items-center justify-center gap-1.5 text-sm font-semibold text-white bg-gray-900 dark:bg-gray-700 hover:bg-black dark:hover:bg-gray-600 rounded-xl px-4 py-2.5 transition-colors"
           >
             <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6v-8z" />
