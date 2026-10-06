@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import StatusBadge from "./StatusBadge";
 import { OUTLET_TYPES } from "../constants/outletConstants";
-import { cx } from "../utils/outletUtils";
+import { cx, toTitleCase } from "../utils/outletUtils";
 
 // Shows everything the confirmed brands/get + subBrands/get-all responses
 // carry beyond what OutletDetailsHeader already renders — the outlet's own
@@ -35,7 +35,7 @@ function InfoRow({ icon: Icon, label, value, copyable, valueNode, valueClassName
 
   return (
     <div className="flex items-center justify-between gap-4 py-3">
-      <span className="flex items-center gap-2.5 text-sm text-gray-500 shrink-0">
+      <span className="flex items-center gap-2.5 text-sm text-gray-500 dark:text-gray-400 shrink-0">
         <Icon className="w-4 h-4 text-gray-400" />
         {label}
       </span>
@@ -86,13 +86,13 @@ function DescriptionRow({ icon: Icon, label, value }) {
 
 const ACCENTS = {
   emerald: { bg: "bg-emerald-50 dark:bg-emerald-500/10", text: "text-emerald-500 dark:text-emerald-400" },
-  sky: { bg: "bg-sky-50", text: "text-sky-500" },
+  sky: { bg: "bg-sky-50 dark:bg-sky-500/10", text: "text-sky-500 dark:text-sky-400" },
 };
 
 function SectionCard({ icon, title, subtitle, accent = "emerald", action, children, className }) {
   const color = ACCENTS[accent];
   return (
-    <div className={cx("bg-white dark:bg-gray-800 rounded-2xl p-5 sm:p-6 flex flex-col", className)}>
+    <div className={cx("bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-5 sm:p-6 flex flex-col", className)}>
       <div className="flex flex-wrap items-start justify-between gap-3 mb-1">
         <div className="flex items-center gap-3">
           <div className={cx("flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl", color.bg, color.text)}>
@@ -153,10 +153,10 @@ function WorkHoursRow({ label, day, isToday }) {
       )}
     >
       <span className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-        <span className={cx("w-1.5 h-1.5 rounded-full shrink-0", isOpen ? "bg-emerald-500" : "bg-gray-300")} />
+        <span className={cx("w-1.5 h-1.5 rounded-full shrink-0", isOpen ? "bg-emerald-500" : "bg-gray-300 dark:bg-gray-600")} />
         {label}
         {isToday && (
-          <span className="text-[10px] font-bold uppercase tracking-wide text-emerald-600 bg-emerald-100 rounded-full px-1.5 py-0.5">
+          <span className="text-[10px] font-bold uppercase tracking-wide text-emerald-600 bg-emerald-100 dark:text-emerald-300 dark:bg-emerald-500/20 rounded-full px-1.5 py-0.5">
             Today
           </span>
         )}
@@ -176,6 +176,7 @@ export default function OutletDetailsInfo({ outlet, brand, onEdit, onEditLocatio
   const [lng, lat] = location?.geo?.coordinates || [];
   const hasCoords = typeof lat === "number" && typeof lng === "number";
   const isFranchise = outlet?.outletType === OUTLET_TYPES.FRANCHISE;
+  const brandName = toTitleCase(brand?.brandName);
   // "Business Since" — the year the outlet joined (a real, derived value,
   // not a separate field the backend tracks).
   const businessSince = outlet?.joinedDate ? new Date(outlet.joinedDate).getFullYear() : "—";
@@ -190,7 +191,7 @@ export default function OutletDetailsInfo({ outlet, brand, onEdit, onEditLocatio
         action={
           <button
             onClick={onEdit}
-            className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 rounded-lg px-3 py-1.5 hover:bg-emerald-100 transition-colors"
+            className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 rounded-lg px-3 py-1.5 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-colors"
           >
             <Pencil className="w-3.5 h-3.5" />
             Edit Details
@@ -205,21 +206,21 @@ export default function OutletDetailsInfo({ outlet, brand, onEdit, onEditLocatio
         <InfoRow icon={CalendarDays} label="Joining Date" value={outlet?.joinedDate ? new Date(outlet.joinedDate).toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" }) : "—"} />
         {/* <InfoRow icon={Clock} label="Business Since" value={businessSince} /> */}
 
-        <div className="flex flex-wrap items-center justify-between gap-3 mt-4 bg-emerald-50 rounded-xl px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 mt-4 bg-emerald-50 dark:bg-emerald-500/10 rounded-xl px-4 py-3">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-emerald-500 text-white flex items-center justify-center shrink-0">
               <Store className="w-4 h-4" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-800">{isFranchise ? "Franchise Outlet" : "Outlet"}</p>
-              <p className="text-xs text-gray-500">
+              <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{isFranchise ? "Franchise Outlet" : "Outlet"}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
                 {isFranchise
-                  ? `You are part of the ${brand?.brandName || "Trydood"} franchise network.`
-                  : `This outlet operates under ${brand?.brandName || "your brand"}.`}
+                  ? `You are part of the ${brandName || "Trydood"} franchise network.`
+                  : `This outlet operates under ${brandName || "your brand"}.`}
               </p>
             </div>
           </div>
-          <a href="mailto:support@trydood.com" className="text-xs font-semibold text-emerald-600 hover:underline whitespace-nowrap flex items-center gap-1">
+          <a href="mailto:support@trydood.com" className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline whitespace-nowrap flex items-center gap-1">
             Need help? Contact Support →
           </a>
         </div>
@@ -234,7 +235,7 @@ export default function OutletDetailsInfo({ outlet, brand, onEdit, onEditLocatio
           onEditLocation && (
             <button
               onClick={onEditLocation}
-              className="flex items-center gap-1.5 text-xs font-semibold text-sky-600 bg-sky-50 rounded-lg px-3 py-1.5 hover:bg-sky-100 transition-colors whitespace-nowrap"
+              className="flex items-center gap-1.5 text-xs font-semibold text-sky-600 bg-sky-50 dark:text-sky-400 dark:bg-sky-500/10 rounded-lg px-3 py-1.5 hover:bg-sky-100 dark:hover:bg-sky-500/20 transition-colors whitespace-nowrap"
             >
               <Pencil className="w-3.5 h-3.5" />
               Edit
@@ -255,8 +256,8 @@ export default function OutletDetailsInfo({ outlet, brand, onEdit, onEditLocatio
                     <Store className="w-3.5 h-3.5" />
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-gray-800 dark:text-gray-100 lowercase leading-none">
-                      {brand?.brandName || "Outlet"}
+                    <p className="text-xs font-bold text-gray-800 dark:text-gray-100 leading-none">
+                      {brandName || "Outlet"}
                     </p>
                     <p className="text-[11px] text-gray-400 leading-none mt-0.5">
                       {[location.city].filter(Boolean).join(", ")}

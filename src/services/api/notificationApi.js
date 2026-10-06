@@ -54,6 +54,51 @@ export async function markAllNotificationsRead() {
     }
 }
 
+// ⚠️ UNCONFIRMED — the three endpoints below are best guesses (no Postman
+// sample yet), added so the bell/drawer's Mark as read / Clear / Clear all
+// actions have something to call. Swap in the real paths/bodies once the
+// backend shares them; the UI only depends on these function names.
+
+// ── Mark ONE Notification Read ──────────────────────────────────────
+// PUT /notifications/mark-read — same confirmed endpoint as markAll above,
+// guessing it also accepts { ids: [...] } for specific notifications.
+/**
+ * @param {string} notificationId
+ */
+export async function markNotificationRead(notificationId) {
+    try {
+        const { data } = await api.put('/notifications/mark-read', { ids: [notificationId] });
+        return data;
+    } catch (error) {
+        handleError(error);
+    }
+}
+
+// ── Clear (delete) ONE Notification ─────────────────────────────────
+// DELETE /notifications/:notificationId (guessed)
+/**
+ * @param {string} notificationId
+ */
+export async function deleteNotification(notificationId) {
+    try {
+        const { data } = await api.delete(`/notifications/${notificationId}`);
+        return data;
+    } catch (error) {
+        handleError(error);
+    }
+}
+
+// ── Clear ALL Notifications ─────────────────────────────────────────
+// DELETE /notifications/clear-all (guessed)
+export async function clearAllNotifications() {
+    try {
+        const { data } = await api.delete('/notifications/clear-all');
+        return data;
+    } catch (error) {
+        handleError(error);
+    }
+}
+
 // ── Notification Preferences (Settings page) ────────────────────────
 // GET {{base_url}}/trydood/v1/notifications/preferences
 // ⚠️ FIXED: VITE_BASE_URL already ends in "/trydood/v1" (same as every

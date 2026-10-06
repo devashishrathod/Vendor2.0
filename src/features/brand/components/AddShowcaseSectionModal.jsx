@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { X, Plus, Pencil } from "lucide-react";
+import DisabledHint from "@/components/common/DisabledHint";
 
 /**
  * AddShowcaseSectionModal
@@ -28,9 +29,16 @@ const AddShowcaseSectionModal = ({ mode = "add", section = null, onClose, onSubm
     setThumbnail(e.target.files?.[0] || null);
   };
 
+  // A video in the batch needs a thumbnail before it can be uploaded; for an
+  // image-only batch marked for clips it stays optional.
+  const hasVideo = !isEdit && files.some((f) => f.type?.startsWith("video/"));
+  const showThumbnailField = hasVideo || isShowInVideoClips;
+  const needsThumbnail = hasVideo && !thumbnail;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setFormError(null);
+    if (needsThumbnail) return;
 
     if (!title.trim()) {
       setFormError("Title is required.");
@@ -47,7 +55,7 @@ const AddShowcaseSectionModal = ({ mode = "add", section = null, onClose, onSubm
           description: description.trim(),
           files,
           isShowInVideoClips,
-          thumbnail: isShowInVideoClips ? thumbnail : null,
+          thumbnail: showThumbnailField ? thumbnail : null,
         });
       }
       onClose();
@@ -84,7 +92,7 @@ const AddShowcaseSectionModal = ({ mode = "add", section = null, onClose, onSubm
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="text-gray-400 hover:text-gray-600"
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
           >
             <X size={18} />
           </button>
@@ -131,10 +139,10 @@ const AddShowcaseSectionModal = ({ mode = "add", section = null, onClose, onSubm
                   accept="image/*,video/*"
                   multiple
                   onChange={handleFilesChange}
-                  className="w-full text-sm text-gray-600 dark:text-gray-300 file:mr-3 file:rounded-xl file:bg-emerald-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-emerald-700 hover:file:bg-emerald-100"
+                  className="w-full text-sm text-gray-600 dark:text-gray-300 file:mr-3 file:rounded-xl file:bg-emerald-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-emerald-700 hover:file:bg-emerald-100 dark:file:bg-emerald-500/15 dark:file:text-emerald-300 dark:hover:file:bg-emerald-500/25"
                 />
                 {files.length > 0 && (
-                  <p className="mt-1 text-xs text-gray-500">
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                     {files.length} file{files.length > 1 ? "s" : ""} selected
                   </p>
                 )}
@@ -153,26 +161,32 @@ const AddShowcaseSectionModal = ({ mode = "add", section = null, onClose, onSubm
                 </label>
               </div>
 
-              {/* Only relevant once this batch is marked for video clips —
-                  a custom poster image for however that surface displays
-                  the clip, instead of an arbitrary auto-picked video frame.
+              {/* Required when the batch has a video, optional for an
+                  image-only batch marked for video clips — a custom poster
+                  image instead of an arbitrary auto-picked video frame.
                   ⚠️ NOT CONFIRMED from Postman: no thumbnail field is
                   documented on add-media yet, so this is sent as a
                   best-effort "thumbnail" form field — verify the real
                   request/response once tested. */}
-              {isShowInVideoClips && (
+              {showThumbnailField && (
                 <div>
                   <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
-                    Thumbnail for clips (optional)
+                    {hasVideo ? (
+                      <>
+                        Video thumbnail <span className="text-rose-500">(required)</span>
+                      </>
+                    ) : (
+                      "Thumbnail for clips (optional)"
+                    )}
                   </label>
                   <input
                     type="file"
                     accept="image/*"
                     onChange={handleThumbnailChange}
-                    className="w-full text-sm text-gray-600 dark:text-gray-300 file:mr-3 file:rounded-xl file:bg-emerald-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-emerald-700 hover:file:bg-emerald-100"
+                    className="w-full text-sm text-gray-600 dark:text-gray-300 file:mr-3 file:rounded-xl file:bg-emerald-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-emerald-700 hover:file:bg-emerald-100 dark:file:bg-emerald-500/15 dark:file:text-emerald-300 dark:hover:file:bg-emerald-500/25"
                   />
                   {thumbnail && (
-                    <p className="mt-1 text-xs text-gray-500">{thumbnail.name}</p>
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{thumbnail.name}</p>
                   )}
                 </div>
               )}
@@ -187,13 +201,15 @@ const AddShowcaseSectionModal = ({ mode = "add", section = null, onClose, onSubm
             >
               Cancel
             </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-bold text-white shadow-sm shadow-emerald-100 transition-all duration-200 hover:bg-emerald-600 active:scale-[0.97] disabled:bg-gray-100 disabled:text-gray-300 disabled:shadow-none disabled:cursor-not-allowed disabled:active:scale-100"
-            >
-              {submitting ? (isEdit ? "Updating…" : "Adding…") : isEdit ? "Update Section" : "Add Section"}
-            </button>
+            <DisabledHint show={needsThumbnail && !submitting} message="Choose a thumbnail for the video">
+              <button
+                type="submit"
+                disabled={submitting || needsThumbnail}
+                className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-bold text-white shadow-sm shadow-emerald-100 transition-all duration-200 hover:bg-emerald-600 active:scale-[0.97] disabled:pointer-events-none disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:text-gray-300 disabled:shadow-none disabled:active:scale-100"
+              >
+                {submitting ? (isEdit ? "Updating…" : "Adding…") : isEdit ? "Update Section" : "Add Section"}
+              </button>
+            </DisabledHint>
           </div>
         </form>
       </div>

@@ -79,7 +79,7 @@ function MobileSidebarDrawer({ open, onClose, children }) {
           <button
             onClick={onClose}
             className="w-9 h-9 flex items-center justify-center rounded-xl
-              bg-white dark:bg-gray-800 shadow-md text-gray-500 hover:text-red-500 transition-colors cursor-pointer"
+              bg-white dark:bg-gray-800 shadow-md text-gray-500 dark:text-gray-400 hover:text-red-500 transition-colors cursor-pointer"
             aria-label="Close menu"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none"

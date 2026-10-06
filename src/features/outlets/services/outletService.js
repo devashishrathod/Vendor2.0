@@ -154,16 +154,3 @@ export async function fetchOutletById(id) {
   if (!outlet) throw new Error("Outlet not found");
   return outlet;
 }
-
-// Mock per-outlet transaction summary, keyed by transaction type. Replace with
-// a real endpoint (e.g. GET /outlets/:id/transactions) when wiring this up.
-export async function fetchOutletTransactions(id) {
-  await delay(300);
-  return {
-    overall: { amount: 7256.0, deltaPercent: 14.33 },
-    voucher: { amount: 3120.0, deltaPercent: 8.5 },
-    deal_pack: { amount: 1890.0, deltaPercent: -2.1 },
-    membership: { amount: 1646.0, deltaPercent: 5.7 },
-    gst: { amount: 600.0, deltaPercent: 0 },
-  };
-}

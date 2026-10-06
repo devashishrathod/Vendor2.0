@@ -243,7 +243,7 @@ export default function OrderDetail() {
 
   return (
     <div className="min-h-screen bg-[#F8FAF7] dark:bg-gray-900 font-sans">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-4">
+      <div className="max-w-7xl mx-auto px-4 py-8 space-y-4">
         {/* Header card: back, title, status badges, actions */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl flex flex-wrap items-center gap-4 px-5 sm:px-6 py-5">
           <button

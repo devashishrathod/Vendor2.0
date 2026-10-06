@@ -6,11 +6,13 @@ import { Trash2, Plus, ListOrdered, GripVertical, X } from "lucide-react";
 import ShowcaseMediaRow from "./ShowcaseMediaRow";
 import { noDragRef } from "../utils/BrandHelpers";
 import ConfirmModal from "@/components/common/ConfirmModal";
+import DisabledHint from "@/components/common/DisabledHint";
 
 // Confirms the just-picked files before they upload — lets the vendor mark
-// this batch for video clips and, only then, attach a custom thumbnail for
-// however that surface displays them (an arbitrary auto-picked video frame
-// otherwise). ⚠️ NOT CONFIRMED from Postman: only isShowInVideoClips +
+// this batch for video clips and attach a thumbnail. A thumbnail is
+// REQUIRED whenever the batch contains a video (Upload stays disabled, with
+// a hint, until one is picked); for an image-only batch marked for clips it
+// stays optional. ⚠️ NOT CONFIRMED from Postman: only isShowInVideoClips +
 // files are documented on add-media — thumbnail is sent as a best-effort
 // "thumbnail" form field (see addShowcaseMedia's comment).
 function UploadMediaModal({ files, onClose, onConfirm }) {
@@ -18,10 +20,15 @@ function UploadMediaModal({ files, onClose, onConfirm }) {
   const [thumbnail, setThumbnail] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
+  const hasVideo = files.some((f) => f.type?.startsWith("video/"));
+  const showThumbnailField = hasVideo || isShowInVideoClips;
+  const needsThumbnail = hasVideo && !thumbnail;
+
   const handleConfirm = async () => {
+    if (needsThumbnail) return;
     setSubmitting(true);
     try {
-      await onConfirm({ isShowInVideoClips, thumbnail: isShowInVideoClips ? thumbnail : null });
+      await onConfirm({ isShowInVideoClips, thumbnail: showThumbnailField ? thumbnail : null });
       onClose();
     } finally {
       setSubmitting(false);
@@ -36,12 +43,12 @@ function UploadMediaModal({ files, onClose, onConfirm }) {
       >
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">Add Media</h3>
-          <button type="button" onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-600">
+          <button type="button" onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
             <X size={18} />
           </button>
         </div>
 
-        <p className="mb-4 text-xs text-gray-500">
+        <p className="mb-4 text-xs text-gray-500 dark:text-gray-400">
           {files.length} file{files.length > 1 ? "s" : ""} ready to upload.
         </p>
 
@@ -58,16 +65,24 @@ function UploadMediaModal({ files, onClose, onConfirm }) {
           </label>
         </div>
 
-        {isShowInVideoClips && (
+        {showThumbnailField && (
           <div className="mt-4">
-            <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">Thumbnail for clips (optional)</label>
+            <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
+              {hasVideo ? (
+                <>
+                  Video thumbnail <span className="text-rose-500">(required)</span>
+                </>
+              ) : (
+                "Thumbnail for clips (optional)"
+              )}
+            </label>
             <input
               type="file"
               accept="image/*"
               onChange={(e) => setThumbnail(e.target.files?.[0] || null)}
-              className="w-full text-sm text-gray-600 file:mr-3 file:rounded-xl file:bg-emerald-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-emerald-700 hover:file:bg-emerald-100"
+              className="w-full text-sm text-gray-600 dark:text-gray-300 file:mr-3 file:rounded-xl file:bg-emerald-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-emerald-700 hover:file:bg-emerald-100 dark:file:bg-emerald-500/15 dark:file:text-emerald-300 dark:hover:file:bg-emerald-500/25"
             />
-            {thumbnail && <p className="mt-1 text-xs text-gray-500">{thumbnail.name}</p>}
+            {thumbnail && <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{thumbnail.name}</p>}
           </div>
         )}
 
@@ -79,14 +94,16 @@ function UploadMediaModal({ files, onClose, onConfirm }) {
           >
             Cancel
           </button>
-          <button
-            type="button"
-            onClick={handleConfirm}
-            disabled={submitting}
-            className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-bold text-white shadow-sm shadow-emerald-100 transition-all duration-200 hover:bg-emerald-600 active:scale-[0.97] disabled:bg-gray-100 disabled:text-gray-300 disabled:shadow-none disabled:cursor-not-allowed"
-          >
-            {submitting ? "Uploading…" : "Upload"}
-          </button>
+          <DisabledHint show={needsThumbnail && !submitting} message="Choose a thumbnail for the video">
+            <button
+              type="button"
+              onClick={handleConfirm}
+              disabled={submitting || needsThumbnail}
+              className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-bold text-white shadow-sm shadow-emerald-100 transition-all duration-200 hover:bg-emerald-600 active:scale-[0.97] disabled:pointer-events-none disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:text-gray-300 disabled:shadow-none"
+            >
+              {submitting ? "Uploading…" : "Upload"}
+            </button>
+          </DisabledHint>
         </div>
       </div>
     </div>

@@ -84,7 +84,11 @@ export async function verifyOtpWhatsapp({ whatsappNumber, otp, role = 'SUB_VENDO
 
 // ── Sign Up a SubBrand (Outlet) With WhatsApp ────────────────────
 // POST {{TryDood2.0BaseUrl}}/subBrands/signUp-with-whatsapp
-// body: { brandId, isFirstOutlet?, whatsappNumber }
+// Confirmed body: { brandId, whatsappNumber, outletType: "OUTLET" | "FRANCHISE", isFirstOutlet: false }
+// Confirmed response (Outlets page → Add Outlet): { success, message: "OTP sent to subBrand whatsapp
+// number successfully.", data: { isNewOutlet, otpSent, otpError, retryAfterSeconds,
+// user: { _id, ..., subBrandId }, subBrand: { _id, outletType, storeId, ... }, usage } }
+// → the outlet id is data.subBrand._id (== data.user.subBrandId), and this call ALREADY sends the OTP.
 //
 // ⚠️ IMPORTANT — response shape has TWO different ids, don't confuse them:
 //   response.data._id         -> the SUB_VENDOR *user/login* account created
@@ -99,10 +103,10 @@ export async function verifyOtpWhatsapp({ whatsappNumber, otp, role = 'SUB_VENDO
 // Working Hours payload) will silently send the wrong id — the request
 // won't necessarily error, it'll just attach hours to nothing or to the
 // wrong record.
-export async function signUpSubBrandWithWhatsapp({ brandId, whatsappNumber, isFirstOutlet } = {}) {
+export async function signUpSubBrandWithWhatsapp({ brandId, whatsappNumber, outletType, isFirstOutlet = false } = {}) {
     try {
-        const body = { brandId, whatsappNumber };
-        if (isFirstOutlet) body.isFirstOutlet = true;
+        const body = { brandId, whatsappNumber, isFirstOutlet: !!isFirstOutlet };
+        if (outletType) body.outletType = String(outletType).toUpperCase();
         const { data } = await api.post('/subBrands/signUp-with-whatsapp', body);
         return data;
     } catch (error) {

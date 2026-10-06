@@ -15,9 +15,10 @@ const inputBase =
   "w-full rounded-xl px-4 py-2.5 text-sm text-gray-700 dark:text-gray-100 bg-emerald-50 dark:bg-emerald-500/10 outline-none transition-colors " +
   "placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-100";
 
-// Same key/loader as AddOutletModal/EditOutletModal — duplicated on
-// purpose rather than shared, to keep this modal self-contained.
-const GOOGLE_MAPS_API_KEY = "AIzaSyBmg8zWrXA_taDUSrpWRN2sbd7csdPgKLM";
+// Same loader as AddOutletModal/EditOutletModal — duplicated on purpose
+// rather than shared, to keep this modal self-contained. Key comes from
+// .env (the same one CreateBrandOutlet uses).
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
 let googleMapsLoadingPromise = null;
 function loadGoogleMapsScript() {
@@ -176,7 +177,7 @@ function LocationSearch({ location, onSelectPlace }) {
               className="w-full text-left px-4 py-3 hover:bg-emerald-50/50 transition-colors disabled:opacity-60"
             >
               <span className="block text-sm font-semibold text-gray-800 dark:text-gray-100">{place.name}</span>
-              <span className="block text-xs text-gray-500 mt-0.5">{place.formatted_address}</span>
+              <span className="block text-xs text-gray-500 dark:text-gray-400 mt-0.5">{place.formatted_address}</span>
             </button>
           ))}
         </div>
@@ -220,12 +221,12 @@ export default function EditLocationModal({ outlet, onClose, onUpdated }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-3 px-6 py-4 sticky top-0 bg-white dark:bg-gray-800 rounded-t-2xl">
-          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-sky-50">
+          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-sky-50 dark:bg-sky-500/15">
             <MapPin className="w-5 h-5 text-sky-500" />
           </div>
           <h3 className="flex-1 text-base font-bold text-gray-900 dark:text-gray-100">Edit Location</h3>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
-            <X className="w-4 h-4 text-gray-500" />
+            <X className="w-4 h-4 text-gray-500 dark:text-gray-400" />
           </button>
         </div>
 

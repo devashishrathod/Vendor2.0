@@ -175,10 +175,10 @@ function DeleteVoucherModal({ voucher, onClose, onDeleteVoucher }) {
       >
         <div className="px-6 py-5">
           <p className="text-base font-bold text-gray-900 dark:text-gray-100">Delete This Voucher?</p>
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
             You're about to permanently delete  "{voucher.name}". Once deleted, this voucher cannot be restored.
           </p>
-          <label className="mt-4 mb-1.5 block text-xs font-medium text-gray-500">Reason</label>
+          <label className="mt-4 mb-1.5 block text-xs font-medium text-gray-500 dark:text-gray-400">Reason</label>
           <textarea
             autoFocus
             value={reason}

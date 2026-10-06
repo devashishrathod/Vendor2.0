@@ -38,7 +38,7 @@ export default function Settlement() {
    <div>
 
      <div className="min-h-screen  dark:bg-gray-900 pb-16">
-      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="mb-6 text-center">
           <h1 className="text-2xl font-semibold text-slate-800 dark:text-gray-100">Settlement Dashboard</h1>
           <p className="mx-auto mt-1 max-w-xl text-sm text-slate-400">

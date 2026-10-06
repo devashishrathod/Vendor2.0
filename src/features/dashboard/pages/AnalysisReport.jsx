@@ -8,7 +8,6 @@ import {
   Image as ImageIcon,
   ChevronLeft,
   ChevronRight,
-  ChevronDown,
   CalendarDays,
   BarChart3,
   Receipt,
@@ -114,6 +113,98 @@ function buildRealSeries(range, rows) {
     if (row.raw?.status === "refunded") buckets[dayIdx].refunds += amount;
   });
   return buckets;
+}
+
+// Revenue Trend's own period filter, independent of the page-level range:
+// Daily/Yesterday plot 24 hourly bars, Weekly/Monthly one bar per day over
+// the last 7/30 days, and 3 Months one bar per week.
+const CHART_PERIOD_OPTIONS = [
+  { value: "daily", label: "Daily" },
+  { value: "yesterday", label: "Yesterday" },
+  { value: "weekly", label: "Weekly" },
+  { value: "monthly", label: "Monthly" },
+  { value: "3months", label: "3 Months" },
+];
+
+function getChartPeriodDates(key) {
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const daysBack = (n) => {
+    const d = new Date(startOfToday);
+    d.setDate(d.getDate() - n);
+    return d;
+  };
+
+  if (key === "yesterday") return { from: daysBack(1), to: daysBack(1) };
+  if (key === "weekly") return { from: daysBack(6), to: startOfToday };
+  if (key === "monthly") return { from: daysBack(29), to: startOfToday };
+  if (key === "3months") {
+    const from = new Date(startOfToday);
+    from.setMonth(from.getMonth() - 3);
+    from.setDate(from.getDate() + 1);
+    return { from, to: startOfToday };
+  }
+  // "daily" — today
+  return { from: startOfToday, to: startOfToday };
+}
+
+// 24 hourly buckets for a single day, built from the same real payment rows
+// as buildRealSeries — used by the chart's Daily/Yesterday periods.
+function buildHourlySeries(day, rows) {
+  const dayLabel = day.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+  const pad = (h) => String(h).padStart(2, "0");
+  const buckets = Array.from({ length: 24 }, (_, h) => ({
+    date: new Date(day.getFullYear(), day.getMonth(), day.getDate(), h),
+    label: `${pad(h)}:00`,
+    fullLabel: `${dayLabel}, ${pad(h)}:00 – ${pad((h + 1) % 24)}:00`,
+    revenue: 0,
+    transactions: 0,
+    refunds: 0,
+  }));
+  rows.forEach((row) => {
+    const iso = row.raw?.createdAt;
+    if (!iso) return;
+    const created = new Date(iso);
+    if (
+      created.getFullYear() !== day.getFullYear() ||
+      created.getMonth() !== day.getMonth() ||
+      created.getDate() !== day.getDate()
+    ) return;
+    const bucket = buckets[created.getHours()];
+    const amount = Number(row.raw?.amount || 0);
+    bucket.revenue += amount;
+    bucket.transactions += 1;
+    if (row.raw?.status === "refunded") bucket.refunds += amount;
+  });
+  return buckets;
+}
+
+// Rolls the per-day series up into Sunday-start weeks (same week boundary
+// getRangeDates' "This Week" uses) for the Revenue Trend's 3 Months view. The
+// first/last week are clipped to the selected range, so their labels show
+// the real days covered rather than a full calendar week.
+function groupSeriesByWeek(series) {
+  const weeks = [];
+  series.forEach((day) => {
+    const last = weeks[weeks.length - 1];
+    if (!last || day.date.getDay() === 0) {
+      weeks.push({ start: day.date, end: day.date, revenue: 0, transactions: 0, refunds: 0 });
+    }
+    const week = weeks[weeks.length - 1];
+    week.end = day.date;
+    week.revenue += day.revenue;
+    week.transactions += day.transactions;
+    week.refunds += day.refunds;
+  });
+  const fmt = (d) => d.toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
+  return weeks.map((w) => ({
+    date: w.start,
+    label: fmt(w.start),
+    fullLabel: `${fmt(w.start)} – ${fmt(w.end)} ${w.end.getFullYear()}`,
+    revenue: w.revenue,
+    transactions: w.transactions,
+    refunds: w.refunds,
+  }));
 }
 
 function summarizeVoucherDiscount(offers) {
@@ -283,6 +374,7 @@ export default function AnalysisReport() {
   const [rangeKey, setRangeKey] = useState("month");
   const [hoveredDay, setHoveredDay] = useState(null);
   const [chartMetric, setChartMetric] = useState("revenue");
+  const [chartPeriod, setChartPeriod] = useState("weekly");
   const [transactionSearch, setTransactionSearch] = useState("");
   const voucherScrollRef = useRef(null);
   const scrollVouchers = (dir) => {
@@ -421,13 +513,26 @@ export default function AnalysisReport() {
     },
   ];
 
-  // ── Revenue Trend chart data for whichever metric tab is selected ──
-  const metricSeriesValues = series.map((d) =>
+  // ── Revenue Trend chart data for whichever metric tab + chart period is
+  // selected. The chart has its own period filter, so its header total and
+  // change badge come from chartSeries, not the page-level KPIs. ──
+  const chartSeries = useMemo(() => {
+    const periodDates = getChartPeriodDates(chartPeriod);
+    const periodRows = transactionRows.filter((row) => isWithinRange(row.raw?.createdAt, periodDates));
+    if (chartPeriod === "daily" || chartPeriod === "yesterday") {
+      return buildHourlySeries(periodDates.from, periodRows);
+    }
+    const daily = buildRealSeries(periodDates, periodRows);
+    return chartPeriod === "3months" ? groupSeriesByWeek(daily) : daily;
+  }, [chartPeriod, transactionRows]);
+  const chartTotalRevenue = chartSeries.reduce((s, d) => s + d.revenue, 0);
+  const chartRevenueChange = computeChange(chartSeries, "revenue");
+  const metricSeriesValues = chartSeries.map((d) =>
     chartMetric === "transactions" ? d.transactions : chartMetric === "aov" ? (d.transactions ? d.revenue / d.transactions : 0) : d.revenue
   );
   const maxMetric = Math.max(...metricSeriesValues, 1);
   const yTicks = [maxMetric, maxMetric * 0.75, maxMetric * 0.5, maxMetric * 0.25, 0];
-  const labelStep = Math.max(1, Math.round(series.length / 6));
+  const labelStep = Math.max(1, Math.round(chartSeries.length / 6));
   const formatMetricValue = (n) =>
     chartMetric === "transactions" ? `${Math.round(n).toLocaleString("en-IN")} transactions` : formatINR(n);
 
@@ -509,7 +614,7 @@ export default function AnalysisReport() {
 
   return (
     <div className="min-h-screen dark:bg-gray-900 font-sans">
-      <div className="max-w-6xl mx-auto px-6 py-6">
+      <div className="max-w-7xl mx-auto px-4 py-8">
 
         {/* ── Heading + controls ── */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
@@ -588,28 +693,37 @@ export default function AnalysisReport() {
                     key={m.key}
                     onClick={() => setChartMetric(m.key)}
                     className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors whitespace-nowrap ${
-                      chartMetric === m.key ? "bg-emerald-500 text-white shadow-sm" : "text-gray-500 hover:text-gray-700"
+                      chartMetric === m.key
+                        ? "bg-emerald-500 text-white shadow-sm"
+                        : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-100"
                     }`}
                   >
                     {m.label}
                   </button>
                 ))}
               </div>
-              <div className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300 whitespace-nowrap">
-                Daily <ChevronDown size={13} className="text-gray-400" />
-              </div>
+              <Select
+                compact
+                value={chartPeriod}
+                onChange={(value) => {
+                  setChartPeriod(value);
+                  setHoveredDay(null);
+                }}
+                options={CHART_PERIOD_OPTIONS}
+                className="rounded-lg bg-transparent text-xs font-semibold text-gray-600 dark:text-gray-300"
+              />
             </div>
           </div>
 
           <div className="flex items-baseline gap-2 mb-4">
-            <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{formatINR(totalRevenue)}</p>
+            <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{formatINR(chartTotalRevenue)}</p>
             <span
               className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${
-                revenueChange >= 0 ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"
+                chartRevenueChange >= 0 ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"
               }`}
             >
-              {revenueChange >= 0 ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
-              {Math.abs(revenueChange).toFixed(1)}% vs prev. period
+              {chartRevenueChange >= 0 ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
+              {Math.abs(chartRevenueChange).toFixed(1)}% vs prev. period
             </span>
           </div>
 
@@ -634,11 +748,11 @@ export default function AnalysisReport() {
                 <div
                   className="absolute z-10 -translate-x-1/2 bg-white dark:bg-gray-800 rounded-lg shadow-lg px-3 py-1.5 whitespace-nowrap pointer-events-none"
                   style={{
-                    left: `${((hoveredDay + 0.5) / series.length) * 100}%`,
+                    left: `${((hoveredDay + 0.5) / chartSeries.length) * 100}%`,
                     bottom: `${Math.min(88, (metricSeriesValues[hoveredDay] / maxMetric) * 78 + 12)}%`,
                   }}
                 >
-                  <p className="text-[11px] font-semibold text-gray-800 dark:text-gray-100">{series[hoveredDay].fullLabel}</p>
+                  <p className="text-[11px] font-semibold text-gray-800 dark:text-gray-100">{chartSeries[hoveredDay].fullLabel}</p>
                   <p className="text-[11px] text-emerald-600 flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
                     {formatMetricValue(metricSeriesValues[hoveredDay])}
@@ -647,7 +761,7 @@ export default function AnalysisReport() {
               )}
 
               <div className="relative flex items-end gap-[3px] h-52 pb-5" onMouseLeave={() => setHoveredDay(null)}>
-                {series.map((d, i) => {
+                {chartSeries.map((d, i) => {
                   const isHovered = hoveredDay === i;
                   return (
                     <div
@@ -667,9 +781,9 @@ export default function AnalysisReport() {
                 })}
               </div>
 
-              <div className="grid mt-1 text-[10px] text-gray-400" style={{ gridTemplateColumns: `repeat(${series.length}, 1fr)` }}>
-                {series.map((d, i) => {
-                  const showLabel = i === 0 || i === series.length - 1 || i % labelStep === 0;
+              <div className="grid mt-1 text-[10px] text-gray-400" style={{ gridTemplateColumns: `repeat(${chartSeries.length}, 1fr)` }}>
+                {chartSeries.map((d, i) => {
+                  const showLabel = i === 0 || i === chartSeries.length - 1 || i % labelStep === 0;
                   return (
                     <span key={i} className="text-center truncate">
                       {showLabel ? d.label : ""}
