@@ -149,7 +149,7 @@ export default function SubscriptionCheckout() {
     : billing;
 
   return (
-    <div className="min-h-screen bg-[#F8FAF7] dark:bg-gray-900 p-4 md:p-8">
+    <div className="min-h-screen bg-app dark:bg-gray-900 p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
         {/* Checkout is only ever reached from the plan picker (/subscription)
             via handlePurchase — so that's always the correct one-step-back

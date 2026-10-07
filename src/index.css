@@ -8,6 +8,11 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
+  /* App's main page background (light mode) — use as `bg-app`. Was a
+     hardcoded #F8FAF7 in each page; slightly darker now so white cards
+     stand out against it. */
+  --color-app: #EEF2EC;
+
   --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   --font-display: "DM Serif Display", ui-serif, serif;
 

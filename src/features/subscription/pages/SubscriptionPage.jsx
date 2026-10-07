@@ -47,7 +47,7 @@ export default function SubscriptionPage() {
   if (!subscription) return null;
 
   return (
-    <div className="min-h-screen bg-[#F8FAF7] dark:bg-gray-900 font-sans">
+    <div className="min-h-screen bg-app dark:bg-gray-900 font-sans">
       <div className="max-w-7xl mx-auto px-4 py-8 space-y-4">
         <PageHeader planTypeLabel={subscription.planTypeLabel} />
 

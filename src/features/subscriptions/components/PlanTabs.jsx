@@ -108,7 +108,7 @@ export default function PlanTabs({ plans = [], selected, onChange, loading = fal
     <div
       ref={containerRef}
       // ⚠️ FIXED: `bg-gray-50` (#F9FAFB) was almost the exact same color as
-      // this page's own background (`#F8FAF7`, set in SubscriptionPlan.jsx)
+      // this page's own background (`bg-app`, set in SubscriptionPlan.jsx)
       // — a ~1-unit-per-channel difference, invisible in light mode. Only
       // dark mode had real contrast (`bg-gray-700` against `bg-gray-900`).
       // `bg-gray-200` gives light mode a visibly distinct track again

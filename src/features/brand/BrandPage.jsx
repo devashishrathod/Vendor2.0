@@ -88,7 +88,7 @@ const BrandPage = ({ brandId: brandIdProp }) => {
   // ── No brandId at all — user isn't linked to a brand yet ──
   if (!brandId) {
     return (
-      <div className="min-h-screen bg-[#F8FAF7] dark:bg-gray-900 px-4 py-8">
+      <div className="min-h-screen bg-app dark:bg-gray-900 px-4 py-8">
         <div className="mx-auto max-w-7xl">
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6">
             <p className="text-sm text-gray-500">
@@ -103,7 +103,7 @@ const BrandPage = ({ brandId: brandIdProp }) => {
   // ── Fetching brand data ──
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F8FAF7] dark:bg-gray-900 px-4 py-8">
+      <div className="min-h-screen bg-app dark:bg-gray-900 px-4 py-8">
         <div className="mx-auto max-w-7xl">
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6">
             <p className="text-sm text-gray-400">Loading brand details…</p>
@@ -137,7 +137,7 @@ const BrandPage = ({ brandId: brandIdProp }) => {
   // ── No data returned (shouldn't normally happen if brandId is valid) ──
   if (!brand) {
     return (
-      <div className="min-h-screen bg-[#F8FAF7] dark:bg-gray-900 px-4 py-8">
+      <div className="min-h-screen bg-app dark:bg-gray-900 px-4 py-8">
         <div className="mx-auto max-w-7xl">
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6">
             <p className="text-sm text-gray-500">No brand data found.</p>
@@ -150,7 +150,7 @@ const BrandPage = ({ brandId: brandIdProp }) => {
   // ── Real data loaded successfully ──
   return (
     <div>
-      <div className="min-h-screen bg-[#F8FAF7] dark:bg-gray-900 px-4 py-8">
+      <div className="min-h-screen bg-app dark:bg-gray-900 px-4 py-8">
         <div className="mx-auto max-w-7xl">
           <BrandHeader
             brandName={brand.brandName}

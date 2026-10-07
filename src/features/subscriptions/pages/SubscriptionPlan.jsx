@@ -259,7 +259,7 @@ export default function SubscriptionPlan({
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAF7] dark:bg-gray-900 relative overflow-hidden">
+    <div className="min-h-screen bg-app dark:bg-gray-900 relative overflow-hidden">
       <style>{`
         .sp-bubble {
           position: absolute;

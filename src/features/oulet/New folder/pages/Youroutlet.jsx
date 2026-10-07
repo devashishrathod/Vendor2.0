@@ -709,7 +709,7 @@ export default function UnderReview() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F8FAF7] dark:bg-gray-900">
+      <div className="min-h-screen flex items-center justify-center bg-app dark:bg-gray-900">
         <p className="text-sm text-gray-400">Loading review status…</p>
       </div>
     );

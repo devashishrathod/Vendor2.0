@@ -7,7 +7,7 @@ export default function MusicPage() {
   const activePlaylist = SPOTIFY_PLAYLISTS.find(({ id }) => id === activePlaylistId) || SPOTIFY_PLAYLISTS[0];
 
   return (
-    <div className="min-h-screen bg-[#F8FAF7] pb-28 dark:bg-gray-900">
+    <div className="min-h-screen bg-app pb-28 dark:bg-gray-900">
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="relative mb-7 overflow-hidden rounded-3xl bg-gradient-to-br from-[#10291f] via-[#174a35] to-[#2b7450] px-6 py-7 shadow-lg sm:px-8 sm:py-8">
           <div className="absolute -right-8 -top-12 h-40 w-40 rounded-full border-[18px] border-white/10" />

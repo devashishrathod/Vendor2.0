@@ -21,7 +21,7 @@ export default function CollectionPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F8FAF7] dark:bg-gray-900 pb-28">
+      <div className="min-h-screen bg-app dark:bg-gray-900 pb-28">
         <div className="max-w-7xl mx-auto px-4 py-10">
           <div className="h-40 rounded-2xl bg-gray-100 dark:bg-gray-700 animate-pulse" />
         </div>
@@ -31,7 +31,7 @@ export default function CollectionPage() {
 
   if (!collection) {
     return (
-      <div className="min-h-screen bg-[#F8FAF7] dark:bg-gray-900 pb-28">
+      <div className="min-h-screen bg-app dark:bg-gray-900 pb-28">
         <div className="max-w-7xl mx-auto px-4 py-10">
           <button
             type="button"

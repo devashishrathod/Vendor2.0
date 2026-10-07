@@ -195,7 +195,7 @@ export default function OnboardingLayout({
           </div>
         </header>
 
-        <div className="flex-1 flex flex-col min-h-0 py-2 px-4 sm:py-3 sm:px-6 lg:px-8 bg-[#F8FAF7] dark:bg-gray-900 overflow-y-auto">
+        <div className="flex-1 flex flex-col min-h-0 py-2 px-4 sm:py-3 sm:px-6 lg:px-8 bg-app dark:bg-gray-900 overflow-y-auto">
           {/* The PAN/GST/Bank read-only review cards (Step6PANEnter through
               Step14PartnerContract) are much shorter than the earlier
               multi-field forms, so on a tall viewport they used to sit

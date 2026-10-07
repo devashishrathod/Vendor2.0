@@ -15,7 +15,7 @@ export default function DashboardLayout() {
         <div className="min-h-screen flex flex-col">
             <DashboardHeader activeTab={activeTab} setActiveTab={setActiveTab} />
 
-            <main className="flex-1 bg-[#F8FAF7] dark:bg-gray-900">
+            <main className="flex-1 bg-app dark:bg-gray-900">
                 <Outlet context={{ player }} />
             </main>
 

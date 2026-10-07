@@ -215,7 +215,7 @@ export default function OrderDetail() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F8FAF7] dark:bg-gray-900 font-sans">
+      <div className="min-h-screen bg-app dark:bg-gray-900 font-sans">
         <div className="max-w-3xl mx-auto px-6 py-16 text-center">
           <p className="text-gray-400 text-sm">Loading order details…</p>
         </div>
@@ -225,7 +225,7 @@ export default function OrderDetail() {
 
   if (!result || notFound) {
     return (
-      <div className="min-h-screen bg-[#F8FAF7] dark:bg-gray-900 font-sans">
+      <div className="min-h-screen bg-app dark:bg-gray-900 font-sans">
         <div className="max-w-3xl mx-auto px-6 py-16 text-center">
           <p className="text-gray-500 mb-4">Order #{orderId} not found.</p>
           <button
@@ -242,7 +242,7 @@ export default function OrderDetail() {
   const { order, typeConfig } = result;
 
   return (
-    <div className="min-h-screen bg-[#F8FAF7] dark:bg-gray-900 font-sans">
+    <div className="min-h-screen bg-app dark:bg-gray-900 font-sans">
       <div className="max-w-7xl mx-auto px-4 py-8 space-y-4">
         {/* Header card: back, title, status badges, actions */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl flex flex-wrap items-center gap-4 px-5 sm:px-6 py-5">

@@ -731,7 +731,7 @@ export default function CreateBrandOutlet() {
   const subCategoryName = subCategories.find((s) => s._id === brandSubType)?.name || "";
 
   return (
-    <div className="min-h-screen bg-[#F8FAF7] dark:bg-gray-900 font-sans">
+    <div className="min-h-screen bg-app dark:bg-gray-900 font-sans">
       {/* Toasts */}
       <ErrorToast error={toastError} onDismiss={() => setToastError(null)} />
       <SuccessToast message={toastSuccess} onDismiss={() => setToastSuccess("")} />
