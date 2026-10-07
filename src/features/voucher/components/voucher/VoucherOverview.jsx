@@ -13,7 +13,9 @@ const formatCurrency = (value) =>
 // Same card style as the Transactions page's "Transaction Overview" card
 // (SummaryCards.jsx) — icon + label header, one large bold value, note
 // line, optional "Amount breakup" link or "No. of. Count" line.
-function StatCard({ icon, label, value, note, showBreakup, count, valueClassName = "", isLast }) {
+// `showBreakup` is still passed by callers but unused while the "Amount
+// breakup" link below is commented out — add it back here with the link.
+function StatCard({ icon, label, value, note, count, valueClassName = "", isLast }) {
   return (
     <div className={`flex-1 px-6 py-4 ${!isLast ? "" : ""}`}>
       <div className="flex items-center gap-2 text-gray-400">
@@ -22,11 +24,13 @@ function StatCard({ icon, label, value, note, showBreakup, count, valueClassName
       </div>
       <p className={`mt-2 text-2xl font-semibold text-gray-800 dark:text-gray-100 ${valueClassName}`}>{value}</p>
       <p className="mt-1 text-xs text-gray-400">{note}</p>
+      {/* "Amount breakup" link hidden for now — it has no breakup view to open yet.
       {showBreakup && (
         <button className="mt-1 text-xs font-medium text-emerald-600 underline underline-offset-2 hover:text-emerald-700">
           Amount breakup
         </button>
       )}
+      */}
       {typeof count === "number" && (
         <p className="mt-1 text-xs text-gray-400">No. of. Count : {count}</p>
       )}

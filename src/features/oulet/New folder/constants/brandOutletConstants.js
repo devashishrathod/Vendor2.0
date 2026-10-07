@@ -40,7 +40,7 @@ export const SHOWCASE_MONTHS = [
   "Jan", "Feb", "Mar", "Apr", "May", "Jun",
   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 ];
-export const QUICK_ALBUM_PRESETS = ["Gallery Photo", "Menu Photo", "Ambience Photo", "Event Photo", ];
+export const QUICK_ALBUM_PRESETS = ["Gallery ", "Menu ", "Ambience ", "Event ", ];
 
 // Vibe Clip albums used to be video-only — now they accept photos & videos
 // like every other album, so this always returns false. Kept as a function

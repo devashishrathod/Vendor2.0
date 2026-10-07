@@ -12,7 +12,9 @@ import {
 const currency = (n) =>
   `₹${Number(n || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
 
-function StatCard({ icon, label, amount, note, showBreakup, count, isLast }) {
+// `showBreakup` is still passed by callers but unused while the "Amount
+// breakup" link below is commented out — add it back here with the link.
+function StatCard({ icon, label, amount, note, count, isLast }) {
   return (
     <div className={`flex-1 px-6 py-4 ${!isLast ? "" : ""}`}>
       <div className="flex items-center gap-2 text-slate-400">
@@ -21,11 +23,13 @@ function StatCard({ icon, label, amount, note, showBreakup, count, isLast }) {
       </div>
       <p className="mt-2 text-2xl font-semibold text-slate-800 dark:text-gray-100">{currency(amount)}</p>
       <p className="mt-1 text-xs text-slate-400">{note}</p>
+      {/* "Amount breakup" link hidden for now — it has no breakup view to open yet.
       {showBreakup && (
         <button className="mt-1 text-xs font-medium text-emerald-600 underline underline-offset-2 hover:text-emerald-700">
           Amount breakup
         </button>
       )}
+      */}
       {typeof count === "number" && (
         <p className="mt-1 text-xs text-slate-400">No. of. Count : {count}</p>
       )}
