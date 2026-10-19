@@ -75,9 +75,10 @@ export default function PlanTabs({ plans = [], selected, onChange, loading = fal
     const btn = btnRefs.current[id];
     const container = containerRef.current;
     if (!btn || !container) return;
-    const cRect = container.getBoundingClientRect();
-    const bRect = btn.getBoundingClientRect();
-    setPill({ left: bRect.left - cRect.left, width: bRect.width, ready: true });
+    // offsetLeft/offsetWidth are layout (CSS) px relative to the `relative`
+    // container, so the pill stays aligned under the app-wide CSS zoom —
+    // getBoundingClientRect() would return zoomed on-screen px instead.
+    setPill({ left: btn.offsetLeft, width: btn.offsetWidth, ready: true });
   };
 
   useEffect(() => {

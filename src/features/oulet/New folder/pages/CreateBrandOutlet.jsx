@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import TrydoodIcon from "@/assets/Icon.png";
 import { useBrand } from "../../../../hooks/useBrand";
-import { useLogout } from "@/hooks/useLogout";
-import ThemeToggleButton from "@/components/common/ThemeToggleButton";
+import AppBackground from "@/components/common/AppBackground";
+import AppTopBar from "@/components/common/AppTopBar";
+import { ANALYTICS_EVENTS } from "@/constants/analytics";
+import { trackEvent } from "@/utils/analytics";
 import ErrorToast from "../../../../components/common/ErrorToast";
 import SuccessToast from "../../../../components/common/SuccessToast";
 import Select from "../../../../components/common/Select";
@@ -50,7 +51,6 @@ const OUTLET_DRAFT_STORAGE_PREFIX = "trydood:create-brand-outlet-draft:";
 export default function CreateBrandOutlet() {
   const { brand, loading } = useBrand();
   const navigate = useNavigate();
-  const { handleLogout } = useLogout();
 
   // ── Brand form state ──
   const [brandName, setBrandName] = useState("");
@@ -129,6 +129,10 @@ export default function CreateBrandOutlet() {
   // Bumped to force the Step 1 "Advanced Details" accordion open when
   // Review's showcase-albums warning links back to it.
   const [advancedOpenSignal, setAdvancedOpenSignal] = useState(0);
+  // Vendor chose "Skip for now" on Advanced Details — Listing Features and
+  // Showcase stop gating Continue / Create Outlet (they can be added later
+  // from Account Information).
+  const [advancedSkipped, setAdvancedSkipped] = useState(false);
 
   // Guards the one-time mount prefill effect so it can't double-fire (e.g.
   // React StrictMode double-invoke in dev) or fight with in-progress user
@@ -697,6 +701,7 @@ export default function CreateBrandOutlet() {
       await finalizeOutlet(subBrandId, subBrandPatch, brand._id, brandPayload, logoFile);
       if (outletDraftKey) sessionStorage.removeItem(outletDraftKey);
       setDraftReady(false);
+      trackEvent(ANALYTICS_EVENTS.OUTLET_CREATED, { outlet_type: subBrandPatch.outletType });
       showSuccess("Outlet saved! Redirecting…");
       navigate("/under-review");
     } catch (err) {
@@ -713,7 +718,27 @@ export default function CreateBrandOutlet() {
   // the vendor could ignore.
   const showcaseAlbumsMeetMinimum = showcaseAlbums.every((a) => a.media.length >= MIN_ITEMS_PER_ALBUM);
 
-  const canFinalSave = whatsappVerified && !!subBrandId && !!savedLocationId && workingHoursSaved && showcaseAlbumsMeetMinimum;
+  // Advanced Details are required, not optional: at least 1 saved listing
+  // feature and at least 1 saved showcase album with MIN_ITEMS_PER_ALBUM+
+  // uploaded items. Only server-persisted items count, so an in-flight or
+  // failed upload can't satisfy the gate. Gates both Step 1's Continue and
+  // the final save (a restored draft could otherwise land past Step 1).
+  const hasListingFeature = listingFeatures.some((f) => f.persisted);
+  const hasShowcaseAlbum = showcaseAlbums.some(
+    (a) => a.persisted && a.media.filter((m) => m.persisted).length >= MIN_ITEMS_PER_ALBUM
+  );
+  const advancedDetailsComplete = hasListingFeature && hasShowcaseAlbum && showcaseAlbumsMeetMinimum;
+  const advancedDetailsOk = advancedDetailsComplete || advancedSkipped;
+
+  // Hours default to every day closed, and saving that still flips
+  // workingHoursSaved — so also require at least one open day with both
+  // times set, otherwise an outlet "open 0 days a week" could get through.
+  const hasOpenDay = Object.values(workingHours || {}).some(
+    (d) => d?.isOpen && d.start && d.end && d.start !== d.end
+  );
+
+  const canFinalSave =
+    whatsappVerified && !!subBrandId && !!savedLocationId && workingHoursSaved && hasOpenDay && advancedDetailsOk;
 
   // ── Wizard step gates (UI-only — purely control when "Continue"/"Review
   // Outlet" become clickable; canFinalSave above, and everything it's built
@@ -724,14 +749,25 @@ export default function CreateBrandOutlet() {
   const subCategorySatisfied =
     !!brandSubType ||
     (!!brandType && !subCategoriesLoading && (!!subCategoriesError || subCategories.length === 0));
-  const canContinueStep1 = !!brandEmail.trim() && !!effectiveMobile.trim() && !!brandType && subCategorySatisfied;
-  const canContinueStep2 = whatsappVerified && !!savedLocationId && workingHoursSaved;
+  const canContinueStep1 =
+    !!brandEmail.trim() && !!effectiveMobile.trim() && !!brandType && subCategorySatisfied && advancedDetailsOk;
+  // Step 2 → Review: verified outlet WhatsApp (which also creates the
+  // subBrand), a saved location, at least one open day, and saved hours —
+  // and no location/hours save still in flight.
+  const step2Missing = [
+    !(whatsappVerified && subBrandId) && "Verify the outlet WhatsApp number",
+    (!savedLocationId || locationSaving) && "Select and save the outlet location",
+    !hasOpenDay && "Open at least 1 day with start and end time",
+    (!workingHoursSaved || workingHoursSaving) && "Save working hours",
+  ].filter(Boolean);
+  const canContinueStep2 = step2Missing.length === 0;
 
   const categoryName = categories.find((c) => c._id === brandType)?.name || "";
   const subCategoryName = subCategories.find((s) => s._id === brandSubType)?.name || "";
 
   return (
-    <div className="min-h-screen bg-app dark:bg-gray-900 font-sans">
+    <div className="app-shell-bg relative isolate min-h-screen font-sans">
+      <AppBackground />
       {/* Toasts */}
       <ErrorToast error={toastError} onDismiss={() => setToastError(null)} />
       <SuccessToast message={toastSuccess} onDismiss={() => setToastSuccess("")} />
@@ -761,34 +797,11 @@ export default function CreateBrandOutlet() {
         </div>
       )}
 
-      {/* Navbar */}
-      <nav className="bg-white dark:bg-gray-800 px-6 h-14 flex items-center justify-between sticky top-0 z-10">
-        {/* Same icon + wordmark lockup as the onboarding sidebar
-            (Sidebar.jsx) — kept identical rather than this page's own
-            previous logo treatment. */}
-        <div className="flex items-center gap-2">
-          <img src={TrydoodIcon} alt="" className="w-8 h-8 rounded-lg object-contain flex-shrink-0" />
-          <span className="text-lg font-extrabold tracking-tight text-gray-900 dark:text-gray-100">Trydood</span>
-        </div>
-
-        <div className="absolute top-4 right-5 z-20 flex items-center gap-2">
-          <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-xs font-semibold text-gray-600 dark:text-gray-300 whitespace-nowrap">
-            Merchant Token: <span className="text-gray-900 dark:text-gray-100">{merchantToken}</span>
-          </span>
-          <ThemeToggleButton />
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-red-500 transition-colors duration-150 px-3 py-1.5 rounded-lg hover:bg-red-50"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-              <polyline points="16 17 21 12 16 7" />
-              <line x1="21" y1="12" x2="9" y2="12" />
-            </svg>
-            Logout
-          </button>
-        </div>
-      </nav>
+      <AppTopBar>
+        <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-xs font-semibold text-gray-600 dark:text-gray-300 whitespace-nowrap">
+          Merchant Token: <span className="text-gray-900 dark:text-gray-100">{merchantToken}</span>
+        </span>
+      </AppTopBar>
 
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="flex items-center gap-3 mb-6">
@@ -955,15 +968,23 @@ export default function CreateBrandOutlet() {
 
               <AccordionFieldCard
                 title="Advanced Details"
-                subtitle="Listing Features & Showcase Collection — optional, add anytime"
-                defaultOpen={false}
+                subtitle={`Listing Features & Showcase Collection — add at least 1 feature and 1 album with ${MIN_ITEMS_PER_ALBUM}+ photos/videos, or skip for now`}
+                defaultOpen={!advancedDetailsOk}
                 openSignal={advancedOpenSignal}
                 badge={
-                  !showcaseAlbumsMeetMinimum && showcaseAlbums.length > 0 ? (
-                    <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 rounded-full px-2 py-0.5">
-                      Needs attention
+                  advancedDetailsComplete ? (
+                    <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 rounded-full px-2 py-0.5">
+                      Complete
                     </span>
-                  ) : null
+                  ) : advancedSkipped ? (
+                    <span className="text-[10px] font-bold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-full px-2 py-0.5">
+                      Skipped
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 rounded-full px-2 py-0.5">
+                      Required
+                    </span>
+                  )
                 }
               >
                 <SectionCard>
@@ -988,7 +1009,50 @@ export default function CreateBrandOutlet() {
               </AccordionFieldCard>
             </div>
 
-            <div className="flex justify-end mt-2">
+            <div className="flex items-center justify-end gap-4 mt-2">
+              {!advancedDetailsComplete && !advancedSkipped && (
+                <p className="text-xs text-amber-700 dark:text-amber-400 text-right">
+                  {[
+                    !hasListingFeature && "Add at least 1 listing feature",
+                    !(hasShowcaseAlbum && showcaseAlbumsMeetMinimum) &&
+                      `Add a showcase album with ${MIN_ITEMS_PER_ALBUM}+ photos/videos`,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                  {" · "}
+                  <button
+                    type="button"
+                    onClick={() => setAdvancedOpenSignal((n) => n + 1)}
+                    className="font-semibold underline hover:text-amber-800 dark:hover:text-amber-300"
+                  >
+                    Open Advanced Details
+                  </button>
+                </p>
+              )}
+              {!advancedDetailsComplete && !advancedSkipped && (
+                <button
+                  type="button"
+                  onClick={() => setAdvancedSkipped(true)}
+                  className="shrink-0 px-5 py-2.5 rounded-xl text-sm font-semibold border border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700 transition-colors"
+                >
+                  Skip for now
+                </button>
+              )}
+              {!advancedDetailsComplete && advancedSkipped && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 text-right">
+                  Advanced Details skipped — you can add them later from Account Information.{" "}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAdvancedSkipped(false);
+                      setAdvancedOpenSignal((n) => n + 1);
+                    }}
+                    className="font-semibold text-emerald-600 underline hover:text-emerald-700 dark:text-emerald-400"
+                  >
+                    Undo
+                  </button>
+                </p>
+              )}
               <button
                 type="button"
                 onClick={() => setWizardStep(2)}
@@ -1239,6 +1303,12 @@ export default function CreateBrandOutlet() {
               >
                 ← Back
               </button>
+              <div className="flex items-center gap-4">
+                {!canContinueStep2 && (
+                  <p className="text-xs text-amber-700 dark:text-amber-400 text-right">
+                    {step2Missing.join(" · ")}
+                  </p>
+                )}
               <button
                 type="button"
                 onClick={() => setWizardStep(3)}
@@ -1247,6 +1317,7 @@ export default function CreateBrandOutlet() {
               >
                 Review Outlet →
               </button>
+              </div>
             </div>
           </>
         )}
@@ -1265,6 +1336,9 @@ export default function CreateBrandOutlet() {
             workingHours={workingHours}
             showcaseAlbums={showcaseAlbums}
             minItemsPerAlbum={MIN_ITEMS_PER_ALBUM}
+            hasListingFeature={hasListingFeature}
+            hasShowcaseAlbum={hasShowcaseAlbum}
+            advancedSkipped={advancedSkipped && !advancedDetailsComplete}
             canFinalSave={canFinalSave}
             saving={saving}
             onEditStep1={() => setWizardStep(1)}

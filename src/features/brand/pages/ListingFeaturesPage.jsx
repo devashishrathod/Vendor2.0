@@ -45,7 +45,11 @@ const ListingFeaturesPage = ({ brandId }) => {
   };
 
   if (loading) {
-    return <p className="text-sm text-gray-400">Loading listing features…</p>;
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6">
+        <p className="text-sm text-gray-400">Loading listing features…</p>
+      </div>
+    );
   }
 
   const listingFeatures = {

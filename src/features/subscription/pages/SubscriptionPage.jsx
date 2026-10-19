@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useSubscription } from '../hooks/useSubscription';
 import PageHeader from '../components/PageHeader';
 import PlanStatusBanner from '../components/PlanStatusBanner';
@@ -8,6 +8,7 @@ import BillingInfo from '../components/BillingInfo';
 import PlanBenefits from '../components/PlanBenefits';
 import UpgradeBanner from '../components/UpgradeBanner';
 import PlanBenefitsModal from '../components/PlanBenefitsModal';
+import RefundRequestModal from '../components/RefundRequestModal';
 // Still needed — InvoiceModal/InvoiceHistoryModal/PlanBenefitsModal
 // (rendered by the components above and below) use these classes; only
 // the static sections were converted to Tailwind.
@@ -19,6 +20,9 @@ export default function SubscriptionPage() {
   // Lifted up so both PlanStatusBanner's "View Plan Details" and
   // PlanBenefits' "View All Benefits" open the exact same modal instance.
   const [benefitsModalOpen, setBenefitsModalOpen] = useState(false);
+  const [refundModalOpen, setRefundModalOpen] = useState(false);
+  const openRefund = useCallback(() => setRefundModalOpen(true), []);
+  const closeRefund = useCallback(() => setRefundModalOpen(false), []);
 
   if (isLoading) {
     return (
@@ -55,6 +59,7 @@ export default function SubscriptionPage() {
           subscription={subscription}
           onUpgrade={goToPlans}
           onViewDetails={() => setBenefitsModalOpen(true)}
+          onRequestRefund={openRefund}
         />
 
         <SubscriptionInfo subscription={subscription} />
@@ -73,6 +78,10 @@ export default function SubscriptionPage() {
         benefits={subscription.benefits}
         usage={subscription.usage}
       />
+
+      {refundModalOpen && (
+        <RefundRequestModal subscription={subscription} onClose={closeRefund} onRefunded={refetch} />
+      )}
     </div>
   );
 }

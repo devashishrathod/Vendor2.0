@@ -92,7 +92,7 @@ const ACCENTS = {
 function SectionCard({ icon, title, subtitle, accent = "emerald", action, children, className }) {
   const color = ACCENTS[accent];
   return (
-    <div className={cx("bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-5 sm:p-6 flex flex-col", className)}>
+    <div className={cx("rounded-3xl border border-emerald-100/80 bg-white p-5 sm:p-6 flex flex-col shadow-[0_10px_30px_rgba(4,120,87,0.06)] dark:border-white/5 dark:bg-gray-800 dark:shadow-none", className)}>
       <div className="flex flex-wrap items-start justify-between gap-3 mb-1">
         <div className="flex items-center gap-3">
           <div className={cx("flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl", color.bg, color.text)}>
@@ -143,29 +143,53 @@ function formatTime12h(hhmm) {
   return `${String(hour12).padStart(2, "0")}:${String(m).padStart(2, "0")} ${period}`;
 }
 
-function WorkHoursRow({ label, day, isToday }) {
+// One day on the shop-timings board.
+function DayTile({ label, day, isToday }) {
   const isOpen = !!day?.isOpen;
   return (
     <div
       className={cx(
-        "flex items-center justify-between gap-4 px-3 py-2.5 rounded-lg",
-        isToday ? "bg-emerald-50 dark:bg-emerald-500/10" : ""
+        "relative flex flex-col gap-1.5 rounded-2xl border px-3.5 py-3 transition-colors",
+        isToday
+          ? "border-emerald-300 bg-emerald-50 shadow-[0_6px_18px_rgba(4,120,87,0.12)] dark:border-emerald-500/40 dark:bg-emerald-500/10"
+          : isOpen
+            ? "border-emerald-100 bg-white dark:border-white/10 dark:bg-gray-900/40"
+            : "border-dashed border-gray-200 bg-gray-50/70 dark:border-white/10 dark:bg-gray-900/20"
       )}
     >
-      <span className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-        <span className={cx("w-1.5 h-1.5 rounded-full shrink-0", isOpen ? "bg-emerald-500" : "bg-gray-300 dark:bg-gray-600")} />
-        {label}
+      <span className="flex items-center justify-between gap-2">
+        <span className={cx("text-xs font-bold uppercase tracking-wide", isToday ? "text-emerald-700 dark:text-emerald-400" : "text-gray-500 dark:text-gray-400")}>
+          {label.slice(0, 3)}
+        </span>
         {isToday && (
-          <span className="text-[10px] font-bold uppercase tracking-wide text-emerald-600 bg-emerald-100 dark:text-emerald-300 dark:bg-emerald-500/20 rounded-full px-1.5 py-0.5">
-            Today
-          </span>
+          <span className="rounded-full bg-emerald-600 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">Today</span>
         )}
       </span>
-      <span className={cx("text-sm font-semibold", isOpen ? "text-gray-800 dark:text-gray-100" : "text-gray-400")}>
-        {isOpen ? `${formatTime12h(day?.start)} – ${formatTime12h(day?.end)}` : "Closed"}
-      </span>
+      {isOpen ? (
+        <span className="text-[13px] font-semibold leading-tight text-gray-900 dark:text-gray-100">
+          {formatTime12h(day?.start)}
+          <span className="block text-[11px] font-medium text-gray-500 dark:text-gray-400">to {formatTime12h(day?.end)}</span>
+        </span>
+      ) : (
+        <span className="text-[13px] font-semibold text-gray-400 dark:text-gray-500">Closed</span>
+      )}
     </div>
   );
+}
+
+// Is the outlet open right now, from today's saved hours? (handles a
+// closing time past midnight, e.g. 18:00 – 02:00).
+function isOpenNow(day) {
+  if (!day?.isOpen || !day.start || !day.end) return false;
+  const now = new Date();
+  const mins = now.getHours() * 60 + now.getMinutes();
+  const toMins = (t) => {
+    const [h, m] = t.split(":").map(Number);
+    return h * 60 + m;
+  };
+  const start = toMins(day.start);
+  const end = toMins(day.end);
+  return end > start ? mins >= start && mins < end : mins >= start || mins < end;
 }
 
 export default function OutletDetailsInfo({ outlet, brand, onEdit, onEditLocation }) {
@@ -173,6 +197,7 @@ export default function OutletDetailsInfo({ outlet, brand, onEdit, onEditLocatio
   const location = doc?.location;
   const workHours = doc?.workHours;
   const todayKey = JS_DAY_KEYS[new Date().getDay()];
+  const openNow = isOpenNow(workHours?.[todayKey]);
   const [lng, lat] = location?.geo?.coordinates || [];
   const hasCoords = typeof lat === "number" && typeof lng === "number";
   const isFranchise = outlet?.outletType === OUTLET_TYPES.FRANCHISE;
@@ -245,7 +270,15 @@ export default function OutletDetailsInfo({ outlet, brand, onEdit, onEditLocatio
       >
         {location ? (
           <>
-            <InfoRow icon={MapPin} label="Address" value={formatAddress(location)} valueClassName="capitalize" />
+            <div className="map-grid-bg mt-2 flex items-start gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/30 px-4 py-3.5 dark:border-white/10 dark:bg-gray-900/40">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-700 text-white shadow-[0_0_0_6px_rgba(4,120,87,0.12)] dark:bg-emerald-600">
+                <MapPin className="h-4 w-4" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold tracking-[0.12em] text-gray-500 dark:text-gray-400">ADDRESS</p>
+                <p className="mt-0.5 text-sm font-medium capitalize leading-snug text-gray-800 dark:text-gray-200">{formatAddress(location) || "—"}</p>
+              </div>
+            </div>
             <InfoRow icon={Building2} label="City / State" value={[location.city, location.state].filter(Boolean).join(", ")} valueClassName="capitalize" />
             <InfoRow icon={Hash} label="Pincode" value={location.zipcode} />
 
@@ -284,11 +317,26 @@ export default function OutletDetailsInfo({ outlet, brand, onEdit, onEditLocatio
         title="Working Hours"
         subtitle="Open/close time for each day of the week."
         className="lg:col-span-2"
+        action={
+          workHours && (
+            <span
+              className={cx(
+                "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold",
+                openNow
+                  ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400"
+                  : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"
+              )}
+            >
+              <span className={cx("h-2 w-2 rounded-full", openNow ? "animate-pulse bg-emerald-500" : "bg-gray-400")} />
+              {openNow ? "Open now" : "Closed now"}
+            </span>
+          )
+        }
       >
         {workHours ? (
-          <div className="divide-y divide-gray-50 dark:divide-gray-700">
+          <div className="mt-2 grid grid-cols-2 gap-2.5 sm:grid-cols-4 lg:grid-cols-7">
             {WEEK_DAYS.map(({ key, label }) => (
-              <WorkHoursRow key={key} label={label} day={workHours[key]} isToday={key === todayKey} />
+              <DayTile key={key} label={label} day={workHours[key]} isToday={key === todayKey} />
             ))}
           </div>
         ) : (

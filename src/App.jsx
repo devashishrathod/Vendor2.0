@@ -24,6 +24,7 @@ import { OutletDetailsPage, OutletsPage } from './features/outlets';
 import MusicLayout from './features/music/pages/MusicLayout';
 import MusicPage from './features/music/pages/MusicPage';
 import CollectionPage from './features/music/pages/CollectionPage';
+import PlaylistPage from './features/music/pages/PlaylistPage';
 import { SubscriptionPage } from './features/subscription';
 import SettingsPage from './features/settings/pages/SettingsPage';
 import BrandPage from './features/brand';
@@ -31,6 +32,7 @@ import CreateBrandOutlet from './features/oulet/New folder/pages/CreateBrandOutl
 import UnderReview from './features/oulet/New folder/pages/Youroutlet';
 import PostAuthRouteGuard from './routes/PostAuthRouteGuard';
 import OnboardingOnlyRoute from './routes/OnboardingOnlyRoute';
+import AnalyticsRouteTracker from './routes/AnalyticsRouteTracker';
 
 
 function App() {
@@ -89,6 +91,7 @@ function App() {
 
   return (
     <BrowserRouter>
+    <AnalyticsRouteTracker />
     <PushNotificationToast toast={pushToast} onDismiss={() => setPushToast(null)} />
      <PostAuthRouteGuard>   {/* ✅ yahan wrap karo — Routes ke bahar, Router ke andar */}
       <Routes>
@@ -139,6 +142,7 @@ function App() {
           <Route path="/music" element={<MusicLayout />}>
             <Route index element={<MusicPage />} />
             <Route path="collection/:collectionId" element={<CollectionPage />} />
+            <Route path="playlist/:playlistId" element={<PlaylistPage />} />
           </Route>
 
           {/* Subscription Page */}

@@ -29,7 +29,7 @@ export function validateShortName(short) {
   if (!short?.trim()) return "Brand name is required";
   const s = short.trim();
   if (s.length < 2) return "Brand name must be at least 2 characters";
-  if (s.length > 15) return "Brand name must be 15 characters or less";
+  if (s.length > 25) return "Brand name must be 25 characters or less";
   if (!/^[A-Za-z0-9 &.'-]+$/.test(s))
     return "Only letters, numbers, spaces, &, ., ' and - allowed";
   if (!/[A-Za-z]/.test(s))
@@ -44,8 +44,6 @@ export function validatePAN(pan) {
   if (normalizedPAN.length !== 10) return "PAN must be exactly 10 characters";
   if (!/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(normalizedPAN))
     return "Please enter a valid PAN number (e.g. ABCDE1234F)";
-  if (normalizedPAN[3] === "P")
-    return "The provided PAN appears to be an Individual PAN. Please enter a valid Business PAN associated with your registered entity.";
   return null;
 }
 
@@ -56,10 +54,6 @@ export const PAN_RULES = [
     test: (v) => /^[A-Z]{5}[0-9]{4}[A-Z]$/.test(v.toUpperCase()),
   },
   { label: "No special characters", test: (v) => /^[A-Z0-9]+$/i.test(v) },
-  {
-    label: "Must be a Business PAN",
-    test: (v) => v.length >= 4 && v[3] !== "P",
-  },
 ];
 
 // Step 8 — GST

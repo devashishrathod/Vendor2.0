@@ -12,13 +12,25 @@ import {
   ShieldCheck,
   Headset,
   ChevronRight,
+  Send,
+  ScanSearch,
+  UserCheck,
+  Rocket,
+  AlertTriangle,
+  Hourglass,
+  RefreshCw,
+  Store,
+  Clock3,
+  FileText,
+  CreditCard,
 } from "lucide-react";
-import TrydoodIcon from "@/assets/Icon.png";
+import AppBackground from "@/components/common/AppBackground";
+import AppTopBar from "@/components/common/AppTopBar";
 import ErrorToast from "@/components/common/ErrorToast";
 import Select from "../../../../components/common/Select";
 import SuccessToast from "@/components/common/SuccessToast";
-import ThemeToggleButton from "@/components/common/ThemeToggleButton";
-import { useLogout } from "@/hooks/useLogout";
+import { ANALYTICS_EVENTS } from "@/constants/analytics";
+import { trackEvent } from "@/utils/analytics";
 
 // "SYSTEM_VERIFIED" → "System Verified", "REJECTED" → "Rejected" — used
 // for every raw SCREAMING_SNAKE_CASE enum the verification-history API
@@ -30,6 +42,17 @@ function prettifyStatus(value) {
     .replace(/_/g, " ")
     .toLowerCase()
     .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+// While a listing is in review, re-check its status this often so approval
+// shows up without the vendor pressing "Recheck status".
+const STATUS_POLL_MS = 30000;
+const STATUS_POLL_LABEL = "every 30 sec";
+
+// Status History wording for the vendor: a rejection reads as "Action
+// needed" (same as the hero badge), never "Rejected".
+function vendorStatusLabel(value) {
+  return value === "REJECTED" ? "Action needed" : prettifyStatus(value);
 }
 
 // Scattered, gently-twinkling sparkles/confetti for the "approved" hero
@@ -195,7 +218,7 @@ function useSubmitAction(submitFn) {
 
 function FieldCard({ title, children }) {
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-3">
+    <div className="mb-3 rounded-2xl bg-white/80 p-4 dark:bg-gray-800/60">
       <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">{title}</p>
       {children}
     </div>
@@ -221,7 +244,7 @@ function AccordionFieldCard({ title, summary, defaultOpen = false, collapseSigna
     // radius — but it also clipped a nested <Select>'s dropdown (the
     // Business Type field below) the moment it opened wider than this
     // card's own current bounds.
-    <div className="bg-white dark:bg-gray-800 rounded-xl mb-3">
+    <div className="mb-3 rounded-3xl border border-white/80 bg-white/70 shadow-[0_8px_30px_rgba(16,185,129,0.07)] backdrop-blur-xl dark:border-white/5 dark:bg-gray-900/60">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
@@ -385,7 +408,6 @@ function VerifiedDetailCard({ rows, onChangeDetails, onSave, saving, saveError }
 
 export default function UnderReview() {
   const navigate = useNavigate();
-  const { handleLogout } = useLogout();
   const { formData } = useOnboardingStore();
 
   // ⚠️ brandId abhi formData se maan liya hai — agar authStore me alag
@@ -513,6 +535,25 @@ export default function UnderReview() {
   const isRejected = reviewStatus === "REJECTED" || !!brand?.isRevoked;
   const isPending = !isApproved && !isRejected;
 
+  // Auto-check while in review: polls brand + history silently, skips while
+  // the tab is hidden, and checks right away when the vendor comes back to
+  // the tab. Not run while rejected — a refresh there could overwrite the
+  // correction forms the vendor is filling in.
+  useEffect(() => {
+    if (!isPending || loading) return undefined;
+    const check = () => {
+      if (document.visibilityState !== "visible") return;
+      fetchBrand({ silent: true });
+      fetchStatus({ silent: true });
+    };
+    const timer = setInterval(check, STATUS_POLL_MS);
+    document.addEventListener("visibilitychange", check);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", check);
+    };
+  }, [isPending, loading, fetchBrand, fetchStatus]);
+
   // ── Approve → acknowledge → go to dashboard. Only ever called once
   // isApproved is true (the button only renders in that state). ──────
   const [acknowledging, setAcknowledging] = useState(false);
@@ -522,6 +563,8 @@ export default function UnderReview() {
     setAckError("");
     try {
       await acknowledgeApproval();
+      // Funnel end: approved vendor reaches the dashboard for the first time.
+      trackEvent(ANALYTICS_EVENTS.ONBOARDING_COMPLETE);
       navigate("/analysis-report", { replace: true });
     } catch (err) {
       setAckError(err.message || "Couldn't confirm approval. Please try again.");
@@ -707,198 +750,135 @@ export default function UnderReview() {
     }
   };
 
+  // Status History rows — the original submission, then every verification
+  // action oldest-first. Colour/status come from `newStatus` (the actual
+  // resulting state), not `action` (just the kind of action — e.g.
+  // "SYSTEM_VERIFIED" can itself result in newStatus "REJECTED").
+  const timelineItems = [
+    {
+      id: "submitted",
+      dotColor: "bg-gray-300",
+      ringColor: "ring-gray-100 dark:ring-gray-700",
+      title: "Submitted for review",
+      date: formattedDate,
+    },
+    ...[...sortedHistory].reverse().map((entry) => {
+      const status = entry.newStatus || entry.action;
+      const dotColor =
+        status === "REJECTED" ? "bg-rose-500" : status === "APPROVED" ? "bg-emerald-500" : "bg-amber-400";
+      const ringColor =
+        status === "REJECTED"
+          ? "ring-rose-100 dark:ring-rose-500/20"
+          : status === "APPROVED"
+          ? "ring-emerald-100 dark:ring-emerald-500/20"
+          : "ring-amber-100 dark:ring-amber-500/20";
+      const badgeClass =
+        status === "REJECTED"
+          ? "bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400"
+          : status === "APPROVED"
+          ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"
+          : "bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400";
+      return {
+        id: entry._id,
+        dotColor,
+        ringColor,
+        actionLabel: prettifyStatus(entry.action) || "Status updated",
+        attemptNumber: entry.attemptNumber,
+        performedByType: entry.performedByType,
+        statusLabel: vendorStatusLabel(status),
+        badgeClass,
+        transition:
+          entry.previousStatus && entry.newStatus
+            ? `${vendorStatusLabel(entry.previousStatus)} → ${vendorStatusLabel(entry.newStatus)}`
+            : null,
+        // "Business name mismatch (78.00%) | Bank holder name mismatch (22%)"
+        // → one bullet per reason instead of a single run-on line.
+        reasons: entry.reason ? entry.reason.split("|").map((r) => r.trim()).filter(Boolean) : [],
+        date: entry.createdAt
+          ? new Date(entry.createdAt).toLocaleString("en-IN", {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            })
+          : "—",
+      };
+    }),
+  ];
+
+  // Progress tracker for the status card: Submitted → System check →
+  // Admin review → Live.
+  const systemChecked = verificationHistory.some((e) => String(e.action || "").includes("SYSTEM"));
+  const trackerSteps = [
+    { key: "submitted", label: "Submitted", icon: Send, state: "done" },
+    { key: "system", label: "System check", icon: ScanSearch, state: systemChecked ? "done" : "current" },
+    {
+      key: "admin",
+      label: isRejected ? "Needs correction" : "Admin review",
+      icon: isRejected ? AlertTriangle : UserCheck,
+      state: isRejected ? "error" : systemChecked ? "current" : "todo",
+    },
+    { key: "live", label: "Live", icon: Rocket, state: "todo" },
+  ];
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-app dark:bg-gray-900">
-        <p className="text-sm text-gray-400">Loading review status…</p>
+      <div className="min-h-screen flex items-center justify-center gap-2 bg-gradient-to-br from-[#E9F8EF] via-[#F5FBF7] to-[#E3F5F1] dark:from-gray-950 dark:via-gray-950 dark:to-[#06231b]">
+        <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
+        <p className="text-sm text-gray-500">Loading review status…</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen  dark:bg-gray-900 font-sans">
-      {/* ── Navbar ── */}
-      <nav className="bg-white dark:bg-gray-800 px-6 h-14 flex items-center justify-between sticky top-0 z-10">
-        {/* Same icon + wordmark lockup as the onboarding sidebar
-            (Sidebar.jsx) — kept identical rather than this page's own
-            previous logo treatment. */}
-        <div className="flex items-center gap-2">
-          <img src={TrydoodIcon} alt="" className="w-8 h-8 rounded-lg object-contain flex-shrink-0" />
-          <span className="text-lg font-extrabold tracking-tight text-gray-900 dark:text-gray-100">Trydood</span>
-        </div>
+    // Soft green gradient + blurred glows (same look as the admin panel).
+    <div className="app-shell-bg relative isolate min-h-screen overflow-x-clip font-sans">
+      <AppBackground />
 
-        <div className="flex items-center gap-2">
-          <ThemeToggleButton />
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-red-500 transition-colors duration-150 px-3 py-1.5 rounded-lg hover:bg-red-50"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-              <polyline points="16 17 21 12 16 7" />
-              <line x1="21" y1="12" x2="9" y2="12" />
-            </svg>
-            Logout
-          </button>
-        </div>
-      </nav>
+      <AppTopBar />
 
       {/* ── Content ── */}
-      <div className="max-w-4xl mx-auto px-6 py-8">
-        <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">Your Outlet</h1>
-        <p className="text-xs mb-6 flex items-center gap-1.5">
-          <span className="font-semibold text-emerald-600">Overview</span>
-          <ChevronRight className="w-3 h-3 text-gray-300" />
-          <span className="text-gray-400">Showcase your listing outlet</span>
-        </p>
+      <div className="relative mx-auto max-w-5xl px-4 py-4 sm:px-6">
+        <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="mb-1 flex items-center gap-1.5 text-xs">
+              <span className="font-semibold text-emerald-600">Overview</span>
+              <ChevronRight className="h-3 w-3 text-gray-300" />
+              <span className="text-gray-400">Showcase your listing outlet</span>
+            </p>
+            <h1 className="text-xl font-bold tracking-tight text-gray-900 sm:text-2xl dark:text-gray-100">
+              Your <span className="text-emerald-600">Outlet</span>
+            </h1>
+          </div>
+          {!isApproved && (
+            <div className="flex items-center gap-2">
+            {isPending && (
+              <span className="flex items-center gap-1.5 text-[11px] text-gray-500 dark:text-gray-400">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
+                Auto-checking {STATUS_POLL_LABEL}
+              </span>
+            )}
+            <button
+              onClick={handleRecheck}
+              disabled={refreshing}
+              className="flex w-fit items-center gap-1.5 rounded-full border border-white/80 bg-white/70 px-4 py-2 text-xs font-semibold text-emerald-700 shadow-sm backdrop-blur-xl transition-all hover:bg-white active:scale-[0.97] disabled:opacity-60 dark:border-white/5 dark:bg-gray-900/60 dark:text-emerald-400"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
+              {refreshing ? "Checking…" : "Recheck status"}
+            </button>
+            </div>
+          )}
+        </div>
 
         {error && (
-          <div className="bg-red-50 rounded-xl px-4 py-3 mb-5 text-xs text-red-600">
+          <div className="mb-5 rounded-2xl border border-red-200/70 bg-red-50/90 px-4 py-3 text-xs text-red-600 backdrop-blur dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400">
             {error}
           </div>
         )}
 
-        {/* ── Status History — real timeline from GET /brands/verifications/
-            history: every submit/approve/reject action taken on this
-            brand, oldest first, plus the original submission. A single
-            connecting line runs through every dot so it reads as one
-            continuous timeline instead of a loose list. Hidden once
-            approved. */}
-        {!isApproved && (() => {
-          const timelineItems = [
-            {
-              id: "submitted",
-              dotColor: "bg-gray-300",
-              ringColor: "ring-gray-100",
-              title: "Submitted for review",
-              date: formattedDate,
-            },
-            ...[...sortedHistory].reverse().map((entry) => {
-              // ⚠️ FIXED: color/status now derive from `newStatus` (the
-              // actual resulting state), not `action` (just the kind of
-              // action taken, e.g. "SYSTEM_VERIFIED" — which can itself
-              // result in newStatus "REJECTED", as it did here).
-              const status = entry.newStatus || entry.action;
-              const dotColor =
-                status === "REJECTED" ? "bg-rose-500"
-                  : status === "APPROVED" ? "bg-emerald-500"
-                    : "bg-amber-400";
-              const ringColor =
-                status === "REJECTED" ? "ring-rose-100"
-                  : status === "APPROVED" ? "ring-emerald-100"
-                    : "ring-amber-100";
-              const badgeClass =
-                status === "REJECTED" ? "bg-rose-50 text-rose-600"
-                  : status === "APPROVED" ? "bg-emerald-50 text-emerald-600"
-                    : "bg-amber-50 text-amber-600";
-
-              return {
-                id: entry._id,
-                dotColor,
-                ringColor,
-                // "SYSTEM_VERIFIED" → "System Verified"
-                actionLabel: prettifyStatus(entry.action) || "Status updated",
-                attemptNumber: entry.attemptNumber,
-                performedByType: entry.performedByType,
-                statusLabel: prettifyStatus(status),
-                badgeClass,
-                transition: entry.previousStatus && entry.newStatus
-                  ? `${prettifyStatus(entry.previousStatus)} → ${prettifyStatus(entry.newStatus)}`
-                  : null,
-                // "Business name mismatch (78.00%) | Bank holder name
-                // mismatch (22%)" → one bullet per reason instead of a
-                // single run-on line.
-                reasons: entry.reason
-                  ? entry.reason.split("|").map((r) => r.trim()).filter(Boolean)
-                  : [],
-                date: entry.createdAt
-                  ? new Date(entry.createdAt).toLocaleString("en-IN", {
-                    day: "numeric", month: "long", year: "numeric",
-                    hour: "2-digit", minute: "2-digit",
-                  })
-                  : "—",
-              };
-            }),
-          ];
-
-          return (
-            <div className="bg-white dark:bg-gray-800 rounded-xl px-4 py-4 mb-5">
-              <p className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide mb-4">
-                Status History
-              </p>
-
-              <div className="relative">
-                <div className="absolute left-[5px] top-2 bottom-2 w-px bg-gray-200 dark:bg-gray-700" />
-                <div className="space-y-5">
-                  {timelineItems.map((item) => (
-                    <div key={item.id} className="relative flex items-start gap-3">
-                      <span
-                        className={`relative z-10 mt-1 w-2.5 h-2.5 rounded-full shrink-0 ring-4 ${item.dotColor} ${item.ringColor}`}
-                      />
-                      <div className="flex-1 min-w-0 flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          {item.title ? (
-                            <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{item.title}</p>
-                          ) : (
-                            <div className="flex flex-wrap items-center gap-1.5">
-                              <span className="text-sm font-medium text-gray-800 dark:text-gray-100">
-                                {item.actionLabel}
-                              </span>
-                              {item.statusLabel && (
-                                <span className={`text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full ${item.badgeClass}`}>
-                                  {item.statusLabel}
-                                </span>
-                              )}
-                              {item.attemptNumber && (
-                                <span className="text-[11px] text-gray-400">
-                                  · Attempt {item.attemptNumber}
-                                </span>
-                              )}
-                              {item.performedByType && (
-                                <span className="text-[11px] text-gray-400">
-                                  · {prettifyStatus(item.performedByType)}
-                                </span>
-                              )}
-                            </div>
-                          )}
-
-                          {item.transition && (
-                            <p className="text-[11px] text-gray-400 mt-0.5">{item.transition}</p>
-                          )}
-
-                          {item.reasons?.length > 0 && (
-                            <ul className="mt-1 space-y-0.5">
-                              {item.reasons.map((r, i) => (
-                                <li key={i} className="text-xs text-gray-500 flex items-start gap-1.5">
-                                  <span className="w-1 h-1 rounded-full bg-gray-300 flex-shrink-0 mt-1.5" />
-                                  {r}
-                                </li>
-                              ))}
-                            </ul>
-                          )}
-                        </div>
-                        <span className="text-[11px] text-gray-400 shrink-0 whitespace-nowrap">
-                          {item.date}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-
-                  {verifyLoading && (
-                    <div className="relative flex items-start gap-3">
-                      <span className="relative z-10 mt-1 w-2.5 h-2.5 rounded-full bg-amber-400 shrink-0 ring-4 ring-amber-100" />
-                      <p className="text-sm text-gray-500">Checking current status…</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          );
-        })()}
-
-        {/* Alert banner */}
         {isApproved ? (
-          <div className="relative overflow-hidden rounded-2xl mb-5 bg-white dark:bg-gray-800 shadow-sm px-6 py-10 sm:px-10">
+          <div className="relative mb-5 overflow-hidden rounded-3xl border border-white/80 bg-white/70 px-6 py-10 shadow-[0_8px_30px_rgba(16,185,129,0.10)] backdrop-blur-xl sm:px-10 dark:border-white/5 dark:bg-gray-900/60">
             <style>{`
               @keyframes reviewBadgePop {
                 0%   { transform: scale(0.5); opacity: 0; }
@@ -1077,60 +1057,368 @@ export default function UnderReview() {
             </div>
           </div>
         ) : (
-          <div className={`rounded-xl px-4 py-3.5 mb-5 ${
-            isRejected ? "bg-rose-50" : "bg-amber-50"
-          }`}>
-            <p className={`text-sm font-semibold mb-1 ${isRejected ? "text-rose-800" : "text-amber-800"}`}>
-              {isRejected ? "Some details need to be corrected." : "Your listing is under review."}
-            </p>
-            <p className={`text-xs leading-relaxed ${isRejected ? "text-rose-700" : "text-amber-700"}`}>
-              {isRejected
-                ? "Please fix the details below and re-verify so we can review your listing again."
-                : "Trydood will review your listing details and verify them soon. If there are any errors, your submission will be put on hold. The Trydood team will contact you shortly."}
-            </p>
-          </div>
-        )}
+          <>
+            {/* ── Animated review hero (scanner illustration + live tracker) ── */}
+            <div className="relative mb-2 px-2 py-2 sm:px-4">
+              <style>{`
+                @keyframes reviewSpin      { to { transform: rotate(360deg); } }
+                @keyframes reviewSpinBack  { to { transform: rotate(-360deg); } }
+                @keyframes reviewFlip      { 0%, 40% { transform: rotate(0deg); } 50%, 90% { transform: rotate(180deg); } 100% { transform: rotate(360deg); } }
+                @keyframes reviewFloat     { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(24px, -18px) scale(1.08); } }
+                @keyframes reviewFill      { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+                @keyframes reviewRise      { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+                @keyframes reviewShimmer   { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+                @keyframes reviewPulse     { 0% { transform: scale(0.8); opacity: 0.9; } 100% { transform: scale(1.6); opacity: 0; } }
+                @media (prefers-reduced-motion: reduce) {
+                  .review-anim, .review-anim * { animation: none !important; }
+                }
+              `}</style>
 
-        {/* Outlet card — approved case already shows this info inside the
-            celebratory hero above, so this plain card is only for
-            pending/rejected states. */}
-        {!isApproved && (
-          <div className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden">
-            <div className="flex items-center gap-4 px-5 py-4">
-              <div className="w-12 h-16 flex items-center justify-center overflow-hidden">
-                <img
-                  src={brandData.logo}
-                  alt="Trydood"
-                  className="w-12 h-16 object-contain"
-                  onError={(e) => {
-                    e.target.style.display = "none";
-                    e.target.nextSibling.style.display = "block";
-                  }}
-                />
-                <span className="text-emerald-400 text-xs font-bold hidden">T</span>
+              <div className="review-anim relative grid grid-cols-1 items-center gap-5 sm:grid-cols-[140px_1fr]">
+                {/* Scanner illustration */}
+                <div aria-hidden="true" className="relative mx-auto flex h-32 w-32 items-center justify-center">
+                  {/* Rotating dashed outer ring */}
+                  <span
+                    className={`absolute inset-0 rounded-full border-2 border-dashed ${
+                      isRejected ? "border-rose-200 dark:border-rose-500/30" : "border-emerald-200 dark:border-emerald-500/30"
+                    }`}
+                    style={{ animation: "reviewSpin 22s linear infinite" }}
+                  />
+                  {/* Radar sweep */}
+                  <span
+                    className="absolute inset-3 rounded-full"
+                    style={{
+                      background: isRejected
+                        ? "conic-gradient(from 0deg, rgba(244,63,94,0.28), transparent 32%)"
+                        : "conic-gradient(from 0deg, rgba(16,185,129,0.30), transparent 32%)",
+                      animation: isRejected ? "none" : "reviewSpin 3.2s linear infinite",
+                    }}
+                  />
+                  <span
+                    className={`absolute inset-3 rounded-full ring-1 ${
+                      isRejected ? "ring-rose-100 dark:ring-rose-500/20" : "ring-emerald-100 dark:ring-emerald-500/20"
+                    }`}
+                  />
+                  {/* Orbiting check icons (counter-rotated so they stay upright) */}
+                  {!isRejected && (
+                    <span className="absolute inset-0" style={{ animation: "reviewSpin 14s linear infinite" }}>
+                      {[
+                        { Icon: FileText, pos: "left-1/2 top-0 -translate-x-1/2 -translate-y-1/2" },
+                        { Icon: ShieldCheck, pos: "right-[6%] bottom-[14%] translate-x-1/2" },
+                        { Icon: BadgeCheck, pos: "left-[6%] bottom-[14%] -translate-x-1/2" },
+                      ].map(({ Icon, pos }) => (
+                        <span key={pos} className={`absolute ${pos}`}>
+                          <span
+                            className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-emerald-600 shadow-md ring-1 ring-emerald-100 dark:bg-gray-800 dark:text-emerald-400 dark:ring-emerald-500/20"
+                            style={{ animation: "reviewSpinBack 14s linear infinite" }}
+                          >
+                            <Icon className="h-3.5 w-3.5" />
+                          </span>
+                        </span>
+                      ))}
+                    </span>
+                  )}
+                  {/* Core badge */}
+                  <span
+                    className={`relative flex h-14 w-14 items-center justify-center rounded-full text-white shadow-lg ${
+                      isRejected
+                        ? "bg-gradient-to-br from-rose-500 to-orange-400 shadow-rose-500/30"
+                        : "bg-gradient-to-br from-emerald-500 to-teal-500 shadow-emerald-500/30"
+                    }`}
+                  >
+                    <span
+                      className={`absolute inset-0 rounded-full animate-ping ${isRejected ? "bg-rose-400/30" : "bg-emerald-400/30"}`}
+                      style={{ animationDuration: "2.4s" }}
+                    />
+                    {isRejected ? (
+                      <AlertTriangle className="relative h-6 w-6" />
+                    ) : (
+                      <Hourglass className="relative h-6 w-6" style={{ animation: "reviewFlip 4s ease-in-out infinite" }} />
+                    )}
+                  </span>
+                </div>
+
+                {/* Copy + tracker */}
+                <div className="min-w-0">
+                  <span
+                    className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11.5px] font-bold ring-1 ${
+                      isRejected
+                        ? "bg-rose-50 text-rose-700 ring-rose-100 dark:bg-rose-500/10 dark:text-rose-300 dark:ring-rose-500/20"
+                        : "bg-emerald-50 text-emerald-700 ring-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-500/20"
+                    }`}
+                    style={{ animation: "reviewRise 0.45s ease both" }}
+                  >
+                    <span className="relative flex h-2 w-2">
+                      <span className={`absolute inline-flex h-full w-full animate-ping rounded-full ${isRejected ? "bg-rose-400" : "bg-emerald-400"}`} />
+                      <span className={`relative inline-flex h-2 w-2 rounded-full ${isRejected ? "bg-rose-500" : "bg-emerald-500"}`} />
+                    </span>
+                    {isRejected ? "Action needed" : "In review"}
+                  </span>
+
+                  <h2
+                    className="mt-2 text-lg font-bold leading-snug tracking-tight text-gray-900 sm:text-xl dark:text-gray-100"
+                    style={{ animation: "reviewRise 0.45s 0.08s ease both" }}
+                  >
+                    {isRejected ? "Some details need to be corrected" : "Your listing is under review"}
+                  </h2>
+                  <p
+                    className="mt-1 max-w-xl text-[12.5px] leading-snug text-gray-500 dark:text-gray-400"
+                    style={{ animation: "reviewRise 0.45s 0.16s ease both" }}
+                  >
+                    {isRejected
+                      ? "Please fix the details below and re-verify so we can review your listing again."
+                      : "Trydood will review your listing details and verify them soon. If there are any errors, your submission will be put on hold — the Trydood team will contact you shortly."}
+                  </p>
+
+                  {/* Quick facts */}
+                  <div className="mt-2.5 flex flex-wrap gap-2" style={{ animation: "reviewRise 0.45s 0.24s ease both" }}>
+                    <span className="flex items-center gap-1.5 rounded-full bg-gray-50 px-3 py-1 text-[11.5px] font-medium text-gray-600 ring-1 ring-gray-100 dark:bg-gray-800 dark:text-gray-300 dark:ring-gray-700">
+                      <Send className="h-3.5 w-3.5 text-emerald-500" /> Submitted {formattedDate}
+                    </span>
+                    {!isRejected && (
+                      <span className="flex items-center gap-1.5 rounded-full bg-gray-50 px-3 py-1 text-[11.5px] font-medium text-gray-600 ring-1 ring-gray-100 dark:bg-gray-800 dark:text-gray-300 dark:ring-gray-700">
+                        <Clock3 className="h-3.5 w-3.5 text-emerald-500" /> Usually reviewed within 24–48 hours
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Live tracker — one connector per step, drawn from the
+                      previous step's centre to this step's centre, so the
+                      line never sticks out past the first/last circle. */}
+                  <ol className="mt-4 grid grid-cols-4" style={{ animation: "reviewRise 0.45s 0.32s ease both" }}>
+                    {trackerSteps.map((s, i) => {
+                      const Icon = s.icon;
+                      const done = s.state === "done";
+                      const current = s.state === "current";
+                      const errorState = s.state === "error";
+                      const reached = done || current || errorState;
+                      return (
+                        <li key={s.key} className="relative flex flex-col items-center text-center">
+                          {i > 0 && (
+                            <span
+                              aria-hidden="true"
+                              className={`absolute right-1/2 top-[16px] h-[3px] w-full -translate-y-1/2 overflow-hidden rounded-full ${
+                                reached ? "bg-emerald-100 dark:bg-emerald-500/20" : ""
+                              }`}
+                              style={
+                                reached
+                                  ? undefined
+                                  : { backgroundImage: "linear-gradient(90deg, #d1d5db 50%, transparent 50%)", backgroundSize: "8px 3px" }
+                              }
+                            >
+                              {reached && (
+                                <span
+                                  className={`block h-full origin-left rounded-full ${
+                                    errorState
+                                      ? "bg-gradient-to-r from-emerald-500 to-rose-500"
+                                      : current
+                                      ? "bg-[linear-gradient(90deg,#10b981,#6ee7b7,#10b981)] bg-[length:200%_100%]"
+                                      : "bg-emerald-500"
+                                  }`}
+                                  style={{
+                                    animation: `reviewFill 0.6s ${0.35 + i * 0.25}s cubic-bezier(0.22,1,0.36,1) both${
+                                      current ? ", reviewShimmer 2.2s linear 1.4s infinite" : ""
+                                    }`,
+                                  }}
+                                />
+                              )}
+                            </span>
+                          )}
+
+                          <span className="relative z-10 flex h-8 w-8 items-center justify-center">
+                            {current && (
+                              <span
+                                aria-hidden="true"
+                                className="absolute -inset-1.5 rounded-full bg-emerald-400/20"
+                                style={{ animation: "reviewPulse 2s ease-out infinite" }}
+                              />
+                            )}
+                            <span
+                              className={`relative flex h-8 w-8 items-center justify-center rounded-full transition-colors ${
+                                done
+                                  ? "bg-emerald-500 text-white shadow-[0_4px_12px_-2px_rgba(16,185,129,0.45)]"
+                                  : current
+                                  ? "bg-white text-emerald-600 shadow-sm ring-2 ring-emerald-500 dark:bg-gray-900"
+                                  : errorState
+                                  ? "bg-rose-500 text-white shadow-[0_4px_12px_-2px_rgba(244,63,94,0.45)]"
+                                  : "bg-white text-gray-300 ring-1 ring-gray-200 dark:bg-gray-900 dark:text-gray-600 dark:ring-gray-700"
+                              }`}
+                            >
+                              {done ? <Check className="h-4 w-4" strokeWidth={3} /> : <Icon className="h-4 w-4" />}
+                            </span>
+                          </span>
+
+                          <span
+                            className={`mt-1.5 text-[11.5px] font-semibold leading-tight sm:text-xs ${
+                              errorState
+                                ? "text-rose-600 dark:text-rose-400"
+                                : reached
+                                ? "text-gray-900 dark:text-gray-100"
+                                : "text-gray-400 dark:text-gray-500"
+                            }`}
+                          >
+                            {s.label}
+                          </span>
+                          {current && (
+                            <span className="mt-0.5 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 ring-1 ring-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-500/20">
+                              In progress
+                            </span>
+                          )}
+                          {done && <span className="mt-0.5 text-[10px] font-medium text-emerald-600/80 dark:text-emerald-400/80">Done</span>}
+                        </li>
+                      );
+                    })}
+                  </ol>
+                </div>
               </div>
-
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
-                  {brandData.companyName}
-                </p>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  Merchant Token: {brandData.merchantToken} &nbsp;·&nbsp; <br />
-                  Created on: {formattedDate}
-                </p>
-              </div>
-
-              <button
-                onClick={handleRecheck}
-                disabled={refreshing}
-                className="flex-shrink-0 px-4 py-2 rounded-lg bg-white dark:bg-gray-800
-                  hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs font-semibold
-                  transition-all duration-150 active:scale-[0.97] disabled:opacity-50"
-              >
-                {refreshing ? "Checking…" : "Recheck"}
-              </button>
             </div>
-          </div>
+
+            {/* ── Brand card + Status History ── */}
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+              {/* Brand */}
+              <div className="p-2 lg:col-span-2">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-100 dark:bg-gray-800 dark:ring-gray-700">
+                    {brandData.logo ? (
+                      <img src={brandData.logo} alt="" className="h-full w-full object-contain p-1.5" />
+                    ) : (
+                      <Store className="h-6 w-6 text-emerald-500" />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-600">Your brand</p>
+                    {/* Wraps to two lines instead of cutting the name off */}
+                    <p className="line-clamp-2 text-sm font-bold leading-snug text-gray-900 dark:text-gray-100" title={brandData.companyName}>
+                      {brandData.companyName}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  {[
+                    { icon: Ticket, label: "Merchant Token", value: brandData.merchantToken, mono: true },
+                    { icon: FileText, label: "GSTIN", value: brandData.gstNo, mono: true },
+                    { icon: CreditCard, label: "PAN", value: brandData.panNo, mono: true },
+                    { icon: CalendarDays, label: "Created on", value: formattedDate },
+                  ].map(({ icon: Icon, label, value, mono }) => (
+                    <div key={label} className="flex items-center gap-2 rounded-xl bg-white/70 px-2.5 py-2 dark:bg-gray-800/60">
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
+                        <Icon className="h-4 w-4" />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-[10.5px] font-semibold uppercase tracking-wider text-gray-400">{label}</p>
+                        <p className={`truncate text-xs font-semibold text-gray-800 dark:text-gray-100 ${mono ? "font-mono" : ""}`}>
+                          {value}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Status History */}
+              <div className="flex flex-col p-2 lg:col-span-3">
+                <div className="mb-3 flex items-center justify-between">
+                  <p className="flex items-center gap-1.5 text-sm font-bold text-gray-900 dark:text-gray-100">
+                    <Clock3 className="h-4 w-4 text-emerald-500" /> Status History
+                  </p>
+                  <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">
+                    {timelineItems.length} update{timelineItems.length === 1 ? "" : "s"}
+                  </span>
+                </div>
+
+                <div className="relative">
+                  <div className="absolute bottom-2 left-[5px] top-2 w-px bg-gray-200 dark:bg-gray-700" />
+                  <div className="space-y-2">
+                    {timelineItems.map((item) => (
+                      <div key={item.id} className="relative flex items-start gap-3">
+                        <span className={`relative z-10 mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ring-4 ${item.dotColor} ${item.ringColor}`} />
+                        <div className="min-w-0 flex-1 rounded-xl bg-white/70 px-3 py-2 dark:bg-gray-800/60">
+                          <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
+                            <div className="min-w-0">
+                              {item.title ? (
+                                <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{item.title}</p>
+                              ) : (
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                  <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">{item.actionLabel}</span>
+                                  {item.statusLabel && (
+                                    <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${item.badgeClass}`}>
+                                      {item.statusLabel}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                              {(item.attemptNumber || item.performedByType) && (
+                                <p className="mt-0.5 text-[11px] text-gray-400">
+                                  {item.attemptNumber && `Attempt ${item.attemptNumber}`}
+                                  {item.attemptNumber && item.performedByType && " · "}
+                                  {item.performedByType && `By ${prettifyStatus(item.performedByType)}`}
+                                </p>
+                              )}
+                            </div>
+                            <span className="shrink-0 whitespace-nowrap text-[11px] text-gray-400">{item.date}</span>
+                          </div>
+
+                          {item.transition && <p className="mt-1 text-[11px] font-medium text-gray-500">{item.transition}</p>}
+
+                          {item.reasons?.length > 0 && (
+                            <ul className="mt-1.5 space-y-0.5">
+                              {item.reasons.map((r, i) => (
+                                <li key={i} className="flex items-start gap-1.5 text-xs text-gray-500">
+                                  <span className="mt-1.5 h-1 w-1 flex-shrink-0 rounded-full bg-gray-300" />
+                                  {r}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+
+                    {verifyLoading && (
+                      <div className="relative flex items-start gap-3">
+                        <span className="relative z-10 mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-amber-400 ring-4 ring-amber-100" />
+                        <p className="text-sm text-gray-500">Checking current status…</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* What happens next — fills the card and tells the vendor what to expect */}
+                <div className="mt-auto pt-3">
+                  <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-3 dark:border-emerald-500/15 dark:bg-emerald-500/5">
+                    <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                      {isRejected ? "How to get approved" : "What happens next"}
+                    </p>
+                    <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+                      {(isRejected
+                        ? [
+                            { icon: FileText, title: "Fix the details below", desc: "Correct the business, PAN, GST or bank details that were flagged." },
+                            { icon: ShieldCheck, title: "Verify & save", desc: "Re-verify each corrected detail and save it." },
+                            { icon: Send, title: "Submit for review", desc: "Send it back — our team will review it again." },
+                          ]
+                        : [
+                            { icon: ShieldCheck, title: "Admin checks your details", desc: "Business name, PAN, GST and bank are matched." },
+                            { icon: Clock3, title: "Usually 24–48 hours", desc: "No action needed from you while we review." },
+                            { icon: Rocket, title: "You go live", desc: "Once approved, you'll land on your dashboard here." },
+                          ]
+                      ).map(({ icon: Icon, title, desc }) => (
+                        <div key={title} className="flex items-start gap-2">
+                          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white text-emerald-600 shadow-sm dark:bg-gray-800 dark:text-emerald-400">
+                            <Icon className="h-3.5 w-3.5" />
+                          </span>
+                          <div className="min-w-0">
+                            <p className="text-[12.5px] font-semibold text-gray-800 dark:text-gray-100">{title}</p>
+                            <p className="text-[11.5px] leading-snug text-gray-500">{desc}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
         )}
 
         {/* ── Rejected: Basic Details + Business Details correction
@@ -1327,10 +1615,15 @@ export default function UnderReview() {
 
         {/* ── Polling indicator — hidden once approved or rejected ── */}
         {isPending && (
-          <p className="text-center text-xs text-gray-300 mt-8 flex items-center justify-center gap-2">
-            <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-            Checking review status…
-          </p>
+          <div className="mt-8 flex justify-center">
+            <p className="flex items-center gap-2 rounded-full border border-white/80 bg-white/70 px-4 py-2 text-xs font-medium text-gray-600 shadow-sm backdrop-blur-xl dark:border-white/5 dark:bg-gray-900/60 dark:text-gray-300">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+              </span>
+              We'll update this page as soon as your review is done — tap <span className="font-semibold text-emerald-600">Recheck status</span> anytime.
+            </p>
+          </div>
         )}
       </div>
 

@@ -5,6 +5,7 @@ const STATUS_STYLES = {
   APPROVED: "bg-sky-50 text-sky-600",
   REJECTED: "bg-rose-50 text-rose-500",
   PUBLISHED: "bg-emerald-50 text-emerald-600",
+  PAUSED: "bg-orange-50 text-orange-600 dark:bg-orange-400/10 dark:text-orange-400",
   EXPIRED: "bg-rose-50 text-rose-500",
   ARCHIVED: "bg-gray-100 text-gray-400 dark:bg-gray-700",
   // Legacy display-only values (older mock data)

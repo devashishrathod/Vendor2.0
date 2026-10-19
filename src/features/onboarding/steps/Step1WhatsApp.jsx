@@ -7,6 +7,7 @@ import {
   MessageCircle,
   ShieldCheck,
 } from "lucide-react";
+import AppBackground from "@/components/common/AppBackground";
 import Image1 from "@/assets/images/Login1.png";
 import Image2 from "../../../assets/Logo1.png";
 import Step2OTP from "./Step2VerifyOTP";
@@ -50,7 +51,8 @@ export default function Step1WhatsApp() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-white dark:bg-gray-950 lg:grid lg:h-screen lg:grid-cols-2 lg:overflow-hidden">
+    <div className="app-shell-bg relative isolate min-h-screen w-full lg:grid lg:h-screen lg:grid-cols-2 lg:overflow-hidden">
+      <AppBackground />
       {/* ── Left Panel (image) ── */}
       <aside className="p-3 sm:p-4 lg:h-screen lg:p-5">
         <div className="h-56 w-full overflow-hidden rounded-3xl bg-emerald-50 dark:bg-emerald-500/10 sm:h-72 lg:h-full">
