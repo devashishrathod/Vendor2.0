@@ -11,6 +11,8 @@ import { X, Plus, Pencil } from "lucide-react";
  * upload with a live preview.
  */
 const AddListingFeatureModal = ({ mode = "add", feature = null, onClose, onSubmit }) => {
+  const MAX_TITLE_LENGTH = 20;
+  const MAX_DESCRIPTION_LENGTH = 300;
   const isEdit = mode === "edit";
   const [title, setTitle] = useState(feature?.lfName || "");
   const [description, setDescription] = useState(feature?.description || "");
@@ -81,7 +83,7 @@ const AddListingFeatureModal = ({ mode = "add", feature = null, onClose, onSubmi
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="text-gray-400 hover:text-gray-600"
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
           >
             <X size={18} />
           </button>
@@ -99,7 +101,8 @@ const AddListingFeatureModal = ({ mode = "add", feature = null, onClose, onSubmi
             <input
               type="text"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              maxLength={MAX_TITLE_LENGTH}
+              onChange={(e) => setTitle(e.target.value.slice(0, MAX_TITLE_LENGTH))}
               placeholder="e.g. Dine-In"
               className="w-full rounded-xl px-3.5 py-2.5 text-sm text-gray-700 dark:text-gray-100 outline-none transition-colors placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-100 bg-emerald-50 dark:bg-emerald-500/10"
             />
@@ -111,7 +114,8 @@ const AddListingFeatureModal = ({ mode = "add", feature = null, onClose, onSubmi
             </label>
             <textarea
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              maxLength={MAX_DESCRIPTION_LENGTH}
+              onChange={(e) => setDescription(e.target.value.slice(0, MAX_DESCRIPTION_LENGTH))}
               rows={3}
               placeholder="Short description of this feature"
               className="w-full rounded-xl px-3.5 py-2.5 text-sm text-gray-700 dark:text-gray-100 outline-none transition-colors placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-100 bg-emerald-50 dark:bg-emerald-500/10"
@@ -126,7 +130,7 @@ const AddListingFeatureModal = ({ mode = "add", feature = null, onClose, onSubmi
               type="file"
               accept="image/*,video/*"
               onChange={handleFileChange}
-              className="w-full text-sm text-gray-600 dark:text-gray-100 file:mr-3 file:rounded-xl file:bg-emerald-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-emerald-700 hover:file:bg-emerald-100"
+              className="w-full text-sm text-gray-600 dark:text-gray-100 file:mr-3 file:rounded-xl file:bg-emerald-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-emerald-700 hover:file:bg-emerald-100 dark:file:bg-emerald-500/15 dark:file:text-emerald-300 dark:hover:file:bg-emerald-500/25"
             />
             {currentPreviewUrl && (
               <div className="mt-2">

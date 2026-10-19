@@ -76,7 +76,7 @@ export default function MobileVerifyModal({ currentMobile, onClose, onVerified }
             aria-label="Close"
             className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
           >
-            <X size={16} className="text-gray-500" />
+            <X size={16} className="text-gray-500 dark:text-gray-400" />
           </button>
         </div>
 
@@ -151,7 +151,7 @@ export default function MobileVerifyModal({ currentMobile, onClose, onVerified }
               <button
                 type="button"
                 onClick={() => { setStep("mobile"); setOtp(""); setError(""); }}
-                className="mt-2 w-full text-xs font-medium text-gray-400 hover:text-gray-600"
+                className="mt-2 w-full text-xs font-medium text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
               >
                 Use a different number
               </button>

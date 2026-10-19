@@ -7,7 +7,9 @@ export default function StatusBadge({ status }) {
     <span
       className={cx(
         "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold",
-        isActive ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-500"
+        isActive
+          ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400"
+          : "bg-rose-50 text-rose-500 dark:bg-rose-500/15 dark:text-rose-400"
       )}
     >
       <span className={cx("w-1.5 h-1.5 rounded-full", isActive ? "bg-emerald-500" : "bg-rose-500")} />

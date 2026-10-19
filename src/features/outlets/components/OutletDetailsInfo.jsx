@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import StatusBadge from "./StatusBadge";
 import { OUTLET_TYPES } from "../constants/outletConstants";
-import { cx } from "../utils/outletUtils";
+import { cx, toTitleCase } from "../utils/outletUtils";
 
 // Shows everything the confirmed brands/get + subBrands/get-all responses
 // carry beyond what OutletDetailsHeader already renders — the outlet's own
@@ -35,7 +35,7 @@ function InfoRow({ icon: Icon, label, value, copyable, valueNode, valueClassName
 
   return (
     <div className="flex items-center justify-between gap-4 py-3">
-      <span className="flex items-center gap-2.5 text-sm text-gray-500 shrink-0">
+      <span className="flex items-center gap-2.5 text-sm text-gray-500 dark:text-gray-400 shrink-0">
         <Icon className="w-4 h-4 text-gray-400" />
         {label}
       </span>
@@ -86,13 +86,13 @@ function DescriptionRow({ icon: Icon, label, value }) {
 
 const ACCENTS = {
   emerald: { bg: "bg-emerald-50 dark:bg-emerald-500/10", text: "text-emerald-500 dark:text-emerald-400" },
-  sky: { bg: "bg-sky-50", text: "text-sky-500" },
+  sky: { bg: "bg-sky-50 dark:bg-sky-500/10", text: "text-sky-500 dark:text-sky-400" },
 };
 
 function SectionCard({ icon, title, subtitle, accent = "emerald", action, children, className }) {
   const color = ACCENTS[accent];
   return (
-    <div className={cx("bg-white dark:bg-gray-800 rounded-2xl p-5 sm:p-6 flex flex-col", className)}>
+    <div className={cx("rounded-3xl border border-emerald-100/80 bg-white p-5 sm:p-6 flex flex-col shadow-[0_10px_30px_rgba(4,120,87,0.06)] dark:border-white/5 dark:bg-gray-800 dark:shadow-none", className)}>
       <div className="flex flex-wrap items-start justify-between gap-3 mb-1">
         <div className="flex items-center gap-3">
           <div className={cx("flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl", color.bg, color.text)}>
@@ -143,29 +143,53 @@ function formatTime12h(hhmm) {
   return `${String(hour12).padStart(2, "0")}:${String(m).padStart(2, "0")} ${period}`;
 }
 
-function WorkHoursRow({ label, day, isToday }) {
+// One day on the shop-timings board.
+function DayTile({ label, day, isToday }) {
   const isOpen = !!day?.isOpen;
   return (
     <div
       className={cx(
-        "flex items-center justify-between gap-4 px-3 py-2.5 rounded-lg",
-        isToday ? "bg-emerald-50 dark:bg-emerald-500/10" : ""
+        "relative flex flex-col gap-1.5 rounded-2xl border px-3.5 py-3 transition-colors",
+        isToday
+          ? "border-emerald-300 bg-emerald-50 shadow-[0_6px_18px_rgba(4,120,87,0.12)] dark:border-emerald-500/40 dark:bg-emerald-500/10"
+          : isOpen
+            ? "border-emerald-100 bg-white dark:border-white/10 dark:bg-gray-900/40"
+            : "border-dashed border-gray-200 bg-gray-50/70 dark:border-white/10 dark:bg-gray-900/20"
       )}
     >
-      <span className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-        <span className={cx("w-1.5 h-1.5 rounded-full shrink-0", isOpen ? "bg-emerald-500" : "bg-gray-300")} />
-        {label}
+      <span className="flex items-center justify-between gap-2">
+        <span className={cx("text-xs font-bold uppercase tracking-wide", isToday ? "text-emerald-700 dark:text-emerald-400" : "text-gray-500 dark:text-gray-400")}>
+          {label.slice(0, 3)}
+        </span>
         {isToday && (
-          <span className="text-[10px] font-bold uppercase tracking-wide text-emerald-600 bg-emerald-100 rounded-full px-1.5 py-0.5">
-            Today
-          </span>
+          <span className="rounded-full bg-emerald-600 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">Today</span>
         )}
       </span>
-      <span className={cx("text-sm font-semibold", isOpen ? "text-gray-800 dark:text-gray-100" : "text-gray-400")}>
-        {isOpen ? `${formatTime12h(day?.start)} – ${formatTime12h(day?.end)}` : "Closed"}
-      </span>
+      {isOpen ? (
+        <span className="text-[13px] font-semibold leading-tight text-gray-900 dark:text-gray-100">
+          {formatTime12h(day?.start)}
+          <span className="block text-[11px] font-medium text-gray-500 dark:text-gray-400">to {formatTime12h(day?.end)}</span>
+        </span>
+      ) : (
+        <span className="text-[13px] font-semibold text-gray-400 dark:text-gray-500">Closed</span>
+      )}
     </div>
   );
+}
+
+// Is the outlet open right now, from today's saved hours? (handles a
+// closing time past midnight, e.g. 18:00 – 02:00).
+function isOpenNow(day) {
+  if (!day?.isOpen || !day.start || !day.end) return false;
+  const now = new Date();
+  const mins = now.getHours() * 60 + now.getMinutes();
+  const toMins = (t) => {
+    const [h, m] = t.split(":").map(Number);
+    return h * 60 + m;
+  };
+  const start = toMins(day.start);
+  const end = toMins(day.end);
+  return end > start ? mins >= start && mins < end : mins >= start || mins < end;
 }
 
 export default function OutletDetailsInfo({ outlet, brand, onEdit, onEditLocation }) {
@@ -173,9 +197,11 @@ export default function OutletDetailsInfo({ outlet, brand, onEdit, onEditLocatio
   const location = doc?.location;
   const workHours = doc?.workHours;
   const todayKey = JS_DAY_KEYS[new Date().getDay()];
+  const openNow = isOpenNow(workHours?.[todayKey]);
   const [lng, lat] = location?.geo?.coordinates || [];
   const hasCoords = typeof lat === "number" && typeof lng === "number";
   const isFranchise = outlet?.outletType === OUTLET_TYPES.FRANCHISE;
+  const brandName = toTitleCase(brand?.brandName);
   // "Business Since" — the year the outlet joined (a real, derived value,
   // not a separate field the backend tracks).
   const businessSince = outlet?.joinedDate ? new Date(outlet.joinedDate).getFullYear() : "—";
@@ -190,7 +216,7 @@ export default function OutletDetailsInfo({ outlet, brand, onEdit, onEditLocatio
         action={
           <button
             onClick={onEdit}
-            className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 rounded-lg px-3 py-1.5 hover:bg-emerald-100 transition-colors"
+            className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 rounded-lg px-3 py-1.5 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-colors"
           >
             <Pencil className="w-3.5 h-3.5" />
             Edit Details
@@ -205,21 +231,21 @@ export default function OutletDetailsInfo({ outlet, brand, onEdit, onEditLocatio
         <InfoRow icon={CalendarDays} label="Joining Date" value={outlet?.joinedDate ? new Date(outlet.joinedDate).toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" }) : "—"} />
         {/* <InfoRow icon={Clock} label="Business Since" value={businessSince} /> */}
 
-        <div className="flex flex-wrap items-center justify-between gap-3 mt-4 bg-emerald-50 rounded-xl px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 mt-4 bg-emerald-50 dark:bg-emerald-500/10 rounded-xl px-4 py-3">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-emerald-500 text-white flex items-center justify-center shrink-0">
               <Store className="w-4 h-4" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-800">{isFranchise ? "Franchise Outlet" : "Outlet"}</p>
-              <p className="text-xs text-gray-500">
+              <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{isFranchise ? "Franchise Outlet" : "Outlet"}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
                 {isFranchise
-                  ? `You are part of the ${brand?.brandName || "Trydood"} franchise network.`
-                  : `This outlet operates under ${brand?.brandName || "your brand"}.`}
+                  ? `You are part of the ${brandName || "Trydood"} franchise network.`
+                  : `This outlet operates under ${brandName || "your brand"}.`}
               </p>
             </div>
           </div>
-          <a href="mailto:support@trydood.com" className="text-xs font-semibold text-emerald-600 hover:underline whitespace-nowrap flex items-center gap-1">
+          <a href="mailto:support@trydood.com" className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline whitespace-nowrap flex items-center gap-1">
             Need help? Contact Support →
           </a>
         </div>
@@ -234,7 +260,7 @@ export default function OutletDetailsInfo({ outlet, brand, onEdit, onEditLocatio
           onEditLocation && (
             <button
               onClick={onEditLocation}
-              className="flex items-center gap-1.5 text-xs font-semibold text-sky-600 bg-sky-50 rounded-lg px-3 py-1.5 hover:bg-sky-100 transition-colors whitespace-nowrap"
+              className="flex items-center gap-1.5 text-xs font-semibold text-sky-600 bg-sky-50 dark:text-sky-400 dark:bg-sky-500/10 rounded-lg px-3 py-1.5 hover:bg-sky-100 dark:hover:bg-sky-500/20 transition-colors whitespace-nowrap"
             >
               <Pencil className="w-3.5 h-3.5" />
               Edit
@@ -244,7 +270,15 @@ export default function OutletDetailsInfo({ outlet, brand, onEdit, onEditLocatio
       >
         {location ? (
           <>
-            <InfoRow icon={MapPin} label="Address" value={formatAddress(location)} valueClassName="capitalize" />
+            <div className="map-grid-bg mt-2 flex items-start gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/30 px-4 py-3.5 dark:border-white/10 dark:bg-gray-900/40">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-700 text-white shadow-[0_0_0_6px_rgba(4,120,87,0.12)] dark:bg-emerald-600">
+                <MapPin className="h-4 w-4" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold tracking-[0.12em] text-gray-500 dark:text-gray-400">ADDRESS</p>
+                <p className="mt-0.5 text-sm font-medium capitalize leading-snug text-gray-800 dark:text-gray-200">{formatAddress(location) || "—"}</p>
+              </div>
+            </div>
             <InfoRow icon={Building2} label="City / State" value={[location.city, location.state].filter(Boolean).join(", ")} valueClassName="capitalize" />
             <InfoRow icon={Hash} label="Pincode" value={location.zipcode} />
 
@@ -255,8 +289,8 @@ export default function OutletDetailsInfo({ outlet, brand, onEdit, onEditLocatio
                     <Store className="w-3.5 h-3.5" />
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-gray-800 dark:text-gray-100 lowercase leading-none">
-                      {brand?.brandName || "Outlet"}
+                    <p className="text-xs font-bold text-gray-800 dark:text-gray-100 leading-none">
+                      {brandName || "Outlet"}
                     </p>
                     <p className="text-[11px] text-gray-400 leading-none mt-0.5">
                       {[location.city].filter(Boolean).join(", ")}
@@ -283,11 +317,26 @@ export default function OutletDetailsInfo({ outlet, brand, onEdit, onEditLocatio
         title="Working Hours"
         subtitle="Open/close time for each day of the week."
         className="lg:col-span-2"
+        action={
+          workHours && (
+            <span
+              className={cx(
+                "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold",
+                openNow
+                  ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400"
+                  : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"
+              )}
+            >
+              <span className={cx("h-2 w-2 rounded-full", openNow ? "animate-pulse bg-emerald-500" : "bg-gray-400")} />
+              {openNow ? "Open now" : "Closed now"}
+            </span>
+          )
+        }
       >
         {workHours ? (
-          <div className="divide-y divide-gray-50 dark:divide-gray-700">
+          <div className="mt-2 grid grid-cols-2 gap-2.5 sm:grid-cols-4 lg:grid-cols-7">
             {WEEK_DAYS.map(({ key, label }) => (
-              <WorkHoursRow key={key} label={label} day={workHours[key]} isToday={key === todayKey} />
+              <DayTile key={key} label={label} day={workHours[key]} isToday={key === todayKey} />
             ))}
           </div>
         ) : (

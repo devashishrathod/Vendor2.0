@@ -7,6 +7,7 @@ import {
   MessageCircle,
   ShieldCheck,
 } from "lucide-react";
+import AppBackground from "@/components/common/AppBackground";
 import Image1 from "@/assets/images/Login1.png";
 import Image2 from "../../../assets/Logo1.png";
 import Step2OTP from "./Step2VerifyOTP";
@@ -50,7 +51,8 @@ export default function Step1WhatsApp() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-white dark:bg-gray-950 lg:grid lg:h-screen lg:grid-cols-2 lg:overflow-hidden">
+    <div className="app-shell-bg relative isolate min-h-screen w-full lg:grid lg:h-screen lg:grid-cols-2 lg:overflow-hidden">
+      <AppBackground />
       {/* ── Left Panel (image) ── */}
       <aside className="p-3 sm:p-4 lg:h-screen lg:p-5">
         <div className="h-56 w-full overflow-hidden rounded-3xl bg-emerald-50 dark:bg-emerald-500/10 sm:h-72 lg:h-full">
@@ -93,10 +95,9 @@ export default function Step1WhatsApp() {
               </label>
               <div
                 className={`flex items-center overflow-hidden rounded-xl border bg-white dark:bg-gray-800 transition focus-within:ring-4
-                  ${
-                    error
-                      ? "border-red-300 focus-within:ring-red-500/10"
-                      : "border-gray-200 dark:border-gray-700 focus-within:border-emerald-400 focus-within:ring-emerald-500/15"
+                  ${error
+                    ? "border-red-300 focus-within:ring-red-500/10"
+                    : "border-gray-200 dark:border-gray-700 focus-within:border-emerald-400 focus-within:ring-emerald-500/15"
                   }`}
               >
                 <span className="flex items-center gap-1.5 self-stretch border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 px-3 text-sm font-semibold text-gray-600 dark:text-gray-300 select-none">
@@ -129,10 +130,9 @@ export default function Step1WhatsApp() {
               type="submit"
               disabled={isDisabled}
               className={`group flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-semibold tracking-wide transition duration-200 active:scale-[0.98]
-                ${
-                  isDisabled
-                    ? "cursor-not-allowed bg-emerald-500/40 text-white dark:bg-emerald-500/20 dark:text-emerald-100/60"
-                    : "bg-emerald-500 text-white shadow-lg shadow-emerald-500/25 hover:bg-emerald-600"
+                ${isDisabled
+                  ? "cursor-not-allowed bg-emerald-500/40 text-white dark:bg-emerald-500/20 dark:text-emerald-100/60"
+                  : "bg-emerald-500 text-white shadow-lg shadow-emerald-500/25 hover:bg-emerald-600"
                 }`}
             >
               {loading ? (

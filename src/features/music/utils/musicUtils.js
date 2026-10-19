@@ -37,3 +37,41 @@ export function spotifyEmbedUrl(playlistId) {
 export function spotifyPlaylistUrl(playlistId) {
   return `https://open.spotify.com/playlist/${playlistId}`;
 }
+
+/** "5:03" → 303 */
+export function durationToSeconds(duration) {
+  const [m = 0, s = 0] = String(duration).split(":").map(Number);
+  return m * 60 + s;
+}
+
+/** Total length of a track list, e.g. "27 min 4 sec". */
+export function formatTotalDuration(tracks) {
+  const total = tracks.reduce((sum, track) => sum + durationToSeconds(track.duration), 0);
+  return `${Math.floor(total / 60)} min ${total % 60} sec`;
+}
+
+/** Small label for a playlist card: its decade, else its category name. */
+export function playlistTag(playlist, tones) {
+  return playlist.era || tones[playlist.category]?.label || "";
+}
+
+/**
+ * Shape a catalog playlist into the `{ name, songs }` collection usePlayer
+ * expects. `name` is the playlist id so usePlayer can tell queues apart.
+ * @param {import("../constants/musicCatalog").CatalogPlaylist} playlist
+ */
+export function toPlayerCollection(playlist) {
+  return {
+    name: playlist.id,
+    songs: playlist.tracks.map((track, i) => ({
+      id: `${playlist.id}-${i}`,
+      title: track.title,
+      subtitle: track.artist,
+      src: track.src || null,
+      playlistId: playlist.id,
+      playlistTitle: playlist.title,
+      playlistMark: playlist.mark,
+      category: playlist.category,
+    })),
+  };
+}

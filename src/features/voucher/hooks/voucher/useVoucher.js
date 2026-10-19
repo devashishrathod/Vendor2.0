@@ -9,6 +9,8 @@ import {
   getVouchers,
   submitVoucherForReview,
   publishVoucher,
+  pauseVoucher,
+  resumeVoucher,
   deleteVoucher,
 } from "../../services/voucher/VoucherService";
 import { fetchVoucherTransactionOverview } from "../../../transaction/services/transactionService";
@@ -220,6 +222,43 @@ export default function useVoucher(brandId) {
     [loadVouchers]
   );
 
+  // Takes a PUBLISHED version off the customer feed. Takes the version's
+  // _id. Throws on failure so the pause modal can show the error inline.
+  const pause = useCallback(
+    async (versionId, reason) => {
+      setActionLoadingId(versionId);
+      setActionError(null);
+      try {
+        await pauseVoucher(versionId, reason);
+        await loadVouchers();
+      } catch (err) {
+        setActionError(err.message);
+        throw err;
+      } finally {
+        setActionLoadingId(null);
+      }
+    },
+    [loadVouchers]
+  );
+
+  // Puts a PAUSED version back live. A 409 (another version went live, or
+  // validity expired while paused) surfaces through actionError.
+  const resume = useCallback(
+    async (versionId) => {
+      setActionLoadingId(versionId);
+      setActionError(null);
+      try {
+        await resumeVoucher(versionId);
+        await loadVouchers();
+      } catch (err) {
+        setActionError(err.message);
+      } finally {
+        setActionLoadingId(null);
+      }
+    },
+    [loadVouchers]
+  );
+
   // Deletes a voucher (real DELETE /vouchers/:id, confirmed from Postman —
   // requires a `reason`). Throws on failure so the caller's own modal can
   // show the error (e.g. a real 409 when the voucher's current status
@@ -265,6 +304,8 @@ export default function useVoucher(brandId) {
     updateDateRange,
     submitForReview,
     publish,
+    pause,
+    resume,
     removeVoucher,
     refresh: loadVouchers,
   };

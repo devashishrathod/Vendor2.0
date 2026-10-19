@@ -1,222 +1,51 @@
-// Edit an EXISTING outlet — outletType/description/isActive (PUT
-// subBrands/update/:id) and, if the merchant picks a new address, its
-// location (PUT locations/update/:id). Deliberately self-contained (its
-// own small Google Places search, same pattern AddOutletModal already
-// uses) rather than reworking AddOutletModal, so the Add Outlet flow is
-// untouched.
+// Edit an EXISTING outlet — outletType/isActive (PUT subBrands/update/:id)
+// and, if the merchant picks a new address, its location (PUT
+// locations/update/:id). The location section is the same shared UI Add
+// Outlet uses (Search / Live tabs, saved locations, picked-location card);
+// unlike Add, a new pick is only staged here and saved on "Save Changes".
 import { useState } from "react";
 import { useEditOutletForm } from "../hooks/useEditOutletForm";
 import ErrorToast from "@/components/common/ErrorToast";
 import SuccessToast from "@/components/common/SuccessToast";
 import Select from "../../../components/common/Select";
-
-const inputBase =
-  "w-full rounded-xl px-4 py-2.5 text-sm text-gray-700 dark:text-gray-100 bg-emerald-50 dark:bg-emerald-500/10 outline-none transition-colors " +
-  "placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-100";
+import {
+  LiveLocationPicker,
+  LocationModeTabs,
+  MapModal,
+  OutletLocationSearch,
+  SavedLocationsList,
+} from "./location/OutletLocationPicker";
 
 const OUTLET_TYPE_OPTIONS = [
   { value: "outlet", label: "Outlet" },
   { value: "franchise", label: "Franchise" },
 ];
 
-// Same key/loader as AddOutletModal — duplicated on purpose rather than
-// shared, to avoid touching that file at all.
-const GOOGLE_MAPS_API_KEY = "AIzaSyBmg8zWrXA_taDUSrpWRN2sbd7csdPgKLM";
-
-let googleMapsLoadingPromise = null;
-function loadGoogleMapsScript() {
-  if (window.google?.maps?.places) return Promise.resolve(window.google);
-  if (googleMapsLoadingPromise) return googleMapsLoadingPromise;
-
-  googleMapsLoadingPromise = new Promise((resolve, reject) => {
-    const script = document.createElement("script");
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`;
-    script.async = true;
-    script.defer = true;
-    script.onload = () => resolve(window.google);
-    script.onerror = () => reject(new Error("Failed to load Google Maps script"));
-    document.head.appendChild(script);
-  });
-
-  return googleMapsLoadingPromise;
-}
-
-function textSearchPlaces(query) {
-  return loadGoogleMapsScript().then(
-    (google) =>
-      new Promise((resolve, reject) => {
-        const service = new google.maps.places.PlacesService(document.createElement("div"));
-        service.textSearch({ query }, (results, status) => {
-          if (status === google.maps.places.PlacesServiceStatus.OK && results) {
-            resolve(results);
-          } else if (status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
-            resolve([]);
-          } else {
-            reject(new Error(`Places search failed: ${status}`));
-          }
-        });
-      })
-  );
-}
-
-function getPlaceDetails(placeId) {
-  return loadGoogleMapsScript().then(
-    (google) =>
-      new Promise((resolve, reject) => {
-        const service = new google.maps.places.PlacesService(document.createElement("div"));
-        service.getDetails(
-          { placeId, fields: ["name", "formatted_address", "geometry", "address_components"] },
-          (place, status) => {
-            if (status === google.maps.places.PlacesServiceStatus.OK && place) {
-              resolve(place);
-            } else {
-              reject(new Error(`Place details fetch failed: ${status}`));
-            }
-          }
-        );
-      })
-  );
-}
-
-// ─── Change Location — Google Places text search + pick ────────────────
-function LocationEditor({ location, onSelectPlace }) {
-  const [query, setQuery] = useState("");
-  const [results, setResults] = useState([]);
-  const [searching, setSearching] = useState(false);
-  const [detailsLoading, setDetailsLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [hasSearched, setHasSearched] = useState(false);
-
-  const runSearch = async () => {
-    const trimmed = query.trim();
-    if (!trimmed) return;
-    setSearching(true);
-    setError("");
-    setHasSearched(true);
-    try {
-      const places = await textSearchPlaces(trimmed);
-      setResults(places);
-    } catch {
-      setError("Couldn't fetch results. Check your connection and try again.");
-      setResults([]);
-    } finally {
-      setSearching(false);
-    }
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      runSearch();
-    }
-  };
-
-  const pickPlace = async (place) => {
-    if (!place.place_id) return;
-    setDetailsLoading(true);
-    setError("");
-    try {
-      const details = await getPlaceDetails(place.place_id);
-      const loc = details.geometry?.location;
-      if (!loc) {
-        setError("This place has no location data. Try another result.");
-        return;
-      }
-      onSelectPlace({
-        name: details.name,
-        address: details.formatted_address,
-        lat: typeof loc.lat === "function" ? loc.lat() : loc.lat,
-        lng: typeof loc.lng === "function" ? loc.lng() : loc.lng,
-        addressComponents: details.address_components || [],
-        source: "search",
-      });
-      setResults([]);
-      setQuery("");
-      setHasSearched(false);
-    } catch {
-      setError("Couldn't fetch details for that place. Try again.");
-    } finally {
-      setDetailsLoading(false);
-    }
-  };
-
-  return (
-    <div className="rounded-2xl bg-white dark:bg-gray-800 p-4 shadow-sm">
-      <div className="flex gap-2 mb-3">
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Search a new address to replace the current one"
-          className={inputBase}
-        />
-        <button
-          type="button"
-          onClick={runSearch}
-          disabled={searching || !query.trim()}
-          className={`shrink-0 px-5 py-2.5 rounded-xl text-sm font-bold transition-colors ${
-            searching || !query.trim()
-              ? "bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed"
-              : "bg-emerald-500 text-white hover:bg-emerald-600"
-          }`}
-        >
-          {searching ? "Searching…" : "Search"}
-        </button>
-      </div>
-
-      {error && <p className="text-xs text-rose-500 mb-3">{error}</p>}
-
-      {results.length > 0 && (
-        <div className="mb-4 max-h-56 overflow-y-auto rounded-xl divide-y divide-gray-100 dark:divide-gray-700">
-          {results.map((place) => (
-            <button
-              key={place.place_id}
-              type="button"
-              onClick={() => pickPlace(place)}
-              disabled={detailsLoading}
-              className="w-full text-left px-4 py-3 hover:bg-emerald-50/50 transition-colors disabled:opacity-60"
-            >
-              <span className="block text-sm font-semibold text-gray-800 dark:text-gray-100">{place.name}</span>
-              <span className="block text-xs text-gray-500 mt-0.5">{place.formatted_address}</span>
-            </button>
-          ))}
-        </div>
-      )}
-
-      {detailsLoading && <p className="text-xs text-gray-400 mb-3">Fetching place details…</p>}
-
-      {hasSearched && !searching && results.length === 0 && !error && (
-        <p className="text-xs text-gray-400 mb-3">No matches found. Try a different search term.</p>
-      )}
-
-      <div className="bg-gray-50/60 dark:bg-gray-700 rounded-xl p-4">
-        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">
-          {location?.source === "existing" ? "Current Location" : "New Location"}
-        </p>
-        {location ? (
-          <>
-            <p className="text-sm font-bold text-gray-900 dark:text-gray-100">{location.name}</p>
-            <p className="text-sm text-gray-600 dark:text-gray-300 mt-0.5">{location.address}</p>
-          </>
-        ) : (
-          <p className="text-xs text-gray-400">No location saved for this outlet yet.</p>
-        )}
-      </div>
-    </div>
-  );
-}
+// Chips for the picked-location card: the outlet's saved address vs a new
+// pick that will replace it on Save Changes.
+const CURRENT_CHIP = {
+  label: "Current",
+  className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300",
+};
+const CHANGED_CHIP = {
+  label: "Updates on save",
+  className: "bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300",
+};
 
 export default function EditOutletModal({ outlet, onClose, onUpdated }) {
   const {
     outletType,
     setOutletType,
-    description,
-    setDescription,
     isActive,
     setIsActive,
     location,
+    locationChanged,
     setLocation,
+    selectSavedLocation,
+    locationMode,
+    setLocationMode,
+    savedLocations,
+    loadingSavedLocations,
     submit,
     submitting,
     error,
@@ -225,17 +54,38 @@ export default function EditOutletModal({ outlet, onClose, onUpdated }) {
     clearSuccessMessage,
   } = useEditOutletForm(outlet, () => onUpdated?.());
 
-  const handleSave = async () => {
-    await submit();
+  const [showMap, setShowMap] = useState(false);
+  const [selectedSavedLocationId, setSelectedSavedLocationId] = useState(null);
+
+  const handleSelectPlace = (place) => {
+    setSelectedSavedLocationId(null);
+    setLocation(place);
+  };
+
+  const handleSelectSavedLocation = (loc) => {
+    setSelectedSavedLocationId(loc._id);
+    selectSavedLocation(loc);
+  };
+
+  const pickerProps = {
+    selectedPlace: location,
+    onSelectPlace: handleSelectPlace,
+    onShowMap: () => setShowMap(true),
+    locationSaving: false,
+    locationSaved: false,
+    locationError: "",
+    createLocationButton: null,
+    statusOverride: locationChanged ? CHANGED_CHIP : CURRENT_CHIP,
+    waitingNote: locationChanged ? "This new address replaces the current one when you click Save Changes." : null,
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+        className="no-scrollbar bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center gap-3 px-6 py-4 sticky top-0 bg-white dark:bg-gray-800 rounded-t-2xl">
+        <div className="flex items-center gap-3 px-6 py-4 sticky top-0 z-10 bg-white dark:bg-gray-800 rounded-t-2xl">
           <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-50 dark:bg-emerald-500/10">
             <svg className="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -243,7 +93,7 @@ export default function EditOutletModal({ outlet, onClose, onUpdated }) {
           </div>
           <h3 className="flex-1 text-base font-bold text-gray-900 dark:text-gray-100">Edit Outlet</h3>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
-            <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -261,17 +111,6 @@ export default function EditOutletModal({ outlet, onClose, onUpdated }) {
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Description</label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="eg : Main city outlet of the brand"
-              rows={2}
-              className={`${inputBase} resize-none`}
-            />
-          </div>
-
           <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer">
             <input
               type="checkbox"
@@ -282,9 +121,24 @@ export default function EditOutletModal({ outlet, onClose, onUpdated }) {
             Active
           </label>
 
+          {/* ── Outlet Location — same UI as Add Outlet ── */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Outlet Location</label>
-            <LocationEditor location={location} onSelectPlace={setLocation} />
+
+            <SavedLocationsList
+              locations={savedLocations}
+              loading={loadingSavedLocations}
+              selectedId={selectedSavedLocationId}
+              onSelect={handleSelectSavedLocation}
+            />
+
+            <LocationModeTabs mode={locationMode} onChange={setLocationMode} />
+
+            {locationMode === "search" ? (
+              <OutletLocationSearch {...pickerProps} />
+            ) : (
+              <LiveLocationPicker {...pickerProps} />
+            )}
           </div>
         </div>
 
@@ -296,7 +150,7 @@ export default function EditOutletModal({ outlet, onClose, onUpdated }) {
             Cancel
           </button>
           <button
-            onClick={handleSave}
+            onClick={submit}
             disabled={submitting || !outletType}
             className="flex-1 flex items-center justify-center gap-2 bg-emerald-500 text-white font-bold py-2.5 rounded-xl text-sm tracking-wide shadow-sm shadow-emerald-100 hover:bg-emerald-600 transition-colors disabled:cursor-not-allowed disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:text-gray-300 disabled:shadow-none"
           >
@@ -314,6 +168,10 @@ export default function EditOutletModal({ outlet, onClose, onUpdated }) {
           </button>
         </div>
       </div>
+
+      {showMap && location && typeof location.lat === "number" && (
+        <MapModal lat={location.lat} lng={location.lng} label={location.name} onClose={() => setShowMap(false)} />
+      )}
 
       <ErrorToast error={error ? { message: error } : null} onDismiss={clearError} />
       <SuccessToast message={successMessage} onDismiss={clearSuccessMessage} />

@@ -51,13 +51,13 @@ export default function UpgradeBanner({ onClick, isLoading = false, planName }) 
               <CheckCircle2 className="w-6 h-6" />
             </div>
             <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1.5">You're on our top plan</h3>
-            <p className="text-sm text-gray-500 mb-5">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
               {planName} already includes everything Trydood offers — there's no higher plan to upgrade to right
               now.
             </p>
             <button
               onClick={() => setShowTopPlanModal(false)}
-              className="w-full py-2.5 rounded-xl bg-gray-900 text-white text-sm font-semibold hover:bg-black transition-colors"
+              className="w-full py-2.5 rounded-xl bg-gray-900 text-white text-sm font-semibold hover:bg-black dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white transition-colors"
             >
               Got it
             </button>

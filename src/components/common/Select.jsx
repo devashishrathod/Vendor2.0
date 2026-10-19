@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Check, ChevronDown } from "lucide-react";
+import { getZoomScale } from "@/utils/zoom";
 
 /**
  * Custom dropdown select. Native <select>/<option> popups mostly ignore
@@ -47,7 +48,10 @@ export default function Select({
   const openMenu = () => {
     const rect = triggerRef.current?.getBoundingClientRect();
     if (rect) {
-      setMenuRect({ top: rect.bottom + 6, left: rect.left, width: rect.width });
+      // Convert on-screen px → CSS px so the fixed menu lines up under the
+      // trigger with the app-wide zoom applied (see utils/zoom.js).
+      const scale = getZoomScale();
+      setMenuRect({ top: rect.bottom / scale + 6, left: rect.left / scale, width: rect.width / scale });
     }
     setOpen(true);
   };

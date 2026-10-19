@@ -79,7 +79,7 @@ export default function Step3BusinessName() {
   const { setSubStep, setField, markComplete } = useOnboardingStore();
 
   const NAME_MAX = 60;
-  const SHORT_MAX = 15;
+  const SHORT_MAX = 25;
 
   const [name, setName] = useState(savedName ?? "");
   const [nameError, setNameError] = useState(null);
@@ -221,7 +221,7 @@ export default function Step3BusinessName() {
                 touched={shortTouched}
                 isValid={shortValid}
                 mono
-                maxLength={15}
+                maxLength={25}
                 minLength={2}
                 errorMsg={shortError}
               />
@@ -242,7 +242,7 @@ export default function Step3BusinessName() {
                 {[
                   "Use your registered business name.",
                   "Make sure the name matches your official documents.",
-                  "Keep your short name simple and recognizable.",
+                  "Keep your Brand name simple and recognizable.",
                   "Avoid unnecessary symbols or special characters.",
                 ].map((tip, i) => (
                   <div key={i} className="flex items-start gap-1.5">

@@ -1,4 +1,5 @@
 import { MOOD_COLLECTIONS, LANGUAGE_COLLECTIONS, ARTIST_COLLECTIONS, TRENDING_SONGS } from "../constants/musicConstants";
+import { PLAYLIST_CATALOG } from "../constants/musicCatalog";
 
 // Point these at your real backend when ready, e.g.
 // const API_BASE = "/api/music";
@@ -14,6 +15,15 @@ function delay(ms) {
 export async function fetchCollections() {
   await delay(200);
   return { mood: MOOD_COLLECTIONS, language: LANGUAGE_COLLECTIONS, artist: ARTIST_COLLECTIONS, trending: TRENDING_SONGS };
+}
+
+/**
+ * Trydood's curated playlists with their tracks.
+ * @returns {Promise<import("../constants/musicCatalog").CatalogPlaylist[]>}
+ */
+export async function fetchPlaylistCatalog() {
+  await delay(150);
+  return PLAYLIST_CATALOG;
 }
 
 export async function fetchUserPlaylists() {

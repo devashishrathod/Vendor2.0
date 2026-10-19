@@ -1,10 +1,19 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useAddOutletForm } from "../hooks/useAddOutletForm";
-import { useBrand } from "../../../hooks/useBrand"; // ← path apne project ke hisaab se adjust karo
-import { sendOutletWhatsappOtp, loginOrSignUpWithWhatsapp, verifyOtpWhatsapp } from "../services/subBrandApi"; // ← real API
+import { useBrand } from "../../../hooks/useBrand";
+import { loginOrSignUpWithWhatsapp, verifyOtpWhatsapp } from "../services/subBrandApi";
+import OtpVerifyModal from "@/features/oulet/New folder/components/brandOutlet/modals/OtpVerifyModal";
+import DisabledHint from "@/components/common/DisabledHint";
 import ErrorToast from "@/components/common/ErrorToast";
 import SuccessToast from "@/components/common/SuccessToast";
 import Select from "../../../components/common/Select";
+import {
+  LiveLocationPicker,
+  LocationModeTabs,
+  MapModal,
+  OutletLocationSearch,
+  SavedLocationsList,
+} from "./location/OutletLocationPicker";
 
 const inputBase =
   "w-full rounded-xl px-4 py-2.5 text-sm text-gray-700 dark:text-gray-100 bg-emerald-50 dark:bg-emerald-500/10 outline-none transition-colors " +
@@ -18,575 +27,13 @@ const OUTLET_TYPE_OPTIONS = [
   { value: "franchise", label: "Franchise" },
 ];
 
-// ─── Google Maps config ─────────────────────────────────────────────────────
-// Same key/loader logic as CreateBrandOutlet — duplicated here so this modal
-// is self-contained. Pull this into a shared `lib/googleMaps.js` if both
-// files end up in the same bundle, so the script only loads once.
-const GOOGLE_MAPS_API_KEY = "AIzaSyBmg8zWrXA_taDUSrpWRN2sbd7csdPgKLM";
-
-let googleMapsLoadingPromise = null;
-function loadGoogleMapsScript() {
-  if (window.google?.maps?.places) return Promise.resolve(window.google);
-  if (googleMapsLoadingPromise) return googleMapsLoadingPromise;
-
-  googleMapsLoadingPromise = new Promise((resolve, reject) => {
-    const script = document.createElement("script");
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`;
-    script.async = true;
-    script.defer = true;
-    script.onload = () => resolve(window.google);
-    script.onerror = () => reject(new Error("Failed to load Google Maps script"));
-    document.head.appendChild(script);
-  });
-
-  return googleMapsLoadingPromise;
-}
-
-function textSearchPlaces(query) {
-  return loadGoogleMapsScript().then(
-    (google) =>
-      new Promise((resolve, reject) => {
-        const service = new google.maps.places.PlacesService(document.createElement("div"));
-        service.textSearch({ query }, (results, status) => {
-          if (status === google.maps.places.PlacesServiceStatus.OK && results) {
-            resolve(results);
-          } else if (status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
-            resolve([]);
-          } else {
-            reject(new Error(`Places search failed: ${status}`));
-          }
-        });
-      })
-  );
-}
-
-function getPlaceDetails(placeId) {
-  return loadGoogleMapsScript().then(
-    (google) =>
-      new Promise((resolve, reject) => {
-        const service = new google.maps.places.PlacesService(document.createElement("div"));
-        service.getDetails(
-          { placeId, fields: ["name", "formatted_address", "geometry", "address_component"] },
-          (place, status) => {
-            if (status === google.maps.places.PlacesServiceStatus.OK && place) {
-              resolve(place);
-            } else {
-              reject(new Error(`Place details fetch failed: ${status}`));
-            }
-          }
-        );
-      })
-  );
-}
-
-function reverseGeocode(lat, lng) {
-  return loadGoogleMapsScript().then(
-    (google) =>
-      new Promise((resolve, reject) => {
-        const geocoder = new google.maps.Geocoder();
-        geocoder.geocode({ location: { lat, lng } }, (results, status) => {
-          if (status === "OK" && results && results[0]) {
-            resolve(results[0]);
-          } else {
-            reject(new Error(`Reverse geocoding failed: ${status}`));
-          }
-        });
-      })
-  );
-}
-
 const isValidPhone = (v) => /^[0-9]{10}$/.test((v || "").replace(/\D/g, ""));
 
-// ─── Map Preview Modal ─────────────────────────────────────────────────────────
-function MapModal({ lat, lng, label, onClose }) {
-  const mapSrc = `https://maps.google.com/maps?q=${lat},${lng}&z=16&output=embed`;
-  return (
-    <div
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
-      onClick={(e) => {
-        e.stopPropagation();
-        onClose();
-      }}
-    >
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 py-3">
-          <div>
-            <p className="text-sm font-bold text-gray-900 dark:text-gray-100">{label || "Map Preview"}</p>
-            <p className="text-xs text-gray-500">Lat: {lat} · Lng: {lng}</p>
-          </div>
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-            <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-        <iframe
-          title="Outlet Map"
-          src={mapSrc}
-          width="100%"
-          height="420"
-          style={{ border: 0 }}
-          allowFullScreen
-          loading="lazy"
-          referrerPolicy="no-referrer-when-downgrade"
-        />
-        <div className="px-5 py-3 flex justify-end">
-          <button onClick={onClose} className="px-5 py-2 bg-emerald-500 text-white text-sm font-bold rounded-xl hover:bg-emerald-600 transition-colors">
-            Close Map
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── WhatsApp OTP Verify Modal ─────────────────────────────────────────────────
-function OtpVerifyModal({ phone, otpValue, onOtpChange, otpError, onConfirm, onClose, onResend, resending, confirming }) {
-  return (
-    <div
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
-      onClick={(e) => {
-        e.stopPropagation();
-        onClose();
-      }}
-    >
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-6 py-4">
-          <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">Verify WhatsApp Number</h3>
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-            <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        <div className="px-6 py-5">
-          <div className="w-12 h-12 rounded-full bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center mb-4">
-            <svg className="w-6 h-6 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-4l-3 3-3-3z" />
-            </svg>
-          </div>
-
-          <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
-            We've sent a 6-digit OTP over WhatsApp to{" "}
-            <span className="font-semibold text-gray-900 dark:text-gray-100">{phone}</span>. Enter it below to verify this number.
-          </p>
-
-          <input
-            type="text"
-            autoFocus
-            value={otpValue}
-            onChange={(e) => onOtpChange(e.target.value.replace(/\D/g, "").slice(0, 6))}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                onConfirm();
-              }
-            }}
-            placeholder="Enter OTP"
-            className="w-full rounded-xl px-4 py-3 text-center text-lg tracking-[0.3em] font-semibold outline-none focus:ring-2 focus:ring-emerald-100 bg-emerald-50 dark:bg-emerald-500/10 text-gray-800 dark:text-gray-100 placeholder:text-gray-400"
-          />
-
-          {otpError && <p className="text-xs text-red-500 mt-2">{otpError}</p>}
-
-          <button
-            onClick={onResend}
-            disabled={resending}
-            className="text-xs font-semibold text-emerald-600 hover:underline mt-3 disabled:opacity-50 disabled:no-underline"
-          >
-            {resending ? "Resending…" : "Didn't get it? Resend OTP"}
-          </button>
-        </div>
-
-        <div className="px-6 py-4 flex gap-2">
-          <button
-            onClick={onClose}
-            className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={onConfirm}
-            disabled={otpValue.length < 4 || confirming}
-            className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
-              otpValue.length >= 4 && !confirming
-                ? "bg-emerald-600 text-white hover:bg-emerald-700"
-                : "bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed"
-            }`}
-          >
-            {confirming ? "Verifying…" : "Confirm"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Shows the "location saved / saving / error" status under a picked place,
-// plus — when the error is specifically a missing zipcode — an inline
-// pincode input so the merchant can fix it in place instead of hitting a
-// dead end and having to search again.
-function LocationSaveStatus({ locationSaving, locationSaved, locationError, onRetryZipcode }) {
-  const [manualZipcode, setManualZipcode] = useState("");
-  const [retrying, setRetrying] = useState(false);
-  const isZipcodeIssue = !!locationError && locationError.toLowerCase().includes("zipcode");
-
-  const handleRetry = async () => {
-    if (!manualZipcode.trim() || !onRetryZipcode) return;
-    setRetrying(true);
-    await onRetryZipcode(manualZipcode.trim());
-    setRetrying(false);
-  };
-
-  if (locationSaving) {
-    return (
-      <p className="flex items-center gap-1.5 text-xs text-gray-400 mt-2">
-        <svg className="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-        </svg>
-        Saving this location…
-      </p>
-    );
-  }
-
-  if (locationSaved) {
-    return (
-      <p className="text-xs font-semibold text-emerald-600 mt-2 flex items-center gap-1">
-        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-        </svg>
-        Location saved
-      </p>
-    );
-  }
-
-  if (!locationError) return null;
-
-  return (
-    <div className="mt-2">
-      <p className="flex items-start gap-1.5 text-xs text-rose-500">
-        <svg className="w-3.5 h-3.5 mt-0.5 shrink-0" viewBox="0 0 20 20" fill="currentColor">
-          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-        </svg>
-        {locationError}
-      </p>
-
-      {isZipcodeIssue && (
-        <div className="flex gap-2 mt-2">
-          <input
-            type="text"
-            value={manualZipcode}
-            onChange={(e) => setManualZipcode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-            placeholder="Enter 6-digit pincode"
-            className="flex-1 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-100 bg-emerald-50 dark:bg-emerald-500/10 text-gray-700 dark:text-gray-100 placeholder:text-gray-400"
-          />
-          <button
-            type="button"
-            onClick={handleRetry}
-            disabled={retrying || manualZipcode.trim().length < 4}
-            className={`shrink-0 px-4 py-2 rounded-xl text-sm font-bold transition-colors ${
-              retrying || manualZipcode.trim().length < 4
-                ? "bg-gray-100 dark:bg-gray-700 text-gray-300 cursor-not-allowed"
-                : "bg-emerald-500 text-white hover:bg-emerald-600"
-            }`}
-          >
-            {retrying ? "Saving…" : "Save"}
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── Outlet Location Search (Google Places Text Search + Place Details) ───────
-function OutletLocationSearch({ selectedPlace, onSelectPlace, onShowMap, locationSaving, locationSaved, locationError, onRetryZipcode }) {
-  const [query, setQuery] = useState("");
-  const [results, setResults] = useState([]);
-  const [searching, setSearching] = useState(false);
-  const [detailsLoading, setDetailsLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [hasSearched, setHasSearched] = useState(false);
-
-  useEffect(() => {
-    loadGoogleMapsScript().catch(() => {
-      // silently ignore here — surfaced properly when the user actually searches
-    });
-  }, []);
-
-  const runSearch = async () => {
-    const trimmed = query.trim();
-    if (!trimmed) return;
-
-    setSearching(true);
-    setError("");
-    setHasSearched(true);
-    try {
-      const places = await textSearchPlaces(trimmed);
-      setResults(places);
-    } catch (err) {
-      setError("Couldn't fetch results. Check your connection and try again.");
-      setResults([]);
-    } finally {
-      setSearching(false);
-    }
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      runSearch();
-    }
-  };
-
-  const pickPlace = async (place) => {
-    if (!place.place_id) return;
-    setDetailsLoading(true);
-    setError("");
-    try {
-      const details = await getPlaceDetails(place.place_id);
-      const loc = details.geometry?.location;
-      if (!loc) {
-        setError("This place has no location data. Try another result.");
-        return;
-      }
-      onSelectPlace({
-        name: details.name,
-        address: details.formatted_address,
-        lat: typeof loc.lat === "function" ? loc.lat() : loc.lat,
-        lng: typeof loc.lng === "function" ? loc.lng() : loc.lng,
-        placeId: place.place_id,
-        addressComponents: details.address_components || [],
-        source: "search",
-      });
-      setResults([]);
-      setQuery("");
-      setHasSearched(false);
-    } catch (err) {
-      setError("Couldn't fetch details for that place. Try again.");
-    } finally {
-      setDetailsLoading(false);
-    }
-  };
-
-  return (
-    <div className="rounded-2xl bg-white dark:bg-gray-800 p-4 shadow-sm">
-      <div className="flex items-start gap-3 mb-4">
-        <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-50 dark:bg-emerald-500/10">
-          <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-        </div>
-        <div>
-          <p className="text-sm font-bold text-gray-900 dark:text-gray-100">Find Your Outlet Location Using Google Maps.</p>
-          <p className="text-xs text-gray-400 mt-0.5">Search your outlet name and city, then pick it from the results.</p>
-        </div>
-      </div>
-
-      <div className="flex gap-2 mb-3">
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="eg : Toni & Guy Ahmedabad"
-          className={inputBase}
-        />
-        <button
-          onClick={runSearch}
-          disabled={searching || !query.trim()}
-          className={`shrink-0 px-5 py-2.5 rounded-xl text-sm font-bold transition-colors ${
-            searching || !query.trim()
-              ? "bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed"
-              : "bg-emerald-500 text-white hover:bg-emerald-600"
-          }`}
-        >
-          {searching ? "Searching…" : "Search"}
-        </button>
-      </div>
-
-      {error && <p className="text-xs text-rose-500 mb-3">{error}</p>}
-
-      {results.length > 0 && (
-        <div className="mb-4 max-h-64 overflow-y-auto rounded-xl divide-y divide-gray-100 dark:divide-gray-700">
-          {results.map((place) => (
-            <button
-              key={place.place_id}
-              onClick={() => pickPlace(place)}
-              disabled={detailsLoading}
-              className="w-full text-left px-4 py-3 hover:bg-emerald-50/50 transition-colors flex items-start gap-3 disabled:opacity-60"
-            >
-              <svg className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              <span>
-                <span className="block text-sm font-semibold text-gray-800 dark:text-gray-100">{place.name}</span>
-                <span className="block text-xs text-gray-500 mt-0.5">{place.formatted_address}</span>
-              </span>
-            </button>
-          ))}
-        </div>
-      )}
-
-      {detailsLoading && <p className="text-xs text-gray-400 mb-4">Fetching place details…</p>}
-
-      {hasSearched && !searching && results.length === 0 && !error && (
-        <p className="text-xs text-gray-400 mb-4">No matches found. Try a different search term.</p>
-      )}
-
-      {selectedPlace ? (
-        <div className="bg-gray-50/60 dark:bg-gray-700 rounded-xl p-4">
-          <p className="text-xs font-semibold text-gray-500 mb-1">Selected Outlet Location</p>
-          <p className="text-sm font-bold text-gray-900 dark:text-gray-100">{selectedPlace.name}</p>
-          <p className="text-sm text-gray-600 dark:text-gray-300 mt-0.5">{selectedPlace.address}</p>
-
-          {/* ── Location save status — this is its OWN API call, fired the
-              moment the place was picked, independent of the final Save
-              Outlet button. ── */}
-          <LocationSaveStatus
-            locationSaving={locationSaving}
-            locationSaved={locationSaved}
-            locationError={locationError}
-            onRetryZipcode={onRetryZipcode}
-          />
-
-          <div className="flex gap-2 mt-3">
-            <button
-              onClick={onShowMap}
-              className="flex-1 bg-emerald-500 text-white font-bold py-2.5 rounded-xl text-sm hover:bg-emerald-600 transition-colors"
-            >
-              Show on Google Map
-            </button>
-            <button
-              onClick={() => onSelectPlace(null)}
-              className="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-            >
-              Clear
-            </button>
-          </div>
-        </div>
-      ) : (
-        <p className="text-xs text-gray-400 text-center">Search above and select your outlet to pin its location</p>
-      )}
-    </div>
-  );
-}
-
-// ─── Live Location Picker (Geolocation + Reverse Geocoding) ───────────────────
-function LiveLocationPicker({ selectedPlace, onSelectPlace, onShowMap, locationSaving, locationSaved, locationError, onRetryZipcode }) {
-  const [fetching, setFetching] = useState(false);
-  const [error, setError] = useState("");
-
-  const useMyLocation = () => {
-    if (!("geolocation" in navigator)) {
-      setError("Geolocation isn't supported by this browser.");
-      return;
-    }
-
-    setFetching(true);
-    setError("");
-
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
-        try {
-          const result = await reverseGeocode(latitude, longitude);
-          onSelectPlace({
-            name: "Current Location",
-            address: result.formatted_address,
-            lat: latitude,
-            lng: longitude,
-            placeId: result.place_id,
-            addressComponents: result.address_components || [],
-            source: "live",
-          });
-        } catch (err) {
-          setError("Got your location, but couldn't resolve an address. Try again.");
-        } finally {
-          setFetching(false);
-        }
-      },
-      (err) => {
-        setFetching(false);
-        if (err.code === err.PERMISSION_DENIED) {
-          setError("Location permission was denied. Allow location access in your browser to use this.");
-        } else if (err.code === err.TIMEOUT) {
-          setError("Timed out getting your location. Try again.");
-        } else {
-          setError("Couldn't get your location. Try again.");
-        }
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-    );
-  };
-
-  return (
-    <div className="rounded-2xl bg-white dark:bg-gray-800 p-4 shadow-sm">
-      <div className="flex items-start gap-3 mb-4">
-        <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-50 dark:bg-emerald-500/10">
-          <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-        </div>
-        <div>
-          <p className="text-sm font-bold text-gray-900 dark:text-gray-100">Use Your Live Location</p>
-          <p className="text-xs text-gray-400 mt-0.5">Allow location access from your browser and we'll auto-detect your outlet's address.</p>
-        </div>
-      </div>
-
-      <button
-        onClick={useMyLocation}
-        disabled={fetching}
-        className={`w-full flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-colors ${
-          fetching
-            ? "bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed"
-            : "bg-emerald-500 text-white hover:bg-emerald-600"
-        }`}
-      >
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        {fetching ? "Fetching your location…" : "Use My Current Location"}
-      </button>
-
-      {error && <p className="text-xs text-rose-500 mt-3">{error}</p>}
-
-      {selectedPlace?.source === "live" ? (
-        <div className="bg-gray-50/60 dark:bg-gray-700 rounded-xl p-4 mt-3">
-          <p className="text-xs font-semibold text-gray-500 mb-1">Detected Address</p>
-          <p className="text-sm text-gray-800 dark:text-gray-100">{selectedPlace.address}</p>
-
-          <LocationSaveStatus
-            locationSaving={locationSaving}
-            locationSaved={locationSaved}
-            locationError={locationError}
-            onRetryZipcode={onRetryZipcode}
-          />
-
-          <div className="flex gap-2 mt-3">
-            <button
-              onClick={onShowMap}
-              className="flex-1 bg-emerald-500 text-white font-bold py-2.5 rounded-xl text-sm hover:bg-emerald-600 transition-colors"
-            >
-              Show on Google Map
-            </button>
-            <button
-              onClick={() => onSelectPlace(null)}
-              className="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-            >
-              Clear
-            </button>
-          </div>
-        </div>
-      ) : (
-        !fetching && <p className="text-xs text-gray-400 text-center mt-3">Tap the button above and allow location access when prompted</p>
-      )}
-    </div>
-  );
-}
+// Chip on the picked-location card: nothing is saved until Create Outlet.
+const PICKED_CHIP = {
+  label: "Selected",
+  className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300",
+};
 
 export default function AddOutletModal({ onClose, onCreated }) {
   const { brand } = useBrand();
@@ -594,15 +41,13 @@ export default function AddOutletModal({ onClose, onCreated }) {
     form,
     update,
     updateWhatsapp,
-    setSubBrandId,
     setBrandId,
     setLocation,
-    persistLocation,
+    selectSavedLocation,
     retryLocationWithZipcode,
     savedLocations,
     loadingSavedLocations,
     loadSavedLocations,
-    selectSavedLocation,
     submit,
     submitting,
     error,
@@ -624,100 +69,93 @@ export default function AddOutletModal({ onClose, onCreated }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [brandId]);
 
-  // ── Edge case: a location was picked before subBrandId existed (e.g.
-  // merchant somehow selected a place before finishing WhatsApp verify).
-  // persistLocation() no-ops without a subBrandId, so once one shows up,
-  // retry saving whatever pick is still sitting unsaved.
-  useEffect(() => {
-    if (form.subBrandId && form.location && !form.locationSaved && !form.locationSaving) {
-      persistLocation(form.location, form.subBrandId, form.brandId);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.subBrandId]);
+  // ── Outlet WhatsApp Number — verified BEFORE anything is created:
+  //   • First outlet's number (default): brands/get's
+  //     firstSubBrand.whatsappNumber — already verified, nothing to do.
+  //   • A different number: "Send OTP" only sends an OTP
+  //     (auth/loginOrSignUp-with-whatsapp) and "Confirm" verifies it
+  //     (auth/verify-otp-whatsapp). No outlet is created here.
+  // The outlet itself is only created by Create Outlet (see
+  // useAddOutletForm's submit).
+  //
+  // (Variable names still say "brand number" — it's the first outlet's
+  // number, NOT brand.whatsappNumber.)
+  const brandWhatsappNumber = brand?.firstSubBrand?.whatsappNumber || "";
+  // The backend may refuse to reuse a number ("already registered with this
+  // number") when Create Outlet runs — then this flips, the error shows in a
+  // toast, and the form moves to "different number".
+  const [brandNumberTaken, setBrandNumberTaken] = useState(false);
+  const [useBrandNumberChoice, setUseBrandNumberChoice] = useState(true);
+  const useBrandNumber = useBrandNumberChoice && !!brandWhatsappNumber && !brandNumberTaken;
+  const outletNumber = useBrandNumber ? brandWhatsappNumber : form.whatsapp.number;
+  const numberVerified = useBrandNumber || form.whatsapp.verified;
 
-  // ── Outlet WhatsApp Number — same OTP-verify flow as CreateBrandOutlet ──
-  const [otpStage, setOtpStage] = useState(false);
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [numberError, setNumberError] = useState("");
+  const [otpOpen, setOtpOpen] = useState(false);
   const [otpValue, setOtpValue] = useState("");
-  const [otpSending, setOtpSending] = useState(false);
-  const [otpConfirming, setOtpConfirming] = useState(false);
   const [otpError, setOtpError] = useState("");
+  const [otpConfirming, setOtpConfirming] = useState(false);
 
-  const handleOutletWhatsappChange = (value) => {
-    updateWhatsapp({ number: value, verified: false });
-    setOtpStage(false);
+  // Any number change invalidates the verification — and an outlet made by
+  // an earlier, failed Create Outlet attempt belongs to the OLD number.
+  const resetNumberState = () => {
+    updateWhatsapp({ verified: false });
+    update("subBrandId", null);
+    setNumberError("");
+    setOtpOpen(false);
     setOtpValue("");
     setOtpError("");
-    setSubBrandId(null);
-    // Keep Mobile Number mirroring live while "Same as WhatsApp Number" is checked.
-    if (form.mobileSameAsWhatsapp) update("mobile", value);
   };
 
-  // ── Mobile Number — checking this copies the current WhatsApp number in
-  // and keeps mirroring it (see handleOutletWhatsappChange); unchecking
-  // leaves whatever value was last mirrored, editable from there.
-  const handleMobileSameAsWhatsappChange = (checked) => {
-    update("mobileSameAsWhatsapp", checked);
-    if (checked) update("mobile", form.whatsapp.number);
+  const handleUseBrandNumberToggle = (checked) => {
+    setUseBrandNumberChoice(checked);
+    updateWhatsapp({ number: "" });
+    resetNumberState();
   };
 
-  // ── Real API: create the subBrand shell + trigger the WhatsApp OTP ──
-  const sendWhatsappOtp = async () => {
-    if (!isValidPhone(form.whatsapp.number) || !brandId) return;
-    setOtpSending(true);
+  const handleOutletWhatsappChange = (value) => {
+    updateWhatsapp({ number: value.replace(/\D/g, "").slice(0, 10) });
+    resetNumberState();
+  };
+
+  // Different number — send the OTP only (no outlet is created).
+  const sendNumberOtp = async () => {
+    setSendingOtp(true);
+    setNumberError("");
     setOtpError("");
     try {
-      const res = await sendOutletWhatsappOtp({
-        brandId,
-        whatsappNumber: form.whatsapp.number,
-        isFirstOutlet: false,
-      });
-      const subBrandId = res?.data?.subBrandId ?? res?.subBrandId ?? null;
-      if (!subBrandId) {
-        throw new Error("Couldn't create the outlet record. Please try again.");
-      }
-      setSubBrandId(subBrandId);
-      setOtpStage(true);
+      await loginOrSignUpWithWhatsapp({ whatsappNumber: outletNumber });
+      setOtpOpen(true);
     } catch (err) {
-      // ⚠️ FIXED: the outlet shell can have been created successfully even
-      // though this call is throwing (the OTP-send half failed after its
-      // own retry) — sendOutletWhatsappOtp attaches the real subBrandId to
-      // the error in that case. Save it here too, so the next "Verify"
-      // click resends the OTP instead of recreating the shell.
-      if (err?.subBrandId) setSubBrandId(err.subBrandId);
-      setOtpError(err?.message || "Couldn't send OTP. Please try again.");
+      // A rate-limited send still means a valid OTP already went out.
+      if (err?.details?.retryAfterSeconds) setOtpOpen(true);
+      setNumberError(err?.message || "Couldn't send OTP. Please try again.");
     } finally {
-      setOtpSending(false);
+      setSendingOtp(false);
     }
   };
 
-  // ── Real API: resend OTP only — must NOT re-run sendOutletWhatsappOtp,
-  // that would recreate the subBrand shell every time. Resend just
-  // re-triggers the OTP message.
-  const resendWhatsappOtp = async () => {
-    if (!isValidPhone(form.whatsapp.number)) return;
-    setOtpSending(true);
+  const resendNumberOtp = async () => {
+    setSendingOtp(true);
     setOtpError("");
     try {
-      await loginOrSignUpWithWhatsapp({ whatsappNumber: form.whatsapp.number });
+      await loginOrSignUpWithWhatsapp({ whatsappNumber: outletNumber });
     } catch (err) {
       setOtpError(err?.message || "Couldn't resend OTP. Please try again.");
     } finally {
-      setOtpSending(false);
+      setSendingOtp(false);
     }
   };
 
-  // ── Real API: verify the OTP the merchant received on WhatsApp ──
-  const confirmWhatsappOtp = async () => {
-    if (otpValue.length < 4) return;
+  const confirmNumberOtp = async () => {
+    if (otpValue.length < 4 || otpConfirming) return;
     setOtpConfirming(true);
     setOtpError("");
     try {
-      await verifyOtpWhatsapp({
-        whatsappNumber: form.whatsapp.number,
-        otp: otpValue,
-      });
-      updateWhatsapp({ verified: true });
-      setOtpStage(false);
+      await verifyOtpWhatsapp({ whatsappNumber: outletNumber, otp: otpValue });
+      updateWhatsapp({ number: outletNumber, verified: true });
+      setOtpOpen(false);
       setOtpValue("");
     } catch (err) {
       setOtpError(err?.message || "Invalid OTP. Please try again.");
@@ -726,32 +164,25 @@ export default function AddOutletModal({ onClose, onCreated }) {
     }
   };
 
-  const closeOtpModal = () => {
-    setOtpStage(false);
+  const closeOtp = () => {
+    setOtpOpen(false);
     setOtpValue("");
     setOtpError("");
   };
 
-  // The main "Verify" button only creates the subBrand shell + sends the
-  // FIRST OTP. Once form.subBrandId exists, the shell already exists for
-  // this number — clicking the button again must resend (same OTP flow,
-  // no re-creation) instead of calling sendOutletWhatsappOtp a second time,
-  // which would otherwise create a duplicate subBrand record.
-  const handleVerifyOrResendClick = () => {
-    if (form.subBrandId) {
-      resendWhatsappOtp();
-      setOtpStage(true);
+  // "Change" / "Use a different number" — back to entering a number.
+  const changeOutletNumber = () => {
+    if (useBrandNumber) {
+      handleUseBrandNumberToggle(false);
     } else {
-      sendWhatsappOtp();
+      resetNumberState();
     }
   };
 
-  // ── Outlet Location — search vs live, same as CreateBrandOutlet ──
-  const [showMap, setShowMap] = useState(false);
+  const sendOtpBlockedReason = !isValidPhone(outletNumber) ? "Enter a 10-digit number" : "";
 
-  // Tracked separately from form.locationId — selecting a saved location
-  // creates a BRAND NEW location doc for this outlet (a fresh id), so it
-  // can never be compared against the original saved doc's _id.
+  // ── Outlet Location — picked only; saved by Create Outlet ──
+  const [showMap, setShowMap] = useState(false);
   const [selectedSavedLocationId, setSelectedSavedLocationId] = useState(null);
 
   const handleSelectSavedLocation = (loc) => {
@@ -764,27 +195,52 @@ export default function AddOutletModal({ onClose, onCreated }) {
     setLocation(place);
   };
 
-  const switchLocationMode = useCallback(
-    (mode) => {
-      update("locationMode", mode);
-      setLocation(null);
-      setSelectedSavedLocationId(null);
-    },
-    [update, setLocation]
-  );
+  const switchLocationMode = (mode) => {
+    update("locationMode", mode);
+    setLocation(null);
+    setSelectedSavedLocationId(null);
+  };
 
-  // Retries the currently-picked place with a merchant-typed pincode — the
-  // recovery path for the "missing zipcode" error a fresh Google result can
-  // sometimes produce.
-  const handleRetryZipcode = (zipcode) => retryLocationWithZipcode(zipcode);
+  const pickerProps = {
+    selectedPlace: form.location,
+    onSelectPlace: handleSelectPlace,
+    onShowMap: () => setShowMap(true),
+    locationSaving: false,
+    locationSaved: false,
+    locationError: form.locationError,
+    onRetryZipcode: retryLocationWithZipcode,
+    createLocationButton: null,
+    // No override while there's an error, so the card shows its red "Not saved" chip.
+    statusOverride: form.locationError ? undefined : PICKED_CHIP,
+    waitingNote: form.locationError ? null : "This location is saved together with the outlet when you click Create Outlet.",
+  };
+
+  // ── Create Outlet ──
+  const createBlockedReason = !form.outletType
+    ? "Choose the outlet type first"
+    : !numberVerified
+      ? "Verify the outlet's WhatsApp number first"
+      : !form.location
+        ? "Pick the outlet's location first"
+        : "";
+
+  const handleCreateOutlet = async () => {
+    const result = await submit({ whatsappNumber: outletNumber, numberVerified });
+    // The first outlet's number can't be reused → switch to "different
+    // number" so the vendor can verify a new one (toast shows the reason).
+    if (!result.success && useBrandNumber && /already registered/i.test(result.error || "")) {
+      setBrandNumberTaken(true);
+      updateWhatsapp({ number: "", verified: false });
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+        className="no-scrollbar bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center gap-3 px-6 py-4 sticky top-0 bg-white dark:bg-gray-800 rounded-t-2xl">
+        <div className="flex items-center gap-3 px-6 py-4 sticky top-0 z-10 bg-white dark:bg-gray-800 rounded-t-2xl">
           <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-50 dark:bg-emerald-500/10">
             <svg className="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
@@ -792,7 +248,7 @@ export default function AddOutletModal({ onClose, onCreated }) {
           </div>
           <h3 className="flex-1 text-base font-bold text-gray-900 dark:text-gray-100">Add Outlet</h3>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
-            <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -811,18 +267,6 @@ export default function AddOutletModal({ onClose, onCreated }) {
             />
           </div>
 
-          {/* ── Description ── */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Description</label>
-            <textarea
-              value={form.description}
-              onChange={(e) => update("description", e.target.value)}
-              placeholder="eg : Main city outlet of the brand"
-              rows={2}
-              className={`${inputBase} resize-none`}
-            />
-          </div>
-
           {/* ── Active ── */}
           <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer">
             <input
@@ -838,156 +282,104 @@ export default function AddOutletModal({ onClose, onCreated }) {
           <div>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Outlet WhatsApp Number *</label>
 
-            <div className="flex gap-2">
-              <input
-                type="tel"
-                value={form.whatsapp.number}
-                onChange={(e) => handleOutletWhatsappChange(e.target.value)}
-                placeholder="eg : 9876543210"
-                className={inputBase}
-              />
-              {!form.whatsapp.verified && (
+            {numberVerified ? (
+              <div className="flex items-center justify-between gap-3 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 px-4 py-2.5">
+                <span className="flex items-center gap-2.5 min-w-0">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-emerald-600 shadow-sm dark:bg-gray-800 dark:text-emerald-400">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    </svg>
+                  </span>
+                  <span className="min-w-0">
+                    <span className="flex items-center gap-2">
+                      <span className="text-sm font-bold tracking-wide text-gray-900 dark:text-gray-100">{outletNumber}</span>
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-bold text-white">
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                        Verified
+                      </span>
+                    </span>
+                    <span className="block text-[11px] text-gray-500 dark:text-gray-400">
+                      {useBrandNumber ? "First outlet's WhatsApp number" : "Verified with OTP"}
+                    </span>
+                  </span>
+                </span>
                 <button
                   type="button"
-                  onClick={handleVerifyOrResendClick}
-                  disabled={!isValidPhone(form.whatsapp.number) || otpSending || !brandId}
-                  className={`shrink-0 px-5 py-2.5 rounded-xl text-sm font-bold transition-colors ${
-                    isValidPhone(form.whatsapp.number) && !otpSending && brandId
-                      ? "bg-emerald-500 text-white hover:bg-emerald-600"
-                      : "bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed"
-                  }`}
+                  onClick={changeOutletNumber}
+                  disabled={submitting}
+                  className="shrink-0 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline disabled:opacity-50"
                 >
-                  {otpSending ? "Sending…" : form.subBrandId ? "Resend" : "Verify"}
+                  {useBrandNumber ? "Use a different number" : "Change"}
                 </button>
-              )}
-            </div>
+              </div>
+            ) : (
+              <>
+                <div className="flex gap-2">
+                  <input
+                    type="tel"
+                    inputMode="numeric"
+                    value={outletNumber}
+                    onChange={(e) => handleOutletWhatsappChange(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !sendOtpBlockedReason && !sendingOtp) {
+                        e.preventDefault();
+                        sendNumberOtp();
+                      }
+                    }}
+                    placeholder="eg : 9876543210"
+                    className={inputBase}
+                  />
+                  <DisabledHint show={!!sendOtpBlockedReason && !sendingOtp} message={sendOtpBlockedReason}>
+                    <button
+                      type="button"
+                      onClick={sendNumberOtp}
+                      disabled={!!sendOtpBlockedReason || sendingOtp}
+                      className="shrink-0 whitespace-nowrap px-5 py-2.5 rounded-xl text-sm font-bold transition-colors bg-emerald-500 text-white hover:bg-emerald-600 disabled:pointer-events-none disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:text-gray-400"
+                    >
+                      {sendingOtp ? "Sending…" : "Send OTP"}
+                    </button>
+                  </DisabledHint>
+                </div>
 
-            {form.whatsapp.verified && (
-              <p className="text-xs font-semibold text-emerald-600 mt-2 flex items-center gap-1">
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-                Number verified
-              </p>
+                <p className="text-xs text-gray-400 mt-2">
+                  {brandNumberTaken
+                    ? `${brandWhatsappNumber} is already registered to an outlet — enter a new number and verify it with an OTP.`
+                    : "Verify this number with the OTP sent on WhatsApp. The outlet is only created when you click Create Outlet."}
+                </p>
+
+                {brandWhatsappNumber && !brandNumberTaken && (
+                  <button
+                    type="button"
+                    onClick={() => handleUseBrandNumberToggle(true)}
+                    disabled={sendingOtp}
+                    className="mt-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline disabled:opacity-50"
+                  >
+                    Use first outlet's number ({brandWhatsappNumber}) instead
+                  </button>
+                )}
+              </>
             )}
-
-            {!form.whatsapp.verified && (
-              <p className="text-xs text-gray-400 mt-2">Verify your WhatsApp number to enable Save Outlet.</p>
-            )}
-
-            {otpError && !otpStage && <p className="text-xs text-rose-500 mt-2">{otpError}</p>}
-          </div>
-
-          {/* ── Mobile Number ── */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Mobile Number</label>
-            <input
-              type="tel"
-              value={form.mobile}
-              disabled={form.mobileSameAsWhatsapp}
-              onChange={(e) => update("mobile", e.target.value)}
-              placeholder="eg : 9876543210"
-              className={`${inputBase} ${form.mobileSameAsWhatsapp ? "bg-gray-50 dark:bg-gray-700 text-gray-400 cursor-not-allowed" : ""}`}
-            />
-            <label className="flex items-center gap-2 mt-2 text-xs font-medium text-gray-600 dark:text-gray-300 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={form.mobileSameAsWhatsapp}
-                onChange={(e) => handleMobileSameAsWhatsappChange(e.target.checked)}
-                className="w-4 h-4 accent-emerald-600 cursor-pointer"
-              />
-              Same as WhatsApp Number
-            </label>
           </div>
 
           {/* ── Outlet Location ── */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Outlet Location *</label>
 
-            {/* Saved locations — reuse an address that's already been
-                validated once (real zipcode/district/coordinates), so
-                picking one can never hit "missing zipcode". */}
-            {(loadingSavedLocations || savedLocations.length > 0) && (
-              <div className="mb-3 rounded-2xl bg-white dark:bg-gray-800 p-3 shadow-sm">
-                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">
-                  Or Pick A Saved Location
-                </p>
-                {loadingSavedLocations ? (
-                  <p className="text-xs text-gray-400">Loading saved locations…</p>
-                ) : (
-                  <div className="max-h-32 overflow-y-auto space-y-1.5">
-                    {savedLocations.map((loc) => {
-                      const isSelected = selectedSavedLocationId === loc._id;
-                      return (
-                        <button
-                          key={loc._id}
-                          type="button"
-                          onClick={() => handleSelectSavedLocation(loc)}
-                          className={`w-full text-left px-3 py-2 rounded-xl text-xs transition-colors ${
-                            isSelected
-                              ? "bg-emerald-50 text-emerald-700"
-                              : "bg-gray-50/60 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-emerald-50/40"
-                          }`}
-                        >
-                          <span className="block font-semibold truncate">
-                            {loc.addressLine1 || loc.formattedAddress || "Saved address"}
-                          </span>
-                          <span className="block text-[11px] text-gray-400 truncate mt-0.5">
-                            {[loc.city, loc.state, loc.zipcode].filter(Boolean).join(", ")}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
+            <SavedLocationsList
+              locations={savedLocations}
+              loading={loadingSavedLocations}
+              selectedId={selectedSavedLocationId}
+              onSelect={handleSelectSavedLocation}
+            />
 
-            <div className="flex flex-wrap items-center gap-6 mb-3">
-              <label className="flex items-center gap-2 text-sm font-bold text-gray-800 dark:text-gray-100 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={form.locationMode === "search"}
-                  onChange={() => switchLocationMode("search")}
-                  className="w-4 h-4 accent-emerald-600 cursor-pointer"
-                />
-                Search My Outlet Location
-              </label>
-              <label className="flex items-center gap-2 text-sm font-bold text-gray-800 dark:text-gray-100 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={form.locationMode === "live"}
-                  onChange={() => switchLocationMode("live")}
-                  className="w-4 h-4 accent-emerald-600 cursor-pointer"
-                />
-                Use My Live Location
-              </label>
-            </div>
-
-            {!form.subBrandId && (
-              <p className="text-xs text-amber-600 mb-2">Verify your WhatsApp number first — location saves against that outlet record.</p>
-            )}
+            <LocationModeTabs mode={form.locationMode} onChange={switchLocationMode} />
 
             {form.locationMode === "search" ? (
-              <OutletLocationSearch
-                selectedPlace={form.location}
-                onSelectPlace={handleSelectPlace}
-                onShowMap={() => setShowMap(true)}
-                locationSaving={form.locationSaving}
-                locationSaved={form.locationSaved}
-                locationError={form.locationError}
-                onRetryZipcode={handleRetryZipcode}
-              />
+              <OutletLocationSearch {...pickerProps} />
             ) : (
-              <LiveLocationPicker
-                selectedPlace={form.location}
-                onSelectPlace={handleSelectPlace}
-                onShowMap={() => setShowMap(true)}
-                locationSaving={form.locationSaving}
-                locationSaved={form.locationSaved}
-                locationError={form.locationError}
-                onRetryZipcode={handleRetryZipcode}
-              />
+              <LiveLocationPicker {...pickerProps} />
             )}
           </div>
         </div>
@@ -999,38 +391,44 @@ export default function AddOutletModal({ onClose, onCreated }) {
           >
             Cancel
           </button>
-          <button
-            onClick={submit}
-            disabled={submitting || !form.whatsapp.verified}
-            className="flex-1 flex items-center justify-center gap-2 bg-emerald-500 text-white font-bold py-2.5 rounded-xl text-sm tracking-wide shadow-sm shadow-emerald-100 hover:bg-emerald-600 transition-colors disabled:cursor-not-allowed disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:text-gray-300 disabled:shadow-none"
-          >
-            {submitting ? (
-              <>
-                <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-                </svg>
-                Saving…
-              </>
-            ) : (
-              "Save Outlet"
-            )}
-          </button>
+          <DisabledHint show={!!createBlockedReason && !submitting} message={createBlockedReason} className="flex-1">
+            <button
+              onClick={handleCreateOutlet}
+              disabled={submitting || !!createBlockedReason}
+              className="flex w-full items-center justify-center gap-2 bg-emerald-500 text-white font-bold py-2.5 rounded-xl text-sm tracking-wide shadow-sm shadow-emerald-100 hover:bg-emerald-600 transition-colors disabled:pointer-events-none disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:text-gray-300 disabled:shadow-none"
+            >
+              {submitting ? (
+                <>
+                  <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                  </svg>
+                  Creating outlet…
+                </>
+              ) : (
+                "Create Outlet"
+              )}
+            </button>
+          </DisabledHint>
         </div>
       </div>
 
-      {otpStage && !form.whatsapp.verified && (
-        <OtpVerifyModal
-          phone={form.whatsapp.number}
-          otpValue={otpValue}
-          onOtpChange={setOtpValue}
-          otpError={otpError}
-          onConfirm={confirmWhatsappOtp}
-          onClose={closeOtpModal}
-          onResend={resendWhatsappOtp}
-          resending={otpSending}
-          confirming={otpConfirming}
-        />
+      {/* Wrapper stops clicks inside the OTP popup from bubbling up to
+          this modal's own backdrop (which would close Add Outlet). */}
+      {otpOpen && !form.whatsapp.verified && (
+        <div onClick={(e) => e.stopPropagation()}>
+          <OtpVerifyModal
+            phone={outletNumber}
+            otpValue={otpValue}
+            onOtpChange={setOtpValue}
+            otpError={otpError}
+            onConfirm={confirmNumberOtp}
+            onClose={closeOtp}
+            onResend={resendNumberOtp}
+            resending={sendingOtp}
+            confirming={otpConfirming}
+          />
+        </div>
       )}
 
       {showMap && form.location && (
@@ -1043,10 +441,10 @@ export default function AddOutletModal({ onClose, onCreated }) {
       )}
 
       <ErrorToast
-        error={error || otpError ? { message: error || otpError } : null}
+        error={error || numberError ? { message: error || numberError } : null}
         onDismiss={() => {
           clearError();
-          setOtpError("");
+          setNumberError("");
         }}
       />
       <SuccessToast message={successMessage} onDismiss={clearSuccessMessage} />

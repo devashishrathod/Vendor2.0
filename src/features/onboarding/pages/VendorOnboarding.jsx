@@ -1,13 +1,16 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { ANALYTICS_EVENTS } from "@/constants/analytics";
 import { STEPS, STEP_LABELS } from "@/features/onboarding/constants/steps";
 import {
   useOnboardingStore,
   BASIC_SUB,
   BIZ_SUB,
   BANK_SUB,
+  STEP_TO_SCREEN,
 } from "@/features/onboarding/store/onboardingStore";
 import { useAuthStore } from "@/features/onboarding/store/authStore";
+import { trackEvent, trackPageView } from "@/utils/analytics";
 
 import OnboardingLayout from "@/features/onboarding/components/OnboardingLayout";
 
@@ -112,6 +115,21 @@ export default function OnboardingPage() {
   const [bankAccountType, setBankAccountType] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen]   = useState(false);
 
+  // Every sub-step lives on the single /onboarding URL, so each one gets its
+  // own virtual page view (e.g. /onboarding/pan-verification) for GA funnels.
+  useEffect(() => {
+    if (SCREEN_ROUTES[currentScreen]) return; // about to redirect away
+    const screen = STEP_TO_SCREEN[`${currentStep}:${currentSubStep}`];
+    if (!screen) return;
+
+    trackPageView(`/onboarding/${screen.toLowerCase().replace(/_/g, "-")}`);
+    trackEvent(ANALYTICS_EVENTS.ONBOARDING_STEP_VIEW, {
+      step_name:   screen,
+      step_number: currentStep,
+      sub_step:    currentSubStep,
+    });
+  }, [currentScreen, currentStep, currentSubStep]);
+
   const systemVerifyDone    = isCompleted(STEPS.SYSTEM_VERIFY, 1);
   const partnerContractDone = isCompleted(STEPS.PARTNER_CONTRACT, 1);
   const isFirst = currentStep === STEPS.BASIC_DETAILS && currentSubStep === 1;
@@ -139,6 +157,12 @@ export default function OnboardingPage() {
   function handlePartnerComplete(backendScreen) {
     markComplete(STEPS.PARTNER_CONTRACT, 1);
     console.log('[OnboardingPage] handlePartnerComplete backendScreen:', backendScreen);
+    // Post-deed screens come from the backend, not advanceScreen(), so this
+    // last step's completion is reported here.
+    trackEvent(ANALYTICS_EVENTS.ONBOARDING_STEP_COMPLETE, {
+      step_name: "PARTNERSHIP_DEED",
+      next_step: backendScreen ?? "SUBSCRIBE_PLAN",
+    });
     const route = SCREEN_ROUTES[backendScreen] ?? "/subscription";
     navigate(route);
   }

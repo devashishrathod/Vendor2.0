@@ -52,7 +52,7 @@ export default function VoucherBannerModal({ voucher, onClose, onSaved }) {
             onClick={onClose}
             className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
           >
-            <X className="h-4 w-4 text-gray-500" />
+            <X className="h-4 w-4 text-gray-500 dark:text-gray-400" />
           </button>
         </div>
 
@@ -89,7 +89,7 @@ export default function VoucherBannerModal({ voucher, onClose, onSaved }) {
 
           {isVideo && (
             <div className="mt-3">
-              <label className="mb-1.5 block text-xs font-medium text-gray-500">Poster (required for a video banner)</label>
+              <label className="mb-1.5 block text-xs font-medium text-gray-500 dark:text-gray-400">Poster (required for a video banner)</label>
               <div className="flex items-center gap-3">
                 {bannerPoster && (
                   <img

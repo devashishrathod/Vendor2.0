@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { Store, Share2, MapPin, MoreVertical, Copy, Crown, ChevronRight, Check } from "lucide-react";
-import StatusBadge from "./StatusBadge";
-import { OUTLET_TYPE_LABELS, OUTLET_TYPES } from "../constants/outletConstants";
-import { formatJoinedDate, maskStoreId, cx } from "../utils/outletUtils";
+import { ArrowLeft, BadgeCheck, Share2, MapPin, MoreVertical, Copy, Check, CalendarDays } from "lucide-react";
+import { OUTLET_STATUS, OUTLET_TYPES } from "../constants/outletConstants";
+import { formatJoinedDate, getAwningVariant, maskStoreId, cx, toTitleCase } from "../utils/outletUtils";
+import { OpenSign, StoreAwning, StoreTile } from "./Storefront";
 
 // ⚠️ FIXED: outlet.outletName / outlet.registrationType haven't existed on
 // the outlet record since the Add Outlet form dropped them (name & address
@@ -11,7 +11,7 @@ import { formatJoinedDate, maskStoreId, cx } from "../utils/outletUtils";
 // blank. Now reads the mapped `outlet` shape useOutlets/useOutletDetails
 // both produce, plus `brand` for the outlet's display name.
 export default function OutletDetailsHeader({ outlet, brand, onBack }) {
-  const displayName = brand?.brandName || brand?.legalBusinessName || "Outlet";
+  const displayName = toTitleCase(brand?.brandName || brand?.legalBusinessName) || "Outlet";
   const isVerified = brand?.isApproved;
   const [copied, setCopied] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -59,104 +59,111 @@ export default function OutletDetailsHeader({ outlet, brand, onBack }) {
     setMenuOpen(false);
   };
 
+  const variant = getAwningVariant(outlet);
+  const isActive = outlet.status === OUTLET_STATUS.ACTIVE;
+  const isFranchise = outlet.outletType === OUTLET_TYPES.FRANCHISE;
+  const actionClass =
+    "flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-sm font-semibold text-gray-700 transition-colors hover:border-emerald-200 hover:text-emerald-700 dark:border-white/10 dark:bg-gray-800 dark:text-gray-200 dark:hover:text-emerald-400";
+
+  // Storefront hero: the same awning + hanging sign as the outlet cards,
+  // scaled up, with the brand name as the shop's signboard.
   return (
-    <div className="rounded-2xl bg-white dark:bg-gray-800 p-5 sm:p-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={onBack}
-            className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors shrink-0"
-          >
-            <svg className="w-4 h-4 text-gray-700 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
+    <div className="relative rounded-3xl border border-emerald-100/80 bg-white shadow-[0_10px_30px_rgba(4,120,87,0.08)] dark:border-white/5 dark:bg-gray-800 dark:shadow-none">
+      <StoreAwning variant={variant} height="h-16" className="overflow-hidden rounded-t-3xl">
+        <button
+          onClick={onBack}
+          aria-label="Back to outlets"
+          className="absolute left-4 top-3.5 flex h-9 w-9 items-center justify-center rounded-full bg-white text-gray-700 shadow transition-colors hover:text-emerald-700 dark:bg-gray-900 dark:text-gray-200"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </button>
+        <span
+          className={cx(
+            "absolute left-16 top-[18px] rounded-full bg-white px-3.5 py-1 text-xs font-bold shadow dark:bg-gray-900",
+            variant === "closed"
+              ? "text-gray-600 dark:text-gray-300"
+              : isFranchise
+                ? "text-amber-700 dark:text-amber-400"
+                : "text-emerald-700 dark:text-emerald-400"
+          )}
+        >
+          {isFranchise ? "Franchise Outlet" : "Own Outlet"}
+        </span>
+      </StoreAwning>
 
-          <div className="w-14 h-14 rounded-full bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
-            <Store className="w-6 h-6" />
-          </div>
+      <OpenSign open={isActive} size="lg" className="absolute right-6 top-[72px] z-10 sm:right-10" />
 
-          <div>
+      <div className="flex flex-col gap-5 px-5 pb-6 pt-5 sm:px-7">
+        <div className="flex items-center gap-4 pr-28">
+          <StoreTile variant={variant} size="lg" />
+          <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-              <p className="text-xl font-bold text-gray-900 dark:text-gray-100 lowercase">{displayName}</p>
+              <p className="truncate text-2xl font-extrabold tracking-tight text-gray-900 dark:text-gray-100">{displayName}</p>
               {isVerified && (
-                <svg className="w-4 h-4 text-emerald-500" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 2.3l2.2 1.1 2.4-.5 1.3 2.1 2.1 1.3-.5 2.4L20.7 11l-1.2 2.3.5 2.4-2.1 1.3-1.3 2.1-2.4-.5L12 19.9l-2.2-1.1-2.4.5-1.3-2.1-2.1-1.3.5-2.4L3.3 11l1.2-2.3-.5-2.4 2.1-1.3L7.4 2.9l2.4.5L12 2.3z" />
-                  <path d="M9.5 12.1l1.8 1.8 3.3-3.6" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-                </svg>
+                <BadgeCheck className="h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400" aria-label="Verified brand" />
               )}
             </div>
-            <p className="text-sm text-gray-500 mt-0.5">Store Id: {maskStoreId(outlet.storeId)}</p>
-
-            <div className="flex flex-wrap items-center gap-2 mt-2.5">
-              <span
-                className={cx(
-                  "text-xs font-semibold px-3 py-1 rounded-full",
-                  outlet.outletType === OUTLET_TYPES.FRANCHISE
-                    ? "bg-sky-50 text-sky-600"
-                    : "bg-violet-50 text-violet-600"
-                )}
-              >
-                {OUTLET_TYPE_LABELS[outlet.outletType] || "—"}
-              </span>
-              <span className="text-xs font-semibold text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 rounded-full px-3 py-1">
-                Joined {formatJoinedDate(outlet.joinedDate)}
-              </span>
-              <StatusBadge status={outlet.status} />
+            <div className="mt-1 flex items-center gap-2">
+              <span className="text-[10px] font-bold tracking-[0.12em] text-gray-500 dark:text-gray-400">STORE ID</span>
+              <span className="font-mono text-sm font-semibold text-gray-800 dark:text-gray-200">{maskStoreId(outlet.storeId)}</span>
             </div>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={handleShare}
-            className="flex items-center gap-1.5 text-sm font-semibold text-gray-600 dark:text-gray-300 rounded-xl px-3.5 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-          >
-            {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Share2 className="w-4 h-4" />}
-            {copied ? "Copied" : "Share"}
-          </button>
-
-          {hasCoords && (
-            <button
-              onClick={handleViewOnMap}
-              className="flex items-center gap-1.5 text-sm font-semibold text-gray-600 dark:text-gray-300 rounded-xl px-3.5 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t-[1.5px] border-dashed border-emerald-100 pt-4 dark:border-white/10">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50/70 px-3 py-1.5 text-xs font-semibold text-gray-700 dark:bg-white/5 dark:text-gray-300">
+              <CalendarDays className="h-3.5 w-3.5 text-emerald-700 dark:text-emerald-400" />
+              Joined {formatJoinedDate(outlet.joinedDate)}
+            </span>
+            <span
+              className={cx(
+                "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold",
+                isActive
+                  ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400"
+                  : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"
+              )}
             >
-              <MapPin className="w-4 h-4" />
-              View on Map
-            </button>
-          )}
+              <span className={cx("h-1.5 w-1.5 rounded-full", isActive ? "bg-emerald-500" : "bg-gray-400")} />
+              {isActive ? "Open for business" : "Account inactive"}
+            </span>
+          </div>
 
-          <div className="relative" ref={menuRef}>
-            <button
-              onClick={() => setMenuOpen((o) => !o)}
-              className="w-9 h-9 flex items-center justify-center rounded-xl text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-            >
-              <MoreVertical className="w-4 h-4" />
+          <div className="flex flex-wrap items-center gap-2">
+            <button onClick={handleShare} className={actionClass}>
+              {copied ? <Check className="h-4 w-4 text-emerald-600" /> : <Share2 className="h-4 w-4" />}
+              {copied ? "Copied" : "Share"}
             </button>
-            {menuOpen && (
-              <div className="absolute right-0 top-full mt-1.5 w-44 bg-white dark:bg-gray-800 rounded-xl shadow-lg py-1 z-10">
-                <button
-                  onClick={handleCopyStoreId}
-                  className="w-full flex items-center gap-2 px-3.5 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                >
-                  <Copy className="w-3.5 h-3.5" />
-                  Copy Store Id
-                </button>
-              </div>
+
+            {hasCoords && (
+              <button onClick={handleViewOnMap} className={actionClass}>
+                <MapPin className="h-4 w-4" />
+                View on Map
+              </button>
             )}
+
+            <div className="relative" ref={menuRef}>
+              <button
+                onClick={() => setMenuOpen((o) => !o)}
+                aria-label="More actions"
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-600 transition-colors hover:text-emerald-700 dark:border-white/10 dark:bg-gray-800 dark:text-gray-300"
+              >
+                <MoreVertical className="h-4 w-4" />
+              </button>
+              {menuOpen && (
+                <div className="absolute right-0 top-full z-20 mt-1.5 w-44 rounded-xl bg-white py-1 shadow-lg dark:bg-gray-800">
+                  <button
+                    onClick={handleCopyStoreId}
+                    className="flex w-full items-center gap-2 px-3.5 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                    Copy Store Id
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </div>
-
-      <div className="flex items-center gap-3 mt-5 bg-gradient-to-r from-emerald-50 to-emerald-50/40 rounded-xl px-4 py-3">
-        <div className="w-9 h-9 rounded-lg bg-emerald-500 text-white flex items-center justify-center shrink-0">
-          <Crown className="w-4 h-4" />
-        </div>
-        <div className="flex-1">
-          <p className="text-sm font-semibold text-emerald-800">Great Performance!</p>
-          <p className="text-xs text-emerald-600">Keep growing with Trydood.</p>
-        </div>
-        <ChevronRight className="w-4 h-4 text-emerald-500 shrink-0" />
       </div>
     </div>
   );

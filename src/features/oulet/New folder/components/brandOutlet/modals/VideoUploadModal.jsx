@@ -9,6 +9,8 @@
 import { useState } from "react";
 import { Upload, X } from "lucide-react";
 
+import DisabledHint from "@/components/common/DisabledHint";
+
 export default function VideoUploadModal({ videoPreviewUrl, onCancel, onConfirm, submitting }) {
   const [poster, setPoster] = useState(null);
   const [isShowInVideoClips, setIsShowInVideoClips] = useState(false);
@@ -28,7 +30,7 @@ export default function VideoUploadModal({ videoPreviewUrl, onCancel, onConfirm,
             disabled={submitting}
             className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50"
           >
-            <X className="h-4 w-4 text-gray-500" />
+            <X className="h-4 w-4 text-gray-500 dark:text-gray-400" />
           </button>
         </div>
 
@@ -43,7 +45,7 @@ export default function VideoUploadModal({ videoPreviewUrl, onCancel, onConfirm,
             className="mb-3 h-40 w-full rounded-xl bg-black object-cover"
           />
 
-          <label className="mb-1.5 block text-xs font-medium text-gray-500">Poster (required)</label>
+          <label className="mb-1.5 block text-xs font-medium text-gray-500 dark:text-gray-400">Poster (required)</label>
           <div className="flex items-center gap-3">
             {poster && <img src={posterPreviewUrl} alt="" className="h-20 w-20 rounded-xl object-cover" />}
             <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl bg-gray-50 text-gray-400 hover:bg-emerald-50/40 hover:text-emerald-500 dark:bg-gray-700/40 dark:hover:bg-emerald-500/10">
@@ -70,19 +72,21 @@ export default function VideoUploadModal({ videoPreviewUrl, onCancel, onConfirm,
         </div>
 
         <div className="flex gap-2 px-6 py-4">
-          <button
-            type="button"
-            onClick={() => onConfirm({ poster, isShowInVideoClips })}
-            disabled={!poster || submitting}
-            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-500 py-2.5 text-sm font-bold text-white transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-300 dark:disabled:bg-gray-700"
-          >
-            {submitting ? "Uploading…" : "Upload Video"}
-          </button>
+          <DisabledHint show={!poster && !submitting} message="Choose a thumbnail for the video" className="flex-1">
+            <button
+              type="button"
+              onClick={() => onConfirm({ poster, isShowInVideoClips })}
+              disabled={!poster || submitting}
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-500 py-2.5 text-sm font-bold text-white transition-colors hover:bg-emerald-600 disabled:pointer-events-none disabled:bg-gray-100 disabled:text-gray-300 dark:disabled:bg-gray-700"
+            >
+              {submitting ? "Uploading…" : "Upload Video"}
+            </button>
+          </DisabledHint>
           <button
             type="button"
             onClick={onCancel}
             disabled={submitting}
-            className="shrink-0 rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-500 transition-colors hover:bg-gray-100 disabled:opacity-50 dark:hover:bg-gray-700"
+            className="shrink-0 rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-500 dark:text-gray-400 transition-colors hover:bg-gray-100 disabled:opacity-50 dark:hover:bg-gray-700"
           >
             Cancel
           </button>

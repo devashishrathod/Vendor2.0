@@ -111,7 +111,7 @@ export default function PlanBenefitsModal({ open, onClose, planName, features = 
                         </span>
                       </div>
                       {!u.isUnlimited && u.limit != null && (
-                        <div className="h-1.5 rounded-full bg-gray-200 overflow-hidden">
+                        <div className="h-1.5 rounded-full bg-gray-200 dark:bg-gray-600 overflow-hidden">
                           <div className="h-full rounded-full bg-emerald-500" style={{ width: `${pct}%` }} />
                         </div>
                       )}

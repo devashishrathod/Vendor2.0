@@ -2,7 +2,10 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useBrand } from "../../../hooks/useBrand";
 import { getCurrentSubscription } from "../services/subscriptionApi";
+import AppBackground from "@/components/common/AppBackground";
 import ErrorToast from "@/components/common/ErrorToast";
+import { isOnboardingCompleteNow } from "@/features/onboarding/utils/onboardingStatus";
+import { mergeGstRowsToIgst } from "../utils/priceCalculator";
 
 const CONFETTI_COLORS = [
   "#f472b6", "#818cf8", "#34d399", "#fb923c", "#facc15",
@@ -112,10 +115,11 @@ function truncatePercentInLabel(label) {
   return label.replace(/(\d+(?:\.\d+)?)%/, (_match, num) => `${Math.floor(parseFloat(num))}%`);
 }
 
-function PlanSummaryCard({ planName, orderSummary, strikePrice, defaultOpen = false }) {
+function PlanSummaryCard({ planName, orderSummary, pricing, strikePrice, defaultOpen = false }) {
   const [open, setOpen] = useState(defaultOpen);
 
-  const rows = orderSummary?.rows ?? [];
+  // CGST + SGST from the API → one "IGST @ 18%" row, same as checkout.
+  const rows = mergeGstRowsToIgst(orderSummary?.rows ?? [], pricing);
   const payable = orderSummary?.payable;
   if (rows.length === 0) return null;
 
@@ -217,7 +221,7 @@ function CurrentSubscriptionCard({ sub }) {
         </p>
         <span
           className={`text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0 ${
-            isActive ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"
+            isActive ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400" : "bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400"
           }`}
         >
           {subscription.status || "—"}
@@ -285,12 +289,12 @@ function CurrentSubscriptionCard({ sub }) {
         {/* Plan features */}
         {plan.features?.length > 0 && (
           <div className="mt-4 pt-4">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Plan Features</p>
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Plan Features</p>
             <div className="grid grid-cols-2 gap-x-6 gap-y-1.5">
               {plan.features.map((f) => (
                 <div key={f.title} className="flex items-center justify-between text-sm">
                   <span className="text-gray-600 dark:text-gray-300">{f.title}</span>
-                  <span className={`font-medium ${f.available ? "text-gray-800 dark:text-gray-100" : "text-gray-300"}`}>
+                  <span className={`font-medium ${f.available ? "text-gray-800 dark:text-gray-100" : "text-gray-300 dark:text-gray-500"}`}>
                     {f.value}
                   </span>
                 </div>
@@ -302,7 +306,7 @@ function CurrentSubscriptionCard({ sub }) {
         {/* Benefits */}
         {plan.benefits?.length > 0 && (
           <div className="mt-4 pt-4">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Benefits</p>
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Benefits</p>
             <ul className="space-y-1">
               {plan.benefits.map((b) => (
                 <li key={b} className="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300">
@@ -317,7 +321,7 @@ function CurrentSubscriptionCard({ sub }) {
         {/* Usage */}
         {Object.keys(usage).length > 0 && (
           <div className="mt-4 pt-4">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Usage</p>
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Usage</p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {USAGE_KEYS.map((key) => {
                 const u = usage[key];
@@ -387,9 +391,12 @@ export default function WelcomePage({ orderData = null, asModal = true, onClose,
   const orderSummary = orderData?.orderSummary;
   const invoiceUrl = getInvoiceUrl(orderData) || getInvoiceUrl(currentSub);
 
+  // No explicit returnTo (e.g. lost on a reload): an onboarded brand's
+  // purchase is an upgrade → back to Plan & Billing; only a brand still
+  // onboarding continues to Create Outlet.
   const handlePrimaryCta = () => {
     if (asModal && onClose) onClose();
-    navigate(returnTo || "/brand-outlet");
+    navigate(returnTo || (isOnboardingCompleteNow() ? "/subscription-plan" : "/brand-outlet"));
   };
 
   return (
@@ -397,9 +404,10 @@ export default function WelcomePage({ orderData = null, asModal = true, onClose,
       className={
         asModal
           ? "fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-          : "relative min-h-screen bg-white dark:bg-gray-800"
+          : "app-shell-bg relative isolate min-h-screen"
       }
     >
+      {!asModal && <AppBackground />}
       <ErrorToast error={invoiceToast} onDismiss={() => setInvoiceToast(null)} />
 
       {/*
@@ -502,6 +510,7 @@ export default function WelcomePage({ orderData = null, asModal = true, onClose,
               <PlanSummaryCard
                 planName={planName}
                 orderSummary={orderSummary}
+                pricing={orderData?.pricing}
                 strikePrice={strikePrice}
                 defaultOpen={asModal}
               />

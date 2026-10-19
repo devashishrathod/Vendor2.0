@@ -5,8 +5,17 @@ import { OUTLET_STATUS, PAGE_SIZE } from "../constants/outletConstants";
 // ── Maps one subBrand doc (from subBrands/get-all) into the shape
 // OutletCard/OutletGrid already render — { id, storeId, whatsapp: { number,
 // verified }, outletType, joinedDate, status }.
-// ⚠️ The confirmed subBrands/get-all doc has no `whatsappVerified` field,
-// so `verified` always evaluates to false until the backend adds one.
+//
+// `whatsapp.verified` is true / false / null (unknown). Confirmed field (see
+// brands/get's firstSubBrand): the outlet's nested `user.isWhatsappVerified`
+// — NOT `user.isMobileVerified`, which is a different flow. A top-level
+// isWhatsappVerified / whatsappVerified is accepted as a fallback. When none
+// is present the status is unknown (null) and no badge is shown, rather
+// than wrongly marking the outlet "Unverified".
+function readWhatsappVerified(doc) {
+  const value = doc.user?.isWhatsappVerified ?? doc.isWhatsappVerified ?? doc.whatsappVerified;
+  return typeof value === "boolean" ? value : null;
+}
 //
 // ⚠️ FIXED: outletType is now lowercased ("outlet"/"franchise") to match
 // OUTLET_TYPES/OUTLET_TYPE_LABELS/FILTER_OPTIONS, which all use lowercase
@@ -23,7 +32,7 @@ export function mapSubBrandToOutlet(doc) {
     uniqueId: doc.uniqueId || "",
     whatsapp: {
       number: doc.whatsappNumber || "",
-      verified: !!doc.whatsappVerified,
+      verified: readWhatsappVerified(doc),
     },
     outletType: (doc.outletType || "").toLowerCase(),
     joinedDate: doc.joinedDate || doc.createdAt,
@@ -177,7 +186,7 @@ export function useOutlets({ search, filters, dateRange, sortBy, sortOrder, page
         o.storeId,
         o.uniqueId,
         o.whatsapp.number,
-        o.whatsapp.verified ? "Yes" : "No",
+        o.whatsapp.verified === null ? "Unknown" : o.whatsapp.verified ? "Yes" : "No",
         o.outletType,
         o.status,
         o.joinedDate,

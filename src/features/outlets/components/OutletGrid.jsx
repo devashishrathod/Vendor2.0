@@ -11,9 +11,9 @@ export default function OutletGrid({
 }) {
   if (loading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="h-64 rounded-2xl bg-gray-100 dark:bg-gray-700 animate-pulse" />
+          <div key={i} className="h-[440px] rounded-3xl bg-white/60 dark:bg-gray-800/60 animate-pulse" />
         ))}
       </div>
     );
@@ -24,7 +24,7 @@ export default function OutletGrid({
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {outlets.map((outlet) => (
         <OutletCard
           key={outlet.id}

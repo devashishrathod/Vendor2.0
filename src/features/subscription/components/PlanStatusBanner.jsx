@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CheckCircle2, CalendarDays, ArrowRight } from 'lucide-react';
+import { CheckCircle2, CalendarDays, ArrowRight, RotateCcw } from 'lucide-react';
 import { formatDateLong, getExpirationStatus } from '../utils/formatters';
 import { PLAN_STATUS } from '../constants/subscription.constants';
 
@@ -10,7 +10,7 @@ const STATUS_COPY = {
   [PLAN_STATUS.TRIAL]: { label: 'Trial Plan', verb: 'is on trial', positive: true },
 };
 
-export default function PlanStatusBanner({ subscription, onUpgrade, onViewDetails }) {
+export default function PlanStatusBanner({ subscription, onUpgrade, onViewDetails, onRequestRefund }) {
   const { status, planName, brandName, nextRenewalDate } = subscription;
   const copy = STATUS_COPY[status] || STATUS_COPY[PLAN_STATUS.ACTIVE];
   const [showTopPlanModal, setShowTopPlanModal] = useState(false);
@@ -58,7 +58,7 @@ export default function PlanStatusBanner({ subscription, onUpgrade, onViewDetail
           </div>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
           <button
             onClick={() => (isTopPlan ? setShowTopPlanModal(true) : onUpgrade())}
             className={`flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors whitespace-nowrap ${
@@ -75,6 +75,15 @@ export default function PlanStatusBanner({ subscription, onUpgrade, onViewDetail
           >
             View Plan Details
           </button>
+          {/* Refund only makes sense for a plan that's currently running. */}
+          {onRequestRefund && status === PLAN_STATUS.ACTIVE && (
+            <button
+              onClick={onRequestRefund}
+              className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 rounded-xl bg-rose-50 text-rose-600 ring-1 ring-rose-100 hover:bg-rose-100 dark:bg-rose-500/10 dark:text-rose-400 dark:ring-rose-500/20 dark:hover:bg-rose-500/20 transition-colors whitespace-nowrap"
+            >
+              <RotateCcw className="w-4 h-4" /> Refund
+            </button>
+          )}
         </div>
       </div>
 
@@ -90,13 +99,13 @@ export default function PlanStatusBanner({ subscription, onUpgrade, onViewDetail
               <CheckCircle2 className="w-6 h-6" />
             </div>
             <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1.5">You're on our top plan</h3>
-            <p className="text-sm text-gray-500 mb-5">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
               {planName} already includes everything Trydood offers — there's no higher plan to upgrade to right
               now.
             </p>
             <button
               onClick={() => setShowTopPlanModal(false)}
-              className="w-full py-2.5 rounded-xl bg-gray-900 text-white text-sm font-semibold hover:bg-black transition-colors"
+              className="w-full py-2.5 rounded-xl bg-gray-900 text-white text-sm font-semibold hover:bg-black dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white transition-colors"
             >
               Got it
             </button>

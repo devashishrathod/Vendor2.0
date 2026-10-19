@@ -12,7 +12,7 @@ export default function GuidelinesModal({ type, onClose }) {
         <div className="flex items-center justify-between px-6 py-4 sticky top-0 bg-white dark:bg-gray-800 rounded-t-2xl">
           <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">{g.title}</h3>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-            <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -26,7 +26,7 @@ export default function GuidelinesModal({ type, onClose }) {
           ))}
         </div>
         <div className="px-6 py-4">
-          <button onClick={onClose} className="w-full bg-[#1a1a2e] text-white font-semibold py-2.5 rounded-xl text-sm hover:bg-[#2d2d5e] transition-colors">
+          <button onClick={onClose} className="w-full bg-[#1a1a2e] dark:bg-gray-700 text-white font-semibold py-2.5 rounded-xl text-sm hover:bg-[#2d2d5e] dark:hover:bg-gray-600 transition-colors">
             Got it
           </button>
         </div>

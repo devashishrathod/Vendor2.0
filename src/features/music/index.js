@@ -1,4 +1,8 @@
 export { default as MusicPage } from "./pages/MusicPage";
+export { default as PlaylistPage } from "./pages/PlaylistPage";
+export { usePlaylistCatalog } from "./hooks/usePlaylistCatalog";
+export { usePlaylistPlayback } from "./hooks/usePlaylistPlayback";
+export { useMusicStore } from "./store";
 export { default as CollectionCard } from "./components/CollectionCard";
 export { default as CollectionRow } from "./components/CollectionRow";
 export { default as CollectionDetail } from "./components/CollectionDetail";

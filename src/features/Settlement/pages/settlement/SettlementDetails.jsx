@@ -64,7 +64,7 @@ export default function SettlementDetails() {
 
   if (loading || !detail) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F8FAF7] dark:bg-gray-900 text-sm text-slate-400">
+      <div className="flex min-h-screen items-center justify-center bg-app dark:bg-gray-900 text-sm text-slate-400">
         Loading settlement details…
       </div>
     );
@@ -75,8 +75,8 @@ export default function SettlementDetails() {
   return (
    <div>
  
-     <div className="min-h-screen bg-[#F8FAF7] dark:bg-gray-900 pb-16">
-      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+     <div className="min-h-screen bg-app dark:bg-gray-900 pb-16">
+      <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">

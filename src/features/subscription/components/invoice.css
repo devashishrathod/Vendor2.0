@@ -455,6 +455,108 @@
 }
 
 
+/* ---------- Dark theme (modals only) ----------
+   These colors are plain CSS, so Tailwind `dark:` utilities can't override
+   them — scoped to `.dark .inv-modal` (the app's dark class, see index.css)
+   and to screen only, so a printed invoice stays paper-white. */
+@media screen {
+  .dark .inv-modal {
+    background: #1f2937;
+    color: #f3f4f6;
+  }
+
+  .dark .inv-modal .inv-page,
+  .dark .inv-modal .inv-payment-banner__status,
+  .dark .inv-modal .inv-history-table td,
+  .dark .inv-modal .inv-benefits-table td:nth-child(2),
+  .dark .inv-modal .inv-benefit-icon,
+  .dark .inv-modal .inv-query-field,
+  .dark .inv-modal .inv-query-success h4 {
+    color: #f3f4f6;
+  }
+
+  .dark .inv-modal .inv-card__meta p,
+  .dark .inv-modal .inv-line-item,
+  .dark .inv-modal .inv-benefits-table td {
+    color: #d1d5db;
+  }
+
+  .dark .inv-modal .inv-top-header p,
+  .dark .inv-modal .inv-create-link,
+  .dark .inv-modal .inv-bill-line,
+  .dark .inv-modal .inv-history-table th,
+  .dark .inv-modal .inv-query-order-tag,
+  .dark .inv-modal .inv-query-success p {
+    color: #9ca3af;
+  }
+
+  .dark .inv-modal .inv-card {
+    border-color: #374151;
+  }
+
+  .dark .inv-modal .inv-payment-banner {
+    background: rgba(16, 185, 129, 0.1);
+    border-color: rgba(16, 185, 129, 0.25);
+  }
+
+  .dark .inv-modal .inv-line-items,
+  .dark .inv-modal .inv-history-table-wrap,
+  .dark .inv-modal .inv-history-table td,
+  .dark .inv-modal .inv-benefits-table th,
+  .dark .inv-modal .inv-benefits-table td {
+    border-color: #374151;
+  }
+
+  .dark .inv-modal .inv-history-table thead {
+    background: #111827;
+  }
+
+  .dark .inv-modal .inv-history-table a,
+  .dark .inv-modal .inv-history-link-btn,
+  .dark .inv-modal .inv-benefits-table th {
+    color: #34d399;
+  }
+
+  .dark .inv-modal .inv-status-pill {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+  }
+
+  .dark .inv-modal .inv-modal__close,
+  .dark .inv-modal .inv-back-btn {
+    background: #374151;
+    color: #d1d5db;
+  }
+
+  .dark .inv-modal .inv-modal__close:hover,
+  .dark .inv-modal .inv-back-btn:hover {
+    background: #4b5563;
+  }
+
+  .dark .inv-modal .inv-action-btn {
+    background: #374151;
+    border-color: #4b5563;
+    color: #f3f4f6;
+  }
+
+  .dark .inv-modal .inv-action-btn:hover {
+    background: #4b5563;
+    border-color: #34d399;
+  }
+
+  .dark .inv-modal .inv-query-field input,
+  .dark .inv-modal .inv-query-field select,
+  .dark .inv-modal .inv-query-field textarea {
+    background: #374151;
+    border-color: #4b5563;
+    color: #f3f4f6;
+  }
+
+  .dark .inv-modal .inv-query-error {
+    color: #fca5a5;
+  }
+}
+
 @media print {
   .inv-top-header,
   .inv-billing-bar {

@@ -25,6 +25,15 @@ const inputBase =
   "w-full rounded-xl bg-emerald-50 dark:bg-emerald-500/10 px-3 py-2.5 text-sm text-gray-700 dark:text-gray-100 outline-none transition-colors " +
   "placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-100";
 
+// One half of the Banner | Images media row.
+const mediaPanel = "rounded-2xl border border-gray-100 dark:border-gray-700 p-4";
+
+// "Add"/"Change" file-picker tile used by banner, poster and images.
+const uploadTile =
+  "flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed " +
+  "border-gray-200 dark:border-gray-600 text-gray-400 transition-colors hover:border-emerald-300 hover:text-emerald-500 " +
+  "hover:bg-emerald-50/40 dark:hover:border-emerald-500/40 dark:hover:bg-emerald-500/10";
+
 // Same field, but for use inside an already-tinted wrapper (e.g. OfferCard's
 // bg-gray-50/60 panel) — bg-emerald-50 here so the field stands out from its
 // (still-neutral) panel instead of blending into it.
@@ -88,6 +97,7 @@ function OfferCard({ offer, index, onChange, onRemove, canRemove }) {
           <FieldLabel>Title</FieldLabel>
           <input
             required
+            maxLength={15}
             value={offer.title}
             onChange={(e) => onChange("title", e.target.value)}
             placeholder="10% OFF"
@@ -238,7 +248,7 @@ export default function VoucherForm({
     (!!form.bannerMedia && (!isBannerVideo || !!form.bannerPoster));
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-6">
+    <div className="max-w-7xl mx-auto px-4 py-8">
       {/* Header */}
       <div className="mb-6 flex items-center gap-3">
         <button
@@ -267,6 +277,7 @@ export default function VoucherForm({
         <SectionCard icon={Ticket} title="Voucher Name" subtitle="How this voucher appears to customers.">
           <input
             required
+            maxLength={25}
             value={form.voucherName}
             onChange={(e) => setField("voucherName", e.target.value)}
             placeholder="Enter Your Voucher Name"
@@ -276,6 +287,7 @@ export default function VoucherForm({
           <div className="mt-4">
             <FieldLabel>Description</FieldLabel>
             <textarea
+              maxLength={300}
               value={form.description}
               onChange={(e) => setField("description", e.target.value)}
               placeholder="Get exciting discounts on summer fashion collection."
@@ -284,13 +296,16 @@ export default function VoucherForm({
             />
           </div>
 
-          {/* Banner — add mode only, now placed ABOVE Voucher Images per
-              explicit instruction. Changing an existing voucher's banner is
+          {/* Banner (left) + Images (right) side by side on md+, stacked on
+              mobile. Edit mode has no banner section, so Images takes the
+              full width there. */}
+          <div className={`mt-5 grid grid-cols-1 gap-4 ${!isEdit ? "md:grid-cols-2" : ""}`}>
+          {/* Banner — add mode only. Changing an existing voucher's banner is
               handled entirely by VoucherBannerModal.jsx (opened from
               VoucherTable), not by this form — editing a voucher never
               shows this section. */}
           {!isEdit && (
-            <div className="mt-4 pt-4">
+            <div className={mediaPanel}>
               <FieldLabel>Voucher Banner</FieldLabel>
               <p className="mb-3 text-xs text-gray-400">
                 One file — image, GIF or video. It goes live only after admin review.
@@ -314,7 +329,7 @@ export default function VoucherForm({
                     />
                   )
                 )}
-                <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl text-gray-400 hover:text-emerald-500 hover:bg-emerald-50/40 dark:hover:bg-emerald-500/10">
+                <label className={uploadTile}>
                   <Upload className="h-4 w-4" />
                   <span className="text-[10px]">{form.bannerMedia ? "Change" : "Add"}</span>
                   <input
@@ -341,7 +356,7 @@ export default function VoucherForm({
                         className="h-20 w-20 rounded-xl object-cover"
                       />
                     )}
-                    <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl text-gray-400 hover:text-emerald-500 hover:bg-emerald-50/40 dark:hover:bg-emerald-500/10">
+                    <label className={uploadTile}>
                       <Upload className="h-4 w-4" />
                       <span className="text-[10px]">{form.bannerPoster ? "Change" : "Add"}</span>
                       <input
@@ -357,10 +372,9 @@ export default function VoucherForm({
             </div>
           )}
 
-          {/* Images — now placed BELOW Voucher Banner per explicit
-              instruction. Max 5 images total (existing + newly picked), at
-              least 3 required. */}
-          <div className="mt-5 pt-4">
+          {/* Images — max 5 total (existing + newly picked), at least 3
+              required. */}
+          <div className={mediaPanel}>
             <FieldLabel>Voucher Images</FieldLabel>
             <p className="mb-2 text-xs text-gray-400">
               Upload 3 to 5 images for this voucher. At least 3 images are required.
@@ -398,7 +412,7 @@ export default function VoucherForm({
               ))}
 
               {form.existingImageUrls.length + form.images.length < 5 && (
-                <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl text-gray-400 hover:text-emerald-500 hover:bg-emerald-50/40 dark:hover:bg-emerald-500/10">
+                <label className={uploadTile}>
                   <Upload className="h-4 w-4" />
                   <span className="text-[10px]">Add</span>
                   <input
@@ -419,6 +433,7 @@ export default function VoucherForm({
             {isSubmitting && uploadProgress > 0 && (
               <p className="mt-2 text-xs text-gray-400">Uploading… {uploadProgress}%</p>
             )}
+          </div>
           </div>
         </SectionCard>
 
@@ -550,17 +565,22 @@ export default function VoucherForm({
           title="Search Tag"
           subtitle="Keywords that help users quickly find this item."
         >
-          <div className="flex flex-wrap items-center gap-2 rounded-xl p-3 focus-within:ring-2 focus-within:ring-emerald-100">
+          {/* The whole box is the field (same look as the other inputs on
+              this form) — tag chips sit inside it, the input fills the
+              rest of the row, and clicking anywhere focuses the input. */}
+          <label className="flex min-h-12 cursor-text flex-wrap items-center gap-2 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 px-3 py-2 transition-colors focus-within:ring-2 focus-within:ring-emerald-100">
             {form.searchTags.map((tag) => (
               <span
                 key={tag}
-                className="flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700"
+                className="flex items-center gap-1.5 rounded-full bg-white dark:bg-gray-800 py-1 pl-3 pr-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-400 shadow-sm"
               >
+                <Tag className="h-3 w-3 text-emerald-400" />
                 {tag}
                 <button
                   type="button"
                   onClick={() => removeTag(tag)}
-                  className="text-emerald-400 hover:text-emerald-600"
+                  aria-label={`Remove ${tag}`}
+                  className="flex h-4 w-4 items-center justify-center rounded-full text-emerald-400 transition-colors hover:bg-emerald-100 hover:text-emerald-600 dark:hover:bg-emerald-500/20"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -571,9 +591,20 @@ export default function VoucherForm({
               onChange={(e) => setTagInput(e.target.value)}
               onKeyDown={handleTagKeyDown}
               onBlur={addTag}
-              placeholder="Type here..."
-              className="min-w-[120px] flex-1 bg-emerald-50 dark:bg-emerald-500/10 text-xs text-gray-700 dark:text-gray-100 outline-none placeholder:text-gray-400"
+              placeholder={form.searchTags.length ? "Add another tag…" : "e.g. diwali offer, spa, 20% off"}
+              className="min-w-[160px] flex-1 bg-transparent py-1 text-sm text-gray-700 dark:text-gray-100 outline-none placeholder:text-gray-400"
             />
+          </label>
+          <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-gray-400">
+            <span>
+              Press <kbd className="rounded bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 font-sans font-medium text-gray-500 dark:text-gray-300">Enter</kbd> or{" "}
+              <kbd className="rounded bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 font-sans font-medium text-gray-500 dark:text-gray-300">,</kbd> to add a tag
+            </span>
+            {form.searchTags.length > 0 && (
+              <span>
+                {form.searchTags.length} tag{form.searchTags.length === 1 ? "" : "s"}
+              </span>
+            )}
           </div>
         </SectionCard>
 

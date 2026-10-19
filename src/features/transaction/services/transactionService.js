@@ -1,5 +1,7 @@
 import axios from 'axios';
 
+import { getSubBrands } from '@/features/voucher/services/voucher/VoucherService';
+
 // ── Base URL ────────────────────────────────────────────────
 // Matches the Postman env variable {{base_url}} — this project's actual
 // env var is VITE_BASE_URL (see src/config/index.js), not VITE_API_BASE_URL.
@@ -141,7 +143,48 @@ const formatDate = (iso) =>
     })
     : "—";
 
-function mapPaymentRow(p) {
+// Raw `outletType` values (confirmed on GET /subBrands/get-all) → the
+// Store Type labels shown on the transaction tables and Order Detail.
+export const STORE_TYPE_LABELS = {
+  OUTLET: "Outlet",
+  FRANCHISE: "Franchise",
+};
+
+const formatStoreType = (raw) => STORE_TYPE_LABELS[String(raw || "").toUpperCase()] || "—";
+
+// The payments list's nested `outlet` only reliably carries storeId/
+// uniqueId, so each row's store type is resolved against the brand's
+// real outlet list (GET /subBrands/get-all), keyed by every id the
+// payment's outlet might be referenced by. A failure here just leaves
+// Store Type as "—" rather than failing the whole transactions load.
+async function fetchOutletTypeLookup(brandId) {
+  if (!brandId) return {};
+  try {
+    const res = await getSubBrands({ brandId, limit: 100 });
+    const outlets = Array.isArray(res?.data?.data) ? res.data.data : [];
+    return outlets.reduce((acc, o) => {
+      [o._id, o.storeId, o.uniqueId].filter(Boolean).forEach((key) => {
+        acc[key] = o.outletType;
+      });
+      return acc;
+    }, {});
+  } catch (error) {
+    console.error('Outlet type lookup failed:', error);
+    return {};
+  }
+}
+
+function resolveStoreType(outlet, outletTypeLookup = {}) {
+  if (!outlet) return "—";
+  const raw =
+    outlet.outletType ||
+    outletTypeLookup[outlet._id] ||
+    outletTypeLookup[outlet.storeId] ||
+    outletTypeLookup[outlet.uniqueId];
+  return formatStoreType(raw);
+}
+
+function mapPaymentRow(p, outletTypeLookup) {
   const customerName = p.customer?.fullName || "—";
   const customerCode = p.customer?.uniqueId || "—";
   return {
@@ -158,6 +201,7 @@ function mapPaymentRow(p) {
     razorpayOrderId: p.razorpayOrderId || "—",
     createdOn: formatDate(p.createdAt),
     outlet: p.outlet?.storeId || p.outlet?.uniqueId || "—",
+    storeType: resolveStoreType(p.outlet, outletTypeLookup),
     amount: formatINR(p.amount),
     // Razorpay's own status vocabulary ("captured", "failed", "refunded",
     // "created"/"authorized") — only "captured" reads as a completed
@@ -222,7 +266,7 @@ export function mapPaymentToOrderDetail(data) {
     status: claim.status,
     outlet: formatOutletLocation(outletAddress) || (outlet.state ? capitalize(outlet.state) : undefined),
     storeId: outlet.storeId || "—",
-    storeType: outletDetail.outletType || "—",
+    storeType: formatStoreType(outletDetail.outletType),
     // Outlet Information — real fields from outletDetail (address, contact,
     // status), not the thinner claim.outletSnapshot/data.outlet objects
     // that only carry storeId/uniqueId/state.
@@ -290,9 +334,12 @@ export function mapPaymentToOrderDetail(data) {
  * @param {Object} [opts] forwarded to getVoucherClaimPayments (outletId, etc.)
  */
 export async function fetchVoucherTransactionOverview(opts = {}) {
-  const res = await getVoucherClaimPayments({ limit: 100, ...opts });
+  const [res, outletTypeLookup] = await Promise.all([
+    getVoucherClaimPayments({ limit: 100, ...opts }),
+    fetchOutletTypeLookup(opts.brandId),
+  ]);
   const payments = res?.data?.data ?? [];
-  const rows = payments.map(mapPaymentRow);
+  const rows = payments.map((p) => mapPaymentRow(p, outletTypeLookup));
 
   const sum = (fn) => payments.reduce((acc, p) => acc + (fn(p) || 0), 0);
 
@@ -316,18 +363,54 @@ export async function fetchVoucherTransactionOverview(opts = {}) {
   };
 }
 
-function mapPaymentToVoucherTransactionRow(p) {
+/**
+ * Real voucher-payment totals for ONE outlet (Outlet Details page). Uses
+ * GET /voucher-claims/payments with outletId, and also filters client-side
+ * on the confirmed `subBrandId` / `outlet._id` (both equal the outlet's own
+ * _id) in case the server ignores the outletId param. Only "captured"
+ * payments count toward money totals.
+ * @param {{ brandId: string, outletId: string }} opts
+ * @returns {Promise<{ totalCollection: number, earnings: number, discountGiven: number, count: number, lastPaymentAt: string|null }>}
+ */
+export async function fetchOutletTransactionSummary({ brandId, outletId }) {
+  const res = await getVoucherClaimPayments({ limit: 100, brandId, outletId });
+  const payments = (res?.data?.data ?? []).filter(
+    (p) => p.subBrandId === outletId || p.outlet?._id === outletId
+  );
+  const captured = payments.filter((p) => p.status === "captured");
+  const sum = (fn) => captured.reduce((acc, p) => acc + (Number(fn(p)) || 0), 0);
+  const latest = captured
+    .map((p) => p.createdAt)
+    .filter(Boolean)
+    .sort()
+    .pop();
+
+  return {
+    totalCollection: sum((p) => p.amount),
+    earnings: sum((p) => p.voucher?.vendorPayable ?? p.voucher?.netBill),
+    discountGiven: sum((p) => p.voucher?.offerDiscount),
+    count: captured.length,
+    lastPaymentAt: latest || null,
+  };
+}
+
+function mapPaymentToVoucherTransactionRow(p, outletTypeLookup) {
   const customerName = p.customer?.fullName || "—";
   const customerId = p.customer?.uniqueId || "—";
   const created = p.createdAt ? new Date(p.createdAt) : null;
   return {
     orderId: p.invoiceId || p._id,
+    // Payment record's own _id — the GET /voucher-claims/payments/:id key the
+    // Order Detail page routes on (invoiceId has slashes, so it can't be).
+    txnId: p._id,
     customerName,
     customerId,
     voucherVersionId: p.voucherVersion?.versionCode || p.voucherVersion?._id || "—",
     outletName: p.outlet?.uniqueId || "—",
     storeId: p.outlet?.storeId || "—",
-    storeType: p.outlet?.outletType || "—",
+    // Confirmed: the nested `outlet` has only _id/uniqueId/storeId (no
+    // outletType), and its _id equals the payment's top-level subBrandId.
+    storeType: resolveStoreType(p.outlet || { _id: p.subBrandId }, outletTypeLookup),
     date: created && !Number.isNaN(created.getTime())
       ? created.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
       : "—",
@@ -336,6 +419,7 @@ function mapPaymentToVoucherTransactionRow(p) {
       : "—",
     status: p.status === "captured" ? "Success" : (p.status ? p.status.charAt(0).toUpperCase() + p.status.slice(1) : "Pending"),
     amount: p.amount,
+    paymentMethod: p.paymentMethod || "—",
   };
 }
 
@@ -348,16 +432,25 @@ function mapPaymentToVoucherTransactionRow(p) {
  * @param {Object} [opts] forwarded to getVoucherClaimPayments (brandId, etc.)
  */
 export async function fetchVoucherTransactionsByVoucherId(voucherId, opts = {}) {
-  const res = await getVoucherClaimPayments({ limit: 100, voucherId, ...opts });
+  const [res, outletTypeLookup] = await Promise.all([
+    getVoucherClaimPayments({ limit: 100, voucherId, ...opts }),
+    fetchOutletTypeLookup(opts.brandId),
+  ]);
   const payments = res?.data?.data ?? [];
-  const rows = payments.map(mapPaymentToVoucherTransactionRow);
+  const rows = payments.map((p) => mapPaymentToVoucherTransactionRow(p, outletTypeLookup));
 
-  const sum = (fn) => payments.reduce((acc, p) => acc + (fn(p) || 0), 0);
-  const uniqueCustomers = new Set(payments.map((p) => p.customer?.uniqueId).filter(Boolean));
+  // Money totals only count completed ("captured") payments — a failed or
+  // abandoned payment never earned anything. Confirmed amounts per payment:
+  // voucher.billAmount (3500) − voucher.offerDiscount (1000) = netBill
+  // (2500) = voucher.vendorPayable (what the vendor earns), while top-level
+  // `amount` (2535) is what the customer paid, including platform fees/GST.
+  const captured = payments.filter((p) => p.status === "captured");
+  const sum = (fn) => captured.reduce((acc, p) => acc + (Number(fn(p)) || 0), 0);
+  const uniqueCustomers = new Set(captured.map((p) => p.customer?.uniqueId).filter(Boolean));
 
   return {
     summary: {
-      overallEarnings: sum((p) => p.amount),
+      overallEarnings: sum((p) => p.voucher?.vendorPayable ?? p.voucher?.netBill),
       overallBillAmount: sum((p) => p.voucher?.billAmount),
       discountAmount: sum((p) => p.voucher?.offerDiscount),
       paidAmount: sum((p) => p.amount),

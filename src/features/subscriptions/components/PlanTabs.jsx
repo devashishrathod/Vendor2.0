@@ -75,9 +75,10 @@ export default function PlanTabs({ plans = [], selected, onChange, loading = fal
     const btn = btnRefs.current[id];
     const container = containerRef.current;
     if (!btn || !container) return;
-    const cRect = container.getBoundingClientRect();
-    const bRect = btn.getBoundingClientRect();
-    setPill({ left: bRect.left - cRect.left, width: bRect.width, ready: true });
+    // offsetLeft/offsetWidth are layout (CSS) px relative to the `relative`
+    // container, so the pill stays aligned under the app-wide CSS zoom —
+    // getBoundingClientRect() would return zoomed on-screen px instead.
+    setPill({ left: btn.offsetLeft, width: btn.offsetWidth, ready: true });
   };
 
   useEffect(() => {
@@ -108,7 +109,7 @@ export default function PlanTabs({ plans = [], selected, onChange, loading = fal
     <div
       ref={containerRef}
       // ⚠️ FIXED: `bg-gray-50` (#F9FAFB) was almost the exact same color as
-      // this page's own background (`#F8FAF7`, set in SubscriptionPlan.jsx)
+      // this page's own background (`bg-app`, set in SubscriptionPlan.jsx)
       // — a ~1-unit-per-channel difference, invisible in light mode. Only
       // dark mode had real contrast (`bg-gray-700` against `bg-gray-900`).
       // `bg-gray-200` gives light mode a visibly distinct track again

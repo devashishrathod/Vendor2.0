@@ -28,14 +28,14 @@ export default function ErrorModal({ error, onDismiss, onRetry, duration = 10000
         role="alert"
         className="fixed top-6 right-6 z-[9999]
                    max-w-[380px] w-[calc(100vw-48px)]
-                   bg-white
+                   bg-white dark:bg-gray-800
                    rounded-2xl px-4 py-3.5
                    flex items-start gap-3
                    shadow-[0_8px_32px_-4px_rgba(239,68,68,0.18),0_4px_16px_rgba(0,0,0,0.08)]"
         style={{ animation: "toastIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)" }}
       >
-        <div className="w-9 h-9 rounded-xl bg-red-100 flex items-center justify-center shrink-0">
-          <svg className="w-4 h-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="w-9 h-9 rounded-xl bg-red-100 dark:bg-red-500/15 flex items-center justify-center shrink-0">
+          <svg className="w-4 h-4 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -47,10 +47,10 @@ export default function ErrorModal({ error, onDismiss, onRetry, duration = 10000
         </div>
 
         <div className="flex-1 min-w-0">
-          <p className="text-[13px] font-semibold text-red-800 m-0">
+          <p className="text-[13px] font-semibold text-red-800 dark:text-red-300 m-0">
             {/* {title || "Something went wrong"} */}
           </p>
-          <p className="text-[12px] text-gray-500 mt-0.5 leading-snug break-words">
+          <p className="text-[12px] text-gray-500 dark:text-gray-400 mt-0.5 leading-snug break-words">
             {humanMessage || "Something went wrong. Please try again."}
           </p>
 
@@ -66,7 +66,7 @@ export default function ErrorModal({ error, onDismiss, onRetry, duration = 10000
           aria-label="Dismiss"
           className="bg-transparent cursor-pointer p-1 leading-none
                      text-gray-400 rounded-full shrink-0
-                     transition-colors hover:bg-red-50 hover:text-red-500"
+                     transition-colors hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-500"
         >
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />

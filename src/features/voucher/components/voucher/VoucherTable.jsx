@@ -14,6 +14,8 @@ import {
   Rocket,
   Trash2,
   Loader2,
+  Pause,
+  Play,
   Image as ImageIcon,
 } from "lucide-react";
 import VoucherStatusBadge from "./VoucherStatusBadge";
@@ -40,6 +42,7 @@ const STATUS_FILTER_OPTIONS = [
   { value: "APPROVED", label: "Approved" },
   { value: "REJECTED", label: "Rejected" },
   { value: "PUBLISHED", label: "Published" },
+  { value: "PAUSED", label: "Paused" },
   { value: "EXPIRED", label: "Expired" },
   { value: "ARCHIVED", label: "Archived" },
 ];
@@ -125,7 +128,13 @@ function buildPageList(page, totalPages) {
 
 // Icon-only action button — the action name only shows on hover (native
 // title tooltip), keeping the Action column compact.
-function ActionIconButton({ icon: Icon, label, isLoading, onClick }) {
+function ActionIconButton({
+  icon: Icon,
+  label,
+  isLoading,
+  onClick,
+  tone = "text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700",
+}) {
   return (
     <button
       type="button"
@@ -133,11 +142,60 @@ function ActionIconButton({ icon: Icon, label, isLoading, onClick }) {
       aria-label={label}
       disabled={isLoading}
       onClick={onClick}
-      className="flex h-7 w-7 items-center justify-center rounded-full bg-white dark:bg-gray-800 text-gray-500 transition-colors hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
+      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white dark:bg-gray-800 transition-colors disabled:opacity-50 ${tone}`}
     >
       {isLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Icon className="h-3.5 w-3.5" />}
     </button>
   );
+}
+
+// One fixed-width cell of the Action column — renders an empty spacer of
+// the same size when the row has no action for this slot, keeping every
+// icon vertically aligned across rows.
+function ActionSlot({ action }) {
+  if (!action) return <span aria-hidden="true" className="h-7 w-7 shrink-0" />;
+  return <ActionIconButton {...action} />;
+}
+
+// The status-specific workflow step shown in the first Action slot:
+// DRAFT → Submit, APPROVED → Publish, PUBLISHED → Pause, PAUSED → Resume.
+function getPrimaryAction(status, { isSubmitting, isPublishing, onSubmitForReview, onPublish, onPause, onResume }) {
+  switch (status) {
+    case "DRAFT":
+      return {
+        icon: Send,
+        label: "Submit for Review",
+        isLoading: isSubmitting,
+        onClick: onSubmitForReview,
+        tone: "text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-500/10",
+      };
+    case "APPROVED":
+      return {
+        icon: Rocket,
+        label: "Publish",
+        isLoading: isPublishing,
+        onClick: onPublish,
+        tone: "text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-500/10",
+      };
+    case "PUBLISHED":
+      return onPause && {
+        icon: Pause,
+        label: "Pause Voucher",
+        isLoading: isPublishing,
+        onClick: onPause,
+        tone: "text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-400/10",
+      };
+    case "PAUSED":
+      return onResume && {
+        icon: Play,
+        label: "Resume Voucher",
+        isLoading: isPublishing,
+        onClick: onResume,
+        tone: "text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-500/10",
+      };
+    default:
+      return null;
+  }
 }
 
 // Confirmed from Postman: DELETE /vouchers/:id requires a `reason` in the
@@ -175,10 +233,10 @@ function DeleteVoucherModal({ voucher, onClose, onDeleteVoucher }) {
       >
         <div className="px-6 py-5">
           <p className="text-base font-bold text-gray-900 dark:text-gray-100">Delete This Voucher?</p>
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
             You're about to permanently delete  "{voucher.name}". Once deleted, this voucher cannot be restored.
           </p>
-          <label className="mt-4 mb-1.5 block text-xs font-medium text-gray-500">Reason</label>
+          <label className="mt-4 mb-1.5 block text-xs font-medium text-gray-500 dark:text-gray-400">Reason</label>
           <textarea
             autoFocus
             value={reason}
@@ -213,6 +271,82 @@ function DeleteVoucherModal({ voucher, onClose, onDeleteVoucher }) {
   );
 }
 
+const PAUSE_REASON_MAX_LENGTH = 1000;
+
+// POST /vouchers/pause/:versionId takes an optional internal `reason`
+// (never shown to customers), so this collects one before pausing.
+function PauseVoucherModal({ voucher, onClose, onPause }) {
+  const [reason, setReason] = useState("");
+  const [pausing, setPausing] = useState(false);
+  const [error, setError] = useState("");
+
+  if (!voucher) return null;
+
+  const handlePause = async () => {
+    setPausing(true);
+    setError("");
+    try {
+      await onPause(voucher._id, reason.trim());
+      onClose();
+    } catch (err) {
+      setError(err.message || "Failed to pause voucher.");
+    } finally {
+      setPausing(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={onClose}>
+      <div
+        className="w-full max-w-sm rounded-2xl bg-white dark:bg-gray-800 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="px-6 py-5">
+          <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-orange-50 dark:bg-orange-400/10">
+            <Pause className="h-5 w-5 text-orange-500" />
+          </div>
+          <p className="text-base font-bold text-gray-900 dark:text-gray-100">Pause This Voucher?</p>
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            "{voucher.name}" will be hidden from customers until you resume it. Its dates, offers and images stay unchanged.
+          </p>
+          <label className="mt-4 mb-1.5 block text-xs font-medium text-gray-500 dark:text-gray-400">
+            Reason <span className="text-gray-400">(optional, internal only)</span>
+          </label>
+          <textarea
+            autoFocus
+            value={reason}
+            maxLength={PAUSE_REASON_MAX_LENGTH}
+            onChange={(e) => { setReason(e.target.value); setError(""); }}
+            rows={3}
+            placeholder="e.g. Out of stock this week"
+            className="w-full resize-none rounded-xl bg-emerald-50 dark:bg-emerald-500/10 px-3 py-2.5 text-sm text-gray-700 dark:text-gray-100 outline-none placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-100"
+          />
+          {error && <p className="mt-2 text-xs text-rose-500">{error}</p>}
+        </div>
+        <div className="flex gap-2 px-6 py-4">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={pausing}
+            className="flex-1 rounded-xl py-2.5 text-sm font-semibold text-gray-600 dark:text-gray-300 transition-colors hover:bg-gray-50 dark:hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handlePause}
+            disabled={pausing}
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-orange-500 py-2.5 text-sm font-bold text-white transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {pausing && <Loader2 className="h-4 w-4 animate-spin" />}
+            {pausing ? "Pausing…" : "Pause Voucher"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function VoucherTable({
   vouchers,
   isLoading,
@@ -232,11 +366,14 @@ export default function VoucherTable({
   onDateRangeChange,
   onSubmitForReview,
   onPublish,
+  onPause,
+  onResume,
   onDeleteVoucher,
   onBannerUpdated,
 }) {
   const navigate = useNavigate();
   const [bannerModalVoucher, setBannerModalVoucher] = useState(null);
+  const [pauseVoucherTarget, setPauseVoucherTarget] = useState(null);
   const [deleteVoucherTarget, setDeleteVoucherTarget] = useState(null);
   const [editWarningVoucher, setEditWarningVoucher] = useState(null);
 
@@ -451,101 +588,41 @@ export default function VoucherTable({
                       />
                     </td>
                     <td className="px-3 py-2">
-                      {status === "DRAFT" && (
-                        <div className="flex items-center gap-1.5">
-                          <ActionIconButton
-                            icon={Send}
-                            label="Submit for Review"
-                            isLoading={isSubmitting}
-                            onClick={() => onSubmitForReview(version.voucherId)}
-                          />
-                          <ActionIconButton
-                            icon={Pencil}
-                            label="Edit"
-                            onClick={goToEdit}
-                          />
-                          {onDeleteVoucher && (
-                            <ActionIconButton
-                              icon={Trash2}
-                              label="Delete"
-                              onClick={() => setDeleteVoucherTarget(version)}
-                            />
-                          )}
-                        </div>
-                      )}
-                      {status === "UNDER_REVIEW" && (
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[11px] font-medium text-amber-600">
-                            Under Review
-                          </span>
-                          {onDeleteVoucher && (
-                            <ActionIconButton
-                              icon={Trash2}
-                              label="Delete"
-                              onClick={() => setDeleteVoucherTarget(version)}
-                            />
-                          )}
-                        </div>
-                      )}
-                      {status === "APPROVED" && (
-                        <div className="flex items-center gap-1.5">
-                          <ActionIconButton
-                            icon={Rocket}
-                            label="Publish"
-                            isLoading={isPublishing}
-                            onClick={() => onPublish(version._id)}
-                          />
-                          {onDeleteVoucher && (
-                            <ActionIconButton
-                              icon={Trash2}
-                              label="Delete"
-                              onClick={() => setDeleteVoucherTarget(version)}
-                            />
-                          )}
-                        </div>
-                      )}
-                      {status === "PUBLISHED" && (
-                        <div className="flex items-center gap-1.5">
-                          <ActionIconButton
-                            icon={Pencil}
-                            label="Edit"
-                            onClick={() => setEditWarningVoucher(version)}
-                          />
-                          {onDeleteVoucher && (
-                            <ActionIconButton
-                              icon={Trash2}
-                              label="Delete"
-                              onClick={() => setDeleteVoucherTarget(version)}
-                            />
-                          )}
-                        </div>
-                      )}
-                      {status === "REJECTED" && (
-                        <div className="flex items-center gap-1.5">
-                          <ActionIconButton icon={Pencil} label="Edit" onClick={goToEdit} />
-                          {onDeleteVoucher && (
-                            <ActionIconButton
-                              icon={Trash2}
-                              label="Delete"
-                              onClick={() => setDeleteVoucherTarget(version)}
-                            />
-                          )}
-                        </div>
-                      )}
-                      {!["DRAFT", "UNDER_REVIEW", "APPROVED", "PUBLISHED", "REJECTED"].includes(
-                        status
-                      ) && (
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-xs text-gray-400">—</span>
-                            {onDeleteVoucher && (
-                              <ActionIconButton
-                                icon={Trash2}
-                                label="Delete"
-                                onClick={() => setDeleteVoucherTarget(version)}
-                              />
-                            )}
-                          </div>
-                        )}
+                      {/* Fixed 3-slot layout — [workflow action] [edit]
+                          [delete] — so each icon sits in the same column on
+                          every row; a status without that action gets an
+                          empty slot instead of shifting the rest left. */}
+                      <div className="flex items-center gap-1.5">
+                        <ActionSlot
+                          action={getPrimaryAction(status, {
+                            isSubmitting,
+                            isPublishing,
+                            onSubmitForReview: () => onSubmitForReview(version.voucherId),
+                            onPublish: () => onPublish(version._id),
+                            onPause: onPause && (() => setPauseVoucherTarget(version)),
+                            onResume: onResume && (() => onResume(version._id)),
+                          })}
+                        />
+                        <ActionSlot
+                          action={
+                            status === "DRAFT" || status === "REJECTED"
+                              ? { icon: Pencil, label: "Edit", onClick: goToEdit }
+                              : status === "PUBLISHED"
+                                ? { icon: Pencil, label: "Edit", onClick: () => setEditWarningVoucher(version) }
+                                : null
+                          }
+                        />
+                        <ActionSlot
+                          action={
+                            onDeleteVoucher && {
+                              icon: Trash2,
+                              label: "Delete",
+                              tone: "text-gray-500 hover:bg-rose-50 hover:text-rose-500 dark:hover:bg-rose-500/10",
+                              onClick: () => setDeleteVoucherTarget(version),
+                            }
+                          }
+                        />
+                      </div>
                     </td>
                   </tr>
                 );
@@ -613,6 +690,12 @@ export default function VoucherTable({
         voucher={bannerModalVoucher}
         onClose={() => setBannerModalVoucher(null)}
         onSaved={() => onBannerUpdated?.()}
+      />
+
+      <PauseVoucherModal
+        voucher={pauseVoucherTarget}
+        onClose={() => setPauseVoucherTarget(null)}
+        onPause={onPause}
       />
 
       <DeleteVoucherModal

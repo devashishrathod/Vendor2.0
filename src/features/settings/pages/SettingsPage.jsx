@@ -1,13 +1,22 @@
 import { useEffect, useState } from "react";
-import { Mail, Bell, MessageCircle, SlidersHorizontal, Palette, Sun, Moon } from "lucide-react";
+import { Mail, Bell, MessageCircle, SlidersHorizontal, Palette, Sun, Moon, Check } from "lucide-react";
 import { getNotificationPreferences, updateNotificationPreference } from "@/services/api/notificationApi";
 import { useTheme } from "@/context/ThemeContext";
+import { BACKGROUND_THEMES, PLAIN_BACKGROUNDS, accentPreview, darkTopPreview } from "@/constants/backgroundThemes";
 
 const CHANNELS = [
   { key: "email", label: "Email Notifications", icon: Mail },
   { key: "push", label: "Push Notifications", icon: Bell },
   { key: "whatsapp", label: "WhatsApp Notifications", icon: MessageCircle },
 ];
+
+// Mini-preview background for a Theme Color preset in the current mode
+// (mirrors the real .app-shell-bg gradient in index.css).
+function gradientPreview(preset, isDark) {
+  return isDark
+    ? `linear-gradient(to bottom, ${darkTopPreview(preset)} 0%, #030712 85%)`
+    : `linear-gradient(to bottom, ${preset.top} 0%, ${preset.mid} 45%, #ffffff 100%)`;
+}
 
 const THEME_OPTIONS = [
   { key: "light", label: "Light Mode", icon: Sun },
@@ -24,7 +33,8 @@ export default function SettingsPage() {
   const [error, setError] = useState("");
   const [savingChannel, setSavingChannel] = useState(null);
 
-  const { theme, setTheme, isDark } = useTheme();
+  const { theme, setTheme, isDark, background, setBackground, plainBackground, setPlainBackground } = useTheme();
+  const activeTheme = BACKGROUND_THEMES.find((b) => b.id === background) ?? BACKGROUND_THEMES[0];
 
   useEffect(() => {
     let cancelled = false;
@@ -174,7 +184,111 @@ export default function SettingsPage() {
             })}
           </div>
 
-          <p className={`text-xs mt-3 ${subText}`}>
+          {/* Theme Color — page background + accent (buttons, badges,
+              icons, charts) for both light and dark mode. Presets live in
+              constants/backgroundThemes.js. */}
+          <div className="mt-6">
+            <h3 className={`text-sm font-bold ${headingText}`}>Theme Color</h3>
+            <p className={`text-xs mt-0.5 ${subText}`}>
+              Changes every button, badge and highlight, plus the page gradient (unless a Plain Background is set below) — in light and dark mode.
+            </p>
+
+            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-5">
+              {BACKGROUND_THEMES.map((preset) => {
+                const active = background === preset.id;
+                return (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    onClick={() => setBackground(preset.id)}
+                    aria-pressed={active}
+                    className={`group rounded-xl p-1.5 text-left transition-all ${
+                      active
+                        ? "ring-2 ring-emerald-500"
+                        : `ring-1 ${isDark ? "ring-gray-700 hover:ring-gray-500" : "ring-gray-200 hover:ring-gray-300"}`
+                    }`}
+                  >
+                    {/* Mini page preview in the current mode: background
+                        gradient + a "button" in the preset's accent —
+                        dynamic per preset, so inline styles. */}
+                    <div
+                      className="relative h-16 overflow-hidden rounded-lg border border-black/5 dark:border-white/10"
+                      style={{ background: gradientPreview(preset, isDark) }}
+                    >
+                      <div className={`absolute inset-x-2 bottom-2 flex h-5 items-center justify-end rounded px-1 shadow-sm ${isDark ? "bg-gray-800/80" : "bg-white/80"}`}>
+                        <span className="h-3 w-7 rounded-sm" style={{ backgroundColor: accentPreview(preset) }} />
+                      </div>
+                      {active && (
+                        <span className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-white shadow">
+                          <Check className="h-3 w-3" strokeWidth={3} />
+                        </span>
+                      )}
+                    </div>
+                    <p className={`mt-1.5 truncate px-0.5 text-xs font-medium ${active ? "text-emerald-600" : headingText}`}>
+                      {preset.label}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Plain Background — optional, independent of Theme Color: a
+              flat colour that replaces only the gradient, while the Theme
+              Color's accent (green, violet, …) keeps colouring buttons,
+              text and cards. "None" = use the Theme Color's gradient. */}
+          <div className="mt-6">
+            <h3 className={`text-sm font-bold ${headingText}`}>Plain Background</h3>
+            <p className={`text-xs mt-0.5 ${subText}`}>
+              Swap the gradient for one flat colour — buttons, text and cards keep your {activeTheme.label} theme colour.
+            </p>
+
+            <div className="mt-3 grid grid-cols-3 gap-3 sm:grid-cols-6">
+              {[{ id: null, label: "None" }, ...PLAIN_BACKGROUNDS].map((preset) => {
+                const active = plainBackground === preset.id;
+                return (
+                  <button
+                    key={preset.id ?? "none"}
+                    type="button"
+                    onClick={() => setPlainBackground(preset.id)}
+                    aria-pressed={active}
+                    className={`rounded-xl p-1.5 text-left transition-all ${
+                      active
+                        ? "ring-2 ring-emerald-500"
+                        : `ring-1 ${isDark ? "ring-gray-700 hover:ring-gray-500" : "ring-gray-200 hover:ring-gray-300"}`
+                    }`}
+                  >
+                    {/* Flat page colour (or, for None, the Theme Color's
+                        gradient) in the current mode + a "button" in the
+                        live accent (bg-emerald-500 follows the Theme Color)
+                        — dynamic per preset, so inline styles. */}
+                    <div
+                      className="relative h-16 overflow-hidden rounded-lg border border-black/10 dark:border-white/10"
+                      style={
+                        preset.id
+                          ? { backgroundColor: isDark ? preset.darkSolid : preset.solid }
+                          : { background: gradientPreview(activeTheme, isDark) }
+                      }
+                    >
+                      <div className={`absolute inset-x-2 bottom-2 flex h-5 items-center justify-end rounded px-1 shadow-sm ${isDark ? "bg-gray-800/80" : "bg-white"}`}>
+                        <span className="h-3 w-7 rounded-sm bg-emerald-500" />
+                      </div>
+                      {active && (
+                        <span className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-white shadow">
+                          <Check className="h-3 w-3" strokeWidth={3} />
+                        </span>
+                      )}
+                    </div>
+                    <p className={`mt-1.5 truncate px-0.5 text-xs font-medium ${active ? "text-emerald-600" : headingText}`}>
+                      {preset.label}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <p className={`text-xs mt-4 ${subText}`}>
             Your choice is saved on this device and applies across the whole Vendor Panel.
           </p>
         </section>

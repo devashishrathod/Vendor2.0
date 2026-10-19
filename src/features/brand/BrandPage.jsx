@@ -1,4 +1,5 @@
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import BrandHeader from "./components/BrandHeader";
 import BrandTabs from "./components/BrandTabs";
@@ -46,8 +47,29 @@ const TAB_PAGES = {
  * brandId is missing or the fetch fails, the page shows a clear state
  * instead of silently rendering fake data.
  */
+const DEFAULT_TAB = BRAND_TABS[0].id;
+
 const BrandPage = ({ brandId: brandIdProp }) => {
-  const [activeTab, setActiveTab] = useState("brand-profile");
+  // Active tab lives in the URL (?tab=listing-features) so a page refresh
+  // keeps the user on the same tab instead of resetting to Brand Profile.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const activeTab = BRAND_TABS.some((tab) => tab.id === tabParam) ? tabParam : DEFAULT_TAB;
+
+  const setActiveTab = useCallback(
+    (tabId) => {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          if (tabId === DEFAULT_TAB) next.delete("tab");
+          else next.set("tab", tabId);
+          return next;
+        },
+        { replace: true }
+      );
+    },
+    [setSearchParams]
+  );
 
   const sessionBrandId = useAuthStore((s) => s.user?.brandId);
   const brandId = brandIdProp || sessionBrandId;
@@ -88,8 +110,8 @@ const BrandPage = ({ brandId: brandIdProp }) => {
   // ── No brandId at all — user isn't linked to a brand yet ──
   if (!brandId) {
     return (
-      <div className="min-h-screen bg-[#F8FAF7] dark:bg-gray-900 px-6 py-8 md:px-10">
-        <div className="mx-auto max-w-6xl">
+      <div className="min-h-screen bg-app dark:bg-gray-900 px-4 py-8">
+        <div className="mx-auto max-w-7xl">
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6">
             <p className="text-sm text-gray-500">
               No brand is linked to your account yet. Please complete onboarding first.
@@ -103,8 +125,8 @@ const BrandPage = ({ brandId: brandIdProp }) => {
   // ── Fetching brand data ──
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F8FAF7] dark:bg-gray-900 px-6 py-8 md:px-10">
-        <div className="mx-auto max-w-6xl">
+      <div className="min-h-screen bg-app dark:bg-gray-900 px-4 py-8">
+        <div className="mx-auto max-w-7xl">
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6">
             <p className="text-sm text-gray-400">Loading brand details…</p>
           </div>
@@ -116,8 +138,8 @@ const BrandPage = ({ brandId: brandIdProp }) => {
   // ── Fetch failed ──
   if (error) {
     return (
-      <div className="min-h-screen  dark:bg-gray-900 px-6 py-8 md:px-10">
-        <div className="mx-auto max-w-6xl">
+      <div className="min-h-screen  dark:bg-gray-900 px-4 py-8">
+        <div className="mx-auto max-w-7xl">
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6">
             <p className="text-sm text-red-500">
               Couldn't load brand data: {error}
@@ -137,8 +159,8 @@ const BrandPage = ({ brandId: brandIdProp }) => {
   // ── No data returned (shouldn't normally happen if brandId is valid) ──
   if (!brand) {
     return (
-      <div className="min-h-screen bg-[#F8FAF7] dark:bg-gray-900 px-6 py-8 md:px-10">
-        <div className="mx-auto max-w-6xl">
+      <div className="min-h-screen bg-app dark:bg-gray-900 px-4 py-8">
+        <div className="mx-auto max-w-7xl">
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6">
             <p className="text-sm text-gray-500">No brand data found.</p>
           </div>
@@ -150,8 +172,8 @@ const BrandPage = ({ brandId: brandIdProp }) => {
   // ── Real data loaded successfully ──
   return (
     <div>
-      <div className="min-h-screen bg-[#F8FAF7] dark:bg-gray-900 px-6 py-8 md:px-10">
-        <div className="mx-auto max-w-6xl">
+      <div className="min-h-screen bg-app dark:bg-gray-900 px-4 py-8">
+        <div className="mx-auto max-w-7xl">
           <BrandHeader
             brandName={brand.brandName}
             merchantId={brand.merchantId}

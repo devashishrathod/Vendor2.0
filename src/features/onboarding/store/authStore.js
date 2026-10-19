@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import { ANALYTICS_EVENTS, LOGIN_METHOD } from '@/constants/analytics';
+import { setAnalyticsUser, trackEvent } from '@/utils/analytics';
 import { authAPI } from '../services/api/index';
 import { useOnboardingStore } from './onboardingStore';
 
@@ -73,6 +75,7 @@ export const useAuthStore = create(
           // Ab SUBSCRIBE_PLAN/UNDER_REVIEW/DASHBOARD bhi map mein hain ✅
           const currentScreen = SCREEN_MAP[rawScreen] ?? 'BUSINESS_NAME';
           set({ isFirst, currentScreen, loading: false });
+          trackEvent(ANALYTICS_EVENTS.OTP_REQUESTED, { method: LOGIN_METHOD, is_new_vendor: !!isFirst });
           return res;
         } catch (e) {
           set({ error: e.message, loading: false });
@@ -91,6 +94,11 @@ export const useAuthStore = create(
           const user  = res?.data?.user;
           if (!token) throw new Error('Token not received. Please try again.');
           set({ token, user, loading: false });
+          setAnalyticsUser(user?._id ?? null);
+          trackEvent(isFirst ? ANALYTICS_EVENTS.SIGN_UP : ANALYTICS_EVENTS.LOGIN, {
+            method:      LOGIN_METHOD,
+            resume_from: screenToSend,
+          });
           return { ...res, isFirst };
         } catch (e) {
           set({ error: e.message, loading: false });
@@ -110,6 +118,13 @@ export const useAuthStore = create(
 
         if (newIdx > currIdx) {
           set({ currentScreen: mapped });
+
+          // Forward-only, so each screen is reported as completed once per
+          // vendor — back-navigation and revisits don't inflate the funnel.
+          trackEvent(ANALYTICS_EVENTS.ONBOARDING_STEP_COMPLETE, {
+            step_name: current,
+            next_step: mapped,
+          });
 
           // user object ke andar bhi sync karo (koi component user.currentScreen
           // read karta ho to consistent rahe)
@@ -138,6 +153,7 @@ export const useAuthStore = create(
         });
 
         useOnboardingStore.getState().reset();
+        setAnalyticsUser(null);
 
         localStorage.removeItem('auth-storage');
         localStorage.removeItem('onboarding-store');

@@ -184,15 +184,15 @@ export default function VoucherOutletPickerModal({
                       <p className="mt-3 text-xs font-semibold text-gray-800 dark:text-gray-100">
                         Outlet Location
                       </p>
-                      <p className="mt-1 max-w-md text-xs text-gray-500">{outlet.location}</p>
+                      <p className="mt-1 max-w-md text-xs text-gray-500 dark:text-gray-400">{outlet.location}</p>
                     </div>
                   </div>
 
                   <span
                     className={`shrink-0 rounded-md px-3 py-1 text-xs font-semibold ${
                       outlet.status === "Active"
-                        ? "bg-emerald-100 text-emerald-700"
-                        : "bg-rose-100 text-rose-600"
+                        ? "bg-emerald-100 dark:bg-emerald-500/15 text-emerald-700"
+                        : "bg-rose-100 dark:bg-rose-500/15 text-rose-600"
                     }`}
                   >
                     {outlet.status}

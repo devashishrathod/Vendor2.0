@@ -78,7 +78,7 @@ export default function RefundDecisionModal({ mode, row, onClose, onDone }) {
           <button
             onClick={onClose}
             disabled={submitting}
-            className="text-gray-400 hover:text-gray-600 disabled:opacity-40"
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 disabled:opacity-40"
             aria-label="Close"
           >
             <X className="w-4 h-4" />
@@ -87,15 +87,15 @@ export default function RefundDecisionModal({ mode, row, onClose, onDone }) {
 
         <div className="rounded-xl bg-gray-50 dark:bg-gray-700/50 px-4 py-3 mb-4 text-xs space-y-1.5">
           <div className="flex justify-between">
-            <span className="text-gray-500">Requested Amount</span>
+            <span className="text-gray-500 dark:text-gray-400">Requested Amount</span>
             <span className="font-semibold text-gray-800 dark:text-gray-100">{row.requestedAmount}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-500">Reason</span>
+            <span className="text-gray-500 dark:text-gray-400">Reason</span>
             <span className="font-medium text-gray-700 dark:text-gray-200">{row.reason}</span>
           </div>
           {row.reasonNote && (
-            <p className="text-gray-500 pt-1">“{row.reasonNote}”</p>
+            <p className="text-gray-500 dark:text-gray-400 pt-1">“{row.reasonNote}”</p>
           )}
         </div>
 
@@ -130,7 +130,7 @@ export default function RefundDecisionModal({ mode, row, onClose, onDone }) {
         </label>
 
         {error && (
-          <p className="mb-3 text-xs text-rose-700 bg-rose-50 rounded-lg px-3 py-2">{error}</p>
+          <p className="mb-3 text-xs text-rose-700 bg-rose-50 dark:bg-rose-500/15 rounded-lg px-3 py-2">{error}</p>
         )}
 
         <div className="flex gap-2">

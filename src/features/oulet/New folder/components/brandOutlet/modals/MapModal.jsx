@@ -149,7 +149,7 @@ export default function MapModal({ place, onClose }) {
         className={`w-11 h-11 rounded-full flex items-center justify-center transition ${
           primary
             ? "bg-teal-700 text-white hover:bg-teal-800"
-            : "bg-sky-50 text-sky-900 hover:bg-sky-100"
+            : "bg-sky-50 dark:bg-sky-500/15 text-sky-900 dark:text-sky-300 hover:bg-sky-100 dark:hover:bg-sky-500/20"
         }`}
       >
         <Icon size={18} strokeWidth={2} />
@@ -179,7 +179,7 @@ export default function MapModal({ place, onClose }) {
           referrerPolicy="no-referrer-when-downgrade"
         />
       ) : (
-        <div className="absolute inset-0 bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-sm text-gray-500">
+        <div className="absolute inset-0 bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-sm text-gray-500 dark:text-gray-400">
           Location coordinates unavailable.
         </div>
       )}
@@ -220,7 +220,7 @@ export default function MapModal({ place, onClose }) {
                 type="button"
                 onClick={() => goToPhoto(activePhoto - 1)}
                 aria-label="Previous photo"
-                className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 shadow flex items-center justify-center text-gray-700 hover:bg-white"
+                className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 dark:bg-gray-800/90 shadow flex items-center justify-center text-gray-700 dark:text-gray-200 hover:bg-white dark:hover:bg-gray-800"
               >
                 ‹
               </button>
@@ -228,7 +228,7 @@ export default function MapModal({ place, onClose }) {
                 type="button"
                 onClick={() => goToPhoto(activePhoto + 1)}
                 aria-label="Next photo"
-                className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 shadow flex items-center justify-center text-gray-700 hover:bg-white"
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 dark:bg-gray-800/90 shadow flex items-center justify-center text-gray-700 dark:text-gray-200 hover:bg-white dark:hover:bg-gray-800"
               >
                 ›
               </button>
@@ -245,7 +245,7 @@ export default function MapModal({ place, onClose }) {
             <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 leading-tight">
               {name || "Place"}
             </h2>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               {address || "Address unavailable"}
             </p>
           </div>
@@ -259,7 +259,7 @@ export default function MapModal({ place, onClose }) {
                 </div>
               )}
               {userRatingsTotal !== null && userRatingsTotal !== undefined && (
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                   {userRatingsTotal.toLocaleString()} reviews
                 </p>
               )}
@@ -316,7 +316,7 @@ export default function MapModal({ place, onClose }) {
               className={`text-sm font-medium pb-2 transition ${
                 activeTab === tab
                   ? "text-emerald-600"
-                  : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                  : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
               }`}
             >
               {tab}
@@ -378,7 +378,7 @@ export default function MapModal({ place, onClose }) {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-gray-500">No photos available.</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">No photos available.</p>
               )}
             </div>
           )}
@@ -394,7 +394,7 @@ export default function MapModal({ place, onClose }) {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
                   Opening hours unavailable.
                 </p>
               )}
