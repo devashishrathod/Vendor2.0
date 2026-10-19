@@ -2,8 +2,10 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useBrand } from "../../../hooks/useBrand";
 import { getCurrentSubscription } from "../services/subscriptionApi";
+import AppBackground from "@/components/common/AppBackground";
 import ErrorToast from "@/components/common/ErrorToast";
 import { isOnboardingCompleteNow } from "@/features/onboarding/utils/onboardingStatus";
+import { mergeGstRowsToIgst } from "../utils/priceCalculator";
 
 const CONFETTI_COLORS = [
   "#f472b6", "#818cf8", "#34d399", "#fb923c", "#facc15",
@@ -113,10 +115,11 @@ function truncatePercentInLabel(label) {
   return label.replace(/(\d+(?:\.\d+)?)%/, (_match, num) => `${Math.floor(parseFloat(num))}%`);
 }
 
-function PlanSummaryCard({ planName, orderSummary, strikePrice, defaultOpen = false }) {
+function PlanSummaryCard({ planName, orderSummary, pricing, strikePrice, defaultOpen = false }) {
   const [open, setOpen] = useState(defaultOpen);
 
-  const rows = orderSummary?.rows ?? [];
+  // CGST + SGST from the API → one "IGST @ 18%" row, same as checkout.
+  const rows = mergeGstRowsToIgst(orderSummary?.rows ?? [], pricing);
   const payable = orderSummary?.payable;
   if (rows.length === 0) return null;
 
@@ -401,9 +404,10 @@ export default function WelcomePage({ orderData = null, asModal = true, onClose,
       className={
         asModal
           ? "fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-          : "relative min-h-screen bg-white dark:bg-gray-800"
+          : "app-shell-bg relative isolate min-h-screen"
       }
     >
+      {!asModal && <AppBackground />}
       <ErrorToast error={invoiceToast} onDismiss={() => setInvoiceToast(null)} />
 
       {/*
@@ -506,6 +510,7 @@ export default function WelcomePage({ orderData = null, asModal = true, onClose,
               <PlanSummaryCard
                 planName={planName}
                 orderSummary={orderSummary}
+                pricing={orderData?.pricing}
                 strikePrice={strikePrice}
                 defaultOpen={asModal}
               />

@@ -87,7 +87,6 @@ export default function Step6PANEnter({ onFetchSuccess, onComplete }) {
     "10 characters",
     "5 letters + 4 numbers + 1 letter",
     "No spaces or special characters",
-    "Must be a valid business PAN",
   ];
   const rules = PAN_RULES.map((r, index) => ({
     label: ruleLabels[index],

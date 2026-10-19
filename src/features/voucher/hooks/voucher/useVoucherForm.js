@@ -15,6 +15,10 @@ import {
   updateVoucher,
 } from "../../services/voucher/VoucherService";
 
+const MAX_VOUCHER_NAME_LENGTH = 25;
+const MAX_DESCRIPTION_LENGTH = 300;
+const MAX_OFFER_TITLE_LENGTH = 15;
+
 function createEmptyOffer() {
   return {
     title: "",
@@ -368,7 +372,13 @@ export default function useVoucherForm(voucherId) {
   }, [brand, isLoading]);
 
   const setField = useCallback((field, value) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
+    const maxLength = {
+      voucherName: MAX_VOUCHER_NAME_LENGTH,
+      description: MAX_DESCRIPTION_LENGTH,
+    }[field];
+    const nextValue =
+      typeof value === "string" && maxLength ? value.slice(0, maxLength) : value;
+    setForm((prev) => ({ ...prev, [field]: nextValue }));
   }, []);
 
   const setOutletField = useCallback((field, value) => {
@@ -409,10 +419,14 @@ export default function useVoucherForm(voucherId) {
   }, []);
 
   const setOfferField = useCallback((index, field, value) => {
+    const nextValue =
+      field === "title" && typeof value === "string"
+        ? value.slice(0, MAX_OFFER_TITLE_LENGTH)
+        : value;
     setForm((prev) => ({
       ...prev,
       offers: prev.offers.map((offer, i) =>
-        i === index ? { ...offer, [field]: value } : offer
+        i === index ? { ...offer, [field]: nextValue } : offer
       ),
     }));
   }, []);

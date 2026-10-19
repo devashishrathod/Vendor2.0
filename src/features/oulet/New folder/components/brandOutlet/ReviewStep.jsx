@@ -56,6 +56,9 @@ export default function ReviewStep({
   workingHours,
   showcaseAlbums,
   minItemsPerAlbum,
+  hasListingFeature = true,
+  hasShowcaseAlbum = true,
+  advancedSkipped = false,
   canFinalSave,
   saving,
   onEditStep1,
@@ -128,6 +131,39 @@ export default function ReviewStep({
           })
         )}
       </ReviewCard>
+
+      {advancedSkipped && (
+        <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-4 mb-4 text-sm text-gray-600 dark:text-gray-300">
+          <p>
+            Advanced Details skipped — Listing Features and Showcase can be added later from Account
+            Information.
+          </p>
+          <button
+            type="button"
+            onClick={onOpenAdvanced}
+            className="mt-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline"
+          >
+            Add them now →
+          </button>
+        </div>
+      )}
+
+      {!advancedSkipped && (!hasListingFeature || !hasShowcaseAlbum) && (
+        <div className="bg-amber-50 dark:bg-amber-500/10 rounded-2xl p-4 mb-4 text-sm text-amber-700 dark:text-amber-400">
+          <p className="font-semibold mb-1">Advanced Details are required before creating the outlet:</p>
+          <ul className="list-disc list-inside space-y-0.5">
+            {!hasListingFeature && <li>Add at least 1 listing feature</li>}
+            {!hasShowcaseAlbum && <li>Add a showcase album with at least {minItemsPerAlbum} photos/videos</li>}
+          </ul>
+          <button
+            type="button"
+            onClick={onOpenAdvanced}
+            className="mt-2 text-xs font-semibold text-amber-700 dark:text-amber-400 hover:underline"
+          >
+            Go to Advanced Details →
+          </button>
+        </div>
+      )}
 
       {incompleteAlbums.length > 0 && (
         <div className="bg-amber-50 dark:bg-amber-500/10 rounded-2xl p-4 mb-4 text-sm text-amber-700 dark:text-amber-400">

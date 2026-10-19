@@ -1,42 +1,32 @@
 import { useRef, useState } from "react";
-import { Pencil, Trash2, Play, X, ListChecks, Eye, Loader2 } from "lucide-react";
+import { Pencil, Trash2, Play, X, ListChecks, Eye, Loader2, Plus } from "lucide-react";
 import ConfirmModal from "@/components/common/ConfirmModal";
 
 // Detects video vs image by file extension in the URL.
 const isVideoUrl = (url = "") => /\.(mp4|webm|mov|ogg)(\?|$)/i.test(url);
 
-const DESCRIPTION_TRUNCATE_LENGTH = 60;
-
-// Table cell: shows a short preview of a long description with a "Read
-// more" link that opens the full details modal, instead of the whole
-// paragraph stretching the row.
-const DescriptionCell = ({ description, onReadMore }) => {
-  if (!description) return <span className="text-gray-400">—</span>;
-  if (description.length <= DESCRIPTION_TRUNCATE_LENGTH) {
-    return <span>{description}</span>;
-  }
-  return (
-    <span>
-      {description.slice(0, DESCRIPTION_TRUNCATE_LENGTH).trimEnd()}…{" "}
-      <button
-        type="button"
-        onClick={onReadMore}
-        className="font-medium text-emerald-600 hover:underline"
-      >
-        Read more
-      </button>
-    </span>
-  );
-};
-
 const StatusBadge = ({ isActive }) => (
   <span
-    className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+    className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-0.5 rounded-full ${
       isActive ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400"
     }`}
   >
+    <span className={`h-1.5 w-1.5 rounded-full ${isActive ? "bg-emerald-500" : "bg-gray-400"}`} />
     {isActive ? "Active" : "Inactive"}
   </span>
+);
+
+// Small icon button used in each feature tile's action row.
+const TileAction = ({ onClick, label, className, children }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    aria-label={label}
+    title={label.split(" ")[0]}
+    className={`flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${className}`}
+  >
+    {children}
+  </button>
 );
 
 // "View" modal — full details for one listing feature (icon, title, full
@@ -201,6 +191,9 @@ const ListingFeaturesSection = ({
   const [changingIconId, setChangingIconId] = useState(null);
   const [iconError, setIconError] = useState("");
 
+  const totalCount = listingFeatures.features.length;
+  const activeCount = listingFeatures.features.filter((f) => f.isActive).length;
+
   const handleConfirmDelete = () => {
     onDelete(deletingFeature.id);
     setDeletingFeature(null);
@@ -219,16 +212,23 @@ const ListingFeaturesSection = ({
   };
 
   return (
-    <section>
+    <section className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
             <ListChecks size={18} className="text-emerald-500 dark:text-emerald-400" />
           </div>
           <div>
-            <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100">
-              Listing Features
-            </h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100">
+                Listing Features
+              </h2>
+              {totalCount > 0 && (
+                <span className="rounded-full bg-gray-100 dark:bg-gray-700 px-2 py-0.5 text-[11px] font-semibold text-gray-500 dark:text-gray-300">
+                  {activeCount}/{totalCount} active
+                </span>
+              )}
+            </div>
             <p className="text-xs text-gray-400 mt-0.5">
               {listingFeatures.subtitle}
             </p>
@@ -249,80 +249,80 @@ const ListingFeaturesSection = ({
         </p>
       )}
 
-      <div className="mt-5 overflow-x-auto no-scrollbar rounded-xl shadow-sm">
-        <table className="w-full min-w-[640px] text-left text-sm">
-          <thead>
-            <tr className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
-              <th className="px-5 py-3">S.NO</th>
-              <th className="px-5 py-3">Icon</th>
-              <th className="px-5 py-3">Title</th>
-              <th className="px-5 py-3">Description</th>
-              <th className="px-5 py-3">Status</th>
-              <th className="px-5 py-3">Created On</th>
-              <th className="px-5 py-3 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {listingFeatures.features.map((feature) => (
-              <tr
-                key={feature.id}
-              >
-                <td className="px-5 py-4 text-gray-800 dark:text-gray-100">{feature.sNo}</td>
-                <td className="px-5 py-4">
-                  <MediaThumb
-                    src={feature.iconUrl}
-                    alt={feature.lfName}
-                    onPlay={() => setPlayingFeature(feature)}
-                    onView={() => setViewingFeature(feature)}
-                    onChangeIcon={onChangeIcon ? (file) => handleChangeIcon(feature, file) : undefined}
-                    changing={changingIconId === feature.id}
-                  />
-                </td>
-                <td className="px-5 py-4 text-gray-800 dark:text-gray-100">{feature.lfName}</td>
-                <td className="px-5 py-4 text-gray-800 dark:text-gray-100 max-w-xs">
-                  <DescriptionCell
-                    description={feature.description}
-                    onReadMore={() => setViewingFeature(feature)}
-                  />
-                </td>
-                <td className="px-5 py-4">
-                  <StatusBadge isActive={feature.isActive} />
-                </td>
-                <td className="px-5 py-4 text-gray-500">
-                  {feature.createdOn}
-                </td>
-                <td className="px-5 py-4">
-                  <div className="flex items-center justify-end gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setViewingFeature(feature)}
-                      aria-label="View"
-                      className="text-gray-400 hover:text-gray-600"
-                    >
-                      <Eye size={16} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onEdit(feature)}
-                      aria-label="Edit"
-                      className="text-emerald-500 hover:text-emerald-600"
-                    >
-                      <Pencil size={16} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDeletingFeature(feature)}
-                      aria-label="Delete"
-                      className="text-rose-500 hover:text-rose-600"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {totalCount === 0 && (
+        <p className="mt-6 text-xs text-gray-400">
+          No listing features yet — add one to show customers what your business offers.
+        </p>
+      )}
+
+      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {listingFeatures.features.map((feature) => (
+          <article
+            key={feature.id}
+            className={`group flex flex-col rounded-2xl border bg-white p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-lg hover:shadow-emerald-100/50 dark:bg-gray-900/40 dark:hover:border-emerald-500/40 dark:hover:shadow-none ${
+              feature.isActive ? "border-gray-100 dark:border-gray-700" : "border-dashed border-gray-200 opacity-75 dark:border-gray-700"
+            }`}
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div className="rounded-2xl bg-emerald-50/70 p-1.5 dark:bg-emerald-500/10">
+                <MediaThumb
+                  src={feature.iconUrl}
+                  alt={feature.lfName}
+                  onPlay={() => setPlayingFeature(feature)}
+                  onView={() => setViewingFeature(feature)}
+                  onChangeIcon={onChangeIcon ? (file) => handleChangeIcon(feature, file) : undefined}
+                  changing={changingIconId === feature.id}
+                />
+              </div>
+              <div className="flex items-center gap-0.5 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
+                <TileAction
+                  onClick={() => setViewingFeature(feature)}
+                  label={`View ${feature.lfName}`}
+                  className="text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+                >
+                  <Eye size={15} />
+                </TileAction>
+                <TileAction
+                  onClick={() => onEdit(feature)}
+                  label={`Edit ${feature.lfName}`}
+                  className="text-emerald-500 hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-500/10"
+                >
+                  <Pencil size={15} />
+                </TileAction>
+                <TileAction
+                  onClick={() => setDeletingFeature(feature)}
+                  label={`Delete ${feature.lfName}`}
+                  className="text-rose-500 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/10"
+                >
+                  <Trash2 size={15} />
+                </TileAction>
+              </div>
+            </div>
+
+            <h3 className="mt-3 truncate text-sm font-bold text-gray-900 dark:text-gray-100">
+              {feature.lfName}
+            </h3>
+            <p className="mt-1 line-clamp-2 min-h-8 flex-1 text-xs leading-4 text-gray-500 dark:text-gray-400">
+              {feature.description || "No description added."}
+            </p>
+
+            <div className="mt-4 flex items-center justify-between gap-2 border-t border-dashed border-gray-100 pt-3 dark:border-gray-700">
+              <StatusBadge isActive={feature.isActive} />
+              <span className="truncate text-[11px] text-gray-400">{feature.createdOn}</span>
+            </div>
+          </article>
+        ))}
+
+        <button
+          type="button"
+          onClick={onAdd}
+          className="group flex min-h-44 flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-200 text-gray-400 transition-colors hover:border-emerald-300 hover:bg-emerald-50/40 hover:text-emerald-600 dark:border-gray-700 dark:hover:border-emerald-500/40 dark:hover:bg-emerald-500/5"
+        >
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-50 transition-colors group-hover:bg-emerald-100 dark:bg-gray-700 dark:group-hover:bg-emerald-500/20">
+            <Plus size={18} />
+          </span>
+          <span className="text-sm font-semibold">Add feature</span>
+        </button>
       </div>
 
       {playingFeature && (

@@ -12,6 +12,7 @@ import DisabledHint from "@/components/common/DisabledHint";
  *    (the media rows themselves, and section reordering).
  */
 const AddShowcaseSectionModal = ({ mode = "add", section = null, onClose, onSubmit }) => {
+  const MAX_SECTION_TITLE_LENGTH = 20;
   const isEdit = mode === "edit";
   const [title, setTitle] = useState(section?.title || "");
   const [description, setDescription] = useState(section?.description || "");
@@ -110,7 +111,8 @@ const AddShowcaseSectionModal = ({ mode = "add", section = null, onClose, onSubm
             <input
               type="text"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              maxLength={MAX_SECTION_TITLE_LENGTH}
+              onChange={(e) => setTitle(e.target.value.slice(0, MAX_SECTION_TITLE_LENGTH))}
               placeholder="e.g. Ambience photo"
               className="w-full rounded-xl px-3.5 py-2.5 text-sm text-gray-700 bg-emerald-50 dark:bg-emerald-500/10 dark:text-gray-100 outline-none transition-colors placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-100"
             />

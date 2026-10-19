@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
+import { ArrowLeftRight, Landmark, LayoutDashboard, Music2, RotateCcw, TicketPercent } from "lucide-react";
 import { useLogout } from "@/hooks/useLogout";
 import { useBrand } from "@/hooks/useBrand";
 import logo from "@/assets/Logo1.png";
@@ -7,15 +8,15 @@ import NotificationBell from "./NotificationBell";
 import ThemeToggleButton from "@/components/common/ThemeToggleButton";
 
 const NAV_TABS = [
-  { label: "Dashboard", to: "/analysis-report" },
-  { label: "Transactions",    to: "/transactions"        },
-  { label: "Refunds",         to: "/refunds"             },
-  { label: "Settlements",     to: "/settlements"      },
-  { label: "Voucher",         to: "/vouchers"          },
+  { label: "Dashboard",       to: "/analysis-report", icon: LayoutDashboard },
+  { label: "Voucher",         to: "/vouchers",        icon: TicketPercent },
+  { label: "Transactions",    to: "/transactions",    icon: ArrowLeftRight },
+  { label: "Settlements",     to: "/settlements",     icon: Landmark },
+  { label: "Refunds",         to: "/refunds",         icon: RotateCcw },
+  { label: "Playlist Music",  to: "/music",           icon: Music2 },
   // { label: "Account Information",       to: "/account-information"        },
   // { label: "Sub Outlets & Franchise",      to: "/outlets"       },
   // { label: "Subscription Plan",      to: "/subscription-plan"       },
-  { label: "Playlist Music",      to: "/music"       },
   // { label: "More",            to: "/more"             },
 ];
 
@@ -50,6 +51,15 @@ export default function DashboardHeader() {
 
   useEffect(() => () => clearTimeout(closeTimer.current), []);
 
+  // Transparent over the hero wash at the top; solid green once scrolled.
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   useEffect(() => {
     if (!profileOpen) return;
     const handleClickOutside = (e) => {
@@ -62,17 +72,26 @@ export default function DashboardHeader() {
   }, [profileOpen]);
 
   return (
-    <nav className="bg-white/85 dark:bg-gray-900/85 backdrop-blur-md sticky top-0 z-50 relative">
-      <div className="px-4 sm:px-6 h-16 flex items-center">
+    // Sits directly on DashboardLayout's green hero wash (transparent at the
+    // top of the page); once the page scrolls it picks up its own solid
+    // green so the white text stays readable over the content below.
+    <nav
+      className={`sticky top-0 z-50 transition-[background-color,box-shadow] duration-300 ${
+        scrolled
+          ? "bg-gradient-to-r from-emerald-100/85 via-white/85 to-teal-50/85 shadow-[0_8px_24px_rgba(16,185,129,0.12)] backdrop-blur-xl dark:from-gray-900/85 dark:via-emerald-950/85 dark:to-gray-900/85 dark:shadow-black/30"
+          : "bg-transparent"
+      }`}
+    >
+      <div className="relative px-4 sm:px-6 h-16 flex items-center">
 
         {/* ── Left: Logo ── */}
-        <div className="flex items-center gap-4 flex-1">
+        <div className="flex items-center gap-3 flex-1">
           {/* Logo1.png is a full vertical lockup (icon, then "TRYDOOD" wordmark,
               then a tagline) — squeezing the whole thing into a small square
               made it illegible, so this crops in on just the icon mark
               (a fixed pixel window into the source image, scaled up) and
               pairs it with real "Trydood" text instead. */}
-          <div className="relative w-9 h-9 rounded-lg overflow-hidden flex-shrink-0 bg-white ring-1 ring-gray-100 dark:ring-gray-700">
+          <div className="relative w-9 h-9 rounded-xl overflow-hidden flex-shrink-0 bg-white shadow-sm ring-2 ring-white/40">
             <img
               src={logo}
               alt=""
@@ -81,28 +100,28 @@ export default function DashboardHeader() {
             />
           </div>
           <div className="leading-tight hidden sm:block">
-            <p className="text-sm font-bold text-gray-900 dark:text-gray-100 tracking-tight">Trydood</p>
-            <p className="text-[10px] text-gray-400 -mt-0.5">Vendor Panel</p>
+            <p className="text-[15px] font-bold text-gray-900 dark:text-white tracking-tight">Trydood</p>
+            <p className="text-[10px] text-emerald-700/80 dark:text-white/70 -mt-0.5">Vendor Panel</p>
           </div>
         </div>
 
-        {/* ── Center: Desktop nav links — a segmented-pill track, flex-1 on
-            both sides above/below keeps this centered on the header's full
-            width regardless of how wide the logo or the right-side icons
-            are. ── */}
-        <div className="hidden lg:flex items-center justify-center gap-0.5 flex-shrink-0 bg-gray-100 dark:bg-gray-800 rounded-full p-1">
-          {NAV_TABS.map(({ label, to }) => (
+        {/* ── Center: Desktop nav links — flex-1 on both sides keeps this
+            centered on the header's full width regardless of how wide the
+            logo or the right-side icons are. ── */}
+        <div className="hidden lg:flex items-center justify-center gap-2 flex-shrink-0">
+          {NAV_TABS.map(({ label, to, icon: Icon }) => (
             <NavLink
               key={label}
               to={to}
               className={({ isActive }) =>
-                `px-4 py-1.5 rounded-full text-[13px] font-medium transition-all duration-150 whitespace-nowrap
+                `flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[13px] ring-1 backdrop-blur-sm transition-all duration-150 whitespace-nowrap
                 ${isActive
-                  ? "text-emerald-600 dark:text-emerald-400 font-semibold bg-white dark:bg-gray-700 shadow-sm"
-                  : "text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100"
+                  ? "bg-white text-emerald-700 font-semibold ring-emerald-200 shadow-[0_4px_14px_rgba(16,185,129,0.18)] dark:bg-emerald-500/25 dark:text-white dark:ring-emerald-400/40"
+                  : "bg-white/55 text-gray-700 font-medium ring-white/80 hover:bg-white/85 hover:text-emerald-700 dark:bg-white/10 dark:text-gray-200 dark:ring-white/10 dark:hover:bg-white/15 dark:hover:text-white"
                 }`
               }
             >
+              <Icon size={15} strokeWidth={2} />
               {label}
             </NavLink>
           ))}
@@ -110,13 +129,13 @@ export default function DashboardHeader() {
 
         {/* ── Right: Notifications + Avatar + Hamburger ── */}
         <div className="flex items-center gap-2 flex-1 justify-end">
-          <ThemeToggleButton />
-          <NotificationBell />
+          <ThemeToggleButton onColor />
+          <NotificationBell onColor />
 
           <div className="relative" ref={profileRef}>
             <div
               onClick={() => setProfileOpen((prev) => !prev)}
-              className="w-9 h-9 rounded-xl overflow-hidden flex items-center justify-center cursor-pointer flex-shrink-0 shadow-sm shadow-emerald-100 ring-1 ring-emerald-100 hover:shadow-emerald-200 transition-shadow duration-150 bg-gradient-to-br from-emerald-500 to-emerald-700"
+              className="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center cursor-pointer flex-shrink-0 ring-2 ring-white/70 shadow-md hover:ring-white transition-all duration-150 bg-gradient-to-br from-emerald-400 to-emerald-700"
             >
               {brand?.logo ? (
                 <img src={brand.logo} alt={brand.brandName || "Brand logo"} className="w-full h-full object-cover" />
@@ -257,8 +276,8 @@ export default function DashboardHeader() {
             onClick={toggleMenu}
             aria-label="Toggle menu"
             aria-expanded={menuOpen}
-            className="lg:hidden relative flex items-center justify-center w-9 h-9 rounded-xl
-              text-gray-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors duration-150"
+            className="lg:hidden relative flex items-center justify-center w-9 h-9 rounded-full
+              bg-white/60 text-gray-700 ring-1 ring-white/80 hover:bg-white/90 hover:text-emerald-700 dark:bg-white/10 dark:text-gray-200 dark:ring-white/10 transition-colors duration-150"
           >
             <span className="relative block w-[18px] h-[14px]">
               <span
@@ -282,12 +301,12 @@ export default function DashboardHeader() {
       {/* ── Mobile dropdown menu — laptop-lid style open/close ── */}
       {menuMounted && (
         <div
-          className="lg:hidden absolute top-full left-0 w-full z-50 overflow-visible"
+          className="lg:hidden absolute top-full left-0 w-full z-50 mt-2 overflow-visible"
           style={{ perspective: "1200px" }}
         >
           <div
-            className={`origin-top bg-white/95 dark:bg-gray-900/95 backdrop-blur-md
-              px-4 py-3 flex flex-col gap-1 shadow-2xl
+            className={`origin-top rounded-2xl bg-white/95 dark:bg-gray-900/95 backdrop-blur-md
+              px-3 py-3 flex flex-col gap-1 shadow-2xl
               transition-all ease-[cubic-bezier(0.22,1,0.36,1)]
               ${menuVisible
                 ? "opacity-100 duration-300"
@@ -299,14 +318,14 @@ export default function DashboardHeader() {
               transform: menuVisible ? "rotateX(0deg)" : "rotateX(-100deg)",
             }}
           >
-            {NAV_TABS.map(({ label, to }, i) => (
+            {NAV_TABS.map(({ label, to, icon: Icon }, i) => (
               <NavLink
                 key={label}
                 to={to}
                 onClick={closeMenu}
                 style={{ transitionDelay: menuVisible ? `${100 + i * 30}ms` : "0ms" }}
                 className={({ isActive }) =>
-                  `px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ease-out
+                  `flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ease-out
                   ${menuVisible ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-2"}
                   ${isActive
                     ? "text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-50 dark:bg-emerald-500/10"
@@ -314,6 +333,7 @@ export default function DashboardHeader() {
                   }`
                 }
               >
+                <Icon size={16} />
                 {label}
               </NavLink>
             ))}

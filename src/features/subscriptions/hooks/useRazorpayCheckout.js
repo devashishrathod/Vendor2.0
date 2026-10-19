@@ -14,7 +14,9 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useCallback } from "react";
+import { ANALYTICS_EVENTS } from "@/constants/analytics";
 import razorpayAPI from "@/features/subscriptions/services/razorpay.api";
+import { trackEvent } from "@/utils/analytics";
 
 // Loads the Razorpay checkout script once and caches the promise.
 let razorpayScriptPromise = null;
@@ -35,6 +37,20 @@ function loadRazorpayScript() {
 }
 
 const STORAGE_KEY = "trydood_pending_order";
+
+/**
+ * GA4 `purchase` — value in rupees, transaction_id dedupes repeat sends.
+ * @param {object} order  the merged order object handed to onSuccess
+ * @param {string} subscriptionId
+ */
+function trackPurchase(order, subscriptionId) {
+  trackEvent(ANALYTICS_EVENTS.PURCHASE, {
+    transaction_id: order?.transaction?._id ?? order?.razorpay?.orderId,
+    value:          order?.amount ?? 0,
+    currency:       order?.razorpay?.currency || "INR",
+    items:          [{ item_id: subscriptionId, item_name: order?.plan?.name }],
+  });
+}
 
 function persistOrder(order) {
   try {
@@ -65,6 +81,11 @@ export function useRazorpayCheckout() {
   const pay = useCallback(async ({ subscriptionId, businessDetails = {}, promoCode, onSuccess, onFailure }) => {
     setError("");
     setProcessing(true);
+    trackEvent(ANALYTICS_EVENTS.BEGIN_CHECKOUT, {
+      currency: "INR",
+      items:    [{ item_id: subscriptionId }],
+      ...(promoCode ? { coupon: promoCode } : {}),
+    });
     try {
       // 1. Create the order on our backend
       const orderRes = await razorpayAPI.createOrder({
@@ -90,6 +111,7 @@ export function useRazorpayCheckout() {
         setOrderData(zeroOrder);
         persistOrder(zeroOrder);
         setProcessing(false);
+        trackPurchase(zeroOrder, subscriptionId);
         onSuccess?.(zeroOrder);
         return zeroOrder;
       }
@@ -146,6 +168,7 @@ export function useRazorpayCheckout() {
               setOrderData(merged);
               persistOrder(merged);
               setProcessing(false);
+              trackPurchase(merged, subscriptionId);
               onSuccess?.(merged);
               resolve(merged);
             } catch (verifyErr) {
@@ -177,6 +200,10 @@ export function useRazorpayCheckout() {
     } catch (err) {
       setProcessing(false);
       setError(err.message || "Something went wrong. Please try again.");
+      trackEvent(ANALYTICS_EVENTS.PAYMENT_FAILED, {
+        items:  [{ item_id: subscriptionId }],
+        reason: err.message,
+      });
       onFailure?.(err);
       throw err;
     }

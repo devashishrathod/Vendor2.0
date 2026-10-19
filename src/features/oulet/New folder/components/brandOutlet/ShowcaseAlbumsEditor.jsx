@@ -81,14 +81,6 @@ export default function ShowcaseAlbumsEditor({ albums, onChange, brandId }) {
     setToastError({ message });
   };
 
-  // ── Video poster queue ──
-  // Confirmed from the add-media error response: "A video needs a poster
-  // image. Attach one as 'thumbnail'..." — EVERY video needs one, not just
-  // ones marked "Show in Video Clips" (that was the old, wrong gating).
-  // Picked videos are queued here and uploaded one at a time through
-  // VideoUploadModal, which collects the required poster (+ the optional
-  // clips flag) before the request is ever sent — see handleFiles /
-  // handleVideoConfirm / handleVideoCancel below.
   const [videoQueue, setVideoQueue] = useState([]);
   const [videoModalBusy, setVideoModalBusy] = useState(false);
   const currentVideoJob = videoQueue[0] || null;
@@ -108,14 +100,7 @@ export default function ShowcaseAlbumsEditor({ albums, onChange, brandId }) {
         const payload = res?.data ?? res ?? {};
         const sectionsRaw = payload.sections || payload.showcaseSections || (Array.isArray(payload) ? payload : []);
 
-        // CONFIRMED real response (GET /section/get/:sectionId): section
-        // fields are flat (_id, title, ...), but its media list is a
-        // PAGINATED object — `media: { page, limit, total, totalPages,
-        // data: [...] }` — not a bare array, and each item's url/thumbnail
-        // live one level down under its own `media: { url, thumbnail, ... }`
-        // (same nested shape the add-media response uses). `s.medias` /
-        // flat `m.url` kept as fallbacks only in case the list endpoint
-        // (as opposed to this detail one) ever returns a plain array.
+     
         const mapped = (Array.isArray(sectionsRaw) ? sectionsRaw : []).map((s) => {
           const mediaList = s.media?.data || s.medias || (Array.isArray(s.media) ? s.media : []) || [];
           return {
@@ -155,13 +140,7 @@ export default function ShowcaseAlbumsEditor({ albums, onChange, brandId }) {
 
         if (mapped.length) onChange(mapped);
       } catch (err) {
-        // A brand-new outlet genuinely has no showcase yet — this call
-        // failing just means "nothing saved so far", not a real error
-        // worth alarming the merchant over. If real data exists, the
-        // `onChange(mapped)` above already renders it; if it doesn't,
-        // the plain "No albums yet" empty state below covers it. Still
-        // logged to the console so a genuine failure (network/auth) is
-        // visible to a developer.
+     
         console.error("Couldn't load existing showcase:", err.message);
       } finally {
         setLoading(false);

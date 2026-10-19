@@ -53,7 +53,7 @@ const CARDS = [
 export default function TransactionSummaryPanel({ transactions, error }) {
   if (error) {
     return (
-      <div className="rounded-2xl bg-white px-5 py-4 text-sm text-rose-500 dark:bg-gray-800 dark:text-rose-400">
+      <div className="rounded-3xl border border-rose-100 bg-white px-5 py-4 text-sm text-rose-500 dark:border-white/5 dark:bg-gray-800 dark:text-rose-400">
         {error}
       </div>
     );
@@ -72,7 +72,10 @@ export default function TransactionSummaryPanel({ transactions, error }) {
               : "No transactions yet"
             : card.hint;
         return (
-          <div key={card.key} className="rounded-2xl bg-white p-5 shadow-sm dark:bg-gray-800">
+          <div
+            key={card.key}
+            className="rounded-3xl border border-emerald-100/80 bg-white p-5 shadow-[0_10px_30px_rgba(4,120,87,0.06)] transition-transform duration-200 hover:-translate-y-0.5 dark:border-white/5 dark:bg-gray-800 dark:shadow-none"
+          >
             <div className="flex items-center gap-2.5">
               <div className={cx("flex h-9 w-9 shrink-0 items-center justify-center rounded-lg", card.iconClass)}>
                 <Icon className="h-4 w-4" />

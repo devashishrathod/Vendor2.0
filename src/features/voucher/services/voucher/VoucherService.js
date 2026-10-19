@@ -507,6 +507,39 @@ export async function publishVoucher(versionId) {
     }
 }
 
+// ── Pause a live voucher ─────────────────────────────────────────
+// POST {{TryDood2.0BaseUrl}}/vouchers/pause/:versionId
+// Same contract the Admin panel uses (vendor_panel_api_doc.md #57a,
+// VENDOR+ADMIN). ⚠️ Takes the VERSION _id. Only a PUBLISHED version can be
+// paused — it leaves the customer feed until resumed (dates, offers,
+// images unchanged). body (optional): { reason } — max 1000, internal
+// note, never shown to customers.
+export async function pauseVoucher(versionId, reason) {
+    try {
+        if (!versionId) throw new Error('versionId is required');
+        const body = reason ? { reason } : {};
+        const { data } = await api.post(`/vouchers/pause/${versionId}`, body);
+        return data;
+    } catch (error) {
+        handleError(error);
+    }
+}
+
+// ── Resume a paused voucher ──────────────────────────────────────
+// POST {{TryDood2.0BaseUrl}}/vouchers/resume/:versionId   (no body)
+// vendor_panel_api_doc.md #57b. Only a PAUSED version. 409 if another
+// version went live meanwhile, or the validity ran out while paused (then
+// a new version is needed).
+export async function resumeVoucher(versionId) {
+    try {
+        if (!versionId) throw new Error('versionId is required');
+        const { data } = await api.post(`/vouchers/resume/${versionId}`);
+        return data;
+    } catch (error) {
+        handleError(error);
+    }
+}
+
 // ══════════════════════════════════════════════════════════════
 // DELETE
 // ══════════════════════════════════════════════════════════════

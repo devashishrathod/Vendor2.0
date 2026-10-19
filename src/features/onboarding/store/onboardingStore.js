@@ -79,7 +79,7 @@ function positionIndex(step, subStep) {
   );
 }
 
-const STEP_TO_SCREEN = {
+export const STEP_TO_SCREEN = {
   "1:1": "BUSINESS_NAME",
   "1:2": "REGISTRATION_STATUS",
   "1:3": "REGISTRATION_ENTITY_TYPE",

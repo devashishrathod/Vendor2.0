@@ -49,7 +49,7 @@ export default function VoucherRevenueChart({ revenueWeekly }) {
             <XAxis dataKey="day" tick={{ fontSize: 11, fill: "#9ca3af" }} axisLine={false} tickLine={false} />
             <YAxis tick={{ fontSize: 11, fill: "#9ca3af" }} axisLine={false} tickLine={false} />
             <Tooltip />
-            <Line type="monotone" dataKey="current" stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} />
+            <Line type="monotone" dataKey="current" stroke="var(--color-emerald-500)" strokeWidth={2} dot={{ r: 3 }} />
             <Line type="monotone" dataKey="last" stroke="#4f46e5" strokeWidth={2} dot={{ r: 3 }} />
           </LineChart>
         </ResponsiveContainer>

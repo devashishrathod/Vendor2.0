@@ -29,6 +29,18 @@ export const PLAN_STATUS = {
   TRIAL: 'TRIAL',
 };
 
+// Reasons offered in the Request Refund modal's dropdown. `OTHER` makes the
+// details box required. Swap the values for the backend's own reason codes
+// once the subscription refund API is confirmed.
+export const REFUND_REASONS = [
+  { value: 'NOT_USING_FEATURES', label: 'Not using the features' },
+  { value: 'PURCHASED_BY_MISTAKE', label: 'Purchased by mistake' },
+  { value: 'FOUND_ALTERNATIVE', label: 'Found a better alternative' },
+  { value: 'TOO_EXPENSIVE', label: 'Too expensive' },
+  { value: 'TECHNICAL_ISSUES', label: 'Technical issues' },
+  { value: 'OTHER', label: 'Other' },
+];
+
 export const CURRENCY = {
   INR: 'INR',
 };

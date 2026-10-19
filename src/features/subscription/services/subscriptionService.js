@@ -56,6 +56,20 @@ export async function getCurrentSubscription(brandId) {
   }
 }
 
+/**
+ * Request a refund of the current subscription.
+ * ⚠️ NOT CONNECTED: no subscription-refund endpoint has been confirmed
+ * yet, so this rejects with a clear message instead of calling a guessed
+ * URL. Once the real endpoint is known, replace the body with the api call
+ * (the modal already sends { transactionId, amount, reason, note }).
+ * @param {{ transactionId: string, amount: number, reason: string, note?: string }} payload
+ * @returns {Promise<object>}
+ */
+export async function requestSubscriptionRefund(payload) {
+  console.warn('requestSubscriptionRefund: API not connected yet, payload not sent:', payload);
+  throw new Error('Refund request is not available yet — the refund API has not been connected.');
+}
+
 // ⚠️ FIXED: this used to force every plan's term into a whole-number-of-
 // years count (parsed from durationLabel, or days/365 rounded as a
 // fallback) — a Trial/Quarterly plan (~88 days, well under a year) always
@@ -104,6 +118,18 @@ export function mapSubscriptionResponse(res, brand) {
   const discountedPrice =
     pricing.listPrice != null ? pricing.listPrice - (pricing.discountAmount || 0) : sub.paidAmount;
 
+  // Refunds are the full amount paid MINUS GST (GST isn't refundable):
+  // totalPayable - gstAmount when both confirmed fields are present, else
+  // the pre-GST plan price above. null when neither can be computed, so
+  // the refund modal shows "—" instead of a guessed number.
+  const amountPaid = pricing.totalPayable ?? sub.paidAmount;
+  const refundableAmount =
+    amountPaid != null && pricing.gstAmount != null
+      ? Math.max(0, amountPaid - pricing.gstAmount)
+      : pricing.listPrice != null
+        ? discountedPrice
+        : null;
+
   return {
     status: sub.status || PLAN_STATUS.ACTIVE,
     planName: sub.plan?.name || 'Subscription Plan',
@@ -118,6 +144,9 @@ export function mapSubscriptionResponse(res, brand) {
     originalPrice: pricing.listPrice,
     discountedPrice,
     paidAmount: sub.paidAmount,
+    gstAmount: pricing.gstAmount,
+    gstPercentage: pricing.gstPercentage,
+    refundableAmount,
     orderId: sub.transactionId,
     // Billing address: prefer the brand's verified GST address (real,
     // government-verified), falling back to the first outlet's saved

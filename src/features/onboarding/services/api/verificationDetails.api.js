@@ -45,8 +45,9 @@ const convertDobToISO = (dob) => {
 
 // ── PAN — POST /brands/onboarding/add-pan-details ────────────────────────
 // `panDetails` is the shape verifyPAN() resolves to (Step7PANReadOnly reads
-// the same `panDetails?.data ?? panDetails` fallback).
-export async function submitVerifiedPanDetails(brandId, panDetails) {
+// the same `panDetails?.data ?? panDetails` fallback). Exported so the
+// Account Information "Change PAN" flow can send the exact same body.
+export function buildPanDetailsPayload(brandId, panDetails) {
   const verifyData = panDetails?.data ?? panDetails ?? {};
 
   const verifyResponse = panDetails?.requestId
@@ -98,7 +99,11 @@ export async function submitVerifiedPanDetails(brandId, panDetails) {
     currentScreen: "GST_VERIFICATION",
   };
 
-  return postJSON("/brands/onboarding/add-pan-details", payload);
+  return payload;
+}
+
+export async function submitVerifiedPanDetails(brandId, panDetails) {
+  return postJSON("/brands/onboarding/add-pan-details", buildPanDetailsPayload(brandId, panDetails));
 }
 
 // ── GST — POST /brands/onboarding/add-gst-details ────────────────────────
@@ -142,7 +147,9 @@ const convertGstDateToISO = (dateStr) => {
   return dateStr;
 };
 
-export async function submitVerifiedGstDetails(gstDetails) {
+// Exported so the Account Information "Change GST" flow can send the exact
+// same body.
+export function buildGstDetailsPayload(gstDetails) {
   const verifyData = gstDetails?.data ?? gstDetails ?? {};
 
   const verifyResponse = gstDetails?.requestId
@@ -208,7 +215,11 @@ export async function submitVerifiedGstDetails(gstDetails) {
     currentScreen: "BANK_VERIFICATION",
   };
 
-  return postJSON("/brands/onboarding/add-gst-details", payload);
+  return payload;
+}
+
+export async function submitVerifiedGstDetails(gstDetails) {
+  return postJSON("/brands/onboarding/add-gst-details", buildGstDetailsPayload(gstDetails));
 }
 
 // ── Bank — POST /brands/onboarding/add-bank-details ──────────────────────

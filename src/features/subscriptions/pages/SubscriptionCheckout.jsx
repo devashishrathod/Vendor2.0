@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import AppBackground from "@/components/common/AppBackground";
+import AppTopBar from "@/components/common/AppTopBar";
 import { previewCheckout, getCurrentSubscription } from "../services/subscriptionApi";
 import { useBrand } from "../../../hooks/useBrand";
 import { isOnboardingCompleteNow } from "@/features/onboarding/utils/onboardingStatus";
@@ -8,6 +9,13 @@ import TrustBar from "../components/TrustBar";
 import PlanInfo from "../components/PlanInfo";
 import BillingDetailsCard from "../components/BillingDetailsCard";
 import OrderSummary from "../components/OrderSummary";
+import {
+  markCheckoutPaid,
+  readCheckoutBilling,
+  readCheckoutReturnTo,
+  saveCheckoutBilling,
+  wasCheckoutPaid,
+} from "../utils/checkoutSession";
 
 // A hard page reload loses React Router's navigation `state` (that's how
 // this page normally gets `plan.id`), which used to send the vendor back
@@ -25,6 +33,7 @@ function hasActiveSubscription(sub) {
 export default function SubscriptionCheckout() {
   const { state } = useLocation();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // The checkout-preview response's own billingDetails (confirmed shape:
   // brandName, address, gstin, pan, addressSource) never includes
@@ -37,7 +46,40 @@ export default function SubscriptionCheckout() {
   // breakdown, order summary rows, whether the brand can even proceed)
   // comes from POST /transactions/subscribe/preview and is rendered as-is,
   // not recomputed on the frontend.
-  const subscriptionId = state?.plan?.id ?? state?.plan?._id;
+  //
+  // The plan id is read from the URL (?plan=) so a page refresh — which
+  // wipes router `state` — rebuilds the same checkout from the preview API
+  // instead of bouncing back to the plan picker. Router state is only a
+  // fallback for any caller that hasn't put it in the URL.
+  const planId = searchParams.get("plan") || state?.plan?.id || state?.plan?._id;
+  // Checked once on mount: a plan already paid for in this tab must not
+  // reopen checkout on reload (that would invite paying twice). Not
+  // re-read on later renders, so marking it paid mid-success-animation
+  // doesn't yank the page away.
+  const [paidOnLoad] = useState(() => wasCheckoutPaid(planId));
+  const subscriptionId = paidOnLoad ? null : planId;
+
+  // Back-target for the Upgrade flow — router state is lost on refresh,
+  // sessionStorage (written by SubscriptionPlan.jsx) isn't.
+  const returnTo = state?.returnTo ?? readCheckoutReturnTo() ?? undefined;
+
+  // Applied promo code mirrors ?promo= so a refresh re-runs the preview
+  // with it. A ref (not a dep of the load effect) so applying/removing a
+  // code doesn't re-trigger the initial load.
+  const promoRef = useRef(searchParams.get("promo") || "");
+  const syncPromoParam = (code) => {
+    promoRef.current = code;
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (code) next.set("promo", code);
+        else next.delete("promo");
+        return next;
+      },
+      // keep router state (plan/returnTo) on this in-place URL update
+      { replace: true, state }
+    );
+  };
 
   // Browser back off this page is handled app-wide by PostAuthRouteGuard
   // (it always sends "back from /subscription/checkout" to /subscription,
@@ -89,10 +131,19 @@ export default function SubscriptionCheckout() {
       return;
     }
 
-    previewCheckout(subscriptionId)
+    previewCheckout(subscriptionId, promoRef.current || undefined)
       .then((data) => {
         setPreview(data);
-        setBilling(data?.billingDetails ?? null);
+        // Unpaid billing edits from before a refresh win over the server copy.
+        setBilling(readCheckoutBilling(subscriptionId) ?? data?.billingDetails ?? null);
+        // A ?promo= code that no longer applies (expired, wrong plan) —
+        // show why. The stale param itself is overwritten by the next
+        // apply/remove (kept out of this effect so URL updates don't
+        // re-trigger the initial load).
+        if (promoRef.current && !data?.promo?.applied) {
+          promoRef.current = "";
+          setPromoError(data?.promo?.message || "That promo code no longer applies.");
+        }
       })
       .catch((err) => setError(err.message || "Couldn't load checkout details."))
       .finally(() => setLoading(false));
@@ -114,6 +165,9 @@ export default function SubscriptionCheckout() {
       if (!data?.promo?.applied && data?.promo?.message) {
         setPromoError(data.promo.message);
       }
+      if (data?.promo?.applied) {
+        syncPromoParam(data?.pricing?.promoCode || code);
+      }
     } catch (err) {
       setPromoError(err.message || "Couldn't apply that promo code.");
     } finally {
@@ -128,11 +182,17 @@ export default function SubscriptionCheckout() {
       const data = await previewCheckout(subscriptionId);
       setPreview(data);
       setPromoJustRemoved(true);
+      syncPromoParam("");
     } catch (err) {
       setPromoError(err.message || "Couldn't remove the promo code.");
     } finally {
       setApplyingPromo(false);
     }
+  };
+
+  const handleSaveBilling = (next) => {
+    setBilling(next);
+    saveCheckoutBilling(subscriptionId, next);
   };
 
   if (loading || !preview) {
@@ -149,36 +209,31 @@ export default function SubscriptionCheckout() {
     : billing;
 
   return (
-    <div className="min-h-screen bg-[#F8FAF7] dark:bg-gray-900 p-4 md:p-8">
-      <div className="max-w-6xl mx-auto">
-        {/* Checkout is only ever reached from the plan picker (/subscription)
-            via handlePurchase — so that's always the correct one-step-back
-            target, no returnTo/sessionStorage needed like SubscriptionPlan's
-            own Back button. An explicit button (not the browser's back
-            button) so it isn't caught by PostAuthRouteGuard's app-wide
-            popstate handling, which redirects any browser back/forward to
-            the vendor's currentScreen route regardless of where they
-            actually came from in this side flow. */}
-        <button
-          type="button"
-          onClick={() => navigate("/subscription", { state: { returnTo: state?.returnTo } })}
-          className="mb-3 flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors duration-150 px-3 py-1.5 -ml-3 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-500/10"
-        >
-          <ArrowLeft size={15} />
-          Back
-        </button>
-
-        <TrustBar />
-
+    <div className="app-shell-bg relative isolate min-h-screen">
+      <AppBackground />
+      {/* Checkout is only ever reached from the plan picker (/subscription)
+          via handlePurchase — so that's always the correct one-step-back
+          target, no returnTo/sessionStorage needed like SubscriptionPlan's
+          own Back button. An explicit button (not the browser's back
+          button) so it isn't caught by PostAuthRouteGuard's app-wide
+          popstate handling, which redirects any browser back/forward to
+          the vendor's currentScreen route regardless of where they
+          actually came from in this side flow. */}
+      <AppTopBar onBack={() => navigate("/subscription", { state: { returnTo } })} />
+      {/* Full-bleed: sits outside the max-w container so the ribbon spans
+          the whole viewport width edge to edge. */}
+      <TrustBar />
+      <div className="max-w-6xl mx-auto p-4 md:p-8">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-5">
           <div className="flex flex-col gap-4">
             <PlanInfo plan={preview.plan} />
-            <BillingDetailsCard details={billingWithLegalName} onSave={setBilling} />
+            <BillingDetailsCard details={billingWithLegalName} onSave={handleSaveBilling} />
           </div>
 
           <OrderSummary
             subscriptionId={subscriptionId}
-            returnTo={state?.returnTo}
+            returnTo={returnTo}
+            onPaid={() => markCheckoutPaid(subscriptionId)}
             plan={preview.plan}
             orderSummary={preview.orderSummary}
             pricing={preview.pricing}
