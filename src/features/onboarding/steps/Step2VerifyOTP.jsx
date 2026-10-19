@@ -195,9 +195,10 @@ export default function Step2VerifyOTP({ isOpen, onClose, phoneNumber, onVerifie
 
   return (
     <>
+      {/* No onClick here on purpose — a stray click outside the box shouldn't
+          throw away the OTP being typed. Only the ✕ button closes it. */}
       <div
         className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
-        onClick={onClose}
         style={{ animation: "fadeIn 0.2s ease both" }}
       />
 

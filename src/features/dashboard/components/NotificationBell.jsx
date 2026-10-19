@@ -17,8 +17,8 @@ const PREVIEW_COUNT = 5;
 // Fetched once on mount (not just on open) so the unread dot on the bell
 // itself is accurate before the vendor ever clicks it. Opening the
 // dropdown no longer auto-marks everything read — that's now an explicit
-// action.
-export default function NotificationBell() {
+// action. `onColor` = round translucent-white trigger for the green header.
+export default function NotificationBell({ onColor = false }) {
   const [open, setOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [confirmClearAll, setConfirmClearAll] = useState(false);
@@ -106,10 +106,18 @@ export default function NotificationBell() {
           onClick={() => setOpen((o) => !o)}
           aria-label="Notifications"
           aria-expanded={open}
-          className={`relative flex h-9 w-9 items-center justify-center rounded-xl transition-colors duration-150 ${
-            open
-              ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400"
-              : "text-gray-500 hover:bg-emerald-50 hover:text-emerald-600 dark:text-gray-400 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-400"
+          className={`relative flex h-9 w-9 items-center justify-center transition-colors duration-150 ${
+            onColor
+              ? `rounded-full ring-1 ring-white/80 dark:ring-white/10 ${
+                  open
+                    ? "bg-white text-emerald-700 dark:bg-white/20 dark:text-white"
+                    : "bg-white/60 text-gray-700 hover:bg-white/90 hover:text-emerald-700 dark:bg-white/10 dark:text-gray-200 dark:hover:bg-white/15"
+                }`
+              : `rounded-xl ${
+                  open
+                    ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400"
+                    : "text-gray-500 hover:bg-emerald-50 hover:text-emerald-600 dark:text-gray-400 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-400"
+                }`
           }`}
         >
           {/* Rings once whenever the unread count changes (key remounts it). */}

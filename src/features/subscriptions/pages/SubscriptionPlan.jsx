@@ -147,17 +147,18 @@
 
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import AppBackground from "@/components/common/AppBackground";
+import AppTopBar from "@/components/common/AppTopBar";
 import HeroBanner from "../components/HeroBanner";
 import OffersRibbon from "../components/OffersRibbon";
 import PlanTabs from "../components/PlanTabs";
 import PlanPriceCard from "../components/PlanPriceCard";
 import PlanComparisonTable from "../components/PlanComparisonTable";
 import { useBlockBack } from "@/hooks/useBlockBack";
-import { useLogout } from "@/hooks/useLogout";
 import { useBrand } from "../../../hooks/useBrand";
 import { useSubscriptionPlans } from "@/features/subscriptions/hooks/useSubscriptionPlans";
 import { getCurrentSubscription } from "../services/subscriptionApi";
+import { startNewCheckout } from "../utils/checkoutSession";
 import ErrorToast from "@/components/common/ErrorToast";
 
 export default function SubscriptionPlan({
@@ -165,7 +166,6 @@ export default function SubscriptionPlan({
 }) {
   const navigate = useNavigate();
   const { state } = useLocation();
-  const { handleLogout } = useLogout();
 
   // ⚠️ FIXED: React Router's navigate() `state` (where state.returnTo
   // lives) doesn't survive a hard page refresh — it's held in memory, not
@@ -251,7 +251,11 @@ export default function SubscriptionPlan({
       });
       return;
     }
-    navigate("/subscription/checkout", { state: { plan, returnTo } });
+    // Plan id goes in the URL (not just router state) so a refresh on
+    // checkout can rebuild the page from POST /transactions/subscribe/preview.
+    startNewCheckout();
+    const planId = plan.id ?? plan._id;
+    navigate(`/subscription/checkout?plan=${encodeURIComponent(planId)}`, { state: { plan, returnTo } });
   };
 
   if (brandLoading) {
@@ -259,7 +263,8 @@ export default function SubscriptionPlan({
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAF7] dark:bg-gray-900 relative overflow-hidden">
+    <div className="app-shell-bg relative isolate min-h-screen overflow-x-clip">
+      <AppBackground />
       <style>{`
         .sp-bubble {
           position: absolute;
@@ -292,45 +297,16 @@ export default function SubscriptionPlan({
         }}
       />
 
-      {returnTo && (
-        <div className="absolute top-4 left-5 z-20">
-          <button
-            onClick={() => {
-              sessionStorage.removeItem("subscriptionReturnTo");
-              navigate(returnTo);
-            }}
-            className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-emerald-600 transition-colors duration-150 px-3 py-1.5 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-500/10"
-          >
-            <ArrowLeft size={15} />
-            Back
-          </button>
-        </div>
-      )}
-
-      <div className="absolute top-4 right-5 z-20">
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-red-500 transition-colors duration-150 px-3 py-1.5 rounded-lg hover:bg-red-50"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="15"
-            height="15"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-            <polyline points="16 17 21 12 16 7" />
-            <line x1="21" y1="12" x2="9" y2="12" />
-          </svg>
-          Logout
-        </button>
-      </div>
+      <AppTopBar
+        onBack={
+          returnTo
+            ? () => {
+                sessionStorage.removeItem("subscriptionReturnTo");
+                navigate(returnTo);
+              }
+            : undefined
+        }
+      />
 
       <div className="relative z-10 max-w-5xl mx-auto px-6 py-6">
         {/* <div style={{ animation: "slideDown 0.4s ease both" }}>

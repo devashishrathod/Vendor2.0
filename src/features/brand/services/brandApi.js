@@ -4,7 +4,9 @@ import axios from 'axios';
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 // ── Axios instance ──────────────────────────────────────────
-const api = axios.create({
+// Exported (with handleError) so sibling service files like gstPanApi.js
+// share this one instance + auth interceptor instead of creating their own.
+export const api = axios.create({
     baseURL: BASE_URL,
 });
 
@@ -18,7 +20,7 @@ api.interceptors.request.use(async (config) => {
     return config;
 });
 
-function handleError(error) {
+export function handleError(error) {
     const message =
         error?.response?.data?.message ||
         error?.response?.data?.error ||

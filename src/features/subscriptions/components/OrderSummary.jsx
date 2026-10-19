@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useRazorpayCheckout } from "../hooks/useRazorpayCheckout";
-import { formatINR } from "../utils/priceCalculator";
+import { formatINR, mergeGstRowsToIgst } from "../utils/priceCalculator";
 import SummaryRow from "./SummaryRow";
 import PromoCodePanel from "./PromoCodePanel";
 import WelcomePage from "../pages/WelcomePage"; // 👈 adjust to the real relative path
@@ -19,6 +19,7 @@ import ErrorToast from "@/components/common/ErrorToast";
 export default function OrderSummary({
   subscriptionId,
   returnTo,
+  onPaid,
   plan,
   orderSummary,
   pricing,
@@ -69,6 +70,8 @@ export default function OrderSummary({
         // (and createOrder's payload just omits the field) otherwise.
         promoCode: pricing?.promoCode,
         onSuccess: (response) => {
+          // Lets checkout mark this plan paid so a refresh can't reopen it.
+          onPaid?.();
           setSuccessOrder(response?.data ?? response);
           setPaymentState("success"); // overlay plays the checkmark animation, then hands off
         },
@@ -114,7 +117,8 @@ export default function OrderSummary({
     setPaymentState("idle");
   };
 
-  const rows = orderSummary?.rows ?? [];
+  // CGST + SGST from the API → one "IGST @ 18%" row, like the upgrade flow.
+  const rows = mergeGstRowsToIgst(orderSummary?.rows ?? [], pricing);
   const payable = orderSummary?.payable;
   const canCheckout = canProceed !== false; // treat undefined as proceedable
 

@@ -82,6 +82,42 @@ export function computeEffectivePrice(plan) {
   return price;
 }
 
+const GST_ROW_RE = /^\s*(c|s|i)gst\b/i;
+
+/**
+ * Checkout shows tax as ONE "IGST @ 18%" line (same as the upgrade flow),
+ * but the preview API sends it as separate CGST + SGST rows — and they can
+ * repeat after a promo re-preview. Drops every GST row and puts a single
+ * IGST row where the first one was. Amount comes from `pricing.gstAmount`;
+ * if that's missing, the distinct GST rows' displayed amounts are summed.
+ * @param {Array<{key?:string,label?:string,display?:string}>} rows  orderSummary.rows
+ * @param {{ gstAmount?: number, gstPercentage?: number }} [pricing]
+ * @returns {Array<{key?:string,label?:string,display?:string}>}
+ */
+export function mergeGstRowsToIgst(rows = [], pricing = {}) {
+  const gstRows = rows.filter((row) => GST_ROW_RE.test(row.label || ""));
+  if (gstRows.length === 0) return rows;
+
+  const distinct = [...new Map(gstRows.map((row) => [row.label, row])).values()];
+  const parseAmount = (text) => Number(String(text ?? "").replace(/[^0-9.]/g, "")) || 0;
+  const parseRate = (label) => Number(/(\d+(?:\.\d+)?)\s*%/.exec(label || "")?.[1]) || 0;
+
+  const amount = Number(pricing?.gstAmount) > 0
+    ? Number(pricing.gstAmount)
+    : distinct.reduce((sum, row) => sum + parseAmount(row.display), 0);
+  const rate = Number(pricing?.gstPercentage) > 0
+    ? Number(pricing.gstPercentage)
+    : distinct.reduce((sum, row) => sum + parseRate(row.label), 0) || DEFAULT_IGST_RATE * 100;
+
+  const igstRow = { key: "IGST", label: `IGST @ ${rate}%`, display: formatINR(amount) };
+  const firstGstIndex = rows.indexOf(gstRows[0]);
+  return [
+    ...rows.slice(0, firstGstIndex).filter((row) => !GST_ROW_RE.test(row.label || "")),
+    igstRow,
+    ...rows.slice(firstGstIndex).filter((row) => !GST_ROW_RE.test(row.label || "")),
+  ];
+}
+
 /**
  * @param {{ price?: number, igstRate?: number }} plan - normalized plan object
  * @param {number} promoDiscountPct - 0-100, applied before tax

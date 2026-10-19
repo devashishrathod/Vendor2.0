@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Outlet } from "react-router-dom";
 import { Music2 } from "lucide-react";
+import AppBackground from "@/components/common/AppBackground";
 import DashboardHeader from "@/features/dashboard/components/DashboardHeader";
 import DashboardFooter from "@/features/dashboard/components/DashboardFooter";
 import MusicQuickPlayModal from "@/features/music/components/MusicQuickPlayModal";
@@ -12,10 +13,20 @@ export default function DashboardLayout() {
     const [musicModalOpen, setMusicModalOpen] = useState(false);
     const player = usePlayer();
     return (
-        <div className="min-h-screen flex flex-col">
+        // `isolate` keeps AppBackground's -z-10 glows above this gradient
+        // but behind every page.
+        <div className="app-shell-bg relative isolate min-h-screen flex flex-col">
+            <AppBackground />
+            {/* Green hero wash behind the header + page heading — strong at
+                the very top, fading into the app-shell gradient so the first
+                row of cards overlaps it. */}
+            <div
+                aria-hidden="true"
+                className="dashboard-hero-wash pointer-events-none absolute inset-x-0 top-0 -z-[5] h-[380px]"
+            />
             <DashboardHeader activeTab={activeTab} setActiveTab={setActiveTab} />
 
-            <main className="flex-1 bg-[#F8FAF7] dark:bg-gray-900">
+            <main className="flex-1">
                 <Outlet context={{ player }} />
             </main>
 

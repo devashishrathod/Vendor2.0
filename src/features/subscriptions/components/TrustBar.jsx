@@ -1,19 +1,35 @@
-import { Sparkles } from "lucide-react";
+import {
+  ChartColumn,
+  Headset,
+  ShieldCheck,
+  ShoppingCart,
+  Sparkles,
+  Star,
+  Store,
+  Tag,
+  Ticket,
+} from "lucide-react";
 
 const DEFAULT_BADGES = [
   {
-    icon: "⭐",
+    icon: Star,
     label: "100+ Trusted Partner Ship",
     rating: "100+ (Review)",
   },
-  { icon: "🏷️", label: "10,000 New Listing Brand" },
-  { icon: "🛒", label: "One Destination, 10000+ Products" },
+  { icon: Tag, label: "10,000 New Listing Brand" },
+  { icon: ShoppingCart, label: "One Destination, 10000+ Products" },
+  { icon: ShieldCheck, label: "100% Secure Payments" },
+  { icon: Ticket, label: "Create & Manage Vouchers Easily" },
+  { icon: Store, label: "All Your Outlets in One Place" },
+  { icon: ChartColumn, label: "Sales Insights Dashboard" },
+  { icon: Headset, label: "Dedicated Vendor Support" },
 ];
 
 function Badge({ b }) {
+  const Icon = b.icon;
   return (
     <div className="flex items-center gap-2 px-4 shrink-0">
-      <span className="text-lg">{b.icon}</span>
+      <Icon className="w-4 h-4 text-white shrink-0" />
       <span className="text-sm font-medium text-white whitespace-nowrap">
         {b.label}
       </span>
@@ -42,7 +58,7 @@ function Badge({ b }) {
 /**
  * Continuous left-scrolling trust-badge ribbon — same container style as
  * OffersRibbon.jsx (subscription page): angled emerald gradient with a
- * diagonal stripe layer, edges fading to transparent, Sparkle-icon
+ * diagonal stripe layer, full-bleed (no edge fade), Sparkle-icon
  * separators between items. Only the container styling changed here — the
  * badges themselves are still TrustBar's own real content (rating,
  * listings, products), unchanged.
@@ -54,16 +70,19 @@ export default function TrustBar({ badges = DEFAULT_BADGES }) {
 
   return (
     <div
-      className="w-full overflow-hidden mb-6"
+      className="w-full overflow-hidden"
       style={{
         background:
           "linear-gradient(135deg, #10b981 0%, #059669 45%, #047857 100%), " +
           "repeating-linear-gradient(135deg, rgba(255,255,255,0.08) 0px, rgba(255,255,255,0.08) 12px, transparent 12px, transparent 26px)",
-        maskImage: "linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%)",
-        WebkitMaskImage: "linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%)",
       }}
     >
-      <div className="flex items-center w-max py-2.5 animate-marquee">
+      {/* Longer duration than the shared 22s default — the track holds 8
+          badges, so 22s would scroll noticeably faster than OffersRibbon. */}
+      <div
+        className="flex items-center w-max py-2.5 animate-marquee"
+        style={{ animationDuration: "55s" }}
+      >
         {track.map((b, i) => (
           <div key={i} className="flex items-center">
             <Badge b={b} />

@@ -143,24 +143,32 @@ export function useWhatsappOtp({ brandId, brandWhatsappNumber, isFirstOutlet } =
         isFirstOutlet,
       });
       const created = subBrandRes?.data ?? subBrandRes;
-      // ⚠️ FIXED: was created?._id (the SUB_VENDOR user id) — must be
-      // subBrandId (the actual outlet doc id), per brandOutletApi.js's
-      // own warning comments on this response shape.
-      setSubBrandId(created?.subBrandId || null);
+      // ⚠️ FIXED: was created?._id (the SUB_VENDOR user id) — must be the
+      // outlet doc id. Confirmed response: data.subBrand._id (==
+      // data.user.subBrandId); data.subBrandId kept as a fallback.
+      setSubBrandId(created?.subBrand?._id || created?.user?.subBrandId || created?.subBrandId || null);
 
-      const otpRes = await sendLoginOtpWithRetry(outletWhatsapp);
-      setDevOtpHint(otpRes?.data?.devOtp || otpRes?.devOtp || null);
+      // ⚠️ FIXED: signUp-with-whatsapp ALREADY sends the OTP (confirmed
+      // response: data.otpSent / data.retryAfterSeconds). Firing a second
+      // send right after made the backend reply "We have already sent you a
+      // code…" — shown as an error even on the very first send. Only send
+      // separately when signUp says it didn't.
+      if (!created?.otpSent && !created?.retryAfterSeconds) {
+        const otpRes = await sendLoginOtpWithRetry(outletWhatsapp);
+        setDevOtpHint(otpRes?.data?.devOtp || otpRes?.devOtp || null);
+      }
       setOtpStage(true);
     } catch (err) {
-      setOtpError(err.message || "Couldn't send OTP. Try again.");
-      // ⚠️ FIXED: "We have already sent you a code — ... retry in N
-      // seconds" used to just dead-end here as an error toast, with the
-      // modal never opening — even though a real, still-valid OTP HAD
-      // already gone out (from an earlier click/attempt) and the vendor
-      // had nothing to type it into. err.details.retryAfterSeconds (see
-      // brandOutletApi.js's handleError) is how the backend tells this
-      // apart from a genuine send failure — open the modal for it too.
-      if (err.details?.retryAfterSeconds) setOtpStage(true);
+      // "We have already sent you a code — … retry in N seconds" isn't a
+      // failure: a real, still-valid OTP already went out. Just open the
+      // modal (its own resend countdown covers the wait) — no error line,
+      // no toast. err.details.retryAfterSeconds (see brandOutletApi.js's
+      // handleError) is how the backend marks this case.
+      if (err.details?.retryAfterSeconds) {
+        setOtpStage(true);
+      } else {
+        setOtpError(err.message || "Couldn't send OTP. Try again.");
+      }
     } finally {
       setOtpSending(false);
     }
@@ -180,10 +188,13 @@ export function useWhatsappOtp({ brandId, brandWhatsappNumber, isFirstOutlet } =
       setDevOtpHint(res?.data?.devOtp || res?.devOtp || null);
       setOtpStage(true);
     } catch (err) {
-      setOtpError(err.message || "Couldn't resend OTP. Try again.");
       // See sendOtp's matching comment above — a rate-limited resend still
-      // means a valid OTP already went out, so open the modal for it too.
-      if (err.details?.retryAfterSeconds) setOtpStage(true);
+      // means a valid OTP already went out: open the modal, no error.
+      if (err.details?.retryAfterSeconds) {
+        setOtpStage(true);
+      } else {
+        setOtpError(err.message || "Couldn't resend OTP. Try again.");
+      }
     } finally {
       setOtpSending(false);
     }

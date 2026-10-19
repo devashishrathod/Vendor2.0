@@ -1,11 +1,14 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
 import {
+  ArrowRight,
+  ArrowUpRight,
   Download,
+  LayoutGrid,
+  Sparkles,
   Search,
   TrendingUp,
   TrendingDown,
-  Image as ImageIcon,
   ChevronLeft,
   ChevronRight,
   CalendarDays,
@@ -22,7 +25,17 @@ import { useOnboardingStore } from "@/features/onboarding/store/onboardingStore"
 import useBrandData from "@/features/brand/hooks/useBrandData";
 import { fetchVoucherTransactionOverview } from "@/features/transaction/services/transactionService";
 import { getVouchers } from "@/features/voucher/services/voucher/VoucherService";
+import AnimatedNumber from "@/components/common/AnimatedNumber";
+import DonutChart from "@/components/charts/DonutChart";
+import HorizontalBarChart from "@/components/charts/HorizontalBarChart";
+import TrendAreaChart from "@/components/charts/TrendAreaChart";
 import Select from "../../../components/common/Select";
+import ActionCenter from "../components/ActionCenter";
+import PlanUsageCard from "../components/PlanUsageCard";
+import QuickActions from "../components/QuickActions";
+import SettlementSnapshot from "../components/SettlementSnapshot";
+import VoucherTicketCard from "../components/VoucherTicketCard";
+import useDashboardInsights from "../hooks/useDashboardInsights";
 
 // ══════════════════════════════════════════════════════════════
 // DATA GENERATION
@@ -119,11 +132,11 @@ function buildRealSeries(range, rows) {
 // Daily/Yesterday plot 24 hourly bars, Weekly/Monthly one bar per day over
 // the last 7/30 days, and 3 Months one bar per week.
 const CHART_PERIOD_OPTIONS = [
-  { value: "daily", label: "Daily" },
-  { value: "yesterday", label: "Yesterday" },
-  { value: "weekly", label: "Weekly" },
-  { value: "monthly", label: "Monthly" },
-  { value: "3months", label: "3 Months" },
+  { value: "daily", label: "Daily", short: "1D" },
+  { value: "yesterday", label: "Yesterday", short: "Yest" },
+  { value: "weekly", label: "Weekly", short: "7D" },
+  { value: "monthly", label: "Monthly", short: "30D" },
+  { value: "3months", label: "3 Months", short: "3M" },
 ];
 
 function getChartPeriodDates(key) {
@@ -292,23 +305,53 @@ function sampleForSparkline(values, maxPoints = 12) {
   return Array.from({ length: maxPoints }, (_, i) => values[Math.floor(i * step)]);
 }
 
-// Tiny trend line shown top-right of each stat card — plotted from the same
-// series data the card's headline number is derived from (never fabricated).
-function MiniSparkline({ data, color }) {
-  const points = sampleForSparkline(data);
+// Full-width area sparkline along the bottom of a bento stat card — plotted
+// from the same series the card's headline number is derived from (never
+// fabricated). Stretches to the card width via preserveAspectRatio="none".
+function SparkArea({ data, color, id }) {
+  const points = sampleForSparkline(data, 16);
   const max = Math.max(...points);
   const min = Math.min(...points);
   const range = max - min || 1;
-  const w = 60;
-  const h = 24;
+  const w = 100;
+  const h = 36;
   const step = w / (points.length - 1 || 1);
-  const path = points
-    .map((v, i) => `${i === 0 ? "M" : "L"} ${(i * step).toFixed(1)} ${(h - ((v - min) / range) * h).toFixed(1)}`)
-    .join(" ");
+  const coords = points.map((v, i) => [i * step, h - 2 - ((v - min) / range) * (h - 6)]);
+  // Midpoint-smoothed curve so the line reads like the chart above it.
+  const line = coords.reduce((d, [x, y], i) => {
+    if (i === 0) return `M ${x} ${y}`;
+    const [px, py] = coords[i - 1];
+    const mx = (px + x) / 2;
+    return `${d} C ${mx} ${py}, ${mx} ${y}, ${x} ${y}`;
+  }, "");
   return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="shrink-0">
-      <path d={path} fill="none" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="h-14 w-full">
+      <defs>
+        <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.3" />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path d={`${line} L ${w} ${h} L 0 ${h} Z`} fill={`url(#${id})`} />
+      <path d={line} fill="none" stroke={color} strokeWidth="2" vectorEffect="non-scaling-stroke" strokeLinecap="round" />
     </svg>
+  );
+}
+
+// Mini column chart for a bento stat card (same real series, sampled).
+function SparkBars({ data, color }) {
+  const points = sampleForSparkline(data, 14);
+  const max = Math.max(...points) || 1;
+  return (
+    <div className="flex h-14 items-end gap-1">
+      {points.map((v, i) => (
+        <span
+          key={i}
+          className="flex-1 rounded-t-md transition-all duration-700"
+          style={{ height: `${Math.max(8, (v / max) * 100)}%`, backgroundColor: color, opacity: v ? 0.85 : 0.2 }}
+        />
+      ))}
+    </div>
   );
 }
 
@@ -372,14 +415,23 @@ const CHART_METRICS = [
 
 export default function AnalysisReport() {
   const [rangeKey, setRangeKey] = useState("month");
-  const [hoveredDay, setHoveredDay] = useState(null);
   const [chartMetric, setChartMetric] = useState("revenue");
   const [chartPeriod, setChartPeriod] = useState("weekly");
   const [transactionSearch, setTransactionSearch] = useState("");
   const voucherScrollRef = useRef(null);
   const scrollVouchers = (dir) => {
-    voucherScrollRef.current?.scrollBy({ left: dir * 280, behavior: "smooth" });
+    voucherScrollRef.current?.scrollBy({ left: dir * 332, behavior: "smooth" });
   };
+
+  // Left/right arrows only show when the voucher row actually overflows —
+  // left once scrolled away from the start, right until the end is reached.
+  const [voucherScroll, setVoucherScroll] = useState({ left: false, right: false });
+  const updateVoucherScroll = useCallback(() => {
+    const el = voucherScrollRef.current;
+    if (!el) return;
+    const maxScroll = el.scrollWidth - el.clientWidth;
+    setVoucherScroll({ left: el.scrollLeft > 4, right: el.scrollLeft < maxScroll - 4 });
+  }, []);
 
   // "Recent Transactions" — real voucher claim payments, same
   // brandId-resolution pattern as Transactions.jsx (onboarding/auth store,
@@ -389,6 +441,10 @@ export default function AnalysisReport() {
   const candidateBrandId = onboardingBrandId || authUserBrandId;
   const { data: brand } = useBrandData(candidateBrandId);
   const resolvedBrandId = brand?._id || candidateBrandId;
+
+  // Settlements, open refunds and the current plan — feed the Action
+  // Center, Settlements and Plan Usage cards.
+  const insights = useDashboardInsights(resolvedBrandId, brand);
 
   // "Vouchers" section below — real GET /vouchers/versions/get-all list,
   // same service the Voucher management page uses.
@@ -421,6 +477,17 @@ export default function AnalysisReport() {
     return () => { cancelled = true; };
   }, [resolvedBrandId]);
 
+  // Re-check overflow whenever the row's size or content changes (the
+  // observer also fires once right after observe(), covering first paint).
+  useEffect(() => {
+    const el = voucherScrollRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return undefined;
+    const observer = new ResizeObserver(updateVoucherScroll);
+    observer.observe(el);
+    Array.from(el.children).forEach((child) => observer.observe(child));
+    return () => observer.disconnect();
+  }, [vouchers, updateVoucherScroll]);
+
   const [transactionRows, setTransactionRows] = useState([]);
   const [transactionsError, setTransactionsError] = useState("");
   const [transactionPage, setTransactionPage] = useState(1);
@@ -445,6 +512,9 @@ export default function AnalysisReport() {
   };
 
   const range = RANGE_OPTIONS.find((r) => r.key === rangeKey);
+
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
   const rangeDates = useMemo(() => getRangeDates(rangeKey), [rangeKey]);
 
   // Every KPI/chart/status-split below is derived from this SAME
@@ -470,46 +540,68 @@ export default function AnalysisReport() {
   const transactionsChange = computeChange(series, "transactions");
   const refundsChange = computeChange(series, "refunds");
 
+  // Real counts off the same range-filtered rows — "Paid" share drives the
+  // Transactions card's progress bar, refunded count the Refunds badge.
+  const paidCount = rangeTransactionRows.filter((row) => row.status === "Paid").length;
+  const paidPct = totalTransactions ? Math.round((paidCount / totalTransactions) * 100) : 0;
+  const refundedCount = rangeTransactionRows.filter((row) => row.raw?.status === "refunded").length;
+  const openRefunds = (insights.refunds.data || []).length;
+
+  // Bento stat cards. `visual` picks what sits along the card's bottom edge:
+  // an area sparkline, a progress bar, or mini columns.
   const STATS = [
     {
       label: "Total Revenue",
-      value: formatINR(totalRevenue),
+      value: totalRevenue,
+      format: formatINR,
       change: revenueChange,
       icon: BarChart3,
-      iconBg: "bg-emerald-50 dark:bg-emerald-500/10",
+      iconBg: "bg-white dark:bg-emerald-500/15",
       iconText: "text-emerald-600 dark:text-emerald-400",
-      spark: "#10b981",
-      sparkData: series.map((d) => d.revenue),
+      color: "var(--color-emerald-500)",
+      visual: "area",
+      data: series.map((d) => d.revenue),
+      to: "/transactions",
+      highlight: true,
     },
     {
       label: "Total Transactions",
-      value: totalTransactions.toLocaleString("en-IN"),
+      value: totalTransactions,
+      format: (n) => Math.round(n).toLocaleString("en-IN"),
       change: transactionsChange,
       icon: Receipt,
-      iconBg: "bg-blue-50",
-      iconText: "text-blue-600",
-      spark: "#3b82f6",
-      sparkData: series.map((d) => d.transactions),
+      iconBg: "bg-emerald-50 dark:bg-emerald-500/10",
+      iconText: "text-emerald-600 dark:text-emerald-400",
+      sub: `${paidPct}% paid successfully`,
+      visual: "progress",
+      progress: paidPct,
     },
     {
       label: "Avg Transaction Value",
-      value: formatINR(avgTransactionValue),
+      value: avgTransactionValue,
+      format: formatINR,
       change: revenueChange - transactionsChange, // drifts with the gap between the two
       icon: Layers,
-      iconBg: "bg-violet-50",
-      iconText: "text-violet-600",
-      spark: "#8b5cf6",
-      sparkData: series.map((d) => (d.transactions ? d.revenue / d.transactions : 0)),
+      iconBg: "bg-amber-50 dark:bg-amber-500/10",
+      iconText: "text-amber-500",
+      color: "#f59e0b",
+      visual: "bars",
+      data: series.map((d) => (d.transactions ? d.revenue / d.transactions : 0)),
     },
     {
       label: "Refunds Issued",
-      value: formatINR(refundsIssued),
+      value: refundsIssued,
+      format: formatINR,
       change: refundsChange,
+      // More refunds is bad news — flip the colour of the change line.
+      invertChange: true,
       icon: RefreshCw,
-      iconBg: "bg-rose-50",
-      iconText: "text-rose-500",
-      spark: "#f43f5e",
-      sparkData: series.map((d) => d.refunds),
+      iconBg: "bg-sky-50 dark:bg-sky-500/10",
+      iconText: "text-sky-500",
+      color: "#0ea5e9",
+      visual: "area",
+      data: series.map((d) => d.refunds),
+      badge: `${refundedCount} refund${refundedCount === 1 ? "" : "s"}`,
     },
   ];
 
@@ -527,12 +619,12 @@ export default function AnalysisReport() {
   }, [chartPeriod, transactionRows]);
   const chartTotalRevenue = chartSeries.reduce((s, d) => s + d.revenue, 0);
   const chartRevenueChange = computeChange(chartSeries, "revenue");
-  const metricSeriesValues = chartSeries.map((d) =>
-    chartMetric === "transactions" ? d.transactions : chartMetric === "aov" ? (d.transactions ? d.revenue / d.transactions : 0) : d.revenue
-  );
-  const maxMetric = Math.max(...metricSeriesValues, 1);
-  const yTicks = [maxMetric, maxMetric * 0.75, maxMetric * 0.5, maxMetric * 0.25, 0];
-  const labelStep = Math.max(1, Math.round(chartSeries.length / 6));
+  const chartData = chartSeries.map((d) => ({
+    label: d.label,
+    fullLabel: d.fullLabel,
+    value:
+      chartMetric === "transactions" ? d.transactions : chartMetric === "aov" ? (d.transactions ? d.revenue / d.transactions : 0) : d.revenue,
+  }));
   const formatMetricValue = (n) =>
     chartMetric === "transactions" ? `${Math.round(n).toLocaleString("en-IN")} transactions` : formatINR(n);
 
@@ -542,7 +634,7 @@ export default function AnalysisReport() {
   // Refunded/Created/Authorized — or "Pending" as a last-resort fallback),
   // not a fabricated percentage breakdown.
   const STATUS_SPLIT_COLORS = {
-    Paid: "#34d399",
+    Paid: "var(--color-emerald-400)",
     Refunded: "#f87171",
     Failed: "#9ca3af",
   };
@@ -560,17 +652,6 @@ export default function AnalysisReport() {
       color: STATUS_SPLIT_COLORS[label] || DEFAULT_STATUS_COLOR,
     }))
     .sort((a, b) => b.count - a.count);
-  let acc = 0;
-  const conicStops = statusSplit.length
-    ? statusSplit
-        .map((s) => {
-          const from = acc;
-          acc += s.pct;
-          return `${s.color} ${from}% ${acc}%`;
-        })
-        .join(", ")
-    : "#e5e7eb 0% 100%";
-
   // ── Vouchers: only PUBLISHED ones show here ("Top Performing" means live
   // for customers), ranked by real usage against Recent Transactions' rows. ──
   const PAGE_SIZE = 10;
@@ -578,6 +659,27 @@ export default function AnalysisReport() {
   const topVouchers = filteredVouchers
     .map((v) => ({ v, usage: computeVoucherUsage(v, transactionRows) }))
     .sort((a, b) => (b.usage?.count || 0) - (a.usage?.count || 0));
+
+  // Top 5 vouchers by real use count — only ones with at least one matched
+  // payment, so the ranking chart never shows guessed zeros as "data".
+  const topVoucherChartData = topVouchers
+    .filter(({ usage }) => usage?.count)
+    .slice(0, 5)
+    .map(({ v, usage }) => ({ label: v.name || v.versionCode, value: usage.count }));
+
+  // Revenue per outlet in the selected range, from each payment row's real
+  // outlet store id (mapPaymentRow's `outlet`; "—" when the payment has no
+  // outlet attached, which is left out rather than shown as an outlet).
+  const outletChartData = Object.entries(
+    rangeTransactionRows.reduce((acc, row) => {
+      if (!row.outlet || row.outlet === "—") return acc;
+      acc[row.outlet] = (acc[row.outlet] || 0) + Number(row.raw?.amount || 0);
+      return acc;
+    }, {})
+  )
+    .map(([label, value]) => ({ label, value }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 5);
 
   // ── Recent Transactions: same range-filtered rows the KPIs/chart/status
   // split above use, plus a client-side search (order id / customer /
@@ -613,20 +715,23 @@ export default function AnalysisReport() {
   };
 
   return (
-    <div className="min-h-screen dark:bg-gray-900 font-sans">
-      <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="min-h-screen font-sans">
+      <div className="max-w-7xl mx-auto px-4 pt-4 pb-8">
 
         {/* ── Heading + controls ── */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          {/* Sits on DashboardLayout's green hero wash — white text. */}
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Dashboard</h1>
-            <p className="text-xs text-gray-400 mt-1">
-              Business performance overview · {range.label.toLowerCase()} view
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900 dark:text-white capitalize">
+              {greeting}{brand?.brandName ? `, ${brand.brandName}` : ""}
+            </h1>
+            <p className="text-sm font-medium text-gray-600 mt-1 dark:text-white/75">
+              Track your business performance · {range.label.toLowerCase()} view
             </p>
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 bg-white dark:bg-gray-800 rounded-xl px-3 py-2">
+            <div className="flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-2 shadow-sm dark:bg-gray-800/80">
               <CalendarDays size={14} className="text-gray-400" />
               <Select
                 compact
@@ -638,7 +743,7 @@ export default function AnalysisReport() {
             </div>
             <button
               onClick={exportCSV}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:text-emerald-700 transition-colors"
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white/90 shadow-sm text-xs font-semibold text-emerald-700 dark:bg-gray-800/80 dark:text-emerald-300 hover:bg-white transition-colors"
             >
               <Download size={14} />
               Export CSV
@@ -646,233 +751,292 @@ export default function AnalysisReport() {
           </div>
         </div>
 
-        {/* ── Stat cards ── */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+        {/* ── Bento stat cards ── */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
           {STATS.map((s) => {
-            const positive = s.change >= 0;
+            const up = s.change >= 0;
+            const good = s.invertChange ? !up : up;
             const Icon = s.icon;
             return (
-              <div key={s.label} className="bg-white dark:bg-gray-800 rounded-xl p-4">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${s.iconBg} ${s.iconText}`}>
-                      <Icon size={18} />
-                    </div>
-                    <p className="text-xs text-gray-400 font-medium truncate">{s.label}</p>
+              <div
+                key={s.label}
+                className={`bento-card relative flex flex-col overflow-hidden p-5 transition-transform duration-200 hover:-translate-y-0.5 ${
+                  s.highlight
+                    ? "bg-gradient-to-br from-emerald-100/90 via-white/70 to-white/60 dark:from-emerald-500/15 dark:via-gray-800/60 dark:to-gray-800/60"
+                    : ""
+                }`}
+              >
+                <div className="flex items-start justify-between">
+                  <div className={`flex h-10 w-10 items-center justify-center rounded-xl shadow-sm ${s.iconBg} ${s.iconText}`}>
+                    <Icon size={18} />
                   </div>
-                  <MiniSparkline data={s.sparkData} color={s.spark} />
+                  {s.to ? (
+                    <Link to={s.to} aria-label={`Open ${s.label}`} className="text-gray-400 transition-colors hover:text-emerald-600">
+                      <ArrowUpRight size={16} />
+                    </Link>
+                  ) : s.badge ? (
+                    <span className="rounded-full bg-gray-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-gray-500 dark:bg-gray-700 dark:text-gray-300">
+                      {s.badge}
+                    </span>
+                  ) : null}
                 </div>
-                <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-3">{s.value}</p>
-                <p className={`flex items-center gap-1 text-xs font-semibold mt-1 ${positive ? "text-emerald-600" : "text-red-500"}`}>
-                  {positive ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
-                  {Math.abs(s.change).toFixed(1)}% vs prev period
+
+                <p className="mt-4 text-xs font-medium text-gray-500 dark:text-gray-400">{s.label}</p>
+                <AnimatedNumber
+                  value={s.value}
+                  format={s.format}
+                  className="mt-1 block text-2xl font-extrabold tracking-tight text-gray-900 dark:text-gray-100"
+                />
+                <p className="mt-1 flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                  {s.sub ?? (
+                    <>
+                      <span className={`inline-flex items-center gap-0.5 font-semibold ${good ? "text-emerald-600" : "text-rose-500"}`}>
+                        {up ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                        {up ? "+" : "-"}{Math.abs(s.change).toFixed(1)}%
+                      </span>
+                      vs prev period
+                    </>
+                  )}
                 </p>
+
+                <div className="mt-auto pt-4">
+                  {s.visual === "area" && <SparkArea data={s.data} color={s.color} id={`spark-${s.label.replace(/\s+/g, "")}`} />}
+                  {s.visual === "bars" && <SparkBars data={s.data} color={s.color} />}
+                  {s.visual === "progress" && (
+                    <div className="flex h-14 items-end">
+                      <div className="h-2 w-full overflow-hidden rounded-full bg-emerald-100 dark:bg-emerald-500/10">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-emerald-600 to-emerald-400 transition-all duration-1000"
+                          style={{ width: `${s.progress}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             );
           })}
         </div>
 
-        {/* ── Revenue Trend + Order Status, side by side ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
-        <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl p-5">
-          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
-            <div className="flex items-start gap-2.5">
-              <div className="w-9 h-9 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                <LineChart size={16} />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Revenue Trend</p>
-                <p className="text-[11px] text-gray-400">Your revenue performance over time</p>
-              </div>
+        {/* ── Bento row: Revenue Trend · Transaction Status · growth hero ── */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+        <div className="bento-card md:col-span-2 p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
+            <div>
+              <p className="flex items-center gap-2 text-base font-bold text-gray-900 dark:text-gray-100">
+                <LineChart size={18} className="text-emerald-500" />
+                Revenue Trend
+              </p>
+              <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                {formatINR(chartTotalRevenue)} ·{" "}
+                <span className={chartRevenueChange >= 0 ? "text-emerald-600" : "text-rose-500"}>
+                  {chartRevenueChange >= 0 ? "+" : "-"}{Math.abs(chartRevenueChange).toFixed(1)}%
+                </span>{" "}
+                vs prev. period
+              </p>
             </div>
 
-            <div className="flex items-center gap-2 flex-wrap">
-              <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
-                {CHART_METRICS.map((m) => (
-                  <button
-                    key={m.key}
-                    onClick={() => setChartMetric(m.key)}
-                    className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors whitespace-nowrap ${
-                      chartMetric === m.key
-                        ? "bg-emerald-500 text-white shadow-sm"
-                        : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-100"
-                    }`}
-                  >
-                    {m.label}
-                  </button>
-                ))}
-              </div>
-              <Select
-                compact
-                value={chartPeriod}
-                onChange={(value) => {
-                  setChartPeriod(value);
-                  setHoveredDay(null);
-                }}
-                options={CHART_PERIOD_OPTIONS}
-                className="rounded-lg bg-transparent text-xs font-semibold text-gray-600 dark:text-gray-300"
-              />
-            </div>
-          </div>
-
-          <div className="flex items-baseline gap-2 mb-4">
-            <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{formatINR(chartTotalRevenue)}</p>
-            <span
-              className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${
-                chartRevenueChange >= 0 ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"
-              }`}
-            >
-              {chartRevenueChange >= 0 ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
-              {Math.abs(chartRevenueChange).toFixed(1)}% vs prev. period
-            </span>
-          </div>
-
-          <div className="flex gap-2">
-            {/* Y-axis */}
-            <div className="flex flex-col justify-between text-[10px] text-gray-400 h-52 pb-5 pt-1 text-right w-10 shrink-0">
-              {yTicks.map((t, i) => (
-                <span key={i}>{formatCompactINR(t)}</span>
+            <div className="flex items-center gap-1 rounded-full bg-white/80 p-1 shadow-sm dark:bg-gray-900/40">
+              {CHART_PERIOD_OPTIONS.map((p) => (
+                <button
+                  key={p.value}
+                  onClick={() => setChartPeriod(p.value)}
+                  title={p.label}
+                  className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+                    chartPeriod === p.value
+                      ? "bg-emerald-500 text-white shadow-sm"
+                      : "text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-100"
+                  }`}
+                >
+                  {p.short}
+                </button>
               ))}
             </div>
-
-            <div className="flex-1 relative">
-              {/* Gridlines */}
-              <div className="absolute inset-0 flex flex-col justify-between pb-5 pt-1 pointer-events-none">
-                {yTicks.map((_, i) => (
-                  <div key={i} />
-                ))}
-              </div>
-
-              {/* Floating tooltip */}
-              {hoveredDay !== null && (
-                <div
-                  className="absolute z-10 -translate-x-1/2 bg-white dark:bg-gray-800 rounded-lg shadow-lg px-3 py-1.5 whitespace-nowrap pointer-events-none"
-                  style={{
-                    left: `${((hoveredDay + 0.5) / chartSeries.length) * 100}%`,
-                    bottom: `${Math.min(88, (metricSeriesValues[hoveredDay] / maxMetric) * 78 + 12)}%`,
-                  }}
-                >
-                  <p className="text-[11px] font-semibold text-gray-800 dark:text-gray-100">{chartSeries[hoveredDay].fullLabel}</p>
-                  <p className="text-[11px] text-emerald-600 flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                    {formatMetricValue(metricSeriesValues[hoveredDay])}
-                  </p>
-                </div>
-              )}
-
-              <div className="relative flex items-end gap-[3px] h-52 pb-5" onMouseLeave={() => setHoveredDay(null)}>
-                {chartSeries.map((d, i) => {
-                  const isHovered = hoveredDay === i;
-                  return (
-                    <div
-                      key={i}
-                      className="flex-1 h-full flex items-end cursor-pointer group"
-                      onMouseEnter={() => setHoveredDay(i)}
-                    >
-                      <div
-                        className="w-full rounded-t-sm transition-all"
-                        style={{
-                          height: `${Math.max(2, (metricSeriesValues[i] / maxMetric) * 100)}%`,
-                          background: isHovered ? "#059669" : "linear-gradient(180deg, #34d399, #a7f3d0)",
-                        }}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="grid mt-1 text-[10px] text-gray-400" style={{ gridTemplateColumns: `repeat(${chartSeries.length}, 1fr)` }}>
-                {chartSeries.map((d, i) => {
-                  const showLabel = i === 0 || i === chartSeries.length - 1 || i % labelStep === 0;
-                  return (
-                    <span key={i} className="text-center truncate">
-                      {showLabel ? d.label : ""}
-                    </span>
-                  );
-                })}
-              </div>
-            </div>
           </div>
+
+          <div className="mb-3 flex flex-wrap gap-1.5">
+            {CHART_METRICS.map((m) => (
+              <button
+                key={m.key}
+                onClick={() => setChartMetric(m.key)}
+                className={`rounded-full px-3 py-1 text-[11px] font-semibold transition-colors ${
+                  chartMetric === m.key
+                    ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-500/30"
+                    : "text-gray-500 hover:bg-white/80 dark:text-gray-400 dark:hover:bg-gray-700/50"
+                }`}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
+
+          <TrendAreaChart
+            data={chartData}
+            dataKey="value"
+            tooltipLabelKey="fullLabel"
+            name={CHART_METRICS.find((m) => m.key === chartMetric)?.label}
+            color={chartMetric === "transactions" ? "#3b82f6" : chartMetric === "aov" ? "#8b5cf6" : "var(--color-emerald-500)"}
+            formatValue={formatMetricValue}
+            formatAxis={chartMetric === "transactions" ? (n) => Math.round(n).toLocaleString("en-IN") : formatCompactINR}
+            animationKey={`${chartMetric}-${chartPeriod}`}
+          />
         </div>
 
         {/* ── Transaction status donut ── */}
-        <div className="lg:col-span-1 bg-white dark:bg-gray-800 rounded-xl p-5">
-          <div className="flex items-center justify-between mb-5">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                <Layers size={16} />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Transaction Status</p>
-                <p className="text-[11px] text-gray-400">Total transactions: {totalTransactions.toLocaleString("en-IN")}</p>
-              </div>
+        <div className="bento-card flex flex-col p-5">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <p className="flex items-center gap-2 text-base font-bold text-gray-900 dark:text-gray-100">
+                <LayoutGrid size={17} className="text-emerald-500" />
+                Transaction Status
+              </p>
+              <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Payments by current state · {range.label.toLowerCase()}</p>
             </div>
-            <Link
-              to="/transactions"
-              className="flex items-center gap-0.5 text-xs font-semibold text-emerald-600 hover:underline whitespace-nowrap"
-            >
-              View Details <ChevronRight size={13} />
+            <Link to="/transactions" aria-label="View transactions" className="text-gray-400 transition-colors hover:text-emerald-600">
+              <ArrowUpRight size={16} />
             </Link>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center gap-8">
-            <div
-              className="w-36 h-36 rounded-full shrink-0 relative"
-              style={{ background: `conic-gradient(${conicStops})` }}
-            >
-              <div className="absolute inset-[14px] bg-white dark:bg-gray-800 rounded-full flex flex-col items-center justify-center">
-                <span className="text-xl font-bold text-gray-900 dark:text-gray-100">{totalTransactions.toLocaleString("en-IN")}</span>
-                <span className="text-[10px] text-gray-400">Transactions</span>
-              </div>
-            </div>
-            <div className="flex-1 w-full flex flex-col gap-3.5">
-              {statusSplit.length === 0 ? (
-                <p className="text-xs text-gray-400">No transactions in this period yet.</p>
-              ) : (
-                statusSplit.map((s) => (
-                  <div key={s.label} className="flex items-center justify-between">
-                    <span className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
-                      <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
-                      {s.label}
-                    </span>
-                    <span className="text-xs font-semibold text-gray-800 dark:text-gray-100">
-                      {s.count.toLocaleString("en-IN")}
-                      <span className="text-gray-400 font-normal"> ({s.pct}%)</span>
-                    </span>
-                  </div>
-                ))
-              )}
-            </div>
+          <div className="my-5 flex justify-center">
+            <DonutChart
+              size={164}
+              data={statusSplit.map((s) => ({ label: s.label, value: s.count, color: s.color }))}
+              centerValue={<AnimatedNumber value={totalTransactions} />}
+              centerLabel="Transactions"
+              formatValue={(n) => `${n.toLocaleString("en-IN")} transactions`}
+            />
           </div>
 
-          <div
-            className={`mt-5 flex items-center gap-3 rounded-xl px-4 py-3 ${
-              revenueChange >= 0 ? "bg-emerald-50" : "bg-amber-50"
-            }`}
-          >
-            <div
-              className={`w-9 h-9 rounded-lg text-white flex items-center justify-center shrink-0 ${
-                revenueChange >= 0 ? "bg-emerald-500" : "bg-amber-500"
-              }`}
-            >
-              <Trophy size={16} />
-            </div>
-            <div>
-              <p className={`text-sm font-semibold ${revenueChange >= 0 ? "text-emerald-800" : "text-amber-800"}`}>
-                {revenueChange >= 0 ? "Great Performance!" : "Heads up"}
+          <div className="mt-auto">
+            {statusSplit.length === 0 ? (
+              <p className="rounded-2xl bg-white/70 px-3 py-3 text-center text-xs text-gray-400 dark:bg-gray-900/40">
+                No transactions in this period yet.
               </p>
-              <p className={`text-xs ${revenueChange >= 0 ? "text-emerald-600" : "text-amber-700"}`}>
-                {revenueChange >= 0
-                  ? `Your revenue is up by ${revenueChange.toFixed(1)}% this month.`
-                  : `Your revenue is down by ${Math.abs(revenueChange).toFixed(1)}% this month.`}
-              </p>
-            </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-2">
+                {statusSplit.slice(0, 3).map((s) => (
+                  <div key={s.label} className="rounded-2xl bg-white/80 px-2 py-2.5 text-center shadow-sm dark:bg-gray-900/40">
+                    <p className="flex items-center justify-center gap-1.5 truncate text-[11px] text-gray-500 dark:text-gray-400">
+                      <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
+                      {s.label}
+                    </p>
+                    <p className="mt-1 text-base font-bold text-gray-900 dark:text-gray-100">{s.count.toLocaleString("en-IN")}</p>
+                    <p className="text-[10px] text-gray-400">{Math.round(s.pct)}%</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
+
+        {/* ── Growth hero (green) ── */}
+        <div className="relative flex flex-col overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-500 via-emerald-500 to-teal-400 p-6 text-white shadow-[0_12px_40px_rgba(16,185,129,0.35)] dark:from-emerald-600 dark:to-teal-600 dark:shadow-none">
+          <div aria-hidden="true" className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-white/10" />
+          <div aria-hidden="true" className="pointer-events-none absolute -bottom-16 -left-10 h-44 w-44 rounded-full bg-white/10" />
+
+          <p className="relative flex items-center gap-2 text-lg font-bold">
+            {totalTransactions === 0 ? <Sparkles size={18} /> : revenueChange >= 0 ? <TrendingUp size={18} /> : <TrendingDown size={18} />}
+            {totalTransactions === 0 ? "Ready For Sales" : revenueChange >= 0 ? "Revenue Is Growing" : "Revenue Dipped"}
+          </p>
+          <p className="relative mt-2 text-sm leading-relaxed text-white/85">
+            {totalTransactions === 0
+              ? `No payments ${range.label.toLowerCase()} yet. Share your vouchers to get the first one.`
+              : `Revenue ${revenueChange >= 0 ? "up" : "down"} ${Math.abs(revenueChange).toFixed(1)}% vs the previous period · ${range.label.toLowerCase()}.`}
+          </p>
+
+          <div className="relative mt-5 grid grid-cols-3 gap-2">
+            {[
+              { value: totalTransactions.toLocaleString("en-IN"), label: "Sales" },
+              { value: `${paidPct}%`, label: "Paid" },
+              { value: openRefunds.toLocaleString("en-IN"), label: "Refunds" },
+            ].map((chip) => (
+              <div key={chip.label} className="rounded-2xl bg-white/15 px-2 py-2.5 text-center backdrop-blur-sm ring-1 ring-white/20">
+                <p className="text-lg font-bold leading-tight">{chip.value}</p>
+                <p className="text-[11px] text-white/80">{chip.label}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="relative mt-auto pt-6">
+            <Link
+              to="/transactions"
+              className="inline-flex items-center gap-1.5 rounded-full bg-white px-5 py-2 text-sm font-semibold text-emerald-700 shadow-sm transition-transform hover:translate-x-0.5"
+            >
+              Overview <ArrowRight size={15} />
+            </Link>
+          </div>
+        </div>
+        </div>
+
+        {/* ── Quick actions ── */}
+        <div className="mb-4">
+          <QuickActions />
+        </div>
+
+        {/* ── Action center + settlements + plan usage ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+          <ActionCenter
+            refunds={insights.refunds.data || []}
+            subscription={insights.subscription.data}
+            brand={brand}
+            loading={insights.refunds.loading || insights.subscription.loading}
+          />
+          <SettlementSnapshot
+            settlements={insights.settlements.data || []}
+            loading={insights.settlements.loading}
+            error={insights.settlements.error}
+          />
+          <PlanUsageCard
+            subscription={insights.subscription.data}
+            loading={insights.subscription.loading}
+            error={insights.subscription.error}
+          />
+        </div>
+
+        {/* ── Rankings: top vouchers by uses + revenue by outlet ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+          <div className="bento-card p-5">
+            <div className="flex items-center gap-2.5 mb-4">
+              <div className="w-9 h-9 rounded-lg bg-amber-50 dark:bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0">
+                <Trophy size={16} />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Top Vouchers</p>
+                <p className="text-[11px] text-gray-400">Ranked by number of uses</p>
+              </div>
+            </div>
+            {topVoucherChartData.length ? (
+              <HorizontalBarChart
+                data={topVoucherChartData}
+                color="#f59e0b"
+                name="Uses"
+                formatValue={(n) => Math.round(n).toLocaleString("en-IN")}
+              />
+            ) : (
+              <p className="py-8 text-center text-xs text-gray-400">No voucher uses yet.</p>
+            )}
+          </div>
+
+          <div className="bento-card p-5">
+            <div className="flex items-center gap-2.5 mb-4">
+              <div className="w-9 h-9 rounded-lg bg-sky-50 dark:bg-sky-500/10 text-sky-500 flex items-center justify-center shrink-0">
+                <BarChart3 size={16} />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Outlet Performance</p>
+                <p className="text-[11px] text-gray-400">Revenue by outlet · {range.label.toLowerCase()}</p>
+              </div>
+            </div>
+            {outletChartData.length ? (
+              <HorizontalBarChart data={outletChartData} color="#0ea5e9" name="Revenue" formatValue={formatCompactINR} />
+            ) : (
+              <p className="py-8 text-center text-xs text-gray-400">No outlet revenue in this period.</p>
+            )}
+          </div>
         </div>
 
         {/* ── Top Performing Voucher: horizontal card carousel, ranked by real usage ── */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl mb-4">
+        <div className="bento-card mb-4">
           <div className="flex items-center justify-between px-5 py-3.5 gap-3">
             <div className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-lg bg-amber-50 text-amber-500 flex items-center justify-center shrink-0">
@@ -898,82 +1062,42 @@ export default function AnalysisReport() {
               <p className="text-center text-sm text-gray-400 py-6">No published vouchers yet.</p>
             ) : (
               <>
-                <button
-                  onClick={() => scrollVouchers(-1)}
-                  aria-label="Scroll left"
-                  className="hidden sm:flex absolute left-1 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-white dark:bg-gray-800 shadow items-center justify-center text-gray-500 hover:text-gray-800"
-                >
-                  <ChevronLeft size={16} />
-                </button>
+                {voucherScroll.left && (
+                  <button
+                    onClick={() => scrollVouchers(-1)}
+                    aria-label="Scroll left"
+                    className="animate-fade-in hidden sm:flex absolute left-1 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-white dark:bg-gray-800 shadow items-center justify-center text-gray-500 hover:text-gray-800 dark:hover:text-gray-100"
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
+                )}
 
                 <div
                   ref={voucherScrollRef}
-                  className="flex gap-3 overflow-x-auto scroll-smooth snap-x px-1"
-                  style={{ scrollbarWidth: "none" }}
+                  onScroll={updateVoucherScroll}
+                  className="flex gap-3 overflow-x-auto no-scrollbar scroll-smooth snap-x px-1"
                 >
-                  {topVouchers.map(({ v, usage }) => {
-                    const thumbnail = v.images?.[0]?.url;
-                    // Confirmed shape (vendor_panel_api_doc.md #59, V-4):
-                    // banner.current.{url,kind} — only usable here as an
-                    // <img> fallback when it isn't a video.
-                    const currentBanner = v.voucher?.banner?.current;
-                    const bannerUrl = currentBanner && currentBanner.kind !== "VIDEO" ? currentBanner.url : null;
-                    const imageUrl = thumbnail || bannerUrl;
-                    return (
-                      <div
-                        key={v._id}
-                        className="flex-none w-64 bg-gray-50 dark:bg-gray-700 rounded-xl p-3 snap-start"
-                      >
-                        <div className="flex gap-3">
-                          {imageUrl ? (
-                            <img src={imageUrl} alt="" className="w-16 h-16 rounded-lg object-cover shrink-0" />
-                          ) : (
-                            <div className="w-16 h-16 rounded-lg flex items-center justify-center text-gray-300 shrink-0">
-                              <ImageIcon className="h-5 w-5" />
-                            </div>
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <span className="inline-block bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[11px] font-semibold px-2 py-0.5 rounded-full mb-1">
-                              {summarizeVoucherDiscount(v.offers)}
-                            </span>
-                            <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 leading-snug line-clamp-2">{v.name}</p>
-                            <p className="text-[11px] text-gray-400 mt-0.5 truncate">{v.versionCode}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-between mt-3 pt-2">
-                          <span className="text-xs text-gray-500">
-                            {usage ? `${usage.count.toLocaleString("en-IN")} uses` : "No uses yet"}
-                          </span>
-                          {usage && usage.count >= 2 && (
-                            <span
-                              className={`flex items-center gap-0.5 text-xs font-semibold ${
-                                usage.trend >= 0 ? "text-emerald-600" : "text-red-500"
-                              }`}
-                            >
-                              {usage.trend >= 0 ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
-                              {Math.abs(usage.trend).toFixed(0)}%
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
+                  {topVouchers.map(({ v, usage }) => (
+                    <VoucherTicketCard key={v._id} voucher={v} usage={usage} />
+                  ))}
                 </div>
 
-                <button
-                  onClick={() => scrollVouchers(1)}
-                  aria-label="Scroll right"
-                  className="hidden sm:flex absolute right-1 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-white dark:bg-gray-800 shadow items-center justify-center text-gray-500 hover:text-gray-800"
-                >
-                  <ChevronRight size={16} />
-                </button>
+                {voucherScroll.right && (
+                  <button
+                    onClick={() => scrollVouchers(1)}
+                    aria-label="Scroll right"
+                    className="animate-fade-in hidden sm:flex absolute right-1 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-white dark:bg-gray-800 shadow items-center justify-center text-gray-500 hover:text-gray-800 dark:hover:text-gray-100"
+                  >
+                    <ChevronRight size={16} />
+                  </button>
+                )}
               </>
             )}
           </div>
         </div>
 
         {/* ── Recent transactions ── */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden">
+        <div className="bento-card overflow-hidden">
           <div className="flex items-center justify-between px-5 py-3.5 gap-3">
             <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">Recent Transactions</p>
             <div className="relative w-full max-w-[220px]">
@@ -1018,7 +1142,7 @@ export default function AnalysisReport() {
                   pagedTransactionRows.map((row) => {
                     const avatar = getAvatarColors(row.customerName);
                     return (
-                      <tr key={row.orderId} className="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                      <tr key={row.orderId} className="hover:bg-white/60 dark:hover:bg-gray-700/50 transition-colors">
                         <td className="px-3 py-2 whitespace-nowrap">
                           <Link
                             to={`/transactions/order/${(row.txnId || row.orderId).replace(/^#/, "")}`}

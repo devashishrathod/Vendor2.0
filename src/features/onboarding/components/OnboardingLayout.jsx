@@ -1,3 +1,4 @@
+import AppBackground from "@/components/common/AppBackground";
 import Sidebar from "@/features/onboarding/components/Sidebar";
 import SuccessToast from "@/components/common/SuccessToast";
 import ThemeToggleButton from "@/components/common/ThemeToggleButton";
@@ -123,7 +124,7 @@ export default function OnboardingLayout({
 }) {
   return (
     <div
-      className="h-screen bg-white dark:bg-gray-800 relative overflow-hidden flex flex-col lg:flex-row"
+      className="app-shell-bg h-screen relative isolate overflow-hidden flex flex-col lg:flex-row"
       style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif" }}
     >
       <style>{`
@@ -136,10 +137,7 @@ export default function OnboardingLayout({
       {/* Global success toast — top-level, never remounts on step change */}
       <SuccessToast message={toastMessage} onDismiss={clearToast} />
 
-      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] pointer-events-none"
-        style={{ background: "radial-gradient(ellipse at bottom left,rgba(16,185,129,0.13) 0%,transparent 70%)", zIndex: 0 }} />
-      <div className="absolute top-0 right-0 w-[400px] h-[400px] pointer-events-none"
-        style={{ background: "radial-gradient(ellipse at top right,rgba(99,102,241,0.06) 0%,transparent 70%)", zIndex: 0 }} />
+      <AppBackground />
 
       <div className="hidden lg:flex relative flex-shrink-0" style={{ zIndex: 1 }}>
         <Sidebar {...sidebarProps} />
@@ -195,7 +193,7 @@ export default function OnboardingLayout({
           </div>
         </header>
 
-        <div className="flex-1 flex flex-col min-h-0 py-2 px-4 sm:py-3 sm:px-6 lg:px-8 bg-[#F8FAF7] dark:bg-gray-900 overflow-y-auto">
+        <div className="flex-1 flex flex-col min-h-0 py-2 px-4 sm:py-3 sm:px-6 lg:px-8 overflow-y-auto">
           {/* The PAN/GST/Bank read-only review cards (Step6PANEnter through
               Step14PartnerContract) are much shorter than the earlier
               multi-field forms, so on a tall viewport they used to sit
