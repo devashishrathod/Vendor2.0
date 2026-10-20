@@ -1,4 +1,4 @@
-import { BellOff, Check, Clock, X } from "lucide-react";
+import { BellOff, Check, Clock } from "lucide-react";
 
 import { getNotificationVisual } from "../constants/notificationTypes";
 
@@ -60,11 +60,10 @@ const MAX_STAGGER_MS = 320;
 /**
  * One notification card, shared by the bell's preview dropdown and the
  * "View all" drawer: type icon (unread dot on its corner), title, 2-line
- * body, relative time. Mark-as-read / clear float in on hover (always
- * visible on touch screens, which have no hover). `index` staggers the
- * entrance animation.
+ * body, relative time. Mark-as-read floats in on hover. `index` staggers
+ * the entrance animation.
  */
-export default function NotificationItem({ notification: n, index = 0, onOpen, onMarkRead, onClear }) {
+export default function NotificationItem({ notification: n, index = 0, onOpen, onMarkRead }) {
   const { icon: Icon, tint, card } = getNotificationVisual(n);
 
   return (
@@ -114,15 +113,6 @@ export default function NotificationItem({ notification: n, index = 0, onOpen, o
             <Check size={13} strokeWidth={2.5} />
           </button>
         )}
-        <button
-          type="button"
-          onClick={() => onClear(n._id)}
-          title="Clear"
-          aria-label="Clear notification"
-          className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-gray-500 shadow-sm transition-colors hover:bg-rose-500 hover:text-white dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-rose-500 dark:hover:text-white"
-        >
-          <X size={13} strokeWidth={2.5} />
-        </button>
       </div>
     </div>
   );

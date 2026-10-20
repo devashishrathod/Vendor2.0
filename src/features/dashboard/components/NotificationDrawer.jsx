@@ -12,7 +12,7 @@ const TABS = [
 
 /**
  * Right-side "View all" panel — the full notification list with All/Unread
- * tabs, Mark all read, Clear all, per-item actions and Load more. When
+ * tabs, Mark all read, Clear all, Mark as read and Load more. When
  * `selectedId` is set it shows that notification's full details instead
  * (NotificationDetail), with a back link to the list. Portaled to <body> so
  * the header's own stacking/overflow can't clip it.
@@ -33,7 +33,6 @@ export default function NotificationDrawer({
   onOpenItem,
   onMarkRead,
   onMarkAllRead,
-  onClear,
   onClearAll,
 }) {
   const [tab, setTab] = useState("all");
@@ -122,7 +121,6 @@ export default function NotificationDrawer({
                 index={i}
                 onOpen={onOpenItem}
                 onMarkRead={onMarkRead}
-                onClear={onClear}
               />
             ))}
           </div>
@@ -185,7 +183,7 @@ export default function NotificationDrawer({
         )}
 
         {selected ? (
-          <NotificationDetail notification={selected} onBack={onBack} onNavigate={onNavigate} onClear={onClear} />
+          <NotificationDetail notification={selected} onBack={onBack} onNavigate={onNavigate} />
         ) : (
           listView
         )}

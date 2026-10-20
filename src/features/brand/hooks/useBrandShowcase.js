@@ -3,7 +3,7 @@
 // { data, loading, error, reload } — same pattern as useBrandData.js.
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { getBrandShowcase } from "../services/brandApi";
+import { getVendorBrandShowcase } from "../services/brandApi";
 
 const useBrandShowcase = (brandId) => {
   const [data, setData] = useState(null);
@@ -25,8 +25,8 @@ const useBrandShowcase = (brandId) => {
     setError(null);
 
     try {
-      const res = await getBrandShowcase(brandId);
-      // Response shape: { success, message, data: { brandId, sections: [...] } }
+      const res = await getVendorBrandShowcase(brandId);
+      // Vendor management endpoints include hidden sections and all media.
       const showcase = res?.data ?? null;
       if (requestId === requestIdRef.current) {
         setData(showcase);
