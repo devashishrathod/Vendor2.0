@@ -148,7 +148,7 @@ export default function Step2VerifyOTP({ isOpen, onClose, phoneNumber, onVerifie
         console.error('[OTP] registerCurrentDevice error:', err);
       });
 
-      const currentScreen = res?.data?.user?.currentScreen ?? "BUSINESS_NAME";
+      const currentScreen = useAuthStore.getState().currentScreen;
       const mapped = SCREEN_TO_STEP[currentScreen];
       console.log('[OTP] mapped:', mapped);
 
