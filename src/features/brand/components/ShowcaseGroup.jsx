@@ -10,22 +10,21 @@ import DisabledHint from "@/components/common/DisabledHint";
 
 // Confirms the just-picked files before they upload — lets the vendor mark
 // this batch for video clips and attach a thumbnail. A thumbnail is
-// REQUIRED whenever the batch contains a video (Upload stays disabled, with
-// a hint, until one is picked); for an image-only batch marked for clips it
-// stays optional. ⚠️ NOT CONFIRMED from Postman: only isShowInVideoClips +
-// files are documented on add-media — thumbnail is sent as a best-effort
-// "thumbnail" form field (see addShowcaseMedia's comment).
+// REQUIRED whenever a video is uploaded; video uploads are one at a time so
+// the poster maps unambiguously to that video. Photo-only batches can contain
+// multiple files; a poster for video clips remains optional.
 function UploadMediaModal({ files, onClose, onConfirm }) {
   const [isShowInVideoClips, setIsShowInVideoClips] = useState(false);
   const [thumbnail, setThumbnail] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
   const hasVideo = files.some((f) => f.type?.startsWith("video/"));
+  const invalidVideoBatch = hasVideo && files.length !== 1;
   const showThumbnailField = hasVideo || isShowInVideoClips;
   const needsThumbnail = hasVideo && !thumbnail;
 
   const handleConfirm = async () => {
-    if (needsThumbnail) return;
+    if (needsThumbnail || invalidVideoBatch) return;
     setSubmitting(true);
     try {
       await onConfirm({ isShowInVideoClips, thumbnail: showThumbnailField ? thumbnail : null });
@@ -51,6 +50,11 @@ function UploadMediaModal({ files, onClose, onConfirm }) {
         <p className="mb-4 text-xs text-gray-500 dark:text-gray-400">
           {files.length} file{files.length > 1 ? "s" : ""} ready to upload.
         </p>
+        {invalidVideoBatch && (
+          <p className="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
+            Upload one video at a time with its poster image. Photos can be uploaded together.
+          </p>
+        )}
 
         <div className="flex items-center gap-2">
           <input
@@ -94,11 +98,14 @@ function UploadMediaModal({ files, onClose, onConfirm }) {
           >
             Cancel
           </button>
-          <DisabledHint show={needsThumbnail && !submitting} message="Choose a thumbnail for the video">
+          <DisabledHint
+            show={(needsThumbnail || invalidVideoBatch) && !submitting}
+            message={invalidVideoBatch ? "Upload videos one at a time" : "Choose a thumbnail for the video"}
+          >
             <button
               type="button"
               onClick={handleConfirm}
-              disabled={submitting || needsThumbnail}
+              disabled={submitting || needsThumbnail || invalidVideoBatch}
               className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-bold text-white shadow-sm shadow-emerald-100 transition-all duration-200 hover:bg-emerald-600 active:scale-[0.97] disabled:pointer-events-none disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:text-gray-300 disabled:shadow-none"
             >
               {submitting ? "Uploading…" : "Upload"}

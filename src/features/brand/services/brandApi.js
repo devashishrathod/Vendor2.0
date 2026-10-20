@@ -518,11 +518,8 @@ export async function reorderShowcaseSections(brandId, sections = []) {
 // @param {File[]} files
 // @param {object} [options]
 // @param {boolean} [options.isShowInVideoClips=false]
-// @param {File} [options.thumbnail] - ⚠️ NOT CONFIRMED from Postman: only
-//        `isShowInVideoClips` + `files` are documented on this endpoint.
-//        Sent as a best-effort "thumbnail" file field when provided (only
-//        meaningful alongside isShowInVideoClips: true) — verify against a
-//        real response and correct the field name here if it's wrong.
+// @param {File} [options.thumbnail] - poster image for a single video upload,
+//        sent as "thumbnails" to match the add-media endpoint's repeated field.
 // @param {Record<string,string>} [options.extraFields] - e.g. a "month" tag
 //        for Ambience-style albums, if the backend accepts it per-upload.
 // @param {(percent:number)=>void} [onUploadProgress]
@@ -536,9 +533,14 @@ export async function addShowcaseMedia(
         if (!sectionId) throw new Error('sectionId is required');
         if (!files?.length) throw new Error('At least one file is required');
 
+        const videos = files.filter((file) => file.type?.startsWith('video/'));
+        if (videos.length && (files.length !== 1 || !thumbnail)) {
+            throw new Error('Upload one video at a time and attach its poster image. Photos can be uploaded together.');
+        }
+
         const formData = new FormData();
         formData.append('isShowInVideoClips', String(isShowInVideoClips));
-        if (thumbnail) formData.append('thumbnail', thumbnail);
+        if (thumbnail) formData.append('thumbnails', thumbnail);
 
         Object.entries(extraFields).forEach(([key, value]) => {
             formData.append(key, value);
