@@ -15,7 +15,7 @@ import {
   updateVoucher,
 } from "../../services/voucher/VoucherService";
 
-const MAX_VOUCHER_NAME_LENGTH = 25;
+const MAX_VOUCHER_NAME_LENGTH = 30;
 const MAX_DESCRIPTION_LENGTH = 300;
 const MAX_OFFER_TITLE_LENGTH = 15;
 
