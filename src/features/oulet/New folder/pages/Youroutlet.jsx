@@ -38,7 +38,14 @@ import { trackEvent } from "@/utils/analytics";
 // of printing them verbatim in the Status History timeline.
 function prettifyStatus(value) {
   if (!value) return "";
-  return value
+  const normalized = value
+    .trim()
+    .replace(/([a-z\d])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ");
+  if (normalized.replace(/\s/g, "").toLowerCase() === "partnershipdeed") {
+    return "Partnership Deed";
+  }
+  return normalized
     .replace(/_/g, " ")
     .toLowerCase()
     .replace(/\b\w/g, (c) => c.toUpperCase());

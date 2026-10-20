@@ -785,7 +785,7 @@ export default function CreateBrandOutlet() {
     !!brandSubType ||
     (!!brandType && !subCategoriesLoading && (!!subCategoriesError || subCategories.length === 0));
   const canContinueStep1 =
-    !!brandEmail.trim() && !!effectiveMobile.trim() && !!brandType && subCategorySatisfied && advancedDetailsOk;
+    !!effectiveMobile.trim() && !!brandType && subCategorySatisfied && advancedDetailsOk;
   // Step 2 → Review: verified outlet WhatsApp (which also creates the
   // subBrand), a saved location, at least one open day, and saved hours —
   // and no location/hours save still in flight.
@@ -905,7 +905,9 @@ export default function CreateBrandOutlet() {
 
                   {/* Email */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Brand Email *</label>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      Brand Email <span className="text-gray-400 font-normal">(optional)</span>
+                    </label>
                     <input
                       type="email"
                       value={brandEmail}
