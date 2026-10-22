@@ -1,5 +1,10 @@
 import { useState } from "react";
-import { signUpSubBrandWithWhatsapp, updateSubBrand } from "../services/subBrandApi";
+import {
+  resendSubBrandWhatsappOtp,
+  signUpSubBrandWithWhatsapp,
+  updateSubBrand,
+  updateSubBrandWhatsappNumber,
+} from "../services/subBrandApi";
 import {
   createLocation,
   buildLocationPayloadFromPlace,
@@ -9,29 +14,32 @@ import {
   mapLocationToSelectedPlace,
 } from "../services/locationApi";
 
-// Add Outlet — NOTHING is created on the server until "Create Outlet":
-//   1. the WhatsApp number is verified first (OTP, or the first outlet's
-//      already-verified number) — the modal handles that, no outlet yet;
+// Add Outlet:
+//   1. requestOtp() — "Send OTP" creates the outlet AND sends its OTP in one
+//      call (subBrands/signUp-with-whatsapp, isFirstOutlet: false). This is
+//      the only way to register a new outlet number: auth/loginOrSignUp-
+//      with-whatsapp refuses to create SUB_VENDOR accounts. The plan slot is
+//      used here. Resend = resendSubBrandWhatsappOtp (a repeat signUp call
+//      — the doc's resend); a changed number = PATCH
+//      subBrands/:id/whatsapp-number (same outlet, same slot). Each number
+//      can only ever belong to one outlet, so the first outlet's can't be reused.
 //   2. a location is only PICKED here (kept locally, not saved);
-//   3. submit() then, in order: validates the location (so a bad address
-//      can't leave a half-created outlet), creates the outlet
-//      (subBrands/signUp-with-whatsapp), creates its location
-//      (locations/create), and sends the final subBrands/update.
-// If a later step fails, the ids already created (subBrandId / locationId)
-// are kept, so clicking Create Outlet again resumes instead of duplicating.
+//   3. submit() then validates the location, creates it (locations/create)
+//      and sends the final subBrands/update (outletType / isActive).
+// If a later step fails, locationId is kept so Create Outlet resumes.
 
 const initialState = {
   outletType: "", // "outlet" | "franchise"
   isActive: true,
 
-  // Different-number path only: `verified` flips true after the OTP is
-  // confirmed. The first outlet's number needs no OTP (see the modal).
+  // `verified` flips true after the OTP is confirmed.
   whatsapp: { number: "", verified: false },
 
   brandId: null,
 
-  // Set during submit() — kept so a retry doesn't re-create the outlet.
+  // Set by requestOtp() — the outlet and the number it currently holds.
   subBrandId: null,
+  subBrandNumber: "",
   locationId: null,
 
   locationMode: "search", // "search" | "live"
@@ -121,16 +129,55 @@ export function useAddOutletForm(onSuccess) {
 
   const reset = () => setForm(initialState);
 
+  const sendOtpFor = (whatsappNumber) => {
+    // No outlet yet → create it (this also sends the OTP).
+    if (!form.subBrandId) {
+      return signUpSubBrandWithWhatsapp({
+        brandId: form.brandId,
+        whatsappNumber,
+        outletType: form.outletType,
+        isFirstOutlet: false,
+      });
+    }
+    // Same outlet, same number → resend.
+    if (form.subBrandNumber === whatsappNumber) {
+      return resendSubBrandWhatsappOtp({ brandId: form.brandId, whatsappNumber });
+    }
+    // Same outlet, corrected number → move it (sends a new OTP).
+    return updateSubBrandWhatsappNumber(form.subBrandId, whatsappNumber);
+  };
+
   /**
-   * Creates the outlet: validate location → signUp-with-whatsapp →
+   * Sends or resends the outlet's WhatsApp OTP — creates the outlet on the
+   * first send, resends for the same number, moves it for a new number.
+   * Throws the API error (err.details.retryAfterSeconds on a 429).
+   * @param {string} whatsappNumber
+   * @returns {Promise<{ otpSent: boolean, otpError: string|null, retryAfterSeconds: number|null }>}
+   */
+  const requestOtp = async (whatsappNumber) => {
+    const res = await sendOtpFor(whatsappNumber);
+
+    const data = res?.data ?? {};
+    const subBrandId = extractSubBrandId(res) ?? form.subBrandId;
+    if (!subBrandId) throw new Error("Couldn't create the outlet. Please try again.");
+    setForm((prev) => ({ ...prev, subBrandId, subBrandNumber: whatsappNumber }));
+
+    return {
+      otpSent: data.otpSent !== false,
+      otpError: data.otpError ?? null,
+      retryAfterSeconds: data.retryAfterSeconds ?? null,
+    };
+  };
+
+  /**
+   * Finishes the outlet created by requestOtp(): validate location →
    * locations/create → subBrands/update.
    * @param {{ whatsappNumber: string, numberVerified: boolean }} number
-   *   the number to register and whether it's verified (first outlet's
-   *   number, or a different number whose OTP was confirmed)
+   *   the outlet's number and whether its OTP was confirmed
    * @returns {Promise<{ success: boolean, error?: string }>}
    */
   const submit = async ({ whatsappNumber, numberVerified }) => {
-    if (!form.outletType || !numberVerified || !whatsappNumber || !form.location) {
+    if (!form.outletType || !numberVerified || !whatsappNumber || !form.subBrandId || !form.location) {
       const message = "Choose the outlet type, verify the WhatsApp number, and pick a location.";
       setError(message);
       return { success: false, error: message };
@@ -146,18 +193,7 @@ export function useAddOutletForm(onSuccess) {
     setSubmitting(true);
     setError("");
     try {
-      let subBrandId = form.subBrandId;
-      if (!subBrandId) {
-        const res = await signUpSubBrandWithWhatsapp({
-          brandId: form.brandId,
-          whatsappNumber,
-          outletType: form.outletType,
-          isFirstOutlet: false,
-        });
-        subBrandId = extractSubBrandId(res);
-        if (!subBrandId) throw new Error("Couldn't create the outlet. Please try again.");
-        setForm((prev) => ({ ...prev, subBrandId }));
-      }
+      const { subBrandId } = form;
 
       if (!form.locationId) {
         const res = await createLocation(buildLocationPayload(form, subBrandId));
@@ -194,6 +230,7 @@ export function useAddOutletForm(onSuccess) {
     savedLocations,
     loadingSavedLocations,
     loadSavedLocations,
+    requestOtp,
     submit,
     submitting,
     error,

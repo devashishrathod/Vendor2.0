@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAddOutletForm } from "../hooks/useAddOutletForm";
 import { useBrand } from "../../../hooks/useBrand";
-import { loginOrSignUpWithWhatsapp, verifyOtpWhatsapp } from "../services/subBrandApi";
+import { verifyOtpWhatsapp } from "../services/subBrandApi";
 import OtpVerifyModal from "@/features/oulet/New folder/components/brandOutlet/modals/OtpVerifyModal";
 import DisabledHint from "@/components/common/DisabledHint";
 import ErrorToast from "@/components/common/ErrorToast";
@@ -48,6 +48,7 @@ export default function AddOutletModal({ onClose, onCreated }) {
     savedLocations,
     loadingSavedLocations,
     loadSavedLocations,
+    requestOtp,
     submit,
     submitting,
     error,
@@ -69,26 +70,16 @@ export default function AddOutletModal({ onClose, onCreated }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [brandId]);
 
-  // ── Outlet WhatsApp Number — verified BEFORE anything is created:
-  //   • First outlet's number (default): brands/get's
-  //     firstSubBrand.whatsappNumber — already verified, nothing to do.
-  //   • A different number: "Send OTP" only sends an OTP
-  //     (auth/loginOrSignUp-with-whatsapp) and "Confirm" verifies it
-  //     (auth/verify-otp-whatsapp). No outlet is created here.
-  // The outlet itself is only created by Create Outlet (see
-  // useAddOutletForm's submit).
-  //
-  // (Variable names still say "brand number" — it's the first outlet's
-  // number, NOT brand.whatsappNumber.)
-  const brandWhatsappNumber = brand?.firstSubBrand?.whatsappNumber || "";
-  // The backend may refuse to reuse a number ("already registered with this
-  // number") when Create Outlet runs — then this flips, the error shows in a
-  // toast, and the form moves to "different number".
-  const [brandNumberTaken, setBrandNumberTaken] = useState(false);
-  const [useBrandNumberChoice, setUseBrandNumberChoice] = useState(true);
-  const useBrandNumber = useBrandNumberChoice && !!brandWhatsappNumber && !brandNumberTaken;
-  const outletNumber = useBrandNumber ? brandWhatsappNumber : form.whatsapp.number;
-  const numberVerified = useBrandNumber || form.whatsapp.verified;
+  // ── Outlet WhatsApp Number — every outlet needs its own number (one
+  // number = one outlet, so the first outlet's can't be reused):
+  //   • "Send OTP" creates the outlet and sends its OTP
+  //     (subBrands/signUp-with-whatsapp, isFirstOutlet: false) — see
+  //     useAddOutletForm's requestOtp. Resend / a corrected number reuse
+  //     that same outlet, no extra plan slot.
+  //   • "Confirm" verifies it (auth/verify-otp-whatsapp, role SUB_VENDOR).
+  // Create Outlet then saves the location + outlet type.
+  const outletNumber = form.whatsapp.number;
+  const numberVerified = form.whatsapp.verified;
 
   const [sendingOtp, setSendingOtp] = useState(false);
   const [numberError, setNumberError] = useState("");
@@ -97,21 +88,14 @@ export default function AddOutletModal({ onClose, onCreated }) {
   const [otpError, setOtpError] = useState("");
   const [otpConfirming, setOtpConfirming] = useState(false);
 
-  // Any number change invalidates the verification — and an outlet made by
-  // an earlier, failed Create Outlet attempt belongs to the OLD number.
+  // A number change invalidates the verification. The outlet (subBrandId)
+  // is kept — the next Send OTP moves it to the new number.
   const resetNumberState = () => {
     updateWhatsapp({ verified: false });
-    update("subBrandId", null);
     setNumberError("");
     setOtpOpen(false);
     setOtpValue("");
     setOtpError("");
-  };
-
-  const handleUseBrandNumberToggle = (checked) => {
-    setUseBrandNumberChoice(checked);
-    updateWhatsapp({ number: "" });
-    resetNumberState();
   };
 
   const handleOutletWhatsappChange = (value) => {
@@ -119,34 +103,31 @@ export default function AddOutletModal({ onClose, onCreated }) {
     resetNumberState();
   };
 
-  // Different number — send the OTP only (no outlet is created).
-  const sendNumberOtp = async () => {
+  // Shared by Send OTP and Resend. The outlet exists even when the code
+  // couldn't go out (otpSent: false) — open the modal if a code is still
+  // valid (retryAfterSeconds), and surface the reason either way.
+  const sendOutletOtp = async (onError) => {
     setSendingOtp(true);
-    setNumberError("");
     setOtpError("");
     try {
-      await loginOrSignUpWithWhatsapp({ whatsappNumber: outletNumber });
-      setOtpOpen(true);
+      const { otpSent, otpError: sendError, retryAfterSeconds } = await requestOtp(outletNumber);
+      if (otpSent || retryAfterSeconds) setOtpOpen(true);
+      if (!otpSent) onError(sendError || "Couldn't send OTP. Please try again.");
     } catch (err) {
       // A rate-limited send still means a valid OTP already went out.
       if (err?.details?.retryAfterSeconds) setOtpOpen(true);
-      setNumberError(err?.message || "Couldn't send OTP. Please try again.");
+      onError(err?.message || "Couldn't send OTP. Please try again.");
     } finally {
       setSendingOtp(false);
     }
   };
 
-  const resendNumberOtp = async () => {
-    setSendingOtp(true);
-    setOtpError("");
-    try {
-      await loginOrSignUpWithWhatsapp({ whatsappNumber: outletNumber });
-    } catch (err) {
-      setOtpError(err?.message || "Couldn't resend OTP. Please try again.");
-    } finally {
-      setSendingOtp(false);
-    }
+  const sendNumberOtp = () => {
+    setNumberError("");
+    return sendOutletOtp(setNumberError);
   };
+
+  const resendNumberOtp = () => sendOutletOtp(setOtpError);
 
   const confirmNumberOtp = async () => {
     if (otpValue.length < 4 || otpConfirming) return;
@@ -170,16 +151,12 @@ export default function AddOutletModal({ onClose, onCreated }) {
     setOtpError("");
   };
 
-  // "Change" / "Use a different number" — back to entering a number.
-  const changeOutletNumber = () => {
-    if (useBrandNumber) {
-      handleUseBrandNumberToggle(false);
-    } else {
-      resetNumberState();
-    }
-  };
-
-  const sendOtpBlockedReason = !isValidPhone(outletNumber) ? "Enter a 10-digit number" : "";
+  // Send OTP creates the outlet, so its type must be chosen first.
+  const sendOtpBlockedReason = !form.outletType
+    ? "Choose the outlet type first"
+    : !isValidPhone(outletNumber)
+      ? "Enter a 10-digit number"
+      : "";
 
   // ── Outlet Location — picked only; saved by Create Outlet ──
   const [showMap, setShowMap] = useState(false);
@@ -224,22 +201,13 @@ export default function AddOutletModal({ onClose, onCreated }) {
         ? "Pick the outlet's location first"
         : "";
 
-  const handleCreateOutlet = async () => {
-    const result = await submit({ whatsappNumber: outletNumber, numberVerified });
-    // The first outlet's number can't be reused → switch to "different
-    // number" so the vendor can verify a new one (toast shows the reason).
-    if (!result.success && useBrandNumber && /already registered/i.test(result.error || "")) {
-      setBrandNumberTaken(true);
-      updateWhatsapp({ number: "", verified: false });
-    }
-  };
+  const handleCreateOutlet = () => submit({ whatsappNumber: outletNumber, numberVerified });
 
+  // No close on backdrop click — it would throw away the form (and an
+  // outlet already created by Send OTP). Only ✕ / Cancel close it.
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={onClose}>
-      <div
-        className="no-scrollbar bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+      <div className="no-scrollbar bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="flex items-center gap-3 px-6 py-4 sticky top-0 z-10 bg-white dark:bg-gray-800 rounded-t-2xl">
           <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-50 dark:bg-emerald-500/10">
             <svg className="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
@@ -300,18 +268,16 @@ export default function AddOutletModal({ onClose, onCreated }) {
                         Verified
                       </span>
                     </span>
-                    <span className="block text-[11px] text-gray-500 dark:text-gray-400">
-                      {useBrandNumber ? "First outlet's WhatsApp number" : "Verified with OTP"}
-                    </span>
+                    <span className="block text-[11px] text-gray-500 dark:text-gray-400">Verified with OTP</span>
                   </span>
                 </span>
                 <button
                   type="button"
-                  onClick={changeOutletNumber}
+                  onClick={resetNumberState}
                   disabled={submitting}
                   className="shrink-0 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline disabled:opacity-50"
                 >
-                  {useBrandNumber ? "Use a different number" : "Change"}
+                  Change
                 </button>
               </div>
             ) : (
@@ -344,21 +310,9 @@ export default function AddOutletModal({ onClose, onCreated }) {
                 </div>
 
                 <p className="text-xs text-gray-400 mt-2">
-                  {brandNumberTaken
-                    ? `${brandWhatsappNumber} is already registered to an outlet — enter a new number and verify it with an OTP.`
-                    : "Verify this number with the OTP sent on WhatsApp. The outlet is only created when you click Create Outlet."}
+                  Each outlet needs its own WhatsApp number. Sending the OTP registers this outlet on your plan — verify
+                  it with the code sent on WhatsApp.
                 </p>
-
-                {brandWhatsappNumber && !brandNumberTaken && (
-                  <button
-                    type="button"
-                    onClick={() => handleUseBrandNumberToggle(true)}
-                    disabled={sendingOtp}
-                    className="mt-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline disabled:opacity-50"
-                  >
-                    Use first outlet's number ({brandWhatsappNumber}) instead
-                  </button>
-                )}
               </>
             )}
           </div>
@@ -413,22 +367,18 @@ export default function AddOutletModal({ onClose, onCreated }) {
         </div>
       </div>
 
-      {/* Wrapper stops clicks inside the OTP popup from bubbling up to
-          this modal's own backdrop (which would close Add Outlet). */}
       {otpOpen && !form.whatsapp.verified && (
-        <div onClick={(e) => e.stopPropagation()}>
-          <OtpVerifyModal
-            phone={outletNumber}
-            otpValue={otpValue}
-            onOtpChange={setOtpValue}
-            otpError={otpError}
-            onConfirm={confirmNumberOtp}
-            onClose={closeOtp}
-            onResend={resendNumberOtp}
-            resending={sendingOtp}
-            confirming={otpConfirming}
-          />
-        </div>
+        <OtpVerifyModal
+          phone={outletNumber}
+          otpValue={otpValue}
+          onOtpChange={setOtpValue}
+          otpError={otpError}
+          onConfirm={confirmNumberOtp}
+          onClose={closeOtp}
+          onResend={resendNumberOtp}
+          resending={sendingOtp}
+          confirming={otpConfirming}
+        />
       )}
 
       {showMap && form.location && (
