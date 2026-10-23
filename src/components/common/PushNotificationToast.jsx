@@ -68,17 +68,6 @@ export default function PushNotificationToast({ toast, onDismiss, duration = 600
           )}
         </div>
 
-        <button
-          onClick={(e) => { e.stopPropagation(); onDismiss(); }}
-          aria-label="Dismiss"
-          className="bg-transparent cursor-pointer p-1 leading-none
-                     text-emerald-100/60 rounded-full shrink-0
-                     transition-colors hover:bg-white/10 hover:text-white"
-        >
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
       </div>
     </>
   );

@@ -25,25 +25,20 @@ function handleError(error) {
         error?.message ||
         'Something went wrong. Please try again.';
 
-    // ⚠️ Known backend bug in subBrands/signUp-with-whatsapp: when the
-    // WhatsApp number passed in already belongs to an existing user (e.g.
-    // the merchant reuses the brand's own number — already registered to
-    // firstSubBrand — for a second/third outlet via "Use my Brand's
-    // WhatsApp number"), the endpoint is supposed to link that existing
-    // user to the new subBrand record. Instead it appears to save the new
-    // subBrand with userId: null, which then collides with some other
-    // pre-existing null-userId document under what's presumably a unique
-    // index — surfacing as this exact confusing Mongo-style message
-    // instead of a real "number already registered" error. This can only
-    // be fixed on the backend (this repo has no backend code); translate
-    // it into something the merchant can actually act on in the meantime.
+    // One WhatsApp number = one outlet: the backend's unique index is
+    // { whatsappNumber, role }, so a number already on an outlet (e.g. the
+    // first outlet's) can never be reused for another. Older backends leaked
+    // that as this Mongo-style message — translate it.
     if (/is already registered for userid/i.test(message)) {
-        throw new Error(
-            'This WhatsApp number is already linked to another account on our end. Please use a different number for this outlet for now — our team is looking into reusing the same number across outlets.'
-        );
+        throw new Error('This WhatsApp number is already registered to another outlet. Please use a different number.');
     }
 
-    throw new Error(message);
+    const err = new Error(message);
+    // Carries e.g. { retryAfterSeconds } on the OTP rate-limit (429) and
+    // { code } on outlet errors, so callers can tell "a code already went
+    // out" apart from a real failure.
+    if (error?.response?.data?.details) err.details = error.response.data.details;
+    throw err;
 }
 
 export const OUTLET_TYPES = { OUTLET: 'OUTLET', FRANCHISE: 'FRANCHISE' };
@@ -89,6 +84,15 @@ export async function verifyOtpWhatsapp({ whatsappNumber, otp, role = 'SUB_VENDO
 // number successfully.", data: { isNewOutlet, otpSent, otpError, retryAfterSeconds,
 // user: { _id, ..., subBrandId }, subBrand: { _id, outletType, storeId, ... }, usage } }
 // → the outlet id is data.subBrand._id (== data.user.subBrandId), and this call ALREADY sends the OTP.
+//
+// Add Outlet (a brand that already has its first outlet) always sends
+// isFirstOutlet: false. Calling it again with the same number for an
+// unverified outlet of this brand just RESENDS the OTP (data.isNewOutlet:
+// false) — no new outlet, no extra plan slot. New SUB_VENDOR numbers can't go
+// through auth/loginOrSignUp-with-whatsapp ("This account type cannot be
+// created here") — that endpoint only logs existing outlet managers in.
+// If the OTP couldn't be sent, the outlet still exists: 200 with
+// data.otpSent: false + data.otpError / data.retryAfterSeconds.
 //
 // ⚠️ IMPORTANT — response shape has TWO different ids, don't confuse them:
 //   response.data._id         -> the SUB_VENDOR *user/login* account created
@@ -143,14 +147,6 @@ export async function sendOutletWhatsappOtp({ brandId, whatsappNumber, isFirstOu
     try {
         await sendLoginOtpWithRetry(whatsappNumber);
     } catch (err) {
-        // ⚠️ FIXED: previously let this failure propagate with no way for
-        // the caller to know the shell above WAS already created — the
-        // caller's catch block never got a subBrandId to save, so the next
-        // "Verify" click re-ran signUp-with-whatsapp against an outlet
-        // that already existed instead of just resending the OTP (that's
-        // why verifying could take two clicks). Attach the real
-        // subBrandId to the error so a caller can still recover and save
-        // it even though this call is failing overall.
         const shell = subBrandRes?.data ?? subBrandRes;
         err.subBrandId = shell?.subBrandId || null;
         throw err;
@@ -166,6 +162,37 @@ export async function sendOutletWhatsappOtp({ brandId, whatsappNumber, isFirstOu
 export async function updateSubBrand(subBrandId, patch = {}) {
     try {
         const { data } = await api.put(`/subBrands/update/${subBrandId}`, patch);
+        return data;
+    } catch (error) {
+        handleError(error);
+    }
+}
+
+// ── Resend an unverified Outlet's WhatsApp OTP ────────────────────
+// POST {{TryDood2.0BaseUrl}}/subBrands/signUp-with-whatsapp
+// body: { brandId, whatsappNumber, isFirstOutlet: false }
+// There's no separate resend endpoint — per the API doc (§34 note 2, §34a
+// note 2) the resend IS a repeat of the signUp call for this brand's
+// unverified outlet: 200 with message "OTP resent…" + data.isNewOutlet:
+// false, nothing new created, no slot used. outletType is ignored on a
+// repeat call, so it isn't sent. 429 (60s cooldown / 5 per hour) carries
+// details.retryAfterSeconds. auth/whatsapp/send-verification isn't usable
+// here — it needs the outlet manager's own session.
+export function resendSubBrandWhatsappOtp({ brandId, whatsappNumber } = {}) {
+    return signUpSubBrandWithWhatsapp({ brandId, whatsappNumber, isFirstOutlet: false });
+}
+
+// ── Change an unverified Outlet's WhatsApp Number ─────────────────
+// PATCH {{TryDood2.0BaseUrl}}/subBrands/:subBrandId/whatsapp-number
+// body: { whatsappNumber }
+// Fixes a mistyped number BEFORE it's verified — same outlet, same plan slot,
+// and a new OTP goes to the new number. Response: { success, message, data:
+// { subBrand, user, otpSent, otpError, retryAfterSeconds } }.
+// 409 OUTLET_ALREADY_VERIFIED once verified; 422 WHATSAPP_UNCHANGED if it's
+// already this outlet's number (resend via signUpSubBrandWithWhatsapp instead).
+export async function updateSubBrandWhatsappNumber(subBrandId, whatsappNumber) {
+    try {
+        const { data } = await api.patch(`/subBrands/${subBrandId}/whatsapp-number`, { whatsappNumber });
         return data;
     } catch (error) {
         handleError(error);

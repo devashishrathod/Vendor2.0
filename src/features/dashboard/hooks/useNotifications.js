@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   clearAllNotifications,
-  deleteNotification,
   getNotifications,
   markAllNotificationsRead,
   markNotificationRead,
@@ -12,7 +11,7 @@ const PAGE_SIZE = 20;
 
 /**
  * Shared notification state for the header bell's preview dropdown and the
- * "View all" drawer, so both always show the same list. Every action is
+ * "View all" drawer, so both always show the same list. Actions are
  * optimistic: the UI updates immediately, and if the request fails the
  * previous list is restored and `actionError` is set.
  */
@@ -24,9 +23,8 @@ export default function useNotifications() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState("");
   const [actionError, setActionError] = useState("");
-  // Latest list for optimistic updates to snapshot/roll back from — kept in
-  // sync with `items` so a fast failure never restores a stale list.
   const itemsRef = useRef(items);
+
   useEffect(() => {
     itemsRef.current = items;
   }, [items]);
@@ -36,7 +34,9 @@ export default function useNotifications() {
     getNotifications({ page: 1, limit: PAGE_SIZE })
       .then((res) => {
         if (cancelled) return;
-        setItems(res?.data?.data ?? []);
+        const nextItems = res?.data?.data ?? [];
+        setItems(nextItems);
+        itemsRef.current = nextItems;
         setTotalPages(res?.data?.totalPages ?? 1);
         setPage(1);
         setError("");
@@ -58,8 +58,10 @@ export default function useNotifications() {
       const res = await getNotifications({ page: next, limit: PAGE_SIZE });
       const more = res?.data?.data ?? [];
       setItems((prev) => {
-        const seen = new Set(prev.map((n) => n._id));
-        return [...prev, ...more.filter((n) => !seen.has(n._id))];
+        const seen = new Set(prev.map((item) => item._id));
+        const updated = [...prev, ...more.filter((item) => !seen.has(item._id))];
+        itemsRef.current = updated;
+        return updated;
       });
       setPage(next);
       setTotalPages(res?.data?.totalPages ?? next);
@@ -71,8 +73,6 @@ export default function useNotifications() {
     }
   }, [loadingMore, page, totalPages]);
 
-  // Applies `update` to the list right away, then rolls it back if `request`
-  // fails.
   const runOptimistic = useCallback(async (update, request, failMessage) => {
     const snapshot = itemsRef.current;
     const next = update(snapshot);
@@ -90,32 +90,20 @@ export default function useNotifications() {
   }, []);
 
   const markRead = useCallback(
-    (id) =>
-      runOptimistic(
-        (prev) => prev.map((n) => (n._id === id ? { ...n, isRead: true } : n)),
-        () => markNotificationRead(id),
-        "Failed to mark notification as read."
-      ),
+    (id) => runOptimistic(
+      (prev) => prev.map((item) => (item._id === id ? { ...item, isRead: true } : item)),
+      () => markNotificationRead(id),
+      "Failed to mark notification as read."
+    ),
     [runOptimistic]
   );
 
   const markAllRead = useCallback(
-    () =>
-      runOptimistic(
-        (prev) => prev.map((n) => ({ ...n, isRead: true })),
-        () => markAllNotificationsRead(),
-        "Failed to mark notifications as read."
-      ),
-    [runOptimistic]
-  );
-
-  const remove = useCallback(
-    (id) =>
-      runOptimistic(
-        (prev) => prev.filter((n) => n._id !== id),
-        () => deleteNotification(id),
-        "Failed to clear notification."
-      ),
+    () => runOptimistic(
+      (prev) => prev.map((item) => ({ ...item, isRead: true })),
+      () => markAllNotificationsRead(),
+      "Failed to mark notifications as read."
+    ),
     [runOptimistic]
   );
 
@@ -129,7 +117,7 @@ export default function useNotifications() {
     setTotalPages(1);
   }, [runOptimistic]);
 
-  const unreadCount = useMemo(() => items.filter((n) => !n.isRead).length, [items]);
+  const unreadCount = useMemo(() => items.filter((item) => !item.isRead).length, [items]);
 
   return {
     items,
@@ -143,7 +131,6 @@ export default function useNotifications() {
     loadMore,
     markRead,
     markAllRead,
-    remove,
     clearAll,
   };
 }
