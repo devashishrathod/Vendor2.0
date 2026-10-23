@@ -11,8 +11,8 @@ import NotificationItem, { NotificationEmpty, NotificationSkeleton } from "./Not
 
 const PREVIEW_COUNT = 5;
 
-// Header bell — a short preview dropdown (latest few, with Mark as read /
-// Clear per item, Mark all read, Clear all) plus a "View all" right-side
+// Header bell — a short preview dropdown (latest few, with Mark as read,
+// Mark all read, Clear all) plus a "View all" right-side
 // drawer with the full list. Both share one useNotifications() state.
 // Fetched once on mount (not just on open) so the unread dot on the bell
 // itself is accurate before the vendor ever clicks it. Opening the
@@ -37,7 +37,6 @@ export default function NotificationBell({ onColor = false }) {
     loadMore,
     markRead,
     markAllRead,
-    remove,
     clearAll,
   } = useNotifications();
 
@@ -71,14 +70,6 @@ export default function NotificationBell({ onColor = false }) {
       navigate(path);
     },
     [navigate]
-  );
-
-  const handleClear = useCallback(
-    (id) => {
-      if (id === selectedId) setSelectedId(null);
-      remove(id);
-    },
-    [remove, selectedId]
   );
 
   const openDrawer = useCallback(() => {
@@ -181,7 +172,6 @@ export default function NotificationBell({ onColor = false }) {
                       index={i}
                       onOpen={handleOpenItem}
                       onMarkRead={markRead}
-                      onClear={handleClear}
                     />
                   ))}
                 </div>
@@ -228,7 +218,6 @@ export default function NotificationBell({ onColor = false }) {
         onOpenItem={handleOpenItem}
         onMarkRead={markRead}
         onMarkAllRead={markAllRead}
-        onClear={handleClear}
         onClearAll={requestClearAll}
       />
 

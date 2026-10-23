@@ -158,10 +158,7 @@ function OrderRow({ media, index }) {
   );
 }
 
-// Small on/off switch shared by both "Show in Clips" controls in this
-// header — the persisted section-visibility one and the plain local
-// upload-default one below — instead of one being a toggle and the other
-// a plain checkbox.
+// Shared switch for section visibility and the video-clips upload default.
 function ToggleSwitch({ label, checked, onChange, hoverLabel }) {
   return (
     <label className="flex items-center gap-2 text-[11px] font-medium text-gray-500" title={hoverLabel}>
@@ -269,13 +266,18 @@ const ShowcaseGroup = ({
             <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 capitalize">{group.title}</h3>
             <p className="mt-0.5 text-xs text-gray-400 capitalize">{group.subtitle}</p>
           </div>
+          {!group.isVisible && (
+            <span className="mt-0.5 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-500 dark:bg-gray-700 dark:text-gray-300">
+              Hidden from customers
+            </span>
+          )}
           {onToggleVisibility && (
             <div ref={noDragRef} className="ml-1 flex-shrink-0">
               <ToggleSwitch
-                label="Section Visibility"
+                label="Show in Showcase"
                 checked={!!group.isVisible}
                 onChange={(next) => onToggleVisibility(group.id, next)}
-                hoverLabel={group.isVisible ? "Hide from customers" : "Visible to Customers"}
+                hoverLabel={group.isVisible ? "Hide from customer showcase" : "Show in customer showcase"}
               />
             </div>
           )}

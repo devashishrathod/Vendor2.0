@@ -427,29 +427,36 @@ export async function createShowcaseSection({
     }
 }
 
-// ── Get All Sections (for a brand) ──────────────────────────────
-// GET {{TryDood2.0BaseUrl}}/showcase/section/get-all?page=&limit=&search=
-// Used to hydrate the ShowcaseAlbumsEditor with previously-saved albums
-// when a merchant re-opens this page.
-// NOTE: adjust path/params if the real "list" endpoint differs — this
-// wasn't in the Postman screenshots, only add-section / add-media were.
-export async function getShowcaseSections({ page = 1, limit = 20, search = '' } = {}) {
+// ── Get Vendor Sections ──────────────────────────────────────────
+// GET /showcase/section/get-all?page=&limit=&search=&brandId=
+// No visibility or active-state filter is applied so vendors can manage
+// hidden sections and inactive media.
+export async function getShowcaseSections({ brandId, page = 1, limit = 20, search = '' } = {}) {
     try {
         const params = { page, limit };
+        if (brandId) params.brandId = brandId;
         if (search) params.search = search;
         const { data } = await api.get('/showcase/section/get-all', { params });
         return data;
     } catch (error) {
+        // The vendor list endpoint uses 404 to represent an empty list.
+        if (
+            error?.response?.status === 404 &&
+            error?.response?.data?.message === 'No any showcasesection found'
+        ) {
+            return { success: true, data: { total: 0, totalPages: 0, page, limit, data: [] } };
+        }
         handleError(error);
     }
 }
 
-// ── Get Single Section (for View) ───────────────────────────────
-// GET {{TryDood2.0BaseUrl}}/showcase/section/get/:id
-// NOTE: adjust path if your real "get one" endpoint differs.
-export async function getShowcaseSectionById(sectionId) {
+// ── Get Vendor Section and Media ────────────────────────────────
+// GET /showcase/section/get/:id?page=&limit=
+export async function getShowcaseSectionById(sectionId, { page = 1, limit = 100 } = {}) {
     try {
-        const { data } = await api.get(`/showcase/section/get/${sectionId}`);
+        const { data } = await api.get(`/showcase/section/get/${sectionId}`, {
+            params: { page, limit },
+        });
         return data;
     } catch (error) {
         handleError(error);
@@ -702,15 +709,64 @@ export async function createShowcaseSectionWithMedia(
     }
 }
 
-// ── Get Full Brand Showcase (sections + their media, ONE call) ───
-// GET {{TryDood2.0ServerUrl}}/showcase/get-brand-showcase/:brandId
-// Replaces the separate getShowcaseSections() list call for hydration —
-// this single endpoint returns every section AND its media already
-// nested, which is exactly what ShowcaseAlbumsEditor needs to prefill.
-export async function getBrandShowcase(brandId) {
+// ── Get vendor-managed showcase (all sections + all media) ──────
+// Uses authenticated vendor endpoints, not the public customer endpoint,
+// which filters out hidden sections and sections below the customer media
+// threshold.
+export async function getVendorBrandShowcase(brandId) {
     try {
-        const { data } = await api.get(`/showcase/get-brand-showcase/${brandId}`);
-        return data;
+        const sections = [];
+        let page = 1;
+        let totalPages = 1;
+
+        do {
+            const listRes = await getShowcaseSections({ brandId, page, limit: 100 });
+            const listData = listRes?.data;
+            if (!Array.isArray(listData?.data)) {
+                throw new Error('Invalid showcase sections response.');
+            }
+
+            sections.push(...listData.data);
+            totalPages = Number(listData.totalPages) || 0;
+            page += 1;
+        } while (page <= totalPages);
+
+        const hydratedSections = await Promise.all(
+            sections.map(async (section) => {
+                const firstPageRes = await getShowcaseSectionById(section._id, { page: 1, limit: 100 });
+                const sectionData = firstPageRes?.data;
+                const firstMediaPage = sectionData?.media;
+                if (!sectionData || !Array.isArray(firstMediaPage?.data)) {
+                    throw new Error(`Invalid showcase section response for "${section.title}".`);
+                }
+
+                const mediaItems = [...firstMediaPage.data];
+                const mediaTotalPages = Number(firstMediaPage.totalPages) || 1;
+                for (let mediaPage = 2; mediaPage <= mediaTotalPages; mediaPage += 1) {
+                    const mediaRes = await getShowcaseSectionById(section._id, {
+                        page: mediaPage,
+                        limit: 100,
+                    });
+                    const mediaPageData = mediaRes?.data?.media?.data;
+                    if (!Array.isArray(mediaPageData)) {
+                        throw new Error(`Invalid media response for showcase section "${section.title}".`);
+                    }
+                    mediaItems.push(...mediaPageData);
+                }
+
+                return {
+                    ...section,
+                    ...sectionData,
+                    medias: mediaItems.map((item) => ({
+                        ...item,
+                        url: item.url || item.media?.url,
+                        thumbnail: item.thumbnail || item.media?.thumbnail,
+                    })),
+                };
+            })
+        );
+
+        return { success: true, data: { brandId, sections: hydratedSections } };
     } catch (error) {
         handleError(error);
     }

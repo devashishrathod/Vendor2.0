@@ -1,4 +1,4 @@
-import { ArrowLeft, ExternalLink, ReceiptText, Trash2 } from "lucide-react";
+import { ArrowLeft, ExternalLink, ReceiptText } from "lucide-react";
 
 import { getNotificationVisual } from "../constants/notificationTypes";
 
@@ -67,7 +67,7 @@ function formatMetaValue(key, value) {
  * and actions (open its link, go to Refunds for refund notifications,
  * clear it).
  */
-export default function NotificationDetail({ notification: n, onBack, onNavigate, onClear }) {
+export default function NotificationDetail({ notification: n, onBack, onNavigate }) {
   const { icon: Icon, tint } = getNotificationVisual(n);
   const meta = n.meta || {};
   const deepLink = meta.deepLink || meta.deeplink;
@@ -190,15 +190,6 @@ export default function NotificationDetail({ notification: n, onBack, onNavigate
             Open
           </button>
         )}
-        <button
-          type="button"
-          onClick={() => onClear(n._id)}
-          title="Clear notification"
-          className="flex items-center justify-center gap-1.5 rounded-xl px-3 py-2.5 text-xs font-semibold text-rose-500 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-500/15"
-        >
-          <Trash2 size={14} />
-          Clear
-        </button>
       </div>
     </div>
   );
