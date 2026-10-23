@@ -74,19 +74,7 @@ export async function markNotificationRead(notificationId) {
     }
 }
 
-// ── Clear (delete) ONE Notification ─────────────────────────────────
-// DELETE /notifications/:notificationId (guessed)
-/**
- * @param {string} notificationId
- */
-export async function deleteNotification(notificationId) {
-    try {
-        const { data } = await api.delete(`/notifications/${notificationId}`);
-        return data;
-    } catch (error) {
-        handleError(error);
-    }
-}
+// Single-notification delete is disabled until its API endpoint is confirmed.
 
 // ── Clear ALL Notifications ─────────────────────────────────────────
 // DELETE /notifications/clear-all (guessed)

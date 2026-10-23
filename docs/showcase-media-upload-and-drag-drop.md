@@ -43,12 +43,16 @@ import { move } from "@dnd-kit/helpers";
 
 ## 3. Data shape
 
-One brand's showcase is fetched in a single call and normalized into
-sections, each carrying its own combined media array:
+The vendor panel loads the management list and then each section's paginated
+media detail. It must use the authenticated vendor endpoints rather than
+`GET /showcase/get-brand-showcase/:brandId`, which is public and applies
+customer visibility rules. This ensures hidden sections and sections with only
+one uploaded item remain visible and manageable to the vendor.
 
 ```js
-// GET /showcase/get-brand-showcase/:brandId
-// response.data: { brandId, sections: [...] }
+// GET /showcase/section/get-all?page=1&limit=100
+// Then GET /showcase/section/get/:sectionId?page=1&limit=100
+// response.data.media.data[] contains paginated media records.
 {
   _id, title, description,
   isVisible: boolean,          // defaults to true if absent
@@ -72,6 +76,11 @@ sections, each carrying its own combined media array:
 Photos and videos are **never** split into separate lists/grids — they're
 one combined array, sorted by one shared `sortOrder`, rendered in a single
 grid. This matters for the reorder endpoint's contract (§6).
+
+The vendor management endpoints return sections and media regardless of
+`customerVisibility.isLive`. The customer-facing minimum-media threshold
+(currently documented as three items) controls customer display only; it must
+not be used to hide vendor-managed sections or uploads.
 
 ## 4. Media upload flow (staged, not instant)
 
@@ -429,7 +438,8 @@ buttons themselves.
 
 | Action | Method & Path | Body / Notes |
 |---|---|---|
-| Get full showcase (sections+media) | `GET /showcase/get-brand-showcase/:brandId` | one call, hydrates everything |
+| List vendor sections | `GET /showcase/section/get-all` | paginated; do not filter by `isVisible` or `isActive` |
+| Get section and media | `GET /showcase/section/get/:sectionId` | paginated; include active and inactive media |
 | Create section | `POST /showcase/section/add` | `{ title, description, sortOrder, sectionType }` |
 | Update section | `PUT /showcase/section/update/:id` | partial patch, e.g. `{ title, description }` or `{ isVisible }` |
 | Delete section | `DELETE /showcase/section/delete/:id` | — |

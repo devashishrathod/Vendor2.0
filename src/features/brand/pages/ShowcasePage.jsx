@@ -36,9 +36,8 @@ function moveToPosition(list, id, idKey, newPositionRaw) {
 /**
  * ShowcasePage
  * "Showcase Details" tab — live sections + media from
- * GET /showcase/get-brand-showcase/:brandId, with add/edit/delete/reorder
- * for sections, and add/replace/delete/reorder for their media, all wired
- * to the real API.
+ * vendor section-list and section-detail endpoints, with add/edit/delete/
+ * reorder for sections and add/replace/delete/reorder for their media.
  */
 const ShowcasePage = ({ brandId }) => {
   const { data, loading, error, reload } = useBrandShowcase(brandId);
