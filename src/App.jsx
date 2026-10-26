@@ -8,6 +8,7 @@ import DashboardLayout from './features/dashboard/layouts/DashboardLayout';
 
 import Step1WhatsApp from './features/onboarding/steps/Step1WhatsApp';
 import OnboardingPage from './features/onboarding/pages/VendorOnboarding';
+import { OnboardingV2Page } from './features/onboarding-v2';
 
 import AnalysisReport from './features/dashboard/pages/AnalysisReport';
 import Transactions from './features/transaction/pages/Transactions';
@@ -101,6 +102,8 @@ function App() {
 
         {/* ─── ONBOARDING / OUTLET-SETUP FLOW: header/footer NAHI ─── */}
         <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
+        {/* Onboarding v2 — UI build, dev server only until its APIs are wired */}
+        {import.meta.env.DEV && <Route path="/onboarding-v2" element={<OnboardingV2Page />} />}
         <Route path="/subscription" element={<ProtectedRoute><SubscriptionPlan /></ProtectedRoute>} />
         <Route path="/subscription/checkout" element={<ProtectedRoute><SubscriptionCheckout /></ProtectedRoute>} />
         {/* <Route path="/oulet" element={<ProtectedRoute><TrydoodOutlet /></ProtectedRoute>} /> */}
