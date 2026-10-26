@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { DragDropProvider } from "@dnd-kit/react";
 import { move } from "@dnd-kit/helpers";
-import { ImagePlus, LayoutGrid, Images, Play, X, ChevronLeft, ChevronRight, Lock } from "lucide-react";
+import { ImagePlus, LayoutGrid, Images, Layers, Play, X, ChevronLeft, ChevronRight, Lock } from "lucide-react";
 import ShowcaseGroup from "./ShowcaseGroup";
 import DisabledHint from "@/components/common/DisabledHint";
 
@@ -107,6 +107,127 @@ function ShowcaseGallery({ groups }) {
   );
 }
 
+// Collections view: 4 tiles per card, the 4th becomes "+N".
+const COLLECTION_TILES = 4;
+
+// Media of one section as GalleryViewer items.
+const toViewerItems = (group) =>
+  (group.medias || [])
+    .filter((m) => m?.url)
+    .map((m, i) => ({ ...m, key: `${group.id}:${m._id ?? i}`, album: group.title || "Untitled" }));
+
+// Collections — one small card per section: title, photo / video counts
+// and a 2×2 of its first items. With more than 4, the 4th tile shows that
+// item blurred under "+N". View only (same as the admin panel's Collections
+// view); editing stays in the Albums view.
+function ShowcaseCollections({ groups }) {
+  // { items, index } — the section being viewed full-screen.
+  const [viewing, setViewing] = useState(null);
+
+  return (
+    <>
+      <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
+        {groups.map((group) => {
+          const items = toViewerItems(group);
+          const photos = items.filter((m) => m.type !== "VIDEO").length;
+          const videos = items.length - photos;
+          const overflow = items.length > COLLECTION_TILES;
+          const tiles = items.slice(0, COLLECTION_TILES);
+          const moreCount = items.length - (COLLECTION_TILES - 1);
+          const open = (index) => setViewing({ items, index });
+
+          return (
+            <div key={group.id} className="flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm dark:bg-gray-800">
+              <button
+                type="button"
+                onClick={() => items.length && open(0)}
+                className="flex items-center justify-between gap-2 p-2.5 pb-2 text-left"
+              >
+                <div className="min-w-0">
+                  <p className={`truncate text-[12.5px] font-bold capitalize ${group.title ? "text-gray-900 dark:text-gray-100" : "italic text-gray-400"}`}>
+                    {group.title || "Untitled"}
+                  </p>
+                  <div className="mt-0.5 flex flex-wrap items-center gap-1">
+                    <span className="inline-flex items-center gap-0.5 rounded-full bg-sky-50 px-1.5 py-px text-[10px] font-semibold text-sky-600 dark:bg-sky-500/10 dark:text-sky-400">
+                      <Images size={9} /> {photos}
+                    </span>
+                    <span className="inline-flex items-center gap-0.5 rounded-full bg-violet-50 px-1.5 py-px text-[10px] font-semibold text-violet-600 dark:bg-violet-500/10 dark:text-violet-400">
+                      <Play size={9} /> {videos}
+                    </span>
+                    {!group.isVisible && (
+                      <span title="Hidden from customers" className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                    )}
+                  </div>
+                </div>
+                {items.length > 0 && (
+                  <span title="View all" className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                    <LayoutGrid size={11} />
+                  </span>
+                )}
+              </button>
+
+              {items.length ? (
+                <div className="grid grid-cols-2 gap-1 px-2.5 pb-2.5">
+                  {tiles.map((m, i) => {
+                    const isMore = overflow && i === COLLECTION_TILES - 1;
+                    const isVideo = m.type === "VIDEO";
+                    const src = isVideo ? m.thumbnail : m.url;
+                    return (
+                      <button
+                        key={m.key}
+                        type="button"
+                        onClick={() => open(i)}
+                        aria-label={isMore ? `View all ${items.length} in ${group.title || "this section"}` : m.altText || (isVideo ? "Video" : "Photo")}
+                        className="group relative aspect-square overflow-hidden rounded-lg bg-gray-100 outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 dark:bg-gray-700"
+                      >
+                        {src ? (
+                          <img
+                            src={src}
+                            alt={m.altText || ""}
+                            loading="lazy"
+                            className={`h-full w-full object-cover transition-transform duration-300 group-hover:scale-105 ${isMore ? "scale-110 opacity-50 blur-[2px]" : ""}`}
+                          />
+                        ) : (
+                          <video src={`${m.url}#t=0.1`} muted playsInline preload="metadata" className={`h-full w-full object-cover ${isMore ? "opacity-50 blur-[2px]" : ""}`} />
+                        )}
+                        {isMore ? (
+                          <span className="absolute inset-0 flex flex-col items-center justify-center bg-black/45 text-white">
+                            <span className="text-[17px] font-bold leading-none">+{moreCount}</span>
+                            <span className="mt-0.5 text-[10px] font-medium text-white/80">View all</span>
+                          </span>
+                        ) : (
+                          isVideo && (
+                            <span className="pointer-events-none absolute bottom-1 left-1 flex items-center rounded bg-black/70 p-0.5 text-white">
+                              <Play size={9} fill="currentColor" />
+                            </span>
+                          )
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="mx-2.5 mb-2.5 flex flex-1 flex-col items-center justify-center gap-1.5 rounded-xl bg-gray-50 py-8 dark:bg-gray-900/40">
+                  <Images size={18} className="text-gray-400" />
+                  <p className="text-[12px] text-gray-500">No media yet</p>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      {viewing && (
+        <GalleryViewer
+          items={viewing.items}
+          index={viewing.index}
+          onIndex={(index) => setViewing((v) => ({ ...v, index }))}
+          onClose={() => setViewing(null)}
+        />
+      )}
+    </>
+  );
+}
+
 const ShowcaseSection = ({
   showcase,
   onAddMore,
@@ -123,8 +244,9 @@ const ShowcaseSection = ({
   sectionLimit = null,
   atSectionLimit = false,
 }) => {
-  // "gallery" (default) = all media in one grid; "albums" = section-wise.
-  const [view, setView] = useState("gallery");
+  // "collections" (default) = one small card per section; "gallery" = all
+  // media in one grid; "albums" = full editable sections.
+  const [view, setView] = useState("collections");
 
   // Drag-and-drop reorder for sections — computes the dragged section's new
   // 1-based position and hands it to the SAME onSetSectionOrder(id,
@@ -178,6 +300,7 @@ const ShowcaseSection = ({
           {showcase.groups.length > 0 && (
             <div className="flex items-center rounded-full bg-gray-100 p-0.5 dark:bg-gray-700">
               {[
+                ["collections", Layers, "Collections"],
                 ["gallery", LayoutGrid, "Gallery"],
                 ["albums", Images, "Albums"],
               ].map(([key, Icon, label]) => (
@@ -218,7 +341,9 @@ const ShowcaseSection = ({
         </div>
       </div>
 
-      {view === "gallery" && showcase.groups.length > 0 ? (
+      {view === "collections" && showcase.groups.length > 0 ? (
+        <ShowcaseCollections groups={showcase.groups} />
+      ) : view === "gallery" && showcase.groups.length > 0 ? (
         <ShowcaseGallery groups={showcase.groups} />
       ) : (
       <DragDropProvider onDragEnd={handleSectionDragEnd}>
