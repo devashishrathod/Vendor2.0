@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { getCurrentSubscription } from "@/features/subscription/services/subscriptionService";
 
 import ShowcaseSection from "../components/ShowcaseSection";
 import AddShowcaseSectionModal from "../components/AddShowcaseSectionModal";
@@ -45,6 +46,25 @@ const ShowcasePage = ({ brandId }) => {
   const [editingSectionId, setEditingSectionId] = useState(null);
   const [actionError, setActionError] = useState(null);
 
+  // Plan limit on sections: usage.showcase { used, limit, isUnlimited } from
+  // GET /subscribeds/get. No plan / no bucket / a failed call = no limit,
+  // so nothing is ever blocked by a missing response.
+  const [showcasePool, setShowcasePool] = useState(null);
+  useEffect(() => {
+    if (!brandId) return undefined;
+    let cancelled = false;
+    getCurrentSubscription(brandId)
+      .then((res) => {
+        if (!cancelled) setShowcasePool(res?.usage?.showcase ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) setShowcasePool(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [brandId]);
+
   // Only the very first load (no data yet) shows this — every reload()
   // afterwards (drag reorder, add/delete/edit) also flips `loading` back to
   // true, but the page must keep showing the CURRENT sections while that
@@ -55,6 +75,9 @@ const ShowcasePage = ({ brandId }) => {
   }
 
   const sections = data?.sections || [];
+  const sectionLimit =
+    showcasePool && !showcasePool.isUnlimited && showcasePool.limit != null ? Number(showcasePool.limit) : null;
+  const atSectionLimit = sectionLimit != null && sections.length >= sectionLimit;
 
   const showcase = {
     subtitle: "View and update the photos & videos shown on your listing.",
@@ -69,7 +92,9 @@ const ShowcasePage = ({ brandId }) => {
     })),
   };
 
-  const handleAddMore = () => setShowAddModal(true);
+  const handleAddMore = () => {
+    if (!atSectionLimit) setShowAddModal(true);
+  };
 const handleCreateSection = async ({ title, description, files, isShowInVideoClips, thumbnail }) => {
   const { mediaError } = await createShowcaseSectionWithMedia(
     { title, description },
@@ -92,6 +117,8 @@ const handleCreateSection = async ({ title, description, files, isShowInVideoCli
     }
   };
 
+  // The media handlers below re-throw after showing the banner, so the Edit
+  // modal can keep itself open and show the error (its callers catch it).
   const handleDeleteMedia = async (sectionId, mediaId) => {
     setActionError(null);
     try {
@@ -99,6 +126,7 @@ const handleCreateSection = async ({ title, description, files, isShowInVideoCli
       reload();
     } catch (err) {
       setActionError(err.message);
+      throw err;
     }
   };
 
@@ -152,6 +180,7 @@ const handleCreateSection = async ({ title, description, files, isShowInVideoCli
       reload();
     } catch (err) {
       setActionError(err.message);
+      throw err;
     }
   };
 
@@ -164,6 +193,7 @@ const handleCreateSection = async ({ title, description, files, isShowInVideoCli
       reload();
     } catch (err) {
       setActionError(err.message);
+      throw err;
     }
   };
 
@@ -224,9 +254,11 @@ const handleCreateSection = async ({ title, description, files, isShowInVideoCli
         onSetSectionOrder={handleSetSectionOrder}
         onToggleVisibility={handleToggleSectionVisibility}
         onToggleMediaClip={handleToggleMediaClip}
+        sectionLimit={sectionLimit}
+        atSectionLimit={atSectionLimit}
       />
 
-      {showAddModal && (
+      {showAddModal && !atSectionLimit && (
         <AddShowcaseSectionModal
           onClose={() => setShowAddModal(false)}
           onSubmit={handleCreateSection}
