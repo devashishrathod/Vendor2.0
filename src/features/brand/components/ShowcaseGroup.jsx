@@ -4,16 +4,22 @@ import { useSortable } from "@dnd-kit/react/sortable";
 import { move } from "@dnd-kit/helpers";
 import { Trash2, Plus, ListOrdered, GripVertical, X } from "lucide-react";
 import ShowcaseMediaRow from "./ShowcaseMediaRow";
+import { StagedFilesGrid, BatchThumbnailField } from "./StagedFiles";
 import { noDragRef } from "../utils/BrandHelpers";
 import ConfirmModal from "@/components/common/ConfirmModal";
 import DisabledHint from "@/components/common/DisabledHint";
 
 // Confirms the just-picked files before they upload — lets the vendor mark
 // this batch for video clips and attach a thumbnail. A thumbnail is
-// REQUIRED whenever a video is uploaded; video uploads are one at a time so
-// the poster maps unambiguously to that video. Photo-only batches can contain
-// multiple files; a poster for video clips remains optional.
-function UploadMediaModal({ files, onClose, onConfirm }) {
+// REQUIRED whenever the batch contains a video (Upload stays disabled, with
+// a hint, until one is picked); for an image-only batch marked for clips it
+// stays optional. ⚠️ NOT CONFIRMED from Postman: only isShowInVideoClips +
+// files are documented on add-media — thumbnail is sent as a best-effort
+// "thumbnail" form field (see addShowcaseMedia's comment).
+// The batch is kept here so View / Replace / Remove / Add more (StagedFiles)
+// can change it before anything uploads.
+function UploadMediaModal({ files: initialFiles, onClose, onConfirm }) {
+  const [files, setFiles] = useState(initialFiles);
   const [isShowInVideoClips, setIsShowInVideoClips] = useState(false);
   const [thumbnail, setThumbnail] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -22,12 +28,13 @@ function UploadMediaModal({ files, onClose, onConfirm }) {
   const invalidVideoBatch = hasVideo && files.length !== 1;
   const showThumbnailField = hasVideo || isShowInVideoClips;
   const needsThumbnail = hasVideo && !thumbnail;
+  const empty = files.length === 0;
 
   const handleConfirm = async () => {
-    if (needsThumbnail || invalidVideoBatch) return;
+    if (needsThumbnail || empty) return;
     setSubmitting(true);
     try {
-      await onConfirm({ isShowInVideoClips, thumbnail: showThumbnailField ? thumbnail : null });
+      await onConfirm({ files, isShowInVideoClips, thumbnail: showThumbnailField ? thumbnail : null });
       onClose();
     } finally {
       setSubmitting(false);
@@ -47,14 +54,18 @@ function UploadMediaModal({ files, onClose, onConfirm }) {
           </button>
         </div>
 
-        <p className="mb-4 text-xs text-gray-500 dark:text-gray-400">
-          {files.length} file{files.length > 1 ? "s" : ""} ready to upload.
+        <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
+          {empty ? "No files selected — add some below." : `${files.length} file${files.length > 1 ? "s" : ""} ready to upload.`}
         </p>
         {invalidVideoBatch && (
           <p className="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
             Upload one video at a time with its poster image. Photos can be uploaded together.
           </p>
         )}
+
+        <div className="mb-4">
+          <StagedFilesGrid files={files} onChange={setFiles} disabled={submitting} />
+        </div>
 
         <div className="flex items-center gap-2">
           <input
@@ -71,22 +82,7 @@ function UploadMediaModal({ files, onClose, onConfirm }) {
 
         {showThumbnailField && (
           <div className="mt-4">
-            <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
-              {hasVideo ? (
-                <>
-                  Video thumbnail <span className="text-rose-500">(required)</span>
-                </>
-              ) : (
-                "Thumbnail for clips (optional)"
-              )}
-            </label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => setThumbnail(e.target.files?.[0] || null)}
-              className="w-full text-sm text-gray-600 dark:text-gray-300 file:mr-3 file:rounded-xl file:bg-emerald-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-emerald-700 hover:file:bg-emerald-100 dark:file:bg-emerald-500/15 dark:file:text-emerald-300 dark:hover:file:bg-emerald-500/25"
-            />
-            {thumbnail && <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{thumbnail.name}</p>}
+            <BatchThumbnailField files={files} thumbnail={thumbnail} onChange={setThumbnail} required={hasVideo} disabled={submitting} />
           </div>
         )}
 
@@ -99,13 +95,13 @@ function UploadMediaModal({ files, onClose, onConfirm }) {
             Cancel
           </button>
           <DisabledHint
-            show={(needsThumbnail || invalidVideoBatch) && !submitting}
-            message={invalidVideoBatch ? "Upload videos one at a time" : "Choose a thumbnail for the video"}
+            show={(needsThumbnail || empty) && !submitting}
+            message={empty ? "Add at least one photo or video" : "Choose a thumbnail for the video"}
           >
             <button
               type="button"
               onClick={handleConfirm}
-              disabled={submitting || needsThumbnail || invalidVideoBatch}
+              disabled={submitting || needsThumbnail || empty}
               className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-bold text-white shadow-sm shadow-emerald-100 transition-all duration-200 hover:bg-emerald-600 active:scale-[0.97] disabled:pointer-events-none disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:text-gray-300 disabled:shadow-none"
             >
               {submitting ? "Uploading…" : "Upload"}
@@ -223,9 +219,10 @@ const ShowcaseGroup = ({
     e.target.value = "";
   };
 
-  const handleConfirmUpload = async ({ isShowInVideoClips, thumbnail }) => {
-    if (!pendingFiles?.length || !onAddMedia) return;
-    await onAddMedia(group.id, pendingFiles, { isShowInVideoClips, thumbnail });
+  // `files` = the batch as edited in the modal (removed / replaced / added).
+  const handleConfirmUpload = async ({ files, isShowInVideoClips, thumbnail }) => {
+    if (!files?.length || !onAddMedia) return;
+    await onAddMedia(group.id, files, { isShowInVideoClips, thumbnail });
   };
 
   // Drag-and-drop reorder for media within this section — computes the
