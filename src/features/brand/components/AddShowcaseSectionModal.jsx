@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { X, Plus, Pencil } from "lucide-react";
 import DisabledHint from "@/components/common/DisabledHint";
+import { StagedFilesGrid, BatchThumbnailField } from "./StagedFiles";
 
 /**
  * AddShowcaseSectionModal
@@ -21,14 +22,6 @@ const AddShowcaseSectionModal = ({ mode = "add", section = null, onClose, onSubm
   const [thumbnail, setThumbnail] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState(null);
-
-  const handleFilesChange = (e) => {
-    setFiles(Array.from(e.target.files || []));
-  };
-
-  const handleThumbnailChange = (e) => {
-    setThumbnail(e.target.files?.[0] || null);
-  };
 
   // A video in the batch needs a thumbnail before it can be uploaded; for an
   // image-only batch marked for clips it stays optional.
@@ -73,7 +66,7 @@ const AddShowcaseSectionModal = ({ mode = "add", section = null, onClose, onSubm
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-xl"
+        className="max-h-[92vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
@@ -133,21 +126,14 @@ const AddShowcaseSectionModal = ({ mode = "add", section = null, onClose, onSubm
           {!isEdit && (
             <>
               <div>
-                <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
-                  Photos / Videos
+                <label className="mb-1.5 block text-xs font-medium text-gray-600 dark:text-gray-300">
+                  Photos / Videos{" "}
+                  {files.length > 0 && (
+                    <span className="font-normal text-gray-400">· {files.length} selected</span>
+                  )}
                 </label>
-                <input
-                  type="file"
-                  accept="image/*,video/*"
-                  multiple
-                  onChange={handleFilesChange}
-                  className="w-full text-sm text-gray-600 dark:text-gray-300 file:mr-3 file:rounded-xl file:bg-emerald-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-emerald-700 hover:file:bg-emerald-100 dark:file:bg-emerald-500/15 dark:file:text-emerald-300 dark:hover:file:bg-emerald-500/25"
-                />
-                {files.length > 0 && (
-                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                    {files.length} file{files.length > 1 ? "s" : ""} selected
-                  </p>
-                )}
+                {/* Pick, view, replace, remove or add more before saving. */}
+                <StagedFilesGrid files={files} onChange={setFiles} disabled={submitting} />
               </div>
 
               <div className="flex items-center gap-2">
@@ -171,26 +157,13 @@ const AddShowcaseSectionModal = ({ mode = "add", section = null, onClose, onSubm
                   best-effort "thumbnail" form field — verify the real
                   request/response once tested. */}
               {showThumbnailField && (
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
-                    {hasVideo ? (
-                      <>
-                        Video thumbnail <span className="text-rose-500">(required)</span>
-                      </>
-                    ) : (
-                      "Thumbnail for clips (optional)"
-                    )}
-                  </label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleThumbnailChange}
-                    className="w-full text-sm text-gray-600 dark:text-gray-300 file:mr-3 file:rounded-xl file:bg-emerald-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-emerald-700 hover:file:bg-emerald-100 dark:file:bg-emerald-500/15 dark:file:text-emerald-300 dark:hover:file:bg-emerald-500/25"
-                  />
-                  {thumbnail && (
-                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{thumbnail.name}</p>
-                  )}
-                </div>
+                <BatchThumbnailField
+                  files={files}
+                  thumbnail={thumbnail}
+                  onChange={setThumbnail}
+                  required={hasVideo}
+                  disabled={submitting}
+                />
               )}
             </>
           )}

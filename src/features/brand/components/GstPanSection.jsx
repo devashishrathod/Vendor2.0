@@ -199,8 +199,8 @@ function PanCardVisual({ pan }) {
 const GstPanSection = ({ gst, pan, brandId, onUpdated }) => {
   const [changing, setChanging] = useState(null); // null | "pan" | "gst"
 
-  const openPanChange = useCallback(() => setChanging("pan"), []);
-  const openGstChange = useCallback(() => setChanging("gst"), []);
+  // const openPanChange = useCallback(() => setChanging("pan"), []);
+  // const openGstChange = useCallback(() => setChanging("gst"), []);
   const closeChange = useCallback(() => setChanging(null), []);
 
   if (!gst && !pan) {
@@ -232,7 +232,7 @@ const GstPanSection = ({ gst, pan, brandId, onUpdated }) => {
           title="GST Information"
           verified={gst.isVerified}
           verifiedAt={gst.verifiedAt}
-          onChange={brandId ? openGstChange : undefined}
+          // onChange={brandId ? openGstChange : undefined}
           className={`sm:col-span-2 ${cardSpan}`}
         >
           <GstCardVisual gst={gst} />
@@ -244,7 +244,7 @@ const GstPanSection = ({ gst, pan, brandId, onUpdated }) => {
           title="PAN Information"
           verified={pan.isVerified}
           verifiedAt={pan.verifiedAt}
-          onChange={brandId ? openPanChange : undefined}
+          // onChange={brandId ? openPanChange : undefined}
           className={`sm:col-span-2 ${cardSpan}`}
         >
           <PanCardVisual pan={pan} />

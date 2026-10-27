@@ -213,24 +213,7 @@ export async function getSubBrandsByBrandId(brandId) {
     }
 }
 
-/**
- * Combined fetch: brand + its subBrand(s), so CreateBrandOutlet can
- * prefill both the brand form AND the "already verified WhatsApp" state
- * on mount, instead of forcing the merchant through OTP again every visit.
- *
- * Returns:
- * {
- *   brand,             // raw brand doc
- *   subBrand,          // most-recently-updated subBrand doc for this brand, or null
- *   subBrandId,        // subBrand._id — the real outlet id, NOT the SUB_VENDOR user id
- *   whatsappNumber,    // subBrand's verified WhatsApp number, if any
- *   whatsappVerified,  // boolean — true if this outlet's WhatsApp is already verified
- * }
- *
- * ⚠️ `whatsappVerified` reads `subBrand.whatsappVerified`, but the confirmed
- * subBrands/get-all response has no such field on the doc — this always
- * evaluates to false until the backend actually returns one.
- */
+
 export async function getBrandWithSubBrand(brandId) {
     if (!brandId) return null;
     try {
