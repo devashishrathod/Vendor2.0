@@ -38,16 +38,33 @@ import { trackEvent } from "@/utils/analytics";
 // of printing them verbatim in the Status History timeline.
 function prettifyStatus(value) {
   if (!value) return "";
-  return value
+  const normalized = value
+    .trim()
+    .replace(/([a-z\d])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ");
+  if (normalized.replace(/\s/g, "").toLowerCase() === "partnershipdeed") {
+    return "Partnership Deed";
+  }
+  return normalized
     .replace(/_/g, " ")
     .toLowerCase()
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+function getReviewStatus(entry) {
+  const status = String(entry?.newStatus || "").trim().toUpperCase();
+  if (status) return status;
+
+  const action = String(entry?.action || "").trim().toUpperCase();
+  if (/(^|_)APPROV(ED|E|AL)(_|$)/.test(action)) return "APPROVED";
+  if (/(^|_)REJECT(ED|ION)?(_|$)/.test(action)) return "REJECTED";
+  return action;
+}
+
 // While a listing is in review, re-check its status this often so approval
 // shows up without the vendor pressing "Recheck status".
-const STATUS_POLL_MS = 30000;
-const STATUS_POLL_LABEL = "every 30 sec";
+const STATUS_POLL_MS = 15000;
+const STATUS_POLL_LABEL = "every 15 sec";
 
 // Status History wording for the vendor: a rejection reads as "Action
 // needed" (same as the hero badge), never "Rejected".
@@ -436,6 +453,7 @@ export default function UnderReview() {
       const res = await getBrandVerificationHistory({ brandId });
       const list = res?.data?.data ?? res?.data ?? [];
       setVerificationHistory(Array.isArray(list) ? list : []);
+      setVerifyError(null);
     } catch (err) {
       setVerifyError({ status: err.status, message: err.message });
     } finally {
@@ -525,7 +543,7 @@ export default function UnderReview() {
     (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
   );
   const latestEntry = sortedHistory[0] || null;
-  const reviewStatus = latestEntry?.newStatus || latestEntry?.action;
+  const reviewStatus = getReviewStatus(latestEntry);
   const isApproved = reviewStatus === "APPROVED";
   // A revoked brand (brand.isRevoked, confirmed field — separate from the
   // approve/reject history, since revoke can happen to an already-approved
@@ -536,21 +554,27 @@ export default function UnderReview() {
   const isPending = !isApproved && !isRejected;
 
   // Auto-check while in review: polls brand + history silently, skips while
-  // the tab is hidden, and checks right away when the vendor comes back to
-  // the tab. Not run while rejected — a refresh there could overwrite the
-  // correction forms the vendor is filling in.
+  // the tab is hidden, and checks when the vendor returns to it. Not run
+  // while rejected — a refresh there could overwrite correction forms.
   useEffect(() => {
     if (!isPending || loading) return undefined;
-    const check = () => {
-      if (document.visibilityState !== "visible") return;
-      fetchBrand({ silent: true });
-      fetchStatus({ silent: true });
+    let checking = false;
+    const check = async () => {
+      if (document.visibilityState !== "visible" || checking) return;
+      checking = true;
+      try {
+        await Promise.all([fetchBrand({ silent: true }), fetchStatus({ silent: true })]);
+      } finally {
+        checking = false;
+      }
     };
     const timer = setInterval(check, STATUS_POLL_MS);
     document.addEventListener("visibilitychange", check);
+    window.addEventListener("focus", check);
     return () => {
       clearInterval(timer);
       document.removeEventListener("visibilitychange", check);
+      window.removeEventListener("focus", check);
     };
   }, [isPending, loading, fetchBrand, fetchStatus]);
 
@@ -763,7 +787,7 @@ export default function UnderReview() {
       date: formattedDate,
     },
     ...[...sortedHistory].reverse().map((entry) => {
-      const status = entry.newStatus || entry.action;
+      const status = getReviewStatus(entry);
       const dotColor =
         status === "REJECTED" ? "bg-rose-500" : status === "APPROVED" ? "bg-emerald-500" : "bg-amber-400";
       const ringColor =

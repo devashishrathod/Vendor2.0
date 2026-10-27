@@ -53,6 +53,13 @@ function screenIndex(screen) {
   return SCREEN_ORDER.indexOf(screen);
 }
 
+function resolveCurrentScreen(rawScreen, user) {
+  if (rawScreen === "PARTNERSHIP_DEED" && user?.hasAcceptedPartnershipDeed === true) {
+    return "SUBSCRIBE_PLAN";
+  }
+  return SCREEN_MAP[rawScreen] ?? "BUSINESS_NAME";
+}
+
 export const useAuthStore = create(
   persist(
     (set, get) => ({
@@ -71,9 +78,7 @@ export const useAuthStore = create(
           const res           = await authAPI.sendOTP(whatsappNumber, role);
           const isFirst       = res?.data?.isFirst ?? null;
           const rawScreen     = res?.data?.user?.currentScreen ?? '';
-          // SCREEN_MAP mein key nahi mili → fallback BUSINESS_NAME
-          // Ab SUBSCRIBE_PLAN/UNDER_REVIEW/DASHBOARD bhi map mein hain ✅
-          const currentScreen = SCREEN_MAP[rawScreen] ?? 'BUSINESS_NAME';
+          const currentScreen = resolveCurrentScreen(rawScreen, res?.data?.user);
           set({ isFirst, currentScreen, loading: false });
           trackEvent(ANALYTICS_EVENTS.OTP_REQUESTED, { method: LOGIN_METHOD, is_new_vendor: !!isFirst });
           return res;
@@ -93,7 +98,9 @@ export const useAuthStore = create(
           const token = res?.data?.token;
           const user  = res?.data?.user;
           if (!token) throw new Error('Token not received. Please try again.');
-          set({ token, user, loading: false });
+          const rawScreen = user?.currentScreen ?? get().currentScreen;
+          const resolvedScreen = resolveCurrentScreen(rawScreen, user);
+          set({ token, user, currentScreen: resolvedScreen, loading: false });
           setAnalyticsUser(user?._id ?? null);
           trackEvent(isFirst ? ANALYTICS_EVENTS.SIGN_UP : ANALYTICS_EVENTS.LOGIN, {
             method:      LOGIN_METHOD,

@@ -277,7 +277,7 @@ export default function VoucherForm({
         <SectionCard icon={Ticket} title="Voucher Name" subtitle="How this voucher appears to customers.">
           <input
             required
-            maxLength={25}
+            maxLength={30}
             value={form.voucherName}
             onChange={(e) => setField("voucherName", e.target.value)}
             placeholder="Enter Your Voucher Name"
