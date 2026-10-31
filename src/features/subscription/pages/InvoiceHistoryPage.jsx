@@ -1,7 +1,7 @@
 import React from 'react';
 import { useInvoiceHistory } from '../hooks/useInvoiceHistory';
 import { InvoicePageHeader } from '../components/InvoicePageHeader';
-import InvoiceHistoryTable from '../components/InvoiceHistoryTable';
+import PurchaseHistoryList from '../components/PurchaseHistoryList';
 import '../components/invoice.css';
 
 export default function InvoiceHistoryPage() {
@@ -27,7 +27,7 @@ export default function InvoiceHistoryPage() {
         </div>
       )}
 
-      {!isLoading && !error && <InvoiceHistoryTable invoices={invoices} />}
+      {!isLoading && !error && <PurchaseHistoryList entries={invoices} />}
     </div>
   );
 }

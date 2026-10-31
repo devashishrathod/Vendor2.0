@@ -372,6 +372,13 @@
   max-width: 800px;
 }
 
+/* Invoice modal — compact, edge-to-edge sections (spacing is in Tailwind). */
+.inv-modal--invoice {
+  max-width: 640px;
+  padding: 0;
+  overflow: hidden;
+}
+
 .inv-history-link-btn {
   background: none;
   border: none;

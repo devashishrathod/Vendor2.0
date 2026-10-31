@@ -18,8 +18,12 @@ export { useInvoice } from './hooks/useInvoice';
 export { useInvoiceHistory } from './hooks/useInvoiceHistory';
 export { usePlanBenefits } from './hooks/usePlanBenefits';
 
-export { getCurrentSubscription, mapSubscriptionResponse } from './services/subscriptionService';
-export { fetchInvoiceByOrderId, fetchInvoiceHistory } from './services/invoiceService';
+export {
+  getCurrentSubscription,
+  mapSubscriptionResponse,
+  getSubscriptionHistory,
+  regenerateSubscriptionInvoice,
+} from './services/subscriptionService';
 export { fetchPlanBenefits } from './services/planBenefitsService';
 
 export * from './constants/subscription.constants';
