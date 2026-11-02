@@ -45,12 +45,44 @@ export const CURRENCY = {
   INR: 'INR',
 };
 
+// "Bill From" on every subscription invoice — Trydood's own registered
+// details. The subscription API doesn't return the seller block, so it
+// lives here (same values the invoice screen used before).
+export const TRYDOOD_BILLING = {
+  companyName: 'TRYDOOD RETAIL PRIVATE LIMITED',
+  address: 'No 38, College Road, Old College Buildings, Chennai, Tamil Nadu, India, 600006',
+  gstin: '33AAKCT3750H1ZB',
+  pan: 'AAKCT3750H',
+};
+
+// GET /subscribeds/history `action` values → what the history table shows.
+// Anything not listed is shown title-cased.
+export const HISTORY_ACTION_LABELS = {
+  ORDER_CREATED: 'Order created',
+  ACTIVATED: 'Activated',
+  RENEWED: 'Renewed',
+  UPGRADED: 'Upgraded',
+  DOWNGRADED: 'Downgraded',
+  EXPIRED: 'Expired',
+  CANCELLED: 'Cancelled',
+  SCHEDULED: 'Scheduled',
+  SCHEDULE_STARTED: 'Scheduled plan started',
+  SCHEDULE_MOVED: 'Schedule moved',
+  SCHEDULE_CANCELLED: 'Schedule cancelled',
+  PLAN_TERMS_APPLIED: 'Plan terms updated',
+};
+
+export const HISTORY_PERFORMER_LABELS = {
+  VENDOR: 'You',
+  ADMIN: 'Trydood admin',
+  SUPER_ADMIN: 'Trydood admin',
+  SYSTEM: 'System',
+};
+
 export const API_ENDPOINTS = {
   // Swap these out for your real backend endpoints. The service layer is the
   // only place that needs to change if the URL/shape changes.
   GET_SUBSCRIPTION: '/api/subscription/current',
-  GET_INVOICE_BY_ID: (orderId) => `/api/invoices/${orderId}`,
-  GET_INVOICE_HISTORY: '/api/invoices/history',
   GET_PLAN_BENEFITS: (planName) => `/api/plans/${planName}/benefits`,
   RAISE_QUERY: '/api/support/queries',
 };
