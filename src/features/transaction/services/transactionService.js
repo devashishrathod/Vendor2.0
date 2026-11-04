@@ -184,8 +184,26 @@ function resolveStoreType(outlet, outletTypeLookup = {}) {
   return formatStoreType(raw);
 }
 
+/**
+ * Customer name + deleted flag, the same way on every screen.
+ * Release v1.12: `customer.isDeleted` is true once the customer has deleted
+ * their account. After the purge the name is the one frozen at sale time
+ * and the email is no longer sent. If even that name is blank, show
+ * "Deleted customer" (the uniqueId is still shown next to it).
+ * @param {object} [customer]
+ * @returns {{ customerName: string, customerIsDeleted: boolean }}
+ */
+function resolveCustomer(customer) {
+  const customerIsDeleted = customer?.isDeleted === true;
+  const name = customer?.fullName?.trim();
+  return {
+    customerName: name || (customerIsDeleted ? "Deleted customer" : "—"),
+    customerIsDeleted,
+  };
+}
+
 function mapPaymentRow(p, outletTypeLookup) {
-  const customerName = p.customer?.fullName || "—";
+  const { customerName, customerIsDeleted } = resolveCustomer(p.customer);
   const customerCode = p.customer?.uniqueId || "—";
   return {
     orderId: p.invoiceId || p._id,
@@ -195,6 +213,7 @@ function mapPaymentRow(p, outletTypeLookup) {
     // detail-page LINK routes on this instead (see TransactionOverview.jsx).
     txnId: p._id,
     customerName,
+    customerIsDeleted,
     customerCode,
     customerPhone: "",
     refId: p.voucherVersion?.versionCode || p.voucherVersion?._id || "—",
@@ -303,7 +322,7 @@ export function mapPaymentToOrderDetail(data) {
     paymentMethod: payment.paymentMethod || "—",
     paymentOptions: paymentMethod.type || payment.paymentMethod || "—",
     paymentVia: paymentMethod.bank || paymentMethod.wallet || paymentMethod.vpa || paymentMethod.type || "—",
-    customerName: customer.fullName || "—",
+    ...resolveCustomer(customer),
     customerCode: customer.uniqueId || "—",
     customerEmail: customer.email || "—",
     customerNote: data?.viewer?.canSeeCustomerContact === false
@@ -395,7 +414,7 @@ export async function fetchOutletTransactionSummary({ brandId, outletId }) {
 }
 
 function mapPaymentToVoucherTransactionRow(p, outletTypeLookup) {
-  const customerName = p.customer?.fullName || "—";
+  const { customerName, customerIsDeleted } = resolveCustomer(p.customer);
   const customerId = p.customer?.uniqueId || "—";
   const created = p.createdAt ? new Date(p.createdAt) : null;
   return {
@@ -404,6 +423,7 @@ function mapPaymentToVoucherTransactionRow(p, outletTypeLookup) {
     // Order Detail page routes on (invoiceId has slashes, so it can't be).
     txnId: p._id,
     customerName,
+    customerIsDeleted,
     customerId,
     voucherVersionId: p.voucherVersion?.versionCode || p.voucherVersion?._id || "—",
     outletName: p.outlet?.uniqueId || "—",
