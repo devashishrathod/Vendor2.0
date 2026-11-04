@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { useAddOutletForm } from "../hooks/useAddOutletForm";
+import { useAddOutletForm, ADD_OUTLET_STEPS } from "../hooks/useAddOutletForm";
+import WorkingHoursEditor from "@/features/oulet/New folder/components/brandOutlet/WorkingHoursEditor";
 import { useBrand } from "../../../hooks/useBrand";
 import { verifyOtpWhatsapp } from "../services/subBrandApi";
 import OtpVerifyModal from "@/features/oulet/New folder/components/brandOutlet/modals/OtpVerifyModal";
@@ -29,11 +30,54 @@ const OUTLET_TYPE_OPTIONS = [
 
 const isValidPhone = (v) => /^[0-9]{10}$/.test((v || "").replace(/\D/g, ""));
 
-// Chip on the picked-location card: nothing is saved until Create Outlet.
+// Chip on the picked-location card: nothing is saved until Next is clicked.
 const PICKED_CHIP = {
   label: "Selected",
   className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300",
 };
+
+// 1 — 2 — 3 progress bar under the title. Done steps show a tick.
+function Stepper({ step }) {
+  return (
+    <ol className="flex items-center gap-2 px-6 pb-3">
+      {ADD_OUTLET_STEPS.map(({ key, label }, i) => {
+        const done = i < step;
+        const current = i === step;
+        return (
+          <li key={key} className="flex flex-1 items-center gap-2 min-w-0">
+            <span
+              className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${
+                done
+                  ? "bg-emerald-500 text-white"
+                  : current
+                    ? "bg-emerald-100 text-emerald-700 ring-2 ring-emerald-500 dark:bg-emerald-500/20 dark:text-emerald-300"
+                    : "bg-gray-100 text-gray-400 dark:bg-gray-700"
+              }`}
+            >
+              {done ? (
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              ) : (
+                i + 1
+              )}
+            </span>
+            <span
+              className={`truncate text-xs font-semibold ${
+                current ? "text-gray-900 dark:text-gray-100" : done ? "text-emerald-600 dark:text-emerald-400" : "text-gray-400"
+              }`}
+            >
+              {label}
+            </span>
+            {i < ADD_OUTLET_STEPS.length - 1 && (
+              <span className={`h-px flex-1 ${done ? "bg-emerald-400" : "bg-gray-200 dark:bg-gray-700"}`} />
+            )}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
 
 export default function AddOutletModal({ onClose, onCreated }) {
   const { brand } = useBrand();
@@ -49,7 +93,11 @@ export default function AddOutletModal({ onClose, onCreated }) {
     loadingSavedLocations,
     loadSavedLocations,
     requestOtp,
-    submit,
+    step,
+    setWorkHours,
+    saveBasics,
+    saveLocation,
+    saveWorkHours,
     submitting,
     error,
     clearError,
@@ -59,6 +107,14 @@ export default function AddOutletModal({ onClose, onCreated }) {
     onCreated?.(created);
     onClose();
   });
+
+  // Send OTP already registers the outlet on the plan, so closing half-way
+  // still has to refresh the list — otherwise the new outlet wouldn't show
+  // until a page reload.
+  const handleClose = () => {
+    if (form.subBrandId) onCreated?.({ subBrandId: form.subBrandId });
+    onClose();
+  };
 
   const brandId = brand?._id;
 
@@ -189,19 +245,36 @@ export default function AddOutletModal({ onClose, onCreated }) {
     createLocationButton: null,
     // No override while there's an error, so the card shows its red "Not saved" chip.
     statusOverride: form.locationError ? undefined : PICKED_CHIP,
-    waitingNote: form.locationError ? null : "This location is saved together with the outlet when you click Create Outlet.",
+    waitingNote: form.locationError ? null : "This location is saved when you click Next.",
   };
 
-  // ── Create Outlet ──
-  const createBlockedReason = !form.outletType
-    ? "Choose the outlet type first"
-    : !numberVerified
-      ? "Verify the outlet's WhatsApp number first"
-      : !form.location
-        ? "Pick the outlet's location first"
-        : "";
-
-  const handleCreateOutlet = () => submit({ whatsappNumber: outletNumber, numberVerified });
+  // ── Footer action per step — the next step opens only once this one is
+  // complete AND saved. ──
+  const STEP_ACTIONS = [
+    {
+      label: "Next",
+      busyLabel: "Saving…",
+      blockedReason: !form.outletType
+        ? "Choose the outlet type first"
+        : !numberVerified
+          ? "Verify the outlet's WhatsApp number first"
+          : "",
+      run: () => saveBasics({ numberVerified }),
+    },
+    {
+      label: "Next",
+      busyLabel: "Saving location…",
+      blockedReason: !form.location ? "Pick the outlet's location first" : "",
+      run: saveLocation,
+    },
+    {
+      label: "Create Outlet",
+      busyLabel: "Creating outlet…",
+      blockedReason: "",
+      run: saveWorkHours,
+    },
+  ];
+  const action = STEP_ACTIONS[step];
 
   // No close on backdrop click — it would throw away the form (and an
   // outlet already created by Send OTP). Only ✕ / Cancel close it.
@@ -214,14 +287,25 @@ export default function AddOutletModal({ onClose, onCreated }) {
               <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
             </svg>
           </div>
-          <h3 className="flex-1 text-base font-bold text-gray-900 dark:text-gray-100">Add Outlet</h3>
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
+          <div className="flex-1">
+            <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">Add Outlet</h3>
+            <p className="text-xs text-gray-400 mt-0.5">
+              Step {step + 1} of {ADD_OUTLET_STEPS.length} · {ADD_OUTLET_STEPS[step].label}
+            </p>
+          </div>
+          <button onClick={handleClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
             <svg className="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
+        <div className="sticky top-[72px] z-10 bg-white dark:bg-gray-800">
+          <Stepper step={step} />
+        </div>
+
+        {/* ── Step 1: Outlet Details ── */}
+        {step === 0 && (
         <div className="px-6 py-5 space-y-5">
           {/* ── Outlet Type (Outlet vs Franchise) ── */}
           <div>
@@ -316,8 +400,12 @@ export default function AddOutletModal({ onClose, onCreated }) {
               </>
             )}
           </div>
+        </div>
+        )}
 
-          {/* ── Outlet Location ── */}
+        {/* ── Step 2: Outlet Location ── */}
+        {step === 1 && (
+        <div className="px-6 py-5 space-y-5">
           <div>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Outlet Location *</label>
 
@@ -337,18 +425,28 @@ export default function AddOutletModal({ onClose, onCreated }) {
             )}
           </div>
         </div>
+        )}
+
+        {/* ── Step 3: Working Hours ── */}
+        {step === 2 && (
+        <div className="px-6 py-5">
+          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Working Hours *</label>
+          <p className="text-xs text-gray-400 mb-4">Open the outlet on at least one day. Customers see these timings.</p>
+          <WorkingHoursEditor hours={form.workHours} onChange={setWorkHours} />
+        </div>
+        )}
 
         <div className="px-6 py-4 flex gap-3">
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="flex-1 text-gray-600 dark:text-gray-300 font-semibold py-2.5 rounded-xl text-sm hover:bg-gray-50 dark:hover:bg-gray-700"
           >
             Cancel
           </button>
-          <DisabledHint show={!!createBlockedReason && !submitting} message={createBlockedReason} className="flex-1">
+          <DisabledHint show={!!action.blockedReason && !submitting} message={action.blockedReason} className="flex-1">
             <button
-              onClick={handleCreateOutlet}
-              disabled={submitting || !!createBlockedReason}
+              onClick={action.run}
+              disabled={submitting || !!action.blockedReason}
               className="flex w-full items-center justify-center gap-2 bg-emerald-500 text-white font-bold py-2.5 rounded-xl text-sm tracking-wide shadow-sm shadow-emerald-100 hover:bg-emerald-600 transition-colors disabled:pointer-events-none disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:text-gray-300 disabled:shadow-none"
             >
               {submitting ? (
@@ -357,10 +455,10 @@ export default function AddOutletModal({ onClose, onCreated }) {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
                   </svg>
-                  Creating outlet…
+                  {action.busyLabel}
                 </>
               ) : (
-                "Create Outlet"
+                action.label
               )}
             </button>
           </DisabledHint>
