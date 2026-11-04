@@ -192,7 +192,7 @@ function isOpenNow(day) {
   return end > start ? mins >= start && mins < end : mins >= start || mins < end;
 }
 
-export default function OutletDetailsInfo({ outlet, brand, onEdit, onEditLocation }) {
+export default function OutletDetailsInfo({ outlet, brand, onEdit, onEditLocation, onEditWorkHours }) {
   const doc = outlet?.raw;
   const location = doc?.location;
   const workHours = doc?.workHours;
@@ -318,19 +318,30 @@ export default function OutletDetailsInfo({ outlet, brand, onEdit, onEditLocatio
         subtitle="Open/close time for each day of the week."
         className="lg:col-span-2"
         action={
-          workHours && (
-            <span
-              className={cx(
-                "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold",
-                openNow
-                  ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400"
-                  : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"
-              )}
-            >
-              <span className={cx("h-2 w-2 rounded-full", openNow ? "animate-pulse bg-emerald-500" : "bg-gray-400")} />
-              {openNow ? "Open now" : "Closed now"}
-            </span>
-          )
+          <div className="flex items-center gap-2">
+            {workHours && (
+              <span
+                className={cx(
+                  "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold",
+                  openNow
+                    ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400"
+                    : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"
+                )}
+              >
+                <span className={cx("h-2 w-2 rounded-full", openNow ? "animate-pulse bg-emerald-500" : "bg-gray-400")} />
+                {openNow ? "Open now" : "Closed now"}
+              </span>
+            )}
+            {onEditWorkHours && (
+              <button
+                onClick={onEditWorkHours}
+                className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 rounded-lg px-3 py-1.5 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-colors whitespace-nowrap"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+                {workHours ? "Edit" : "Add Hours"}
+              </button>
+            )}
+          </div>
         }
       >
         {workHours ? (
@@ -340,7 +351,14 @@ export default function OutletDetailsInfo({ outlet, brand, onEdit, onEditLocatio
             ))}
           </div>
         ) : (
-          <p className="text-xs text-gray-400">No working hours saved for this outlet yet.</p>
+          <p className="text-xs text-gray-400">
+            No working hours saved for this outlet yet.
+            {onEditWorkHours && (
+              <button onClick={onEditWorkHours} className="ml-1 font-semibold text-emerald-600 dark:text-emerald-400 hover:underline">
+                Add now
+              </button>
+            )}
+          </p>
         )}
       </SectionCard>
     </div>

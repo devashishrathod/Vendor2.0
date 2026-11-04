@@ -5,6 +5,7 @@
 // unlike Add, a new pick is only staged here and saved on "Save Changes".
 import { useState } from "react";
 import { useEditOutletForm } from "../hooks/useEditOutletForm";
+import WorkingHoursEditor from "@/features/oulet/New folder/components/brandOutlet/WorkingHoursEditor";
 import ErrorToast from "@/components/common/ErrorToast";
 import SuccessToast from "@/components/common/SuccessToast";
 import Select from "../../../components/common/Select";
@@ -46,6 +47,8 @@ export default function EditOutletModal({ outlet, onClose, onUpdated }) {
     setLocationMode,
     savedLocations,
     loadingSavedLocations,
+    workHours,
+    setWorkHours,
     submit,
     submitting,
     error,
@@ -139,6 +142,12 @@ export default function EditOutletModal({ outlet, onClose, onUpdated }) {
             ) : (
               <LiveLocationPicker {...pickerProps} />
             )}
+          </div>
+
+          {/* ── Working Hours — same editor as Add Outlet step 3 ── */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Working Hours</label>
+            <WorkingHoursEditor hours={workHours} onChange={setWorkHours} />
           </div>
         </div>
 
