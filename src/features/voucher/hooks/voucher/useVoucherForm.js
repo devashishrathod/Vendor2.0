@@ -207,22 +207,52 @@ function formToUpdatePatch(form, originalVersion) {
   // Offers loaded from the API keep their real `_id` (voucherToForm spreads
   // the raw offer over createEmptyOffer()); offers added during this edit
   // session never get one — that's how "existing" vs. "new" is told apart.
+  //
+  // ⚠️ FIXED: the backend only takes `newOffers` + `removedOfferIds` (doc
+  // #55 — there is no "update offer" field), and this used to send only
+  // brand-new offers and deleted ones. Editing an EXISTING offer (title,
+  // discount, min bill…) produced no change at all, so the edit was lost
+  // silently. An edited offer is now sent as "remove the old _id + add the
+  // edited copy". sortOrder comes from the offer's position in the form
+  // (it used to count only the new offers, colliding with existing ones).
+  const originalOffers = (originalVersion?.offers || []).filter((offer) => offer?._id);
+  const originalOfferById = new Map(originalOffers.map((offer) => [offer._id, offer]));
+
+  const offerPayload = (offer, index) => ({
+    title: offer.title,
+    minBillAmount: Number(offer.minBillAmount) || 0,
+    discountType: offer.discountType,
+    discountValue: Number(offer.discountValue) || 0,
+    maxDiscountAmount: Number(offer.maxDiscountAmount) || 0,
+    usageType: offer.usageType,
+    discountApplicableOn: offer.discountApplicableOn,
+    sortOrder: index + 1,
+    isActive: offer.isActive,
+  });
+
+  // Same normalised comparison for both sides, so an untouched offer
+  // (e.g. maxDiscountAmount missing on the server vs 0 in the form) is
+  // never counted as edited.
+  const offerChanged = (offer, index) => {
+    const original = originalOfferById.get(offer._id);
+    if (!original) return true;
+    const before = offerPayload({ ...createEmptyOffer(), ...original }, (original.sortOrder || index + 1) - 1);
+    const after = offerPayload(offer, index);
+    return Object.keys(after).some((key) => String(before[key] ?? "") !== String(after[key] ?? ""));
+  };
+
   const currentOfferIds = form.offers.map((offer) => offer._id).filter(Boolean);
-  const originalOfferIds = (originalVersion?.offers || []).map((offer) => offer._id).filter(Boolean);
-  const removedOfferIds = originalOfferIds.filter((id) => !currentOfferIds.includes(id));
+  const editedOfferIds = form.offers
+    .filter((offer, index) => offer._id && offerChanged(offer, index))
+    .map((offer) => offer._id);
+  const removedOfferIds = [
+    ...originalOffers.map((offer) => offer._id).filter((id) => !currentOfferIds.includes(id)),
+    ...editedOfferIds,
+  ];
   const newOffers = form.offers
-    .filter((offer) => !offer._id)
-    .map((offer, index) => ({
-      title: offer.title,
-      minBillAmount: Number(offer.minBillAmount) || 0,
-      discountType: offer.discountType,
-      discountValue: Number(offer.discountValue) || 0,
-      maxDiscountAmount: Number(offer.maxDiscountAmount) || 0,
-      usageType: offer.usageType,
-      discountApplicableOn: offer.discountApplicableOn,
-      sortOrder: index + 1,
-      isActive: offer.isActive,
-    }));
+    .map((offer, index) => ({ offer, index }))
+    .filter(({ offer }) => !offer._id || editedOfferIds.includes(offer._id))
+    .map(({ offer, index }) => offerPayload(offer, index));
 
   // form.existingImageUrls only tracks bare URLs (see voucherToForm), so a
   // removed image is found by url and mapped back to its subdocument _id
