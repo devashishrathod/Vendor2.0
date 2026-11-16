@@ -129,10 +129,6 @@ export default function CreateBrandOutlet() {
   // Bumped to force the Step 1 "Advanced Details" accordion open when
   // Review's showcase-albums warning links back to it.
   const [advancedOpenSignal, setAdvancedOpenSignal] = useState(0);
-  // Vendor chose "Skip for now" on Advanced Details — Listing Features and
-  // Showcase stop gating Continue / Create Outlet (they can be added later
-  // from Account Information).
-  const [advancedSkipped, setAdvancedSkipped] = useState(false);
 
   // Guards the one-time mount prefill effect so it can't double-fire (e.g.
   // React StrictMode double-invoke in dev) or fight with in-progress user
@@ -728,7 +724,9 @@ export default function CreateBrandOutlet() {
     (a) => a.persisted && a.media.filter((m) => m.persisted).length >= MIN_ITEMS_PER_ALBUM
   );
   const advancedDetailsComplete = hasListingFeature && hasShowcaseAlbum && showcaseAlbumsMeetMinimum;
-  const advancedDetailsOk = advancedDetailsComplete || advancedSkipped;
+  // No "Skip for now" — Listing Features and Showcase are mandatory, so the
+  // vendor can't continue or create the outlet without them.
+  const advancedDetailsOk = advancedDetailsComplete;
 
   // Hours default to every day closed, and saving that still flips
   // workingHoursSaved — so also require at least one open day with both
@@ -968,17 +966,13 @@ export default function CreateBrandOutlet() {
 
               <AccordionFieldCard
                 title="Advanced Details"
-                subtitle={`Listing Features & Showcase Collection — add at least 1 feature and 1 album with ${MIN_ITEMS_PER_ALBUM}+ photos/videos, or skip for now`}
+                subtitle={`Listing Features & Showcase Collection — add at least 1 feature and 1 album with ${MIN_ITEMS_PER_ALBUM}+ photos/videos`}
                 defaultOpen={!advancedDetailsOk}
                 openSignal={advancedOpenSignal}
                 badge={
                   advancedDetailsComplete ? (
                     <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 rounded-full px-2 py-0.5">
                       Complete
-                    </span>
-                  ) : advancedSkipped ? (
-                    <span className="text-[10px] font-bold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-full px-2 py-0.5">
-                      Skipped
                     </span>
                   ) : (
                     <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 rounded-full px-2 py-0.5">
@@ -1010,7 +1004,7 @@ export default function CreateBrandOutlet() {
             </div>
 
             <div className="flex items-center justify-end gap-4 mt-2">
-              {!advancedDetailsComplete && !advancedSkipped && (
+              {!advancedDetailsComplete && (
                 <p className="text-xs text-amber-700 dark:text-amber-400 text-right">
                   {[
                     !hasListingFeature && "Add at least 1 listing feature",
@@ -1026,30 +1020,6 @@ export default function CreateBrandOutlet() {
                     className="font-semibold underline hover:text-amber-800 dark:hover:text-amber-300"
                   >
                     Open Advanced Details
-                  </button>
-                </p>
-              )}
-              {!advancedDetailsComplete && !advancedSkipped && (
-                <button
-                  type="button"
-                  onClick={() => setAdvancedSkipped(true)}
-                  className="shrink-0 px-5 py-2.5 rounded-xl text-sm font-semibold border border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700 transition-colors"
-                >
-                  Skip for now
-                </button>
-              )}
-              {!advancedDetailsComplete && advancedSkipped && (
-                <p className="text-xs text-gray-500 dark:text-gray-400 text-right">
-                  Advanced Details skipped — you can add them later from Account Information.{" "}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAdvancedSkipped(false);
-                      setAdvancedOpenSignal((n) => n + 1);
-                    }}
-                    className="font-semibold text-emerald-600 underline hover:text-emerald-700 dark:text-emerald-400"
-                  >
-                    Undo
                   </button>
                 </p>
               )}
@@ -1338,7 +1308,6 @@ export default function CreateBrandOutlet() {
             minItemsPerAlbum={MIN_ITEMS_PER_ALBUM}
             hasListingFeature={hasListingFeature}
             hasShowcaseAlbum={hasShowcaseAlbum}
-            advancedSkipped={advancedSkipped && !advancedDetailsComplete}
             canFinalSave={canFinalSave}
             saving={saving}
             onEditStep1={() => setWizardStep(1)}
