@@ -1,15 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/features/onboarding/store/authStore';
-
-const SCREEN_ROUTES = {
-  SUBSCRIBE_PLAN: "/subscription",
-  OUTLET_PAGE:    "/brand-outlet",
-  UNDER_REVIEW:   "/under-review",
-  // The /dashboard route was removed — DASHBOARD now lands on Analysis
-  // Report, the dashboard group's new default page.
-  DASHBOARD:      "/analysis-report",
-};
+import { ONBOARDING_ROUTES, SCREEN_ROUTES } from '@/features/onboarding-v2/config/routes';
 
 // ⚠️ FIXED: this only ever listed "/analysis-report" — but App.jsx's
 // DASHBOARD_GROUP_PREFIXES (this whole ProtectedRoute><DashboardLayout>
@@ -51,6 +43,9 @@ function isPathAllowed(currentScreen, pathname) {
   if (currentScreen === "DASHBOARD") {
     return DASHBOARD_GROUP_PREFIXES.some((p) => pathname.startsWith(p));
   }
+  // System verification runs right after the outlet is submitted, while the
+  // backend screen is already (or about to be) UNDER_REVIEW.
+  if (pathname === ONBOARDING_ROUTES.VERIFY && (currentScreen === "OUTLET_PAGE" || currentScreen === "UNDER_REVIEW")) return true;
   return pathname === SCREEN_ROUTES[currentScreen];
 }
 

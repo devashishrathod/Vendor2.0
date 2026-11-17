@@ -4,6 +4,7 @@ import { ANALYTICS_EVENTS, LOGIN_METHOD } from '@/constants/analytics';
 import { setAnalyticsUser, trackEvent } from '@/utils/analytics';
 import { authAPI } from '../services/api/index';
 import { useOnboardingStore } from './onboardingStore';
+import { useOnboardingV2Store } from '@/features/onboarding-v2/store/onboardingStore';
 
 // ─── SCREEN_MAP — backend string → frontend canonical screen name ─────────────
 // Fix: SUBSCRIBE_PLAN, UNDER_REVIEW, DASHBOARD added (ye missing the isliye
@@ -153,10 +154,12 @@ export const useAuthStore = create(
         });
 
         useOnboardingStore.getState().reset();
+        useOnboardingV2Store.getState().reset();
         setAnalyticsUser(null);
 
         localStorage.removeItem('auth-storage');
         localStorage.removeItem('onboarding-store');
+        localStorage.removeItem('onboarding-v2-store');
       },
 
       setError:   (error) => set({ error }),

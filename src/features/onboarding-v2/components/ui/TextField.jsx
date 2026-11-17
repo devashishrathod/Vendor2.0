@@ -1,4 +1,4 @@
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, CircleCheck } from "lucide-react";
 
 const FIELD_BASE =
   "h-12 w-full rounded-[10px] border bg-white px-3.5 text-base font-semibold text-gray-900 shadow-xs outline-none transition placeholder:font-medium placeholder:text-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/15 disabled:bg-gray-50 disabled:text-gray-500 sm:text-sm dark:bg-gray-950 dark:text-gray-100 dark:placeholder:text-gray-600";
@@ -21,39 +21,79 @@ function FieldLabel({ id, label, required, optional, hint }) {
   );
 }
 
-function FieldMessage({ error, counter }) {
-  if (!error && !counter) return null;
+function FieldMessage({ id, error, success, counter, valid }) {
+  if (!error && !success && !counter) return null;
   return (
     <div className="mt-1 flex justify-between gap-3 text-xs">
-      {error && <span className="text-red-600 dark:text-red-400">{error}</span>}
-      {counter && <span className="ml-auto tabular-nums text-gray-500">{counter}</span>}
+      {error ? (
+        <span id={`${id}-error`} className="text-red-600 dark:text-red-400">
+          {error}
+        </span>
+      ) : (
+        success && <span className="font-semibold text-emerald-700 dark:text-emerald-400">{success}</span>
+      )}
+      {counter && (
+        <span className={`ml-auto tabular-nums ${valid ? "font-bold text-emerald-700 dark:text-emerald-400" : "text-gray-500"}`}>
+          {counter}
+        </span>
+      )}
     </div>
   );
 }
 
 /**
  * Labelled text input. Text is 16px on phones so iOS doesn't zoom on focus.
+ * `valid` turns the border and counter green and shows a check inside the
+ * field (unless `rightSlot` is given); `success` is a green helper line.
  * @param {{
  *   id: string, label: string, required?: boolean, optional?: boolean,
- *   hint?: string, error?: string, counter?: string,
- *   rightSlot?: import('react').ReactNode, inputClassName?: string,
+ *   hint?: string, error?: string, success?: string, counter?: string,
+ *   valid?: boolean, rightSlot?: import('react').ReactNode, inputClassName?: string,
  * } & import('react').InputHTMLAttributes<HTMLInputElement>} props
  */
-export function TextField({ id, label, required, optional, hint, error, counter, rightSlot, inputClassName = "", ...inputProps }) {
+export function TextField({
+  id,
+  label,
+  required,
+  optional,
+  hint,
+  error,
+  success,
+  counter,
+  valid = false,
+  rightSlot,
+  inputClassName = "",
+  ...inputProps
+}) {
+  const showValid = valid && !error;
+  const slot =
+    rightSlot ??
+    (showValid ? (
+      <span className="grid size-10 place-items-center text-emerald-500" aria-hidden="true">
+        <CircleCheck size={20} strokeWidth={2.2} />
+      </span>
+    ) : null);
+  const describedBy = [hint && `${id}-hint`, error && `${id}-error`].filter(Boolean).join(" ") || undefined;
+  const border = error
+    ? "border-red-400"
+    : showValid
+      ? "border-emerald-500 ring-4 ring-emerald-500/15"
+      : "border-gray-300 dark:border-gray-700";
+
   return (
     <div>
       <FieldLabel id={id} label={label} required={required} optional={optional} hint={hint} />
       <div className="relative mt-1.5">
         <input
           id={id}
-          aria-describedby={hint ? `${id}-hint` : undefined}
+          aria-describedby={describedBy}
           aria-invalid={error ? true : undefined}
-          className={`${FIELD_BASE} ${error ? "border-red-400" : "border-gray-300 dark:border-gray-700"} ${rightSlot ? "pr-12" : ""} ${inputClassName}`}
+          className={`${FIELD_BASE} ${border} ${slot ? "pr-12" : ""} ${inputClassName}`}
           {...inputProps}
         />
-        {rightSlot && <div className="absolute inset-y-0 right-1 flex items-center">{rightSlot}</div>}
+        {slot && <div className="absolute inset-y-0 right-1 flex items-center">{slot}</div>}
       </div>
-      <FieldMessage error={error} counter={counter} />
+      <FieldMessage id={id} error={error} success={success} counter={counter} valid={showValid} />
     </div>
   );
 }

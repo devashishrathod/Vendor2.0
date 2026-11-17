@@ -4,9 +4,10 @@ import { Check, X } from "lucide-react";
  * Live requirement list ("PAN requirements", "Checks", …). Rules stay
  * neutral grey until `active` (the vendor has typed something), then show
  * met / not met.
- * @param {{ title: string, rules: { label: string, passed: boolean }[], active?: boolean }} props
+ * `note` is an optional hint shown under the list.
+ * @param {{ title: string, rules: { label: string, passed: boolean }[], active?: boolean, note?: import('react').ReactNode }} props
  */
-export default function RuleChecklist({ title, rules, active = false }) {
+export default function RuleChecklist({ title, rules, active = false, note }) {
   return (
     <div className="rounded-xl bg-gray-50 p-4 ring-1 ring-inset ring-gray-200 dark:bg-gray-800/50 dark:ring-gray-700">
       <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{title}</p>
@@ -23,7 +24,7 @@ export default function RuleChecklist({ title, rules, active = false }) {
               <span
                 className={`grid size-4 shrink-0 place-items-center rounded-full ${
                   state === "passed"
-                    ? "bg-emerald-500 text-white"
+                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400"
                     : state === "failed"
                       ? "bg-red-100 text-red-600 dark:bg-red-500/15 dark:text-red-400"
                       : "bg-gray-200 dark:bg-gray-700"
@@ -39,6 +40,9 @@ export default function RuleChecklist({ title, rules, active = false }) {
           );
         })}
       </ul>
+      {note && (
+        <p className="mt-3 border-t border-gray-200 pt-2.5 text-xs leading-snug text-gray-600 dark:border-gray-700 dark:text-gray-400">{note}</p>
+      )}
     </div>
   );
 }

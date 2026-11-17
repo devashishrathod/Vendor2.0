@@ -7,6 +7,8 @@ import { useBrand } from "../../../hooks/useBrand";
 import { isOnboardingCompleteNow } from "@/features/onboarding/utils/onboardingStatus";
 import TrustBar from "../components/TrustBar";
 import PlanInfo from "../components/PlanInfo";
+import { useOnboardingV2Store } from "@/features/onboarding-v2/store/onboardingStore";
+import BillingAddressCard from "../components/BillingAddressCard";
 import BillingDetailsCard from "../components/BillingDetailsCard";
 import OrderSummary from "../components/OrderSummary";
 import {
@@ -25,6 +27,35 @@ import {
 // sent forward instead of back to checkout/plan-picking. Confirmed real
 // shape (GET /subscribeds/get): top-level `isSubscribed` boolean, plus
 // `subscription.status === "ACTIVE"`.
+/**
+ * A GST address split into billing-address fields. The brand record stores
+ * it camelCase (floorNumber, buildingName…); the raw GST verify response
+ * (onboarding wizard) uses snake_case — `snake` picks that shape.
+ * @param {object|null|undefined} a
+ * @param {boolean} [snake]
+ * @returns {{ line1: string, line2: string, city: string, state: string, pin: string }|null}
+ */
+function gstAddressFrom(a, snake = false) {
+  if (!a) return null;
+  const pick = (camel, snakeKey) => String((snake ? a[snakeKey] : a[camel]) ?? "").trim();
+  const line1 = [pick("floorNumber", "floor_number"), pick("buildingNumber", "building_number"), pick("buildingName", "building_name")]
+    .filter(Boolean)
+    .join(", ");
+  const city = pick("city", "city") || pick("district", "district");
+  const state = pick("state", "state");
+  const pin = pick("pin", "pin");
+  // GST "location" usually repeats the whole address — keep only the parts
+  // not already in line 1 / city / state / PIN (locality, landmark).
+  const taken = [line1, city, pick("district", "district"), state, pin].join(",").toLowerCase();
+  const line2 = pick("location", "location")
+    .split(",")
+    .map((part) => part.trim())
+    .filter((part) => part && !taken.includes(part.toLowerCase()))
+    .join(", ");
+  const address = { line1: line1 || line2, line2: line1 ? line2 : "", city, state, pin };
+  return address.line1 || address.city ? address : null;
+}
+
 function hasActiveSubscription(sub) {
   if (!sub) return false;
   return !!sub.isSubscribed || sub.subscription?.status === "ACTIVE";
@@ -40,6 +71,12 @@ export default function SubscriptionCheckout() {
   // legalBusinessName — pulled from the same useBrand() hook WelcomePage.jsx
   // already uses for it instead of guessing a new field on preview.
   const { brand } = useBrand();
+  // GST record from the onboarding wizard — fallback when the brand record
+  // has no GST address yet.
+  const onboardingGstAddress = useOnboardingV2Store((s) => {
+    const gst = s.form.gstDetails;
+    return (gst?.data ?? gst)?.address ?? null;
+  });
 
   // The plan picked on the pricing page only supplies the id to preview —
   // everything shown on this page (plan details, billing, pricing/GST
@@ -201,12 +238,24 @@ export default function SubscriptionCheckout() {
 
   const businessName = preview.billingDetails?.brandName || preview.brand?.brandName;
 
-  // billing's own legalBusinessName (set once the vendor edits + saves it
-  // here via BillingDetailsCard) wins over this brand default — the spread
-  // order below only fills the gap when nothing's been saved yet.
+  // Verified identity for the Billing Details card.
   const billingWithLegalName = billing
     ? { legalBusinessName: brand?.legalBusinessName, ...billing }
     : billing;
+
+  // Billing Address: structured fields, defaulting to the GST address when
+  // the brand has one ("Same as my GST address" ticked), else the preview's
+  // single-line address as line 1.
+  const gstAddress = gstAddressFrom(brand?.gst?.address) ?? gstAddressFrom(onboardingGstAddress, true);
+  const addressValue = billing?.addressParts ?? (
+    gstAddress
+      ? { ...gstAddress, sameAsGst: true }
+      : { line1: billing?.address || "", line2: "", city: "", state: "", pin: "", sameAsGst: false }
+  );
+  const handleAddressChange = (parts) => {
+    const address = [parts.line1, parts.line2, parts.city, parts.state, parts.pin].filter(Boolean).join(", ");
+    handleSaveBilling({ ...billing, addressParts: parts, address });
+  };
 
   return (
     <div className="app-shell-bg relative isolate min-h-screen">
@@ -227,7 +276,17 @@ export default function SubscriptionCheckout() {
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-5">
           <div className="flex flex-col gap-4">
             <PlanInfo plan={preview.plan} />
-            <BillingDetailsCard details={billingWithLegalName} onSave={handleSaveBilling} />
+            {/* Billing Details, then Billing Address — full width each, laid out
+                horizontally inside so they stay short. */}
+            <div className="flex flex-col gap-4">
+              <BillingDetailsCard details={billingWithLegalName} />
+              <BillingAddressCard
+                value={addressValue}
+                gstAddress={gstAddress}
+                onChange={handleAddressChange}
+                isSaved={Boolean(billing?.addressParts)}
+              />
+            </div>
           </div>
 
           <OrderSummary

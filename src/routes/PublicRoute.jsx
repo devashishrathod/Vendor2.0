@@ -1,13 +1,6 @@
 import { Navigate } from 'react-router-dom';
 import { useAuthStore } from '@/features/onboarding/store/authStore';
-const SCREEN_ROUTES = {
-  SUBSCRIBE_PLAN: "/subscription",
-  OUTLET_PAGE:    "/brand-outlet",
-  UNDER_REVIEW:   "/under-review",
-  // The /dashboard route was removed — DASHBOARD now lands on Analysis
-  // Report, the dashboard group's new default page.
-  DASHBOARD:      "/analysis-report",
-};
+import { ONBOARDING_ROUTES, SCREEN_ROUTES } from '@/features/onboarding-v2/config/routes';
 
 export default function PublicRoute({ children }) {
   const token         = useAuthStore((s) => s.token);
@@ -19,6 +12,6 @@ export default function PublicRoute({ children }) {
   const redirect = SCREEN_ROUTES[currentScreen];
   if (redirect) return <Navigate to={redirect} replace />;
 
-  // Onboarding screen hai → /onboarding pe bhejo
-  return <Navigate to="/onboarding" replace />;
+  // Onboarding screen hai → onboarding wizard pe bhejo
+  return <Navigate to={ONBOARDING_ROUTES.WIZARD} replace />;
 }

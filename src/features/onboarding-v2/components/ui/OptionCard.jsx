@@ -1,3 +1,5 @@
+import RemoteIcon from "./RemoteIcon";
+
 /**
  * Selectable card used for single-choice questions (registration status,
  * business type, category tiles). A real <button> with aria-pressed so it
@@ -8,9 +10,11 @@
  *   title: string,
  *   description?: string,
  *   icon?: import('react').ElementType,
+ *   imageUrl?: string|null,   - backend icon image; `icon` is the fallback
  *   badge?: import('react').ReactNode,
  *   variant?: 'card' | 'tile',
  *   showIndicator?: boolean,
+ *   disabled?: boolean,
  *   children?: import('react').ReactNode,
  * }} props
  */
@@ -20,9 +24,11 @@ export default function OptionCard({
   title,
   description,
   icon: Icon,
+  imageUrl,
   badge,
   variant = "card",
   showIndicator = true,
+  disabled = false,
   children,
 }) {
   const isTile = variant === "tile";
@@ -32,7 +38,8 @@ export default function OptionCard({
       type="button"
       aria-pressed={selected}
       onClick={onSelect}
-      className={`flex h-full w-full cursor-pointer flex-col text-left transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 ${
+      disabled={disabled}
+      className={`flex h-full w-full cursor-pointer flex-col text-left transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 disabled:cursor-not-allowed disabled:opacity-50 ${
         isTile ? "min-h-[88px] gap-2 rounded-xl p-3.5" : "gap-3 rounded-2xl p-4 sm:p-[18px]"
       } ${
         selected
@@ -41,17 +48,17 @@ export default function OptionCard({
       }`}
     >
       <span className="flex w-full items-start gap-3">
-        {Icon && (
+        {(Icon || imageUrl) && (
           <span
             className={`grid shrink-0 place-items-center ${
-              isTile ? "" : "size-9 rounded-[10px]"
+              isTile ? (imageUrl ? "size-9 overflow-hidden rounded-lg bg-white ring-1 ring-gray-100 dark:bg-gray-800 dark:ring-gray-700" : "") : "size-9 rounded-[10px]"
             } ${
               selected
                 ? `text-emerald-600 ${isTile ? "" : "bg-emerald-100 dark:bg-emerald-500/20"}`
                 : `text-gray-400 ${isTile ? "" : "bg-gray-100 dark:bg-gray-800"}`
             }`}
           >
-            <Icon size={isTile ? 20 : 18} strokeWidth={1.8} aria-hidden="true" />
+            <RemoteIcon src={imageUrl} fallback={Icon} size={isTile ? 20 : 18} className="size-full p-1" />
           </span>
         )}
         {!isTile && (

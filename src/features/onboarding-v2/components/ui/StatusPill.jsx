@@ -3,11 +3,12 @@ const TONES = {
   info: "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400",
   warning: "bg-amber-50 text-amber-800 ring-1 ring-inset ring-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:ring-amber-500/30",
   neutral: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
+  danger: "bg-red-50 text-red-700 ring-1 ring-inset ring-red-200 dark:bg-red-500/10 dark:text-red-300 dark:ring-red-500/30",
 };
 
 /**
- * Small rounded status label ("Verified", "PAN verified", "Recommended").
- * @param {{ tone?: 'success' | 'info' | 'warning' | 'neutral', icon?: import('react').ElementType, children: import('react').ReactNode }} props
+ * Small rounded status label ("Verified", "PAN verified", "Required").
+ * @param {{ tone?: 'success' | 'info' | 'warning' | 'neutral' | 'danger', icon?: import('react').ElementType, children: import('react').ReactNode }} props
  */
 export default function StatusPill({ tone = "success", icon: Icon, children }) {
   return (

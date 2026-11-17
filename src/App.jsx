@@ -7,8 +7,7 @@ import PublicRoute from './routes/PublicRoute';
 import DashboardLayout from './features/dashboard/layouts/DashboardLayout';
 
 import Step1WhatsApp from './features/onboarding/steps/Step1WhatsApp';
-import OnboardingPage from './features/onboarding/pages/VendorOnboarding';
-import { OnboardingV2Page } from './features/onboarding-v2';
+import { ONBOARDING_ROUTES, OnboardingPage, SystemVerificationPage } from './features/onboarding-v2';
 
 import AnalysisReport from './features/dashboard/pages/AnalysisReport';
 import Transactions from './features/transaction/pages/Transactions';
@@ -98,17 +97,15 @@ function App() {
       <Routes>
 
         {/* ─── PUBLIC ─── */}
-        <Route path="/" element={<PublicRoute><Step1WhatsApp /></PublicRoute>} />
+        <Route path={ONBOARDING_ROUTES.LOGIN} element={<PublicRoute><Step1WhatsApp /></PublicRoute>} />
 
-        {/* ─── ONBOARDING / OUTLET-SETUP FLOW: header/footer NAHI ─── */}
-        <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
-        {/* Onboarding v2 — UI build, dev server only until its APIs are wired */}
-        {import.meta.env.DEV && <Route path="/onboarding-v2" element={<OnboardingV2Page />} />}
-        <Route path="/subscription" element={<ProtectedRoute><SubscriptionPlan /></ProtectedRoute>} />
-        <Route path="/subscription/checkout" element={<ProtectedRoute><SubscriptionCheckout /></ProtectedRoute>} />
-        {/* <Route path="/oulet" element={<ProtectedRoute><TrydoodOutlet /></ProtectedRoute>} /> */}
-        <Route path="/brand-outlet" element={<ProtectedRoute><OnboardingOnlyRoute><CreateBrandOutlet /></OnboardingOnlyRoute></ProtectedRoute>} />
-        <Route path="/under-review" element={<ProtectedRoute><UnderReview /></ProtectedRoute>} />
+        {/* ─── ONBOARDING (v3, login → partnership deed) / OUTLET-SETUP FLOW: header/footer NAHI ─── */}
+        <Route path={ONBOARDING_ROUTES.WIZARD} element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
+        <Route path={ONBOARDING_ROUTES.PLAN} element={<ProtectedRoute><SubscriptionPlan /></ProtectedRoute>} />
+        <Route path={ONBOARDING_ROUTES.CHECKOUT} element={<ProtectedRoute><SubscriptionCheckout /></ProtectedRoute>} />
+        <Route path={ONBOARDING_ROUTES.OUTLET} element={<ProtectedRoute><OnboardingOnlyRoute><CreateBrandOutlet /></OnboardingOnlyRoute></ProtectedRoute>} />
+        <Route path={ONBOARDING_ROUTES.VERIFY} element={<ProtectedRoute><SystemVerificationPage /></ProtectedRoute>} />
+        <Route path={ONBOARDING_ROUTES.STATUS} element={<ProtectedRoute><UnderReview /></ProtectedRoute>} />
 
         {/* ─── DASHBOARD GROUP: header/footer YAHAN chahiye ─── */}
         <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>

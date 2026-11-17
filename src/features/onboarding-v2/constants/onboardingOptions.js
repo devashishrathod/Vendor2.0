@@ -1,45 +1,4 @@
-import {
-  Car,
-  HeartPulse,
-  House,
-  Pill,
-  Shirt,
-  ShoppingBag,
-  Smartphone,
-  Sparkles,
-  Utensils,
-  Wrench,
-} from "lucide-react";
 import { BRANCHES } from "../config/onboardingFlow";
-
-// Licence the documents step suggests for a category, keyed by `licence`
-// on each category below.
-export const LICENCES = Object.freeze({
-  FSSAI: "FSSAI licence",
-  DRUG: "Drug licence",
-  GENERAL: "Shop & Establishment",
-});
-
-export const LICENCE_HINTS = Object.freeze({
-  [LICENCES.FSSAI]: "Shown for food categories.",
-  [LICENCES.DRUG]: "Shown for pharmacy categories.",
-  [LICENCES.GENERAL]: "Other categories see Udyam, Shop & Establishment or Trade licence.",
-});
-
-// UI-only sample data until GET /categories/getAll + /subCategories/getAll
-// are wired in. Same shape the API mapping should produce.
-export const SAMPLE_CATEGORIES = [
-  { id: "food", name: "Food & drinks", icon: Utensils, licence: LICENCES.FSSAI, subCategories: ["Cafe", "Restaurant", "Bakery", "Cloud kitchen", "Sweets & snacks", "Juice bar"] },
-  { id: "fashion", name: "Fashion", icon: Shirt, licence: LICENCES.GENERAL, subCategories: ["Clothing", "Footwear", "Accessories", "Jewellery"] },
-  { id: "beauty", name: "Beauty & wellness", icon: Sparkles, licence: LICENCES.GENERAL, subCategories: ["Salon", "Spa", "Cosmetics", "Barber"] },
-  { id: "pharmacy", name: "Pharmacy", icon: Pill, licence: LICENCES.DRUG, subCategories: ["Chemist", "Ayurvedic store", "Medical supplies"] },
-  { id: "electronics", name: "Electronics", icon: Smartphone, licence: LICENCES.GENERAL, subCategories: ["Mobiles", "Appliances", "Computers", "Repairs"] },
-  { id: "home", name: "Home & living", icon: House, licence: LICENCES.GENERAL, subCategories: ["Furniture", "Decor", "Kitchenware"] },
-  { id: "services", name: "Services", icon: Wrench, licence: LICENCES.GENERAL, subCategories: ["Laundry", "Repairs", "Cleaning", "Tailoring"] },
-  { id: "health", name: "Health & fitness", icon: HeartPulse, licence: LICENCES.GENERAL, subCategories: ["Gym", "Yoga studio", "Clinic"] },
-  { id: "grocery", name: "Grocery", icon: ShoppingBag, licence: LICENCES.FSSAI, subCategories: ["Supermarket", "Kirana store", "Organic store"] },
-  { id: "auto", name: "Automotive", icon: Car, licence: LICENCES.GENERAL, subCategories: ["Car wash", "Service centre", "Spare parts"] },
-];
 
 // Category tiles shown before "More" expands the rest.
 export const VISIBLE_CATEGORY_COUNT = 7;
@@ -50,16 +9,11 @@ export const PRIMARY_ENTITY_TYPES = [
   { value: "PARTNERSHIP", label: "Partnership", description: "Two or more partners" },
   { value: "LLP", label: "LLP", description: "Limited liability partnership" },
   { value: "PRIVATE_LIMITED", label: "Pvt. Ltd.", description: "Private limited company" },
+  { value: "PUBLIC_LIMITED", label: "Public Ltd.", description: "Public limited company" },
 ];
 
-export const MORE_ENTITY_TYPES = [
-  { value: "PUBLIC_LIMITED", label: "Public Limited" },
-  { value: "ONE_PERSON_COMPANY", label: "One Person Company" },
-  { value: "TRUST", label: "Trust" },
-  { value: "NGO", label: "NGO" },
-  { value: "SOCIETY", label: "Society" },
-  { value: "OTHERS", label: "Others" },
-];
+/** The only entity values a vendor can pick (and that we recommend). */
+export const ENTITY_VALUES = PRIMARY_ENTITY_TYPES.map((t) => t.value);
 
 // Values match the backend BANK_ACCOUNT_TYPES enum.
 export const BANK_ACCOUNT_TYPES = [
@@ -74,8 +28,10 @@ export const BANK_ACCOUNT_TYPES = [
 
 // Business documents: suggested titles per branch. `null` is replaced by
 // the selected category's licence.
+const REGISTERED_DOCUMENT_SUGGESTIONS = [null, "Shop & Establishment", "Trade licence", "Shop photo", "Rent agreement"];
 export const DOCUMENT_SUGGESTIONS = {
-  [BRANCHES.REGISTERED]: [null, "Shop & Establishment", "Trade licence", "Shop photo", "Rent agreement"],
+  [BRANCHES.GST]: REGISTERED_DOCUMENT_SUGGESTIONS,
+  [BRANCHES.REG_NO_GST]: REGISTERED_DOCUMENT_SUGGESTIONS,
   [BRANCHES.UNREGISTERED]: ["Aadhaar (masked)", "Voter ID", null, "Electricity bill", "Shop photo", "Rent agreement"],
 };
 
@@ -85,6 +41,7 @@ export const DOCUMENT_RULES = Object.freeze({
   acceptedTypes: ["application/pdf", "image/jpeg", "image/png"],
   accept: ".pdf,.jpg,.jpeg,.png",
   maxTitleLength: 60,
+  maxDocuments: 5,
 });
 
 export const NAME_LIMITS = Object.freeze({

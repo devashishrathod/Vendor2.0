@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { X } from "lucide-react";
+import { AlertTriangle, Check, FolderPlus, Images, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
 import MediaPreviewModal from "./modals/MediaPreviewModal";
 import VideoUploadModal from "./modals/VideoUploadModal";
 import ErrorToast from "../../../../../components/common/ErrorToast";
@@ -464,8 +464,11 @@ export default function ShowcaseAlbumsEditor({ albums, onChange, brandId }) {
     <>
       <div>
         {canAddAlbum ? (
-          <div className="mb-6">
-            <div className="flex flex-wrap gap-2 justify-start items-center mb-3">
+          <div className="mb-5">
+            <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.06em] text-gray-500 dark:text-gray-400">
+              Add an album
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
               {QUICK_ALBUM_PRESETS.filter(
                 (p) => !albums.some((a) => a.name.trim().toLowerCase() === p.toLowerCase())
               ).map((preset) => (
@@ -476,22 +479,24 @@ export default function ShowcaseAlbumsEditor({ albums, onChange, brandId }) {
                     setNewAlbumName(preset);
                     setShowAddInput(true);
                   }}
-                  className="text-xs font-semibold px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-700 text-emerald-600 hover:bg-emerald-50 transition-colors"
+                  className="inline-flex min-h-9 items-center gap-1 rounded-full bg-emerald-50 px-3.5 text-xs font-bold text-emerald-700 ring-1 ring-inset ring-emerald-200 transition-colors hover:bg-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-500/30 dark:hover:bg-emerald-500/20"
                 >
-                  + {preset}
+                  <Plus size={13} strokeWidth={2.5} aria-hidden="true" />
+                  {preset}
                 </button>
               ))}
               <button
                 type="button"
                 onClick={() => setShowAddInput(true)}
-                className="text-xs font-semibold px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-700 text-emerald-600 hover:bg-emerald-50 transition-colors"
+                className="inline-flex min-h-9 items-center gap-1 rounded-full border border-dashed border-gray-300 px-3.5 text-xs font-bold text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
               >
-                + Add More
+                <FolderPlus size={13} aria-hidden="true" />
+                Custom album
               </button>
             </div>
 
             {showAddInput && (
-              <div className="flex gap-2 mt-3">
+              <div className="mt-3 flex flex-col gap-2 rounded-xl bg-gray-50 p-3 ring-1 ring-inset ring-gray-200 sm:flex-row dark:bg-gray-900/40 dark:ring-gray-700">
                 <input
                   type="text"
                   autoFocus
@@ -507,47 +512,52 @@ export default function ShowcaseAlbumsEditor({ albums, onChange, brandId }) {
                       setNewAlbumName("");
                     }
                   }}
-                  placeholder="eg : Gallery Photo"
-                  className="w-full rounded-xl px-4 py-2.5 text-sm outline-none bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-100 placeholder:text-gray-400"
+                  placeholder="Album name, eg : Gallery Photo"
+                  className="min-h-11 w-full rounded-[10px] border border-gray-300 bg-white px-3.5 text-base text-gray-900 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/15 sm:text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 placeholder:text-gray-400"
                 />
-                <button
-                  onClick={() => addAlbum()}
-                  disabled={!newAlbumName.trim()}
-                  className={`shrink-0 px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${newAlbumName.trim()
-                    ? "bg-emerald-500 text-white hover:bg-emerald-600"
-                    : "bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed"
-                    }`}
-                >
-                  Add Album
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowAddInput(false);
-                    setNewAlbumName("");
-                  }}
-                  className="shrink-0 px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                >
-                  Cancel
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => addAlbum()}
+                    disabled={!newAlbumName.trim()}
+                    className="min-h-11 flex-1 shrink-0 rounded-xl bg-emerald-600 px-5 text-sm font-bold text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
+                  >
+                    Add album
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowAddInput(false);
+                      setNewAlbumName("");
+                    }}
+                    className="min-h-11 shrink-0 rounded-xl px-4 text-sm font-semibold text-gray-600 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
             )}
           </div>
         ) : (
-          <p className="text-xs text-amber-600 font-semibold mb-4">Maximum {MAX_ALBUMS} albums reached.</p>
+          <p className="mb-4 text-xs font-semibold text-amber-600">Maximum {MAX_ALBUMS} albums reached.</p>
         )}
 
         {loading ? (
-          <p className="text-xs text-gray-400 mb-4">Loading saved albums…</p>
+          <p className="mb-4 flex items-center gap-1.5 text-xs text-gray-400">
+            <Loader2 size={13} className="animate-spin" aria-hidden="true" />
+            Loading saved albums…
+          </p>
         ) : (
           albums.length === 0 && (
-            <p className="text-xs text-gray-400 mb-4">
-              No albums yet. Add one above — e.g. "Gallery Photo", "Menu Photo", "Ambience Photo", "Event Photo".
-            </p>
+            <div className="mb-4 flex flex-col items-center gap-1.5 rounded-2xl border-[1.5px] border-dashed border-gray-300 px-4 py-6 text-center dark:border-gray-600">
+              <Images size={22} className="text-gray-400" aria-hidden="true" />
+              <p className="text-sm font-bold text-gray-700 dark:text-gray-200">No albums yet</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Pick one above — Gallery, Menu, Ambience or Event.</p>
+            </div>
           )
         )}
 
-        <div className="space-y-5">
+        <div className="space-y-4">
           {albums.map((album) => {
             const videoOnly = isVideoOnlyAlbum(album.name);
             const monthly = isMonthlyAlbum(album.name);
@@ -558,77 +568,125 @@ export default function ShowcaseAlbumsEditor({ albums, onChange, brandId }) {
             const albumBusy = album.status === "creating" || album.status === "deleting";
             const canUpload = !albumBusy && remainingItems > 0 && (!videoOnly || remainingVideos > 0);
 
+            const minMet = itemCount >= MIN_ITEMS_PER_ALBUM;
+            const minProgress = Math.min(100, Math.round((itemCount / MIN_ITEMS_PER_ALBUM) * 100));
+
             return (
-              <div key={album.id} className="rounded-xl p-4 bg-white dark:bg-gray-800">
-                <div className="flex items-start justify-between gap-3 mb-1">
-                  <input
-                    type="text"
-                    value={album.name}
-                    onChange={(e) => renameAlbumLocal(album.id, e.target.value)}
-                    onBlur={() => saveAlbumName(album)}
-                    disabled={albumBusy}
-                    placeholder="Album name"
-                    className="text-sm font-bold text-gray-900 dark:text-gray-100 outline-none bg-emerald-50 dark:bg-emerald-500/10 px-0.5 py-0.5 flex-1 disabled:opacity-50"
-                  />
+              <div
+                key={album.id}
+                className={`rounded-2xl border bg-white p-4 dark:bg-gray-800 ${
+                  minMet ? "border-emerald-200 dark:border-emerald-500/30" : "border-gray-200 dark:border-gray-700"
+                }`}
+              >
+                {/* Header: icon + editable name + status + remove */}
+                <div className="flex items-center gap-3">
+                  <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
+                    <Images size={17} aria-hidden="true" />
+                  </span>
+                  <label className="group/name flex min-w-0 flex-1 items-center gap-1.5 rounded-lg px-1.5 py-1 hover:bg-gray-50 focus-within:bg-gray-50 focus-within:ring-2 focus-within:ring-emerald-500/30 dark:hover:bg-gray-700/50 dark:focus-within:bg-gray-700/50">
+                    <input
+                      type="text"
+                      value={album.name}
+                      onChange={(e) => renameAlbumLocal(album.id, e.target.value)}
+                      onBlur={() => saveAlbumName(album)}
+                      disabled={albumBusy}
+                      placeholder="Album name"
+                      aria-label="Album name"
+                      className="min-w-0 flex-1 bg-transparent text-[15px] font-extrabold text-gray-900 outline-none disabled:opacity-50 dark:text-gray-100"
+                    />
+                    <Pencil size={13} className="shrink-0 text-gray-400 opacity-60 group-hover/name:opacity-100" aria-hidden="true" />
+                  </label>
+                  <span
+                    className={`hidden shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold sm:inline-flex ${
+                      minMet
+                        ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400"
+                        : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"
+                    }`}
+                  >
+                    {itemCount}/{MAX_ITEMS_PER_ALBUM}
+                  </span>
                   <button
+                    type="button"
                     onClick={() => removeAlbum(album)}
                     disabled={albumBusy}
-                    className="text-xs font-semibold text-gray-400 hover:text-red-500 whitespace-nowrap disabled:opacity-50"
+                    aria-label={`Remove ${album.name || "album"}`}
+                    title="Remove album"
+                    className="grid size-9 shrink-0 place-items-center rounded-lg text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50 dark:hover:bg-red-500/10"
                   >
-                    {album.status === "deleting" ? "Removing…" : "Remove Album"}
+                    {album.status === "deleting" ? (
+                      <Loader2 size={16} className="animate-spin" aria-hidden="true" />
+                    ) : (
+                      <Trash2 size={16} aria-hidden="true" />
+                    )}
                   </button>
                 </div>
 
                 {album.status === "creating" && (
-                  <p className="text-xs text-emerald-500 font-semibold mb-2">Creating album…</p>
+                  <p className="mt-2 text-xs font-semibold text-emerald-600">Creating album…</p>
                 )}
                 {album.status === "saving" && (
-                  <p className="text-xs text-emerald-500 font-semibold mb-2">Saving name…</p>
+                  <p className="mt-2 text-xs font-semibold text-emerald-600">Saving name…</p>
                 )}
                 {album.status === "error" && album.error && (
-                  <p className="text-xs text-red-500 font-semibold mb-2">{album.error}</p>
+                  <p className="mt-2 text-xs font-semibold text-red-500">{album.error}</p>
                 )}
 
-                <p className="text-xs text-gray-500 mb-3">
-                  {videoOnly ? "Video only. " : "Photos & videos. "}
-                  At least {MIN_ITEMS_PER_ALBUM} {videoOnly ? "videos" : "photos or videos"} required · Max {MAX_ITEMS_PER_ALBUM} items · Max {MAX_VIDEOS_PER_ALBUM} videos
-                  {monthly ? " · Tag each item with a month" : ""}
-                </p>
-
-                <div className="flex items-center gap-3 mb-3 flex-wrap">
-                  <button
-                    onClick={() => triggerUpload(album.id)}
-                    disabled={!canUpload}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${canUpload ? "bg-[#1a1a2e] text-white hover:bg-[#2d2d5e]" : "bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed"
+                {/* Minimum-items progress */}
+                <div className="mt-3">
+                  <div className="flex items-center justify-between gap-3 text-xs">
+                    <span
+                      className={`flex items-center gap-1.5 font-semibold ${
+                        minMet ? "text-emerald-700 dark:text-emerald-400" : "text-amber-700 dark:text-amber-400"
                       }`}
-                  >
-                    Upload {videoOnly ? "Video" : "Photo / Video"}
-                  </button>
-                  <input
-                    ref={(el) => (fileInputRefs.current[album.id] = el)}
-                    type="file"
-                    accept={videoOnly ? "video/*" : "image/*,video/*"}
-                    multiple
-                    className="hidden"
-                    onChange={(e) => handleFiles(album, e)}
-                  />
-
-                  <span className="text-xs text-gray-400">
-                    {itemCount}/{MAX_ITEMS_PER_ALBUM} items · {videoCount}/{MAX_VIDEOS_PER_ALBUM} videos
-                  </span>
+                    >
+                      {minMet ? <Check size={13} strokeWidth={3} aria-hidden="true" /> : <AlertTriangle size={13} aria-hidden="true" />}
+                      {minMet
+                        ? "Minimum reached"
+                        : `Add ${MIN_ITEMS_PER_ALBUM - itemCount} more ${videoOnly ? "video" : "photo or video"}${
+                            MIN_ITEMS_PER_ALBUM - itemCount === 1 ? "" : "s"
+                          }`}
+                    </span>
+                    <span className="text-gray-500 dark:text-gray-400">
+                      {videoCount}/{MAX_VIDEOS_PER_ALBUM} videos
+                    </span>
+                  </div>
+                  <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700">
+                    <div
+                      className={`h-full rounded-full transition-[width] duration-300 ${minMet ? "bg-emerald-500" : "bg-amber-400"}`}
+                      style={{ width: `${minProgress}%` }}
+                    />
+                  </div>
+                  <p className="mt-1.5 text-[11px] text-gray-500 dark:text-gray-400">
+                    {videoOnly ? "Videos only" : "Photos & videos"} · at least {MIN_ITEMS_PER_ALBUM} · max {MAX_ITEMS_PER_ALBUM} items, {MAX_VIDEOS_PER_ALBUM} videos
+                    {monthly ? " · tag each item with a month" : ""}
+                  </p>
                 </div>
 
-                {itemCount < MIN_ITEMS_PER_ALBUM ? (
-                  <p className="text-xs text-amber-600 dark:text-amber-400 font-semibold mb-3">
-                    Add at least {MIN_ITEMS_PER_ALBUM} {videoOnly ? "videos" : "photos or videos"} to this album
-                    {itemCount > 0 ? ` (${MIN_ITEMS_PER_ALBUM - itemCount} more needed)` : ""}.
-                  </p>
-                ) : null}
-                {itemCount > 0 && (
-                  <div className="flex flex-wrap gap-3">
+                <input
+                  ref={(el) => (fileInputRefs.current[album.id] = el)}
+                  type="file"
+                  accept={videoOnly ? "video/*" : "image/*,video/*"}
+                  multiple
+                  className="hidden"
+                  onChange={(e) => handleFiles(album, e)}
+                />
+
+                {/* Media grid — the first tile is the upload button */}
+                <div className="mt-4 grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-5">
+                  <button
+                    type="button"
+                    onClick={() => triggerUpload(album.id)}
+                    disabled={!canUpload}
+                    className="flex aspect-square flex-col items-center justify-center gap-1 rounded-xl border-[1.5px] border-dashed border-emerald-300 bg-emerald-50/50 text-emerald-700 transition-colors hover:bg-emerald-50 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-50 disabled:text-gray-400 dark:border-emerald-500/40 dark:bg-emerald-500/5 dark:text-emerald-400 dark:hover:bg-emerald-500/10 dark:disabled:border-gray-700 dark:disabled:bg-gray-800"
+                  >
+                    <Plus size={20} aria-hidden="true" />
+                    <span className="px-1 text-center text-[11px] font-bold leading-tight">
+                      {videoOnly ? "Add video" : "Add photo / video"}
+                    </span>
+                  </button>
                     {album.media.map((m) => (
-                      <div key={m.id} className="relative w-24 rounded-xl overflow-hidden group shadow-sm bg-gray-100 dark:bg-gray-700">
-                        <button onClick={() => setPreviewItem(m)} className="w-24 h-24 block" title="Preview">
+                      <div key={m.id} className="group relative overflow-hidden rounded-xl bg-gray-100 shadow-sm dark:bg-gray-700">
+                        <button type="button" onClick={() => setPreviewItem(m)} className="block aspect-square w-full" title="Preview">
                           {m.type === "video" ? (
                             <div className="relative w-full h-full bg-gray-800 flex items-center justify-center">
                               {m.thumbnail && (
@@ -692,8 +750,7 @@ export default function ShowcaseAlbumsEditor({ albums, onChange, brandId }) {
                         )}
                       </div>
                     ))}
-                  </div>
-                )}
+                </div>
               </div>
             );
           })}

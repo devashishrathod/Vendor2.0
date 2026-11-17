@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Lock, ReceiptText, ShieldCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useRazorpayCheckout } from "../hooks/useRazorpayCheckout";
 import { formatINR, mergeGstRowsToIgst } from "../utils/priceCalculator";
@@ -139,10 +140,16 @@ export default function OrderSummary({
 
   return (
     <>
-      <div className="bg-white dark:bg-gray-800 rounded-xl p-6 sticky top-4 self-start">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">Order Summary</h2>
+      <div className="sticky top-4 self-start overflow-hidden rounded-xl bg-white ring-1 ring-gray-200/70 dark:bg-gray-800 dark:ring-gray-700">
+        <header className="flex items-center gap-2.5 px-5 pb-1 pt-4">
+          <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
+            <ReceiptText size={16} aria-hidden="true" />
+          </span>
+          <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100">Order Summary</h2>
+        </header>
 
-        <div className="space-y-4 mb-5">
+        <div className="px-5 pt-3">
+        <div className="mb-3">
           {/* plan.strikePrice (confirmed field, e.g. 4000) is a separate,
               larger number from the ORIGINAL_PRICE row below (confirmed to
               be plan.price, e.g. 1999) — it never appears in
@@ -201,28 +208,24 @@ export default function OrderSummary({
         )}
 
         {payable && (
-          <div className="pt-4 mb-2">
-            <div className="flex items-center justify-between">
-              <span className="text-base font-bold text-gray-900 dark:text-gray-100">{payable.label}</span>
-              <span className="text-xl font-extrabold text-gray-900 dark:text-gray-100">{payable.display}</span>
+          <div className="mb-4 rounded-xl bg-emerald-50 px-4 py-3.5 dark:bg-emerald-500/10">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-sm font-bold text-gray-900 dark:text-gray-100">{payable.label}</span>
+              <span className="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-gray-50">{payable.display}</span>
             </div>
             {orderSummary?.savedText && (
-              <p className="text-sm text-gray-500 font-medium mt-1">{orderSummary.savedText}</p>
+              <p className="mt-0.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400">{orderSummary.savedText}</p>
             )}
           </div>
         )}
-
-        <div className="my-5" />
 
         {canCheckout ? (
           <button
             onClick={handleCheckout}
             disabled={processing || paymentState === "processing"}
-            className="w-full active:scale-[0.99] text-white font-bold text-base py-4 rounded-xl transition-all duration-150 mb-3 disabled:opacity-60 disabled:cursor-not-allowed"
-            style={{ background: "linear-gradient(135deg, #09B285 0%, #0F0E20 100%)" }}
-            onMouseEnter={(e) => { if (!processing) e.currentTarget.style.background = "linear-gradient(135deg, #07a077 0%, #1a1a3e 100%)"; }}
-            onMouseLeave={(e) => { if (!processing) e.currentTarget.style.background = "linear-gradient(135deg, #09B285 0%, #0F0E20 100%)"; }}
+            className="mb-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#09B285] to-[#0F0E20] text-base font-bold text-white shadow-sm transition-all duration-150 hover:from-[#07a077] hover:to-[#1a1a3e] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
           >
+            <Lock size={16} aria-hidden="true" />
             {requiresPayment === false
               ? processing || paymentState === "processing" ? "Activating your plan…" : "Activate Plan"
               : processing || paymentState === "processing" ? "Opening secure checkout…" : "Check Out"}
@@ -235,15 +238,19 @@ export default function OrderSummary({
           <button
             type="button"
             onClick={() => navigate("/analysis-report")}
-            className="w-full active:scale-[0.99] text-white font-bold text-base py-4 rounded-xl transition-all duration-150 mb-3 bg-emerald-600 hover:bg-emerald-700"
+            className="mb-3 min-h-12 w-full rounded-xl bg-emerald-600 text-base font-bold text-white transition-all duration-150 hover:bg-emerald-700 active:scale-[0.99]"
           >
             Continue
           </button>
         )}
 
-        <div className="text-center">
-          <p className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">🔒 100% Secure payment</p>
-          <p className="text-xs text-gray-500">We also accept Indian Debit Cards, UPI and Netbanking.</p>
+        </div>
+        <div className="flex items-start gap-2.5 bg-gray-50/70 px-5 py-3 dark:bg-gray-900/30">
+          <ShieldCheck size={16} className="mt-0.5 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+          <div>
+            <p className="text-xs font-semibold text-gray-700 dark:text-gray-200">100% secure payment</p>
+            <p className="text-[11.5px] text-gray-500 dark:text-gray-400">Cards, UPI and Netbanking accepted.</p>
+          </div>
         </div>
       </div>
 

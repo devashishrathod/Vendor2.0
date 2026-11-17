@@ -1,104 +1,123 @@
-// Onboarding v2 — the ONLY place the screen order lives. The sidebar,
+// Onboarding v3 — the ONLY place the screen order lives. The sidebar,
 // header breadcrumb, progress, next / back / skip all derive from this.
-// Components are mapped separately (stepComponents.js) so this file stays
+// Components are mapped separately (stepComponents.jsx) so this file stays
 // plain data and can be imported anywhere without circular imports.
+//
+// Screens with a `route` are separate pages (plan, checkout, outlet …).
+// They sit in the list so the sidebar and progress cover the whole journey;
+// reaching one navigates to its page instead of rendering inside the shell.
+
+import { ONBOARDING_ROUTES } from "./routes";
 
 export const SCREENS = Object.freeze({
-  BUSINESS_NAME: "BUSINESS_NAME",
-  BUSINESS_CATEGORY: "BUSINESS_CATEGORY",
-  REGISTRATION_STATUS: "REGISTRATION_STATUS",
-  ENTITY_TYPE: "ENTITY_TYPE",
-  PAN_VERIFICATION: "PAN_VERIFICATION",
-  PAN_REVIEW: "PAN_REVIEW",
-  GST_VERIFICATION: "GST_VERIFICATION",
+  BRAND_NAME: "BRAND_NAME",
+  CATEGORY: "CATEGORY",
+  BUSINESS_STATUS: "BUSINESS_STATUS",
+  GST_ENTER: "GST_ENTER",
   GST_REVIEW: "GST_REVIEW",
-  BUSINESS_DOCUMENTS: "BUSINESS_DOCUMENTS",
-  BANK_VERIFICATION: "BANK_VERIFICATION",
+  PAN_ENTER: "PAN_ENTER",
+  PAN_REVIEW: "PAN_REVIEW",
+  BUSINESS_TYPE: "BUSINESS_TYPE",
+  OWNER_PAN: "OWNER_PAN",
+  OWNER_PAN_REVIEW: "OWNER_PAN_REVIEW",
+  OWNER_KYC: "OWNER_KYC",
+  DOCUMENTS: "DOCUMENTS",
+  BANK_ENTER: "BANK_ENTER",
   BANK_REVIEW: "BANK_REVIEW",
   PARTNER_CONTRACT: "PARTNER_CONTRACT",
+  PLAN: "PLAN",
+  PAYMENT: "PAYMENT",
+  OUTLET: "OUTLET",
 });
 
+// Business status picked on screen 05 — decides the Step 2 path.
 export const BRANCHES = Object.freeze({
-  REGISTERED: "REGISTERED",
-  UNREGISTERED: "UNREGISTERED",
+  GST: "gst",
+  REG_NO_GST: "regnogst",
+  UNREGISTERED: "unregistered",
 });
-
-// Where the vendor goes once the partner contract is accepted.
-export const ONBOARDING_EXIT_ROUTE = "/subscription";
 
 /**
  * @typedef {Object} FlowScreen
  * @property {string} id
  * @property {string} title       - header breadcrumb label
  * @property {string|null} sub    - sidebar sub-step it belongs to (null = none)
- * @property {string} [branch]    - only shown on this branch
+ * @property {string[]} [branches] - only shown on these branches
  * @property {string} [reviewOf]  - review screen of another; skipped with it
  * @property {boolean} [skippable]
  * @property {boolean} [isNew]    - "New" badge in the sidebar
+ * @property {string} [route]     - separate page instead of a shell screen
  */
 
 /**
  * @typedef {Object} FlowGroup
  * @property {string} id
- * @property {string|Record<string,string>} label - per-branch when an object
+ * @property {string} label
  * @property {FlowScreen[]} screens
  */
+
+const REGISTERED = [BRANCHES.GST, BRANCHES.REG_NO_GST];
 
 /** @type {FlowGroup[]} */
 export const FLOW_GROUPS = [
   {
-    id: "basic",
+    id: "basics",
     label: "Basic Details",
     screens: [
-      { id: SCREENS.BUSINESS_NAME, title: "Business name", sub: "Business name" },
-      { id: SCREENS.BUSINESS_CATEGORY, title: "Business category", sub: "Business category", isNew: true },
-      { id: SCREENS.REGISTRATION_STATUS, title: "Registration status", sub: "Registration status" },
-      { id: SCREENS.ENTITY_TYPE, title: "Business type", sub: "Business type", branch: BRANCHES.REGISTERED },
+      { id: SCREENS.BRAND_NAME, title: "Brand Name", sub: "Brand Name" },
+      { id: SCREENS.CATEGORY, title: "Category", sub: "Category" },
+      { id: SCREENS.BUSINESS_STATUS, title: "Business Status", sub: "Business Status", isNew: true },
     ],
   },
   {
     id: "verification",
-    label: {
-      [BRANCHES.REGISTERED]: "Business Verification",
-      [BRANCHES.UNREGISTERED]: "Business Documents",
-    },
+    label: "Business Verification",
     screens: [
-      { id: SCREENS.PAN_VERIFICATION, title: "PAN verification", sub: "PAN verification", branch: BRANCHES.REGISTERED, skippable: true },
-      { id: SCREENS.PAN_REVIEW, title: "PAN review", sub: "PAN verification", branch: BRANCHES.REGISTERED, reviewOf: SCREENS.PAN_VERIFICATION },
-      { id: SCREENS.GST_VERIFICATION, title: "GST verification", sub: "GST verification", branch: BRANCHES.REGISTERED, skippable: true },
-      { id: SCREENS.GST_REVIEW, title: "GST review", sub: "GST verification", branch: BRANCHES.REGISTERED, reviewOf: SCREENS.GST_VERIFICATION },
-      { id: SCREENS.BUSINESS_DOCUMENTS, title: "Business documents", sub: "Business documents", isNew: true, skippable: true },
+      { id: SCREENS.GST_ENTER, title: "GSTIN", sub: "GSTIN", branches: [BRANCHES.GST] },
+      { id: SCREENS.GST_REVIEW, title: "GST Review", sub: "GST Review", branches: [BRANCHES.GST], reviewOf: SCREENS.GST_ENTER },
+      { id: SCREENS.PAN_ENTER, title: "Business PAN", sub: "Business PAN", branches: [BRANCHES.REG_NO_GST] },
+      { id: SCREENS.PAN_REVIEW, title: "PAN Review", sub: "PAN Review", branches: [BRANCHES.REG_NO_GST], reviewOf: SCREENS.PAN_ENTER },
+      // Business entity is on every path (pre-selected from GST / PAN / "not
+      // registered"); on each path it comes right after the PAN review.
+      { id: SCREENS.BUSINESS_TYPE, title: "Business Entity", sub: "Business Entity", branches: [BRANCHES.REG_NO_GST] },
+      // The registered-no-GST path already verified a PAN, so only the GST path asks for the owner's.
+      { id: SCREENS.OWNER_PAN, title: "Business PAN", sub: "Business PAN", branches: [BRANCHES.GST] },
+      { id: SCREENS.OWNER_PAN_REVIEW, title: "PAN Review", sub: "PAN Review", branches: [BRANCHES.GST], reviewOf: SCREENS.OWNER_PAN },
+      { id: SCREENS.BUSINESS_TYPE, title: "Business Entity", sub: "Business Entity", branches: [BRANCHES.GST] },
+      { id: SCREENS.OWNER_KYC, title: "Owner Verification", sub: "Owner Verification", isNew: true, branches: [BRANCHES.UNREGISTERED] },
+      { id: SCREENS.BUSINESS_TYPE, title: "Business Entity", sub: "Business Entity", branches: [BRANCHES.UNREGISTERED] },
+      { id: SCREENS.DOCUMENTS, title: "Business Documents", sub: "Business Documents", skippable: true },
     ],
   },
   {
-    id: "bank",
-    label: "Bank Verification",
+    id: "payout",
+    label: "Payout",
     screens: [
-      { id: SCREENS.BANK_VERIFICATION, title: "Bank details", sub: "Bank details", skippable: true },
-      { id: SCREENS.BANK_REVIEW, title: "Review", sub: "Review", reviewOf: SCREENS.BANK_VERIFICATION },
+      { id: SCREENS.BANK_ENTER, title: "Bank Details", sub: "Bank Details", skippable: true },
+      { id: SCREENS.BANK_REVIEW, title: "Review", sub: "Review", reviewOf: SCREENS.BANK_ENTER },
     ],
   },
   {
-    id: "contract",
-    label: "Partner Contract",
-    screens: [{ id: SCREENS.PARTNER_CONTRACT, title: "Partner contract", sub: null }],
+    id: "agreement",
+    label: "Agreement & Plan",
+    screens: [
+      { id: SCREENS.PARTNER_CONTRACT, title: "Partner Contract", sub: "Partner Contract" },
+      { id: SCREENS.PLAN, title: "Plan", sub: "Plan", route: ONBOARDING_ROUTES.PLAN },
+      { id: SCREENS.PAYMENT, title: "Payment", sub: "Payment", route: ONBOARDING_ROUTES.CHECKOUT },
+    ],
+  },
+  {
+    id: "outlet",
+    label: "Brand Outlet",
+    screens: [{ id: SCREENS.OUTLET, title: "Brand Outlet", sub: null, route: ONBOARDING_ROUTES.OUTLET }],
   },
 ];
 
 export const TOTAL_GROUPS = FLOW_GROUPS.length;
 
-// Until the vendor answers "Is your business registered?" the flow is shown
-// as the registered path (the recommended option, and the design's default).
-export const resolveBranch = (branch) => branch ?? BRANCHES.REGISTERED;
-
-/**
- * @param {FlowGroup} group
- * @param {string|null} branch
- * @returns {string}
- */
-export function getGroupLabel(group, branch) {
-  return typeof group.label === "string" ? group.label : group.label[resolveBranch(branch)];
-}
+// Until the vendor picks a business status the flow is shown as the GST
+// path (the design's default selection).
+export const resolveBranch = (branch) => branch ?? BRANCHES.GST;
 
 /**
  * The screens this vendor walks through, in order, for their branch.
@@ -109,7 +128,9 @@ export function getFlowScreens(branch) {
   const active = resolveBranch(branch);
   return FLOW_GROUPS.flatMap((group, groupIndex) =>
     group.screens
-      .filter((screen) => !screen.branch || screen.branch === active)
+      .filter((screen) => !screen.branches || screen.branches.includes(active))
       .map((screen) => ({ ...screen, groupId: group.id, groupIndex })),
   );
 }
+
+export const isRegisteredBranch = (branch) => REGISTERED.includes(resolveBranch(branch));

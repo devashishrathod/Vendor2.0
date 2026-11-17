@@ -1,4 +1,4 @@
-import { ArrowLeft, Check, Headphones, X } from "lucide-react";
+import { ArrowLeft, Check, Eye, Headphones, X } from "lucide-react";
 import { HELPDESK_EMAIL } from "../../constants/onboardingOptions";
 
 function GroupMarker({ status, number }) {
@@ -19,6 +19,35 @@ function GroupMarker({ status, number }) {
     >
       {number}
     </span>
+  );
+}
+
+const STRENGTH_COLORS = {
+  Low: { bar: "bg-amber-400", text: "text-amber-700 dark:text-amber-400" },
+  Medium: { bar: "bg-sky-500", text: "text-sky-700 dark:text-sky-400" },
+  Good: { bar: "bg-emerald-500", text: "text-emerald-700 dark:text-emerald-400" },
+  Excellent: { bar: "bg-emerald-600", text: "text-emerald-700 dark:text-emerald-400" },
+};
+
+/** One compact "label · value" line with a thin bar under it. */
+function ProgressRow({ label, value, percent, barClass, valueClass, ariaLabel }) {
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-2 text-[11.5px]">
+        <span className="font-semibold text-gray-600 dark:text-gray-400">{label}</span>
+        <span className={`font-bold ${valueClass}`}>{value}</span>
+      </div>
+      <div
+        className="mt-1 h-1 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700"
+        role="progressbar"
+        aria-valuenow={percent}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={ariaLabel}
+      >
+        <div className={`h-full rounded-full transition-[width] duration-500 ${barClass}`} style={{ width: `${percent}%` }} />
+      </div>
+    </div>
   );
 }
 
@@ -43,7 +72,11 @@ function SubStep({ sub }) {
         />
       )}
       <span className="flex-1">{sub.label}</span>
-      {sub.skipped && <span className="text-[10px] font-semibold text-gray-400">Skipped</span>}
+      {sub.skipped && (
+        <span className="rounded-full bg-amber-50 px-1.5 py-px text-[9.5px] font-bold text-amber-700 ring-1 ring-inset ring-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:ring-amber-500/30">
+          Skipped
+        </span>
+      )}
       {sub.isNew && !sub.skipped && (
         <span className="rounded-full bg-emerald-50 px-1.5 py-px text-[9.5px] font-bold text-emerald-700 ring-1 ring-inset ring-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:ring-emerald-500/30">
           New
@@ -54,17 +87,20 @@ function SubStep({ sub }) {
 }
 
 /**
- * Brand, progress, the 4 steps (sub-steps listed under the active one) and
- * the help box. Rendered as the desktop sidebar and inside the mobile drawer.
+ * Brand, progress + profile strength, the 5 steps (sub-steps listed under
+ * the active one) and the help box. Rendered as the desktop sidebar and
+ * inside the mobile drawer.
  * @param {{
  *   groups: ReturnType<typeof import('../../hooks/useOnboardingFlow').useOnboardingFlow>['groups'],
  *   progress: number, stepNumber: number, totalSteps: number,
+ *   strength: { score: number, level: string },
  *   canGoBack: boolean, onBack: () => void, onClose?: () => void,
+ *   onPreview?: (groupId: string) => void,   - eye icon on each completed main step
  * }} props
  */
-export default function StepSidebar({ groups, progress, stepNumber, totalSteps, canGoBack, onBack, onClose }) {
+export default function StepSidebar({ groups, progress, stepNumber, totalSteps, strength, canGoBack, onBack, onClose, onPreview }) {
   return (
-    <div className="flex h-full flex-col overflow-y-auto bg-white dark:bg-gray-900">
+    <div className="thin-scrollbar flex h-full flex-col overflow-y-auto bg-white dark:bg-gray-900">
       <div className="flex items-center gap-2.5 px-5 pb-[18px] pt-[22px]">
         <span className="grid size-[34px] place-items-center rounded-[10px] bg-emerald-600 text-[17px] font-extrabold text-white shadow-[inset_0_-2px_0_rgba(0,0,0,0.12)]">
           T
@@ -85,24 +121,25 @@ export default function StepSidebar({ groups, progress, stepNumber, totalSteps, 
         )}
       </div>
 
-      <div className="mx-4 rounded-[14px] bg-emerald-50/60 p-3.5 ring-1 ring-inset ring-emerald-100 dark:bg-emerald-500/5 dark:ring-emerald-500/20">
-        <div className="flex items-baseline justify-between">
-          <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">Your progress</span>
-          <span className="text-[13px] font-extrabold text-emerald-700 dark:text-emerald-400">{progress}%</span>
-        </div>
-        <div
-          className="mt-2 h-1.5 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-800"
-          role="progressbar"
-          aria-valuenow={progress}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-label="Onboarding progress"
-        >
-          <div className="h-full rounded-full bg-emerald-500 transition-[width] duration-500" style={{ width: `${progress}%` }} />
-        </div>
-        <p className="mt-2 text-[11.5px] text-gray-500">
-          Step {stepNumber} of {totalSteps} · progress is saved
-        </p>
+      <div className="mx-4 flex flex-col gap-2.5 rounded-xl bg-gray-50 px-3 py-2.5 ring-1 ring-inset ring-gray-200 dark:bg-gray-800/50 dark:ring-gray-700">
+        <ProgressRow
+          label={`Step ${stepNumber} of ${totalSteps}`}
+          value={`${progress}%`}
+          percent={progress}
+          barClass="bg-emerald-500"
+          valueClass="text-emerald-700 dark:text-emerald-400"
+          ariaLabel="Onboarding progress"
+        />
+        {strength && (
+          <ProgressRow
+            label="Profile strength"
+            value={`${strength.score} · ${strength.level}`}
+            percent={strength.score}
+            barClass={STRENGTH_COLORS[strength.level]?.bar ?? "bg-gray-400"}
+            valueClass={STRENGTH_COLORS[strength.level]?.text ?? "text-gray-600"}
+            ariaLabel="Profile strength"
+          />
+        )}
       </div>
 
       <button
@@ -129,17 +166,30 @@ export default function StepSidebar({ groups, progress, stepNumber, totalSteps, 
                 )}
               </div>
               <div className="min-w-0 flex-1 pb-[18px] pt-1">
-                <p
-                  className={`text-[13.5px] leading-tight ${
-                    group.status === "active"
-                      ? "font-bold text-gray-900 dark:text-gray-50"
-                      : group.status === "done"
-                        ? "font-semibold text-gray-700 dark:text-gray-300"
-                        : "font-semibold text-gray-400 dark:text-gray-500"
-                  }`}
-                >
-                  {group.label}
-                </p>
+                <div className="flex items-start justify-between gap-2">
+                  <p
+                    className={`text-[13.5px] leading-tight ${
+                      group.status === "active"
+                        ? "font-bold text-gray-900 dark:text-gray-50"
+                        : group.status === "done"
+                          ? "font-semibold text-gray-700 dark:text-gray-300"
+                          : "font-semibold text-gray-400 dark:text-gray-500"
+                    }`}
+                  >
+                    {group.label}
+                  </p>
+                  {group.status === "done" && onPreview && (
+                    <button
+                      type="button"
+                      onClick={() => onPreview(group.id)}
+                      aria-label={`Preview ${group.label}`}
+                      title={`Preview ${group.label}`}
+                      className="-mr-1 -mt-1.5 grid size-8 shrink-0 place-items-center rounded-lg text-emerald-600 transition-colors hover:bg-emerald-50 focus-visible:outline-2 focus-visible:outline-emerald-600 dark:text-emerald-400 dark:hover:bg-emerald-500/10"
+                    >
+                      <Eye size={16} aria-hidden="true" />
+                    </button>
+                  )}
+                </div>
                 <p className={`mt-0.5 text-[11.5px] ${group.status === "active" ? "font-semibold text-emerald-700 dark:text-emerald-400" : "text-gray-400"}`}>
                   {group.status === "done" ? "Completed" : group.status === "active" ? "In progress" : "Up next"}
                 </p>
@@ -156,17 +206,21 @@ export default function StepSidebar({ groups, progress, stepNumber, totalSteps, 
         </ol>
       </nav>
 
-      <div className="m-4 mt-2 flex gap-2.5 rounded-[14px] bg-gray-50 p-3.5 ring-1 ring-inset ring-gray-200 dark:bg-gray-800/50 dark:ring-gray-700">
-        <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-white text-gray-600 ring-1 ring-inset ring-gray-200 dark:bg-gray-900 dark:text-gray-400 dark:ring-gray-700">
-          <Headphones size={16} strokeWidth={2} aria-hidden="true" />
+      <a
+        href={`mailto:${HELPDESK_EMAIL}`}
+        title={HELPDESK_EMAIL}
+        className="group m-4 mt-2 flex items-center gap-2.5 rounded-xl bg-gray-50 px-3 py-2.5 ring-1 ring-inset ring-gray-200 transition-colors hover:bg-emerald-50 hover:ring-emerald-200 focus-visible:outline-2 focus-visible:outline-emerald-600 dark:bg-gray-800/50 dark:ring-gray-700 dark:hover:bg-emerald-500/10 dark:hover:ring-emerald-500/30"
+      >
+        <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-white text-emerald-600 ring-1 ring-inset ring-gray-200 dark:bg-gray-900 dark:text-emerald-400 dark:ring-gray-700">
+          <Headphones size={14} strokeWidth={2} aria-hidden="true" />
         </span>
-        <div className="min-w-0">
-          <p className="text-[12.5px] font-bold text-gray-900 dark:text-gray-100">Need help?</p>
-          <a href={`mailto:${HELPDESK_EMAIL}`} className="break-all text-xs font-semibold text-emerald-700 hover:text-emerald-800 dark:text-emerald-400">
+        <span className="min-w-0 flex-1">
+          <span className="block text-[11.5px] font-bold leading-tight text-gray-900 dark:text-gray-100">Need help?</span>
+          <span className="block truncate whitespace-nowrap text-[11.5px] font-semibold text-emerald-700 group-hover:text-emerald-800 dark:text-emerald-400">
             {HELPDESK_EMAIL}
-          </a>
-        </div>
-      </div>
+          </span>
+        </span>
+      </a>
     </div>
   );
 }

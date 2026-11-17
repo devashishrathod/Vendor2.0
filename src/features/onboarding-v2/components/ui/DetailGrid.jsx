@@ -6,12 +6,14 @@ const LG_COLUMNS = { 3: "lg:grid-cols-3", 4: "lg:grid-cols-4" };
  * @param {{
  *   items: { label: string, value?: string|null, wide?: boolean, tone?: 'success' }[],
  *   columns?: 3 | 4,
+ *   hideEmpty?: boolean,   - leave out tiles the API sent no value for
  * }} props
  */
-export default function DetailGrid({ items, columns = 3 }) {
+export default function DetailGrid({ items, columns = 3, hideEmpty = false }) {
+  const shown = hideEmpty ? items.filter((item) => item.value) : items;
   return (
     <dl className={`grid grid-cols-1 gap-2.5 sm:grid-cols-2 ${LG_COLUMNS[columns]}`}>
-      {items.map((item) => {
+      {shown.map((item) => {
         const success = item.tone === "success";
         return (
           <div

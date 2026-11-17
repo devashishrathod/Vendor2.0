@@ -95,12 +95,14 @@ export async function getShowcaseSectionById(sectionId) {
 }
 
 // ── Update Section (title, description, sortOrder, sectionType, visibility) ──
-// PATCH {{TryDood2.0BaseUrl}}/showcase/section/:id/update
-// body: any subset of { title, description, sortOrder, sectionType, isVisible, showVideosInClips, isActive }
-// NOTE: adjust verb (PATCH vs PUT) / path if the real endpoint differs.
+// PUT {{TryDood2.0BaseUrl}}/showcase/section/update/:sectionId   (API doc #46)
+// body: at least one of { title (2–60), description, sectionType, isActive,
+// isVisible, isShowVideosInClips, coverMediaId, coverImageMode } — sortOrder
+// is no longer accepted.
 export async function updateShowcaseSection(sectionId, patch = {}) {
     try {
-        const { data } = await api.patch(`/showcase/section/update/${sectionId}/update`, patch);
+        if (!sectionId) throw new Error('sectionId is required');
+        const { data } = await api.put(`/showcase/section/update/${sectionId}`, patch);
         return data;
     } catch (error) {
         handleError(error);

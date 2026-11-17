@@ -1,5 +1,6 @@
-import { ChevronRight, CircleQuestionMark, CloudCheck, House, Menu, User } from "lucide-react";
-import { HELPDESK_EMAIL } from "../../constants/onboardingOptions";
+import { ChevronRight, CloudCheck, House, Menu } from "lucide-react";
+import ThemeToggleButton from "@/components/common/ThemeToggleButton";
+import ProfileMenu from "./ProfileMenu";
 import ProgressRing from "./ProgressRing";
 
 /**
@@ -66,16 +67,8 @@ export default function OnboardingHeader({ crumbs, stepNumber, totalSteps, progr
             Step {stepNumber} of {totalSteps}, {progress}% complete
           </span>
         </span>
-        <a
-          href={`mailto:${HELPDESK_EMAIL}`}
-          aria-label="Get help"
-          className="grid size-10 place-items-center rounded-[10px] bg-white text-gray-600 shadow-xs ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:bg-gray-900 dark:text-gray-300 dark:ring-gray-700 dark:hover:bg-gray-800"
-        >
-          <CircleQuestionMark size={17} strokeWidth={2} aria-hidden="true" />
-        </a>
-        <span className="hidden size-10 place-items-center rounded-full bg-gray-100 text-gray-500 ring-1 ring-inset ring-gray-200 sm:grid dark:bg-gray-800 dark:ring-gray-700">
-          <User size={18} strokeWidth={2} aria-hidden="true" />
-        </span>
+        <ThemeToggleButton className="size-10! ring-1 ring-inset ring-gray-200 dark:ring-gray-600" />
+        <ProfileMenu />
       </div>
     </header>
   );

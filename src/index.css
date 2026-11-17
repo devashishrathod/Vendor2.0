@@ -290,6 +290,56 @@ html.dark body {
   display: none; /* Chrome, Safari, new Edge */
 }
 
+/* Thin, quiet scrollbar for side panels (onboarding sidebar): a 6px rounded
+   thumb on a clear track, faint until hovered, with a dark-mode colour.
+   WebKit/Blink use the ::-webkit-scrollbar rules (they allow a rounded
+   thumb and exact width); Firefox, which has no such selectors, gets the
+   standard `scrollbar-width`/`scrollbar-color` instead. Kept apart because
+   Chrome ignores the ::-webkit-scrollbar rules once the standard ones are set. */
+.thin-scrollbar::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+.thin-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+  /* Shorter track (gap at top and bottom) → a shorter thumb. */
+  margin-block: 14px;
+}
+.thin-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgb(209 213 219 / 0.8); /* gray-300 */
+  border-radius: 9999px;
+  /* Transparent top/bottom border trims the visible thumb length; the
+     1px sides keep it off the edge. */
+  border-style: solid;
+  border-color: transparent;
+  border-width: 8px 1px;
+  background-clip: padding-box;
+}
+.thin-scrollbar:hover::-webkit-scrollbar-thumb {
+  background-color: rgb(16 185 129 / 0.55); /* emerald-500 */
+}
+.thin-scrollbar::-webkit-scrollbar-thumb:active {
+  background-color: rgb(5 150 105 / 0.8); /* emerald-600 */
+}
+.dark .thin-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgb(75 85 99 / 0.7); /* gray-600 */
+}
+.dark .thin-scrollbar:hover::-webkit-scrollbar-thumb {
+  background-color: rgb(52 211 153 / 0.5); /* emerald-400 */
+}
+@supports (-moz-appearance: none) {
+  .thin-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(209 213 219 / 0.8) transparent;
+  }
+  .thin-scrollbar:hover {
+    scrollbar-color: rgb(16 185 129 / 0.6) transparent;
+  }
+  .dark .thin-scrollbar {
+    scrollbar-color: rgb(75 85 99 / 0.8) transparent;
+  }
+}
+
 /* Continuous left-scrolling "ribbon" track (TrustBar on the checkout page).
    The track renders its content twice back to back and animates exactly
    -50% — since both halves are identical, the moment the first copy has
