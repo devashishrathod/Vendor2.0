@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { AlertTriangle, ArrowLeft, Check, ChevronRight, Clock, Info, Loader2, Pencil, SkipForward, Undo2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useBrand } from "../../../../hooks/useBrand";
-import AppBackground from "@/components/common/AppBackground";
 import AppTopBar from "@/components/common/AppTopBar";
+import { useOnboardingV2Store } from "@/features/onboarding-v2/store/onboardingStore";
+import { getCurrentSubscription } from "@/features/subscriptions/services/subscriptionApi";
 import { ANALYTICS_EVENTS } from "@/constants/analytics";
 import { trackEvent } from "@/utils/analytics";
 import ErrorToast from "../../../../components/common/ErrorToast";
@@ -31,22 +33,86 @@ import {
   GuidelinesModal,
   MapModal,
   OtpVerifyModal,
-  SectionCard,
-  SectionHeader,
-  FormDivider,
-  UploadBox,
   ListingFeaturesEditor,
   ShowcaseAlbumsEditor,
   WorkingHoursEditor,
   OutletLocationSearch,
   LiveLocationPicker,
-  AccordionFieldCard,
-  StepProgress,
   ReviewStep,
 } from "../components/brandOutlet";
+import CustomerPreview from "../components/brandOutlet/layout/CustomerPreview";
+import ImageUploadTile from "../components/brandOutlet/layout/ImageUploadTile";
+import OutletCard from "../components/brandOutlet/layout/OutletCard";
+import OutletStepper from "../components/brandOutlet/layout/OutletStepper";
+import SkipConfirmModal from "../components/brandOutlet/layout/SkipConfirmModal";
+import { cacheOutletImage, clearOutletImages, readOutletImage } from "../utils/outletImageCache";
+
+/** Header badge for a recommended section: Added / Skipped / Recommended. */
+function SectionBadge({ done, skipped }) {
+  if (done) {
+    return (
+      <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10.5px] font-bold text-emerald-700 ring-1 ring-inset ring-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:ring-emerald-500/30">
+        Added
+      </span>
+    );
+  }
+  if (skipped) {
+    return (
+      <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10.5px] font-bold text-amber-700 ring-1 ring-inset ring-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:ring-amber-500/30">
+        Skipped
+      </span>
+    );
+  }
+  return (
+    <span className="rounded-full bg-sky-50 px-2 py-0.5 text-[10.5px] font-bold text-sky-700 ring-1 ring-inset ring-sky-200 dark:bg-sky-500/10 dark:text-sky-400 dark:ring-sky-500/30">
+      Recommended
+    </span>
+  );
+}
+
+/** "Skip for now" link under a recommended section's editor. */
+function SkipRow({ onSkip }) {
+  return (
+    <div className="mt-4 flex flex-col gap-2 border-t border-gray-100 pt-3.5 sm:flex-row sm:items-center sm:justify-between dark:border-gray-700">
+      <p className="text-xs text-gray-500 dark:text-gray-400">Recommended for faster approval. Don&apos;t have it ready?</p>
+      <button
+        type="button"
+        onClick={onSkip}
+        className="inline-flex min-h-9 items-center gap-1.5 self-start rounded-lg px-3 text-xs font-bold text-gray-600 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:self-auto dark:text-gray-300 dark:ring-gray-600 dark:hover:bg-gray-700"
+      >
+        <SkipForward size={13} aria-hidden="true" />
+        Skip for now
+      </button>
+    </div>
+  );
+}
+
+/** Shown in place of the editor once a section is skipped. */
+function SkippedNotice({ name, onUndo }) {
+  return (
+    <div className="flex flex-col gap-3 rounded-xl bg-amber-50 px-4 py-3 ring-1 ring-inset ring-amber-200 sm:flex-row sm:items-center sm:justify-between dark:bg-amber-500/10 dark:ring-amber-500/30">
+      <p className="flex items-start gap-2 text-[12.5px] leading-snug text-amber-900 dark:text-amber-200">
+        <Clock size={15} className="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true" />
+        <span>
+          <strong className="font-bold">You skipped {name}.</strong> Your outlet&apos;s approval may be delayed — add it any time to speed things up.
+        </span>
+      </p>
+      <button
+        type="button"
+        onClick={onUndo}
+        className="inline-flex min-h-9 shrink-0 items-center gap-1.5 self-start rounded-lg bg-white px-3 text-xs font-bold text-emerald-700 ring-1 ring-inset ring-emerald-200 hover:bg-emerald-50 sm:self-auto dark:bg-gray-900 dark:text-emerald-400 dark:ring-emerald-500/30"
+      >
+        <Undo2 size={13} aria-hidden="true" />
+        Add it now
+      </button>
+    </div>
+  );
+}
 
 const WEEK_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 const OUTLET_DRAFT_STORAGE_PREFIX = "trydood:create-brand-outlet-draft:";
+const LOGO_MAX_MB = 1.5;
+const COVER_MAX_MB = 3;
 
 export default function CreateBrandOutlet() {
   const { brand, loading } = useBrand();
@@ -69,22 +135,62 @@ export default function CreateBrandOutlet() {
   const [workingHours, setWorkingHours] = useState(DEFAULT_WORKING_HOURS);
   const [showcaseAlbums, setShowcaseAlbums] = useState([]);
   const [logoFile, setLogoFile] = useState(null);
-  // ⚠️ FIXED: a newly-picked logo's preview used to live only inside
-  // UploadBox's own local state — but the wizard's Step 1 JSX (including
-  // UploadBox) unmounts whenever the user moves to Step 2, so coming back
-  // to Step 1 remounted UploadBox with an empty preview even though
-  // `logoFile` itself was still correctly held here. Tracking the preview
-  // URL in this parent (which never unmounts across step changes) keeps it
-  // visible on Step 1 after navigating away and back, and lets Review show
-  // it too — Review only ever had `existingLogoUrl` (the server's saved
-  // logo) to show, so a brand-new pick with no existing logo never showed
-  // there at all.
+
   const [logoPreviewUrl, setLogoPreviewUrl] = useState(null);
-  // Vendor ne pehle se logo upload kiya ho to uska URL yahan aata hai
-  // (brands/get response se) — sirf preview ke liye. Jab tak user naya
-  // file na chune, upload par existingLogoUrl hi kaam aayega (naya file
-  // select hote hi preview automatically switch ho jaata hai).
   const [existingLogoUrl, setExistingLogoUrl] = useState("");
+  // Brand cover image (PUT brands/update multipart `coverImage`) — optional.
+  const [coverFile, setCoverFile] = useState(null);
+  const [coverPreviewUrl, setCoverPreviewUrl] = useState(null);
+  const [existingCoverUrl, setExistingCoverUrl] = useState("");
+
+  // Shows a picked (or restored) file. `persist` also parks it in IndexedDB
+  // so a page refresh before submit doesn't lose it.
+  const applyLogoFile = useCallback((file) => {
+    setLogoFile(file);
+    setLogoPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return file ? URL.createObjectURL(file) : null;
+    });
+  }, []);
+  const applyCoverFile = useCallback((file) => {
+    setCoverFile(file);
+    setCoverPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return file ? URL.createObjectURL(file) : null;
+    });
+  }, []);
+
+  const handleLogoSelect = useCallback(
+    (file) => {
+      applyLogoFile(file);
+      if (!file) setExistingLogoUrl("");
+      cacheOutletImage(brand?._id, "logo", file);
+    },
+    [applyLogoFile, brand?._id],
+  );
+
+  const handleCoverSelect = useCallback(
+    (file) => {
+      applyCoverFile(file);
+      if (!file) setExistingCoverUrl("");
+      cacheOutletImage(brand?._id, "cover", file);
+    },
+    [applyCoverFile, brand?._id],
+  );
+
+  // Restore the logo / cover picked before a refresh.
+  useEffect(() => {
+    if (!brand?._id) return undefined;
+    let active = true;
+    Promise.all([readOutletImage(brand._id, "logo"), readOutletImage(brand._id, "cover")]).then(([logo, cover]) => {
+      if (!active) return;
+      if (logo) applyLogoFile(logo);
+      if (cover) applyCoverFile(cover);
+    });
+    return () => {
+      active = false;
+    };
+  }, [brand?._id, applyLogoFile, applyCoverFile]);
 
   const {
     categories,
@@ -98,7 +204,7 @@ export default function CreateBrandOutlet() {
   // ── Outlet form state ──
   const [outletType, setOutletType] = useState("");
   const [gstSameAsOutlet, setGstSameAsOutlet] = useState(false);
-  const [mapsLink, setMapsLink] = useState("");
+  // const [mapsLink, setMapsLink] = useState("");
   const [locationMode, setLocationMode] = useState("search");
   const [selectedPlace, setSelectedPlace] = useState(null);
 
@@ -125,14 +231,15 @@ export default function CreateBrandOutlet() {
   // validation rule changes with it). 1 = Basic Details, 2 = Outlet
   // Details, 3 = Review.
   const [wizardStep, setWizardStep] = useState(1);
+  // Set when the vendor leaves "Review all details" to change something:
+  // { scrollY } = where they were on the review, so they land back on the
+  // same spot instead of walking through every step again.
+  const [returnToReview, setReturnToReview] = useState(null);
   const [draftReady, setDraftReady] = useState(false);
-  // Bumped to force the Step 1 "Advanced Details" accordion open when
-  // Review's showcase-albums warning links back to it.
-  const [advancedOpenSignal, setAdvancedOpenSignal] = useState(0);
-  // Vendor chose "Skip for now" on Advanced Details — Listing Features and
-  // Showcase stop gating Continue / Create Outlet (they can be added later
-  // from Account Information).
-  const [advancedSkipped, setAdvancedSkipped] = useState(false);
+  // Listing Features / Showcase can be skipped (with a confirmation).
+  const [listingSkipped, setListingSkipped] = useState(false);
+  const [showcaseSkipped, setShowcaseSkipped] = useState(false);
+  const [skipConfirm, setSkipConfirm] = useState(null); // "listing" | "showcase" | null
 
   // Guards the one-time mount prefill effect so it can't double-fire (e.g.
   // React StrictMode double-invoke in dev) or fight with in-progress user
@@ -432,6 +539,7 @@ export default function CreateBrandOutlet() {
       if (data.categoryId) setBrandType(data.categoryId);
       if (data.subCategoryId) setBrandSubType(data.subCategoryId);
       if (data.logo) setExistingLogoUrl(data.logo);
+      if (data.coverImage) setExistingCoverUrl(data.coverImage);
 
       const fsb = data.firstSubBrand;
 
@@ -470,12 +578,7 @@ export default function CreateBrandOutlet() {
           whatsappNumber: fsb.whatsappNumber,
         });
       } else if (fsb._id) {
-        // ── Case 2: shell exists but NOT verified yet ──
-        // Prefill subBrandId + number, but leave whatsappVerified false.
-        // The Verify button (handleVerifyClick above) will see
-        // subBrandId already set and call resetOtp (just resends via
-        // auth/loginOrSignUp-with-whatsapp) instead of sendOtp — so we
-        // never try to recreate a shell that's already there.
+  
         hydrateUnverifiedShell({
           subBrandId: fsb._id,
           whatsappNumber: fsb.whatsappNumber,
@@ -528,6 +631,7 @@ export default function CreateBrandOutlet() {
         const draft = savedDraft ? JSON.parse(savedDraft) : null;
         if (draft && typeof draft === "object") {
           if (Number.isInteger(draft.wizardStep) && draft.wizardStep >= 1 && draft.wizardStep <= 3) setWizardStep(draft.wizardStep);
+          if (draft.returnToReview && typeof draft.returnToReview === "object") setReturnToReview(draft.returnToReview);
           if (typeof draft.brandName === "string") setBrandName(draft.brandName);
           if (typeof draft.brandEmail === "string") setBrandEmail(draft.brandEmail);
           if (typeof draft.brandMobile === "string") setBrandMobile(draft.brandMobile);
@@ -537,6 +641,8 @@ export default function CreateBrandOutlet() {
           if (typeof draft.brandSubType === "string") setBrandSubType(draft.brandSubType);
           if (Array.isArray(draft.listingFeatures)) setListingFeatures(draft.listingFeatures);
           if (Array.isArray(draft.showcaseAlbums)) setShowcaseAlbums(draft.showcaseAlbums);
+          if (typeof draft.listingSkipped === "boolean") setListingSkipped(draft.listingSkipped);
+          if (typeof draft.showcaseSkipped === "boolean") setShowcaseSkipped(draft.showcaseSkipped);
           if (draft.workingHours && typeof draft.workingHours === "object") setWorkingHours(draft.workingHours);
           if (typeof draft.workingHoursSaved === "boolean") setWorkingHoursSaved(draft.workingHoursSaved);
           if (typeof draft.outletType === "string") setOutletType(draft.outletType);
@@ -550,6 +656,13 @@ export default function CreateBrandOutlet() {
         }
       } catch (err) {
         console.error("Couldn't restore outlet form draft:", err);
+      }
+      // Category picked in the onboarding wizard (not saved on the backend
+      // yet) fills the selects when neither the brand nor a draft has one.
+      const { categoryId, subCategories: pickedSubs } = useOnboardingV2Store.getState().form;
+      if (categoryId) {
+        setBrandType((prev) => prev || categoryId);
+        setBrandSubType((prev) => prev || pickedSubs?.[0]?.id || "");
       }
     }).finally(() => {
       try {
@@ -566,6 +679,7 @@ export default function CreateBrandOutlet() {
     if (!draftReady || !outletDraftKey) return;
     const draft = {
       wizardStep,
+      returnToReview,
       brandName,
       brandEmail,
       brandMobile,
@@ -574,6 +688,8 @@ export default function CreateBrandOutlet() {
       brandType,
       brandSubType,
       listingFeatures,
+      listingSkipped,
+      showcaseSkipped,
       showcaseAlbums: showcaseAlbums.map((album) => ({
         id: album.id,
         name: album.name,
@@ -607,6 +723,7 @@ export default function CreateBrandOutlet() {
     draftReady,
     outletDraftKey,
     wizardStep,
+    returnToReview,
     brandName,
     brandEmail,
     brandMobile,
@@ -615,6 +732,8 @@ export default function CreateBrandOutlet() {
     brandType,
     brandSubType,
     listingFeatures,
+    listingSkipped,
+    showcaseSkipped,
     showcaseAlbums,
     workingHours,
     workingHoursSaved,
@@ -648,6 +767,18 @@ export default function CreateBrandOutlet() {
   useEffect(() => {
     if (!loading && !brand?._id) setLocationLoading(false);
   }, [loading, brand?._id]);
+
+  // Active plan for the Review step's locked "Plan" section — fetched once,
+  // the first time the vendor reaches Review.
+  const [subscription, setSubscription] = useState(null);
+  const subscriptionRequestedRef = useRef(false);
+  useEffect(() => {
+    if (wizardStep !== 3 || subscriptionRequestedRef.current) return;
+    subscriptionRequestedRef.current = true;
+    getCurrentSubscription()
+      .then((res) => setSubscription(res?.subscription ?? null))
+      .catch((err) => console.error("Couldn't load current subscription:", err));
+  }, [wizardStep]);
 
   // ⚠️ FIXED: this early return now happens AFTER every hook has been
   // called, on every single render (loading true or false). Nothing below
@@ -698,12 +829,19 @@ export default function CreateBrandOutlet() {
       // ⚠️ workingHours arg removed — working hours are already persisted
       // independently via handleSaveWorkingHours, and this button is gated
       // behind workingHoursSaved being true, so they're guaranteed saved.
-      await finalizeOutlet(subBrandId, subBrandPatch, brand._id, brandPayload, logoFile);
+      await finalizeOutlet(subBrandId, subBrandPatch, brand._id, brandPayload, logoFile, coverFile);
       if (outletDraftKey) sessionStorage.removeItem(outletDraftKey);
+      clearOutletImages(brand._id);
       setDraftReady(false);
       trackEvent(ANALYTICS_EVENTS.OUTLET_CREATED, { outlet_type: subBrandPatch.outletType });
-      showSuccess("Outlet saved! Redirecting…");
-      navigate("/under-review");
+      showSuccess("Outlet saved! Running verification…");
+      // Fresh verification for this submit, not a result cached from before.
+      try {
+        sessionStorage.removeItem("v2-system-verify-result");
+      } catch {
+        /* ignore */
+      }
+      navigate("/verification");
     } catch (err) {
       console.error("Failed to save brand outlet:", err);
       showError(err.message || "Couldn't save your outlet. Please try again.");
@@ -727,8 +865,12 @@ export default function CreateBrandOutlet() {
   const hasShowcaseAlbum = showcaseAlbums.some(
     (a) => a.persisted && a.media.filter((m) => m.persisted).length >= MIN_ITEMS_PER_ALBUM
   );
-  const advancedDetailsComplete = hasListingFeature && hasShowcaseAlbum && showcaseAlbumsMeetMinimum;
-  const advancedDetailsOk = advancedDetailsComplete || advancedSkipped;
+  const showcaseComplete = hasShowcaseAlbum && showcaseAlbumsMeetMinimum;
+  // Listing features + showcase are recommended, not mandatory: the vendor
+  // can skip each one (after a "approval may be delayed" confirmation).
+  const listingOk = hasListingFeature || listingSkipped;
+  const showcaseOk = showcaseComplete || showcaseSkipped;
+  const advancedDetailsOk = listingOk && showcaseOk;
 
   // Hours default to every day closed, and saving that still flips
   // workingHoursSaved — so also require at least one open day with both
@@ -765,9 +907,59 @@ export default function CreateBrandOutlet() {
   const categoryName = categories.find((c) => c._id === brandType)?.name || "";
   const subCategoryName = subCategories.find((s) => s._id === brandSubType)?.name || "";
 
+  const outletTypeLabel = OUTLET_TYPE_OPTIONS.find((o) => o.value === outletType)?.label || "";
+  // Category comes from onboarding (or the brand record); the picker is a
+  // fallback only, so a missing category can never block the final save.
+  const needsCategory =
+    draftReady && (!brandType || (!brandSubType && !subCategoriesLoading && !subCategoriesError && subCategories.length > 0));
+  const logoDisplayUrl = logoPreviewUrl || existingLogoUrl;
+  const coverDisplayUrl = coverPreviewUrl || existingCoverUrl;
+  const inputClass =
+    "w-full rounded-[10px] border border-gray-300 bg-white px-3.5 py-2.5 text-base text-gray-900 shadow-[0_1px_2px_rgba(16,24,40,0.05)] outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/15 sm:text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 disabled:border-gray-200 disabled:bg-gray-50 disabled:text-gray-500 dark:disabled:bg-gray-700";
+  const labelClass = "mb-1.5 block text-[13px] font-semibold text-gray-700 dark:text-gray-300";
+  const primaryBtn =
+    "inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-7 text-sm font-bold text-white shadow-sm transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50";
+  // ── Review → edit → back to the same spot on Review ──
+  const scrollToId = (id) =>
+    setTimeout(() => {
+      const el = id && document.getElementById(id);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      else window.scrollTo({ top: 0, behavior: "smooth" });
+    }, 80);
+
+  /** Leave the review for `step`, remembering where the vendor was. */
+  const editFromReview = (step, targetId) => {
+    setReturnToReview({ scrollY: window.scrollY });
+    setWizardStep(step);
+    scrollToId(targetId);
+  };
+
+  /** Straight back to the review, at the spot the vendor left from. */
+  const backToReview = () => {
+    const scrollY = returnToReview?.scrollY ?? 0;
+    setReturnToReview(null);
+    setWizardStep(3);
+    setTimeout(() => window.scrollTo({ top: scrollY, behavior: "smooth" }), 80);
+  };
+
+  const selectStep = (step) => {
+    if (step === 3 && returnToReview) backToReview();
+    else setWizardStep(step);
+  };
+
+  const guidelineLink = (key) => (
+    <button
+      type="button"
+      onClick={() => openGuideline(key)}
+      className="inline-flex items-center gap-1 whitespace-nowrap text-xs font-semibold text-emerald-700 hover:underline dark:text-emerald-400"
+    >
+      <Info size={13} aria-hidden="true" />
+      Guidelines
+    </button>
+  );
+
   return (
-    <div className="app-shell-bg relative isolate min-h-screen font-sans">
-      <AppBackground />
+    <div className="min-h-screen bg-app font-sans dark:bg-gray-950">
       {/* Toasts */}
       <ErrorToast error={toastError} onDismiss={() => setToastError(null)} />
       <SuccessToast message={toastSuccess} onDismiss={() => setToastSuccess("")} />
@@ -798,444 +990,435 @@ export default function CreateBrandOutlet() {
       )}
 
       <AppTopBar>
-        <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-xs font-semibold text-gray-600 dark:text-gray-300 whitespace-nowrap">
+        <span className="hidden lg:inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-xs font-semibold text-gray-600 dark:text-gray-300 whitespace-nowrap">
           Merchant Token: <span className="text-gray-900 dark:text-gray-100">{merchantToken}</span>
         </span>
       </AppTopBar>
 
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-1 h-9 rounded-full bg-emerald-500 flex-shrink-0" />
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 leading-tight">Create Your Brand Outlet</h1>
-            <p className="text-sm text-gray-500 mt-1">You are just a few steps away from listing your event on Trydood!</p>
+      <main className="mx-auto w-full max-w-[1200px] px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
+        {/* Header + 2-step tracker for Brand details / Outlet details. The
+            review is a separate page after them with its own heading. */}
+        {wizardStep !== 3 && (
+          <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-3">
+              <span className="h-9 w-1 shrink-0 rounded-full bg-emerald-500" aria-hidden="true" />
+              <div>
+                <h1 className="text-xl font-extrabold leading-tight text-gray-900 sm:text-2xl dark:text-gray-100">
+                  Create Your Brand Outlet
+                </h1>
+                <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
+                  You are just a few steps away from going live on Trydood.
+                </p>
+              </div>
+            </div>
+            <div className="-mx-4 overflow-x-auto px-4 md:mx-0 md:px-0">
+              <OutletStepper currentStep={wizardStep} onSelect={selectStep} />
+            </div>
           </div>
-        </div>
+        )}
 
-        <StepProgress currentStep={wizardStep} />
+        {returnToReview && wizardStep !== 3 && (
+          <div className="sticky top-16 z-20 mb-5 flex flex-col gap-2 rounded-2xl bg-sky-50/95 px-4 py-3 shadow-sm ring-1 ring-inset ring-sky-200 backdrop-blur sm:flex-row sm:items-center sm:justify-between dark:bg-sky-950/90 dark:ring-sky-500/30">
+            <p className="flex items-start gap-2 text-[13px] text-sky-900 dark:text-sky-200">
+              <Pencil size={15} className="mt-0.5 shrink-0 text-sky-700 dark:text-sky-400" aria-hidden="true" />
+              <span>
+                <strong className="font-bold">Editing from Review.</strong> Make your change, then go straight back — no need to
+                redo the other steps.
+              </span>
+            </p>
+            <button
+              type="button"
+              onClick={backToReview}
+              className="inline-flex min-h-10 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-sky-700 px-4 text-xs font-bold text-white hover:bg-sky-800"
+            >
+              <ArrowLeft size={14} aria-hidden="true" />
+              Back to review
+            </button>
+          </div>
+        )}
 
         {wizardStep === 1 && (
-          <>
-            {/* ══════════════════════ BRAND FORM ══════════════════════ */}
-            <div className="brand-form-section bg-emerald-50/40 dark:bg-emerald-500/5 rounded-3xl p-4 sm:p-6 mb-8">
-              <FormDivider
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+            <div className="flex min-w-0 flex-1 flex-col gap-5">
+              {/* ── Brand Details ── */}
+              <OutletCard
                 title="Brand Details"
                 subtitle="Tell customers who you are — this stays the same across every outlet under this brand."
-                icon={
-                  <svg className="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                  </svg>
-                }
-              />
+                action={guidelineLink("logo")}
+              >
+                <div className="flex flex-col gap-4 sm:flex-row">
+                  <ImageUploadTile
+                    label="Upload logo"
+                    hint="Square · min 500×500"
+                    previewUrl={logoDisplayUrl}
+                    maxSizeMb={LOGO_MAX_MB}
+                    onSelect={handleLogoSelect}
+                    onError={showError}
+                  />
+                  <ImageUploadTile
+                    shape="wide"
+                    label="Upload cover image"
+                    hint="Wide · 1200×400 recommended"
+                    previewUrl={coverDisplayUrl}
+                    maxSizeMb={COVER_MAX_MB}
+                    onSelect={handleCoverSelect}
+                    onError={showError}
+                  />
+                </div>
+                <p className="mt-2 text-[11.5px] text-gray-500 dark:text-gray-400">
+                  Logo and cover are optional — JPG, PNG, WebP or GIF. They make your listing stand out.
+                </p>
 
-              <SectionCard>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  {/* Logo — full width */}
-                  <div className="sm:col-span-2">
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
-                        Brand Logo <span className="text-gray-400 font-normal">(optional)</span>
-                      </label>
-                      <button onClick={() => openGuideline("logo")} className="text-sm text-emerald-600 hover:underline whitespace-nowrap flex items-center gap-1">
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        More Guidelines
-                      </button>
-                    </div>
-                    {(logoPreviewUrl || existingLogoUrl) && (
-                      <div className="mb-3 flex items-center gap-3">
-                        <img
-                          src={logoPreviewUrl || existingLogoUrl}
-                          alt={logoPreviewUrl ? "Selected brand logo" : "Current brand logo"}
-                          className="w-16 h-16 rounded-lg object-cover"
-                        />
-                        <span className="text-xs text-gray-500">
-                          {logoPreviewUrl ? "New logo selected — upload again below to replace it." : "Current logo — upload a new file below to replace it."}
-                        </span>
-                      </div>
-                    )}
-                    <UploadBox
-                      accept="image/*"
-                      mediaType="image"
-                      sizeRule="1:1 ratio (min 500×500 px)"
-                      sizeLimit="1.5 MB"
-                      maxFiles={1}
-                      onFileSelect={(file) => {
-                        setLogoFile(file);
-                        setLogoPreviewUrl(file ? URL.createObjectURL(file) : null);
-                      }}
-                    />
-                  </div>
-
-                  {/* Email */}
+                <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Brand Email *</label>
+                    <label htmlFor="brand-name" className={labelClass}>Brand name</label>
+                    <input id="brand-name" value={brandName} disabled className={`${inputClass} capitalize`} />
+                  </div>
+                  <div>
+                    <label htmlFor="brand-email" className={labelClass}>
+                      Email <span className="text-red-500">*</span>
+                    </label>
                     <input
+                      id="brand-email"
                       type="email"
                       value={brandEmail}
                       onChange={(e) => setBrandEmail(e.target.value)}
                       placeholder="eg : hello@yourbrand.com"
-                      className="w-full rounded-xl px-4 py-2.5 text-sm outline-none bg-emerald-50 dark:bg-emerald-500/10 text-gray-700 dark:text-gray-100"
+                      autoComplete="email"
+                      className={inputClass}
                     />
                   </div>
-
-                  {/* Mobile */}
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Contact Number *</label>
-                    <input
-                      type="tel"
-                      value={effectiveMobile}
-                      disabled={mobileSameAsWhatsapp}
-                      onChange={(e) => setBrandMobile(e.target.value)}
-                      placeholder="eg : 9876543210"
-                      className="w-full rounded-xl px-4 py-2.5 text-sm outline-none bg-emerald-50 dark:bg-emerald-500/10 text-gray-700 dark:text-gray-100 disabled:bg-gray-50 dark:disabled:bg-gray-700 disabled:text-gray-400"
-                    />
-                    <label className="flex items-center gap-2 mt-2 text-xs font-semibold text-gray-600 dark:text-gray-300 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={mobileSameAsWhatsapp}
-                        disabled={!brandWhatsappNumber}
-                        onChange={(e) => setMobileSameAsWhatsapp(e.target.checked)}
-                        className="w-4 h-4 accent-emerald-600 cursor-pointer disabled:opacity-40"
-                      />
-                      Same as Brand WhatsApp Number
-                      {brandWhatsappNumber ? ` (${brandWhatsappNumber})` : " (not available)"}
-                    </label>
-                  </div>
-
-                  {/* Description — full width */}
                   <div className="sm:col-span-2">
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
-                        Brand Description <span className="text-gray-400 font-normal">(optional)</span>
+                    <label htmlFor="brand-mobile" className={labelClass}>
+                      Contact Number <span className="text-red-500">*</span>
+                    </label>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+                      <input
+                        id="brand-mobile"
+                        type="tel"
+                        inputMode="numeric"
+                        value={effectiveMobile}
+                        disabled={mobileSameAsWhatsapp}
+                        onChange={(e) => setBrandMobile(e.target.value)}
+                        placeholder="eg : 9876543210"
+                        className={`${inputClass} sm:max-w-xs`}
+                      />
+                      <label className="flex min-h-11 items-center gap-2 text-[13px] font-semibold text-gray-600 dark:text-gray-300">
+                        <input
+                          type="checkbox"
+                          checked={mobileSameAsWhatsapp}
+                          disabled={!brandWhatsappNumber}
+                          onChange={(e) => setMobileSameAsWhatsapp(e.target.checked)}
+                          className="size-4 accent-emerald-600 disabled:opacity-40"
+                        />
+                        Same as WhatsApp number
+                        {brandWhatsappNumber ? ` (${brandWhatsappNumber})` : " (not available)"}
                       </label>
-                      <button onClick={() => openGuideline("brandDescription")} className="text-sm text-emerald-600 hover:underline whitespace-nowrap flex items-center gap-1">
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        More Guidelines
-                      </button>
+                    </div>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <div className="mb-1.5 flex items-center justify-between gap-3">
+                      <label htmlFor="brand-description" className="text-[13px] font-semibold text-gray-700 dark:text-gray-300">
+                        Description <span className="font-normal text-gray-400">(optional)</span>
+                      </label>
+                      {guidelineLink("brandDescription")}
                     </div>
                     <textarea
+                      id="brand-description"
                       value={brandDescription}
                       onChange={(e) => setBrandDescription(e.target.value)}
                       placeholder="eg : A cosy neighbourhood cafe known for its wood-fired pizzas and weekend live music."
                       rows={3}
                       maxLength={300}
-                      className="w-full rounded-xl px-4 py-3 text-sm outline-none transition-colors bg-emerald-50 dark:bg-emerald-500/10 text-gray-800 dark:text-gray-100 resize-none"
+                      className={`${inputClass} resize-none`}
                     />
-                    <p className="text-xs text-gray-400 mt-1 text-right">{brandDescription.length}/300</p>
+                    <div className="mt-1 flex justify-between gap-3 text-[11px]">
+                      <span className={brandDescription.trim().length >= 50 ? "font-semibold text-emerald-700 dark:text-emerald-400" : "text-gray-400"}>
+                        50+ characters recommended
+                      </span>
+                      <span className="text-gray-400">{brandDescription.length}/300</span>
+                    </div>
                   </div>
                 </div>
-              </SectionCard>
+              </OutletCard>
 
-              <SectionCard>
-                <SectionHeader title="Category" subtitle="Add category and sub-category tags to help the right audience discover your event." />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              {/* ── Category — already picked in onboarding; only shown as a
+                  fallback when neither the brand nor onboarding has one ── */}
+              {needsCategory && (
+              <OutletCard title="Category" subtitle="We couldn't find the category you picked in onboarding — choose it again.">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Category *</label>
+                    <label className={labelClass}>
+                      Category <span className="text-red-500">*</span>
+                    </label>
                     <Select
                       value={brandType}
                       onChange={handleCategoryChange}
                       options={categories.map((c) => ({ value: c._id, label: c.name }))}
                       placeholder={categoriesLoading ? "Loading categories…" : "eg : Food & Drinks"}
                       disabled={categoriesLoading}
-                      className="bg-emerald-50 dark:bg-emerald-500/10 text-gray-700 dark:text-gray-100"
+                      className="border border-gray-300 bg-white text-gray-700 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
                     />
-                    {categoriesError && <p className="text-xs text-red-500 mt-1">{categoriesError}</p>}
+                    {categoriesError && <p className="mt-1 text-xs text-red-500">{categoriesError}</p>}
                     {!categoriesLoading && !categoriesError && categories.length === 0 && (
-                      <p className="text-xs text-gray-400 mt-1">No categories available right now.</p>
+                      <p className="mt-1 text-xs text-gray-400">No categories available right now.</p>
                     )}
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Sub-Category *</label>
+                    <label className={labelClass}>
+                      Sub-category <span className="text-red-500">*</span>
+                    </label>
                     <Select
                       value={brandSubType}
                       onChange={setBrandSubType}
                       options={subCategories.map((s) => ({ value: s._id, label: s.name }))}
-                      placeholder={subCategoriesLoading ? "Loading…" : "eg : buffet restaurants"}
+                      placeholder={subCategoriesLoading ? "Loading…" : "eg : Buffet restaurants"}
                       disabled={!brandType || subCategoriesLoading}
-                      className="bg-emerald-50 dark:bg-emerald-500/10 text-gray-700 dark:text-gray-100"
+                      className="border border-gray-300 bg-white text-gray-700 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
                     />
-                    {subCategoriesError && <p className="text-xs text-red-500 mt-1">{subCategoriesError}</p>}
+                    {subCategoriesError && <p className="mt-1 text-xs text-red-500">{subCategoriesError}</p>}
                     {brandType && !subCategoriesLoading && !subCategoriesError && subCategories.length === 0 && (
-                      <p className="text-xs text-gray-400 mt-1">No sub-categories for this category.</p>
+                      <p className="mt-1 text-xs text-gray-400">No sub-categories for this category.</p>
                     )}
                   </div>
                 </div>
-              </SectionCard>
-
-              <AccordionFieldCard
-                title="Advanced Details"
-                subtitle={`Listing Features & Showcase Collection — add at least 1 feature and 1 album with ${MIN_ITEMS_PER_ALBUM}+ photos/videos, or skip for now`}
-                defaultOpen={!advancedDetailsOk}
-                openSignal={advancedOpenSignal}
-                badge={
-                  advancedDetailsComplete ? (
-                    <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 rounded-full px-2 py-0.5">
-                      Complete
-                    </span>
-                  ) : advancedSkipped ? (
-                    <span className="text-[10px] font-bold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-full px-2 py-0.5">
-                      Skipped
-                    </span>
-                  ) : (
-                    <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 rounded-full px-2 py-0.5">
-                      Required
-                    </span>
-                  )
-                }
-              >
-                <SectionCard>
-                  <SectionHeader
-                    title="Listing Features"
-                    subtitle="Add up to 10 active features that describe this listing. Each is saved immediately."
-                    guidelineKey="listingFeatures"
-                    onGuidelineClick={openGuideline}
-                  />
-                  <ListingFeaturesEditor features={listingFeatures} onChange={setListingFeatures} brandId={brand?._id} />
-                </SectionCard>
-
-                <SectionCard>
-                  <SectionHeader
-                    title="Showcase Collection"
-                    subtitle="Create up to 5 albums (e.g. Gallery Photo, Menu Photo, Ambience Photo, Event Photo) and upload photos or videos to each. Need something else? Add My Custom Collection."
-                    guidelineKey="showcase"
-                    onGuidelineClick={openGuideline}
-                  />
-                  <ShowcaseAlbumsEditor albums={showcaseAlbums} onChange={setShowcaseAlbums} brandId={brand?._id} />
-                </SectionCard>
-              </AccordionFieldCard>
-            </div>
-
-            <div className="flex items-center justify-end gap-4 mt-2">
-              {!advancedDetailsComplete && !advancedSkipped && (
-                <p className="text-xs text-amber-700 dark:text-amber-400 text-right">
-                  {[
-                    !hasListingFeature && "Add at least 1 listing feature",
-                    !(hasShowcaseAlbum && showcaseAlbumsMeetMinimum) &&
-                      `Add a showcase album with ${MIN_ITEMS_PER_ALBUM}+ photos/videos`,
-                  ]
-                    .filter(Boolean)
-                    .join(" · ")}
-                  {" · "}
-                  <button
-                    type="button"
-                    onClick={() => setAdvancedOpenSignal((n) => n + 1)}
-                    className="font-semibold underline hover:text-amber-800 dark:hover:text-amber-300"
-                  >
-                    Open Advanced Details
-                  </button>
-                </p>
+              </OutletCard>
               )}
-              {!advancedDetailsComplete && !advancedSkipped && (
+
+              {/* ── Listing Features (recommended, skippable) ── */}
+              <div id="outlet-listing-features" className="scroll-mt-24">
+                <OutletCard
+                  title={<span className="flex flex-wrap items-center gap-2">Listing Features <SectionBadge done={hasListingFeature} skipped={listingSkipped} /></span>}
+                  subtitle="Up to 10 features that describe this listing (e.g. Free Wi-Fi, Parking, Live music). Each is saved immediately."
+                  action={guidelineLink("listingFeatures")}
+                >
+                  {listingSkipped && !hasListingFeature ? (
+                    <SkippedNotice name="listing features" onUndo={() => setListingSkipped(false)} />
+                  ) : (
+                    <>
+                      <ListingFeaturesEditor features={listingFeatures} onChange={setListingFeatures} brandId={brand?._id} />
+                      {!hasListingFeature && (
+                        <SkipRow onSkip={() => setSkipConfirm("listing")} />
+                      )}
+                    </>
+                  )}
+                </OutletCard>
+              </div>
+
+              {/* ── Showcase Collection (recommended, skippable) ── */}
+              <div id="outlet-showcase" className="scroll-mt-24">
+                <OutletCard
+                  title={<span className="flex flex-wrap items-center gap-2">Showcase Collection <SectionBadge done={showcaseComplete} skipped={showcaseSkipped} /></span>}
+                  subtitle={`Up to 5 albums (Gallery, Menu, Ambience, Event…). Each album needs ${MIN_ITEMS_PER_ALBUM}+ photos or videos.`}
+                  action={guidelineLink("showcase")}
+                >
+                  {showcaseSkipped && !showcaseComplete ? (
+                    <SkippedNotice name="the showcase" onUndo={() => setShowcaseSkipped(false)} />
+                  ) : (
+                    <>
+                      <ShowcaseAlbumsEditor albums={showcaseAlbums} onChange={setShowcaseAlbums} brandId={brand?._id} />
+                      {!showcaseComplete && (
+                        <SkipRow onSkip={() => setSkipConfirm("showcase")} />
+                      )}
+                    </>
+                  )}
+                </OutletCard>
+              </div>
+
+              <SkipConfirmModal
+                open={Boolean(skipConfirm)}
+                sectionName={skipConfirm === "listing" ? "Listing Features" : "Showcase"}
+                onAddNow={() => setSkipConfirm(null)}
+                onSkip={() => {
+                  if (skipConfirm === "listing") setListingSkipped(true);
+                  else setShowcaseSkipped(true);
+                  setSkipConfirm(null);
+                  // Came here from Review → skipping is the decision, so go straight back.
+                  if (returnToReview) backToReview();
+                }}
+              />
+
+              <div className="flex flex-col gap-3 rounded-2xl border border-[#E4E9E2] bg-white p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-5 dark:border-gray-700 dark:bg-gray-800">
+                {!advancedDetailsOk ? (
+                  <div className="flex min-w-0 items-start gap-2.5">
+                    <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400">
+                      <AlertTriangle size={16} aria-hidden="true" />
+                    </span>
+                    <div className="min-w-0 text-xs leading-relaxed">
+                      <p className="font-bold text-gray-900 dark:text-gray-100">Add or skip these to continue</p>
+                      <ul className="mt-0.5 text-gray-600 dark:text-gray-400">
+                        {!listingOk && <li>• Listing Features — add at least 1</li>}
+                        {!showcaseOk && <li>• Showcase — 1 album with {MIN_ITEMS_PER_ALBUM}+ photos/videos</li>}
+                      </ul>
+                    </div>
+                  </div>
+                ) : listingSkipped && !hasListingFeature || showcaseSkipped && !showcaseComplete ? (
+                  <p className="flex items-start gap-2 text-[12.5px] font-semibold text-amber-700 dark:text-amber-400">
+                    <Clock size={15} className="mt-0.5 shrink-0" aria-hidden="true" />
+                    Ready — some sections skipped, so approval may take a little longer.
+                  </p>
+                ) : (
+                  <p className="flex items-center gap-2 text-[13px] font-semibold text-emerald-700 dark:text-emerald-400">
+                    <Check size={15} strokeWidth={3} aria-hidden="true" />
+                    Brand details are ready
+                  </p>
+                )}
                 <button
                   type="button"
-                  onClick={() => setAdvancedSkipped(true)}
-                  className="shrink-0 px-5 py-2.5 rounded-xl text-sm font-semibold border border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700 transition-colors"
+                  onClick={returnToReview ? backToReview : () => setWizardStep(2)}
+                  disabled={!canContinueStep1}
+                  className={`${primaryBtn} w-full shrink-0 whitespace-nowrap sm:w-auto`}
                 >
-                  Skip for now
+                  {returnToReview ? "Save & back to review" : "Continue to Outlet details"}
+                  <ChevronRight size={16} aria-hidden="true" />
                 </button>
-              )}
-              {!advancedDetailsComplete && advancedSkipped && (
-                <p className="text-xs text-gray-500 dark:text-gray-400 text-right">
-                  Advanced Details skipped — you can add them later from Account Information.{" "}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAdvancedSkipped(false);
-                      setAdvancedOpenSignal((n) => n + 1);
-                    }}
-                    className="font-semibold text-emerald-600 underline hover:text-emerald-700 dark:text-emerald-400"
-                  >
-                    Undo
-                  </button>
-                </p>
-              )}
-              <button
-                type="button"
-                onClick={() => setWizardStep(2)}
-                disabled={!canContinueStep1}
-                className="px-8 py-2.5 rounded-xl text-sm font-semibold bg-emerald-500 text-white hover:bg-emerald-600 active:scale-[0.99] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Continue →
-              </button>
+              </div>
             </div>
-          </>
+
+            <aside className="lg:sticky lg:top-24 lg:w-[340px] lg:shrink-0">
+              <CustomerPreview
+                coverUrl={coverDisplayUrl}
+                logoUrl={logoDisplayUrl}
+                brandName={brandName}
+                categoryName={categoryName}
+                subCategoryName={subCategoryName}
+                description={brandDescription}
+              />
+            </aside>
+          </div>
+        )}
+
+        {wizardStep === 2 && !returnToReview && (
+          <button
+            type="button"
+            onClick={() => setWizardStep(1)}
+            className="-mt-2 mb-4 inline-flex min-h-9 items-center gap-1.5 rounded-lg px-2 text-[13px] font-semibold text-gray-600 hover:bg-white hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white"
+          >
+            <ArrowLeft size={15} aria-hidden="true" />
+            Back to Brand details
+          </button>
         )}
 
         {wizardStep === 2 && (
-          <>
-            {/* ══════════════════════ OUTLET FORM ══════════════════════ */}
-            {/* Order: WhatsApp Number (+ Outlet Type) → Location → Working Hours */}
-            <div className="outlet-form-section bg-white dark:bg-transparent rounded-3xl p-4 sm:p-6 mb-8">
-              <FormDivider
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+            <div className="flex min-w-0 flex-1 flex-col gap-5">
+              {/* ── Outlet Details (type + WhatsApp) ── */}
+              <OutletCard
                 title="Outlet Details"
                 subtitle="Details specific to this particular outlet's location and presentation."
-                icon={
-                  <svg className="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 21h18M5 21V10l7-6 7 6v11M9 21v-6h6v6" />
-                  </svg>
-                }
-              />
-
-              {/* ── 1. Outlet WhatsApp Number ── */}
-              <SectionCard>
-                <SectionHeader title="Outlet WhatsApp Number" subtitle="Customers will reach this outlet on WhatsApp using this verified number." />
-
-                <label className="flex items-center gap-2 text-xs font-semibold text-gray-600 dark:text-gray-300 mb-4 cursor-pointer">
+              >
+                <label className="mb-4 flex min-h-11 items-center gap-2 text-[13px] font-semibold text-gray-600 dark:text-gray-300">
                   <input
                     type="checkbox"
                     checked={useBrandNumber}
                     onChange={(e) => handleUseBrandNumberToggle(e.target.checked)}
                     disabled={!brandWhatsappNumber || whatsappVerified}
-                    className="w-4 h-4 accent-emerald-600 cursor-pointer disabled:opacity-40"
+                    className="size-4 accent-emerald-600 disabled:opacity-40"
                   />
-                  Same as Brand Business WhatsApp Number
+                  Same as brand WhatsApp number
                   {brandWhatsappNumber ? ` (${brandWhatsappNumber})` : " (not available on your brand profile)"}
                 </label>
 
-                <div
-                  className={`grid gap-4 max-w-2xl ${!whatsappVerified && !subBrandId ? "grid-cols-1 sm:grid-cols-[200px_1fr]" : "grid-cols-1"
-                    }`}
-                >
+                <div className={`grid gap-4 ${!whatsappVerified && !subBrandId ? "grid-cols-1 sm:grid-cols-[200px_1fr]" : "grid-cols-1"}`}>
                   {!whatsappVerified && !subBrandId && (
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Outlet Type *</label>
+                      <label className={labelClass}>
+                        Outlet type <span className="text-red-500">*</span>
+                      </label>
                       <Select
                         value={outletType}
                         onChange={setOutletType}
                         options={OUTLET_TYPE_OPTIONS}
                         placeholder="eg : Outlet"
-                        className="bg-emerald-50 dark:bg-emerald-500/10 text-gray-700 dark:text-gray-100"
+                        className="border border-gray-300 bg-white text-gray-700 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
                       />
                     </div>
                   )}
-
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Outlet WhatsApp Number *</label>
-                    <div className="flex flex-col sm:flex-row gap-2">
+                    <label htmlFor="outlet-whatsapp" className={labelClass}>
+                      Outlet WhatsApp number <span className="text-red-500">*</span>
+                    </label>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                       <input
+                        id="outlet-whatsapp"
                         type="tel"
+                        inputMode="numeric"
                         value={outletWhatsapp}
                         onChange={(e) => handleOutletWhatsappChange(e.target.value)}
                         disabled={useBrandNumber || whatsappVerified}
                         placeholder="eg : 9876543210"
-                        className="w-full rounded-xl px-4 py-2.5 text-sm outline-none bg-emerald-50 dark:bg-emerald-500/10 text-gray-700 dark:text-gray-100 disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:text-gray-500"
+                        className={`${inputClass} sm:max-w-xs`}
                       />
-                      {!whatsappVerified && (
+                      {whatsappVerified ? (
+                        <span className="inline-flex min-h-9 w-fit items-center gap-1.5 rounded-full bg-emerald-100 px-3 text-xs font-bold text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300">
+                          <Check size={13} strokeWidth={3} aria-hidden="true" />
+                          {whatsappHydrated ? "Verified" : "Number verified"}
+                        </span>
+                      ) : (
                         <button
+                          type="button"
                           onClick={handleVerifyClick}
                           disabled={!isValidPhone(outletWhatsapp) || otpSending || (!subBrandId && !outletType)}
-                          className={`shrink-0 sm:min-w-[112px] px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2 ${isValidPhone(outletWhatsapp) && !otpSending && (subBrandId || outletType)
-                            ? "bg-emerald-500 text-white hover:bg-emerald-600"
-                            : "bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed"
-                            }`}
+                          className={`${primaryBtn} px-5`}
                         >
-                          {otpSending && (
-                            <svg
-                              className="w-4 h-4 animate-spin"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              xmlns="http://www.w3.org/2000/svg"
-                            >
-                              <circle
-                                className="opacity-25"
-                                cx="12"
-                                cy="12"
-                                r="10"
-                                stroke="currentColor"
-                                strokeWidth="4"
-                              />
-                              <path
-                                className="opacity-75"
-                                fill="currentColor"
-                                d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                              />
-                            </svg>
-                          )}
+                          {otpSending && <Loader2 size={16} className="animate-spin" aria-hidden="true" />}
                           {otpSending ? "Sending…" : subBrandId ? "Resend OTP" : "Send OTP"}
                         </button>
                       )}
                     </div>
                   </div>
                 </div>
+                <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                  Customers will reach this outlet on WhatsApp using this verified number.
+                </p>
+              </OutletCard>
 
-                {whatsappVerified && (
-                  <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 rounded-full px-3 py-1.5 mt-3">
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                    {whatsappHydrated ? "Already verified for this outlet" : "Number verified"}
-                  </span>
-                )}
-                {!whatsappVerified && <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">Verify your WhatsApp number to enable Save & Process.</p>}
-              </SectionCard>
-
-              {/* ── 2. Location ── */}
-              <SectionCard>
-                <SectionHeader
-                  title="Location *"
-                  subtitle="Help people in the area discover your event and let attendees know where to show up."
-                  guidelineKey="location"
-                  onGuidelineClick={openGuideline}
-                />
-
-                {locationLoading && (
-                  <p className="text-xs text-gray-400 mb-3">Loading your saved outlet location…</p>
-                )}
-                {/* {outletSectionsBlocked && !locationLoading && (
-              <p className="text-xs text-amber-600 mb-3">
-                Verify your outlet's WhatsApp number above before setting a location.
-              </p>
-            )} */}
-
+              {/* ── Location ── */}
+              <OutletCard
+                title={<>Location <span className="text-red-500">*</span></>}
+                subtitle="Help people in the area find your outlet."
+                action={guidelineLink("location")}
+              >
+                {locationLoading && <p className="mb-3 text-xs text-gray-400">Loading your saved outlet location…</p>}
                 <div onClick={() => notifyBlocked("Verify your outlet's WhatsApp number above before setting a location.")}>
-                  <div className={outletSectionsBlocked ? "opacity-50 pointer-events-none" : ""}>
-                    <div className="px-1 mb-5">
-                      <div className="flex items-start gap-3 mb-4">
-                        <input
-                          type="checkbox"
-                          id="gstSame"
-                          checked={gstSameAsOutlet}
-                          onChange={(e) => handleGstSameToggle(e.target.checked)}
+                  <div className={outletSectionsBlocked ? "pointer-events-none opacity-50" : ""}>
+                    {outletSectionsBlocked && (
+                      <p className="mb-3 rounded-xl bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800 dark:bg-amber-500/10 dark:text-amber-300">
+                        Verify the outlet WhatsApp number first to set the location.
+                      </p>
+                    )}
+                    <label className="mb-4 flex min-h-11 items-center gap-2 text-[13px] font-semibold text-gray-700 dark:text-gray-200">
+                      <input
+                        type="checkbox"
+                        checked={gstSameAsOutlet}
+                        onChange={(e) => handleGstSameToggle(e.target.checked)}
+                        disabled={outletSectionsBlocked}
+                        className="size-4 accent-emerald-600"
+                      />
+                      GST address is the outlet address
+                    </label>
+
+                    <div className="mb-4 inline-flex rounded-xl bg-gray-100 p-1 dark:bg-gray-700" role="tablist" aria-label="Location input">
+                      {[
+                        { mode: "search", label: "Search address" },
+                        { mode: "live", label: "Use live location" },
+                      ].map((tab) => (
+                        <button
+                          key={tab.mode}
+                          type="button"
+                          role="tab"
+                          aria-selected={locationMode === tab.mode}
+                          onClick={() => switchLocationMode(tab.mode)}
                           disabled={outletSectionsBlocked}
-                          className="mt-0.5 w-4 h-4 accent-emerald-600 cursor-pointer"
-                        />
-                        <div>
-                          <label htmlFor="gstSame" className="text-sm font-bold text-gray-800 dark:text-gray-100 cursor-pointer">
-                            GST Address Is The Same As The Outlet Location.
-                          </label>
-                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Search and select your Outlet address</p>
-                        </div>
-                      </div>
-
-                      {/* {gstSameAsOutlet && !savedLocationId && !locationSaving && !locationSaveError && (
-                    <p className="text-xs text-amber-600 mt-3">
-                      We've filled in your GST address below — pick the matching result from the dropdown to confirm and save it.
-                    </p>
-                  )} */}
-
-                      {/* Saving/success status only here — any error is about the
-                      search RESULT picked below, so it's shown there instead,
-                      right next to the control the vendor needs to fix it. */}
-                      {!locationSaveError && (locationSaving || (savedLocationId && gstSameAsOutlet)) && (
-                        <p className="text-xs mt-3 text-emerald-600">
-                          {locationSaving ? "Saving this address…" : "✓ GST address saved as your outlet location."}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-6 mb-4 px-1">
-                      <label className="flex items-center gap-2 text-sm font-bold text-gray-800 dark:text-gray-100 cursor-pointer">
-                        <input type="checkbox" checked={locationMode === "search"} onChange={() => switchLocationMode("search")} disabled={outletSectionsBlocked} className="w-4 h-4 accent-emerald-600 cursor-pointer" />
-                        Search My Outlet Location
-                      </label>
-                      <label className="flex items-center gap-2 text-sm font-bold text-gray-800 dark:text-gray-100 cursor-pointer">
-                        <input type="checkbox" checked={locationMode === "live"} onChange={() => switchLocationMode("live")} disabled={outletSectionsBlocked} className="w-4 h-4 accent-emerald-600 cursor-pointer" />
-                        Use My Live Location
-                      </label>
+                          className={`min-h-9 rounded-lg px-3.5 text-xs font-bold transition-colors ${
+                            locationMode === tab.mode
+                              ? "bg-white text-emerald-700 shadow-sm dark:bg-gray-900 dark:text-emerald-400"
+                              : "text-gray-600 dark:text-gray-300"
+                          }`}
+                        >
+                          {tab.label}
+                        </button>
+                      ))}
                     </div>
 
                     {locationMode === "search" ? (
@@ -1244,33 +1427,30 @@ export default function CreateBrandOutlet() {
                       <LiveLocationPicker selectedPlace={selectedPlace} onSelectPlace={handleSelectPlace} onShowMap={() => setShowMap(true)} onError={showError} />
                     )}
 
-                    {/* Errors already surface as a toast (see showError calls
-                    around setLocationSaveError above) — this stays purely
-                    informational (saving/saved) so it isn't a second,
-                    louder red banner for the same failure. */}
-                    {!locationSaveError && (locationSaving || (savedLocationId && !gstSameAsOutlet)) && (
-                      <p className="text-xs mt-3 px-1 text-emerald-600">
-                        {locationSaving ? "Saving this location…" : "✓ Location saved."}
+                    {!locationSaveError && (locationSaving || savedLocationId) && (
+                      <p className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                        {locationSaving ? (
+                          <Loader2 size={13} className="animate-spin" aria-hidden="true" />
+                        ) : (
+                          <Check size={13} strokeWidth={3} aria-hidden="true" />
+                        )}
+                        {locationSaving ? "Saving this location…" : "Location saved"}
                       </p>
                     )}
                   </div>
                 </div>
-              </SectionCard>
+              </OutletCard>
+            </div>
 
-              {/* ── 3. Working Hours ── */}
-              <SectionCard>
-                <SectionHeader title="Working Hours *" subtitle="Set your open hours for each day of the week." guidelineKey="workingHours" onGuidelineClick={openGuideline} />
-
-                {/* Blocked until the outlet's WhatsApp number is verified —
-                upsertWorkHours needs subBrandId, which doesn't exist yet. */}
-                {/* {outletSectionsBlocked && (
-              <p className="text-xs text-amber-600 mb-3">
-                Verify your outlet's WhatsApp number above before setting working hours.
-              </p>
-            )} */}
-
+            {/* ── Working Hours + next ── */}
+            <aside className="flex flex-col gap-4 lg:sticky lg:top-24 lg:w-[400px] lg:shrink-0">
+              <OutletCard
+                title={<>Working Hours <span className="text-red-500">*</span></>}
+                subtitle="Set your open hours for each day of the week."
+                action={guidelineLink("workingHours")}
+              >
                 <div onClick={() => notifyBlocked("Verify your outlet's WhatsApp number above before setting working hours.")}>
-                  <div className={outletSectionsBlocked ? "opacity-50 pointer-events-none" : ""}>
+                  <div className={outletSectionsBlocked ? "pointer-events-none opacity-50" : ""}>
                     <WorkingHoursEditor
                       hours={workingHours}
                       onChange={handleWorkingHoursChange}
@@ -1278,79 +1458,84 @@ export default function CreateBrandOutlet() {
                       saving={workingHoursSaving}
                       hydrated={!locationLoading}
                     />
-                    {/* workingHoursSaveError already surfaces as a toast (see
-                    showError call inside handleSaveWorkingHours) — no
-                    second inline red banner needed for the same failure. */}
                     {workingHoursSaved && !workingHoursSaveError && (
-                      <p className="text-xs font-semibold text-emerald-600 mt-2 flex items-center gap-1">
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                        Working hours saved.
+                      <p className="mt-3 flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold text-emerald-700 ring-1 ring-inset ring-emerald-200 dark:text-emerald-400 dark:ring-emerald-500/30">
+                        <Check size={13} strokeWidth={3} aria-hidden="true" />
+                        Working hours saved
                       </p>
                     )}
                   </div>
                 </div>
-              </SectionCard>
 
-            </div>
-
-            <div className="flex items-center justify-between mt-2">
-              <button
-                type="button"
-                onClick={() => setWizardStep(1)}
-                className="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-500 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-              >
-                ← Back
-              </button>
-              <div className="flex items-center gap-4">
-                {!canContinueStep2 && (
-                  <p className="text-xs text-amber-700 dark:text-amber-400 text-right">
-                    {step2Missing.join(" · ")}
-                  </p>
-                )}
-              <button
-                type="button"
-                onClick={() => setWizardStep(3)}
-                disabled={!canContinueStep2}
-                className="px-8 py-2.5 rounded-xl text-sm font-semibold bg-emerald-500 text-white hover:bg-emerald-600 active:scale-[0.99] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Review Outlet →
-              </button>
-              </div>
-            </div>
-          </>
+                <div className="mt-5 border-t border-gray-100 pt-5 dark:border-gray-700">
+                  {!canContinueStep2 && (
+                    <ul className="mb-3 flex flex-col gap-1 text-xs text-amber-700 dark:text-amber-400">
+                      {step2Missing.map((m) => (
+                        <li key={m}>• {m}</li>
+                      ))}
+                    </ul>
+                  )}
+                  <button
+                    type="button"
+                    onClick={returnToReview ? backToReview : () => setWizardStep(3)}
+                    disabled={!canContinueStep2}
+                    className={`${primaryBtn} w-full`}
+                  >
+                    {returnToReview ? "Save & back to review" : "Review your details"}
+                    <ChevronRight size={16} aria-hidden="true" />
+                  </button>
+                </div>
+              </OutletCard>
+            </aside>
+          </div>
         )}
 
         {wizardStep === 3 && (
           <ReviewStep
-            logoUrl={logoPreviewUrl || existingLogoUrl}
+            logoUrl={logoDisplayUrl}
+            coverUrl={coverDisplayUrl}
             brandName={brandName}
             brandEmail={brandEmail}
             mobile={effectiveMobile}
+            description={brandDescription}
             categoryName={categoryName}
             subCategoryName={subCategoryName}
+            outletTypeLabel={outletTypeLabel}
             outletWhatsapp={outletWhatsapp}
             whatsappVerified={whatsappVerified}
             address={outletAddress}
             workingHours={workingHours}
+            listingFeatureCount={listingFeatures.filter((f) => f.persisted).length}
             showcaseAlbums={showcaseAlbums}
             minItemsPerAlbum={MIN_ITEMS_PER_ALBUM}
             hasListingFeature={hasListingFeature}
             hasShowcaseAlbum={hasShowcaseAlbum}
-            advancedSkipped={advancedSkipped && !advancedDetailsComplete}
+            subscription={subscription}
             canFinalSave={canFinalSave}
             saving={saving}
-            onEditStep1={() => setWizardStep(1)}
-            onEditStep2={() => setWizardStep(2)}
-            onOpenAdvanced={() => {
-              setWizardStep(1);
-              setAdvancedOpenSignal((n) => n + 1);
+            onEditStep1={() => editFromReview(1)}
+            onEditStep2={() => editFromReview(2)}
+            listingSkipped={listingSkipped && !hasListingFeature}
+            showcaseSkipped={showcaseSkipped && !showcaseComplete}
+            onOpenAdvanced={() => editFromReview(1, "outlet-listing-features")}
+            onOpenShowcase={() => editFromReview(1, "outlet-showcase")}
+            onAddListing={() => {
+              // Un-skip so the editor shows, then jump to its card on Step 1.
+              setListingSkipped(false);
+              editFromReview(1, "outlet-listing-features");
+            }}
+            onAddShowcase={() => {
+              setShowcaseSkipped(false);
+              editFromReview(1, "outlet-showcase");
+            }}
+            onBack={() => {
+              setReturnToReview(null);
+              setWizardStep(2);
             }}
             onCreate={handleSave}
           />
         )}
-      </div>
+      </main>
     </div>
   );
 }

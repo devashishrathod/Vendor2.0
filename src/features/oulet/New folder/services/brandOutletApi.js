@@ -219,13 +219,14 @@ export async function upsertWorkHours({ brandId, subBrandId, hours } = {}) {
 
 // ── Update a Brand ──────────────────────────────────────────────
 // PUT {{TryDood2.0BaseUrl}}/brands/update?brandId=:brandId
-// multipart/form-data: logo(file), isOnboarding, subCategoryId,
-// brandName, email, joinedDate, description
+// multipart/form-data: logo(file), coverImage(file), isOnboarding,
+// subCategoryId, brandName, email, joinedDate, description
 // ⚠️ isActive is NOT accepted here anymore — backend: "isActive is not
 // settable here. Use PUT /brands/admin/:brandId/status" (admin-only,
 // controls the vendor's account; hideFromCustomers is the separate
 // customer-visibility flag). Sending it makes the whole call fail.
-export async function updateBrandDetails(brandId, brandPayload = {}, logoFile = null) {
+// logo and coverImage are independent: sending one leaves the other as is.
+export async function updateBrandDetails(brandId, brandPayload = {}, logoFile = null, coverFile = null) {
     try {
         const formData = new FormData();
         Object.entries(brandPayload).forEach(([key, value]) => {
@@ -234,6 +235,7 @@ export async function updateBrandDetails(brandId, brandPayload = {}, logoFile = 
             }
         });
         if (logoFile) formData.append('logo', logoFile);
+        if (coverFile) formData.append('coverImage', coverFile);
         // No explicit Content-Type header — the browser must set it itself
         // for a FormData body so it can attach the multipart boundary;
         // overriding it with a boundary-less value makes the backend's
@@ -286,10 +288,11 @@ export async function addBrandFeature({ brandId, title, description, isActive, i
  * @param {string} brandId
  * @param {object} brandPayload - see updateBrandDetails
  * @param {File} [logoFile]
+ * @param {File} [coverFile] - brand cover image (multipart `coverImage`)
  */
-export async function finalizeOutlet(subBrandId, subBrandPatch, brandId, brandPayload, logoFile) {
+export async function finalizeOutlet(subBrandId, subBrandPatch, brandId, brandPayload, logoFile, coverFile) {
     const subBrand = await updateSubBrand(subBrandId, subBrandPatch);
-    const brand = await updateBrandDetails(brandId, brandPayload, logoFile);
+    const brand = await updateBrandDetails(brandId, brandPayload, logoFile, coverFile);
     return { subBrand, brand };
 }
 
