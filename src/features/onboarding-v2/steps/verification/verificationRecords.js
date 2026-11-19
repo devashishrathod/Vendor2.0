@@ -69,6 +69,24 @@ const PAN_HOLDER_TYPES = {
   J: "Artificial juridical person",
 };
 
+// PAN 4th letter → suggested business entity (guide §4.6). Same rule the
+// server uses for verify-pan's `suggestedEntity`; other letters suggest nothing.
+const PAN_TO_ENTITY = {
+  P: "PROPRIETORSHIP",
+  C: "PRIVATE_LIMITED",
+  F: "PARTNERSHIP",
+  E: "LLP",
+  T: "TRUST",
+};
+
+/**
+ * The entity to suggest from a saved PAN — for the NO_GST entity screen after
+ * a page refresh, when verify-pan's `suggestedEntity` is no longer in memory.
+ * @param {string|null|undefined} pan
+ * @returns {string|null}
+ */
+export const suggestedEntityFromPan = (pan) => PAN_TO_ENTITY[String(pan || "").charAt(3).toUpperCase()] ?? null;
+
 /**
  * Display fields of a PAN verification (verify-pan `details`, `panType`).
  * @param {object|null} panDetails

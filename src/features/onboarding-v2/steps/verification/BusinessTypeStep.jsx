@@ -15,6 +15,7 @@ import { addBasicDetails } from "../../services/onboardingApi";
 import { useSavedBrand, useSavedBrandStore } from "../../store/brandStore";
 import { useVerifyStore } from "../../store/verifyStore";
 import { onboardingErrorMessage } from "../../utils/errorMessages";
+import { suggestedEntityFromPan } from "./verificationRecords";
 
 /**
  * REGISTRATION_ENTITY_TYPE — "Business entity" (guide §4.6), GST and NO_GST
@@ -24,8 +25,8 @@ import { onboardingErrorMessage } from "../../utils/errorMessages";
  *    (`derived.businessEntityType`); just "Confirm". Only when GST mapped to
  *    nothing (null), or the server answers 409 ENTITY_FROM_GST with
  *    `details.acceptedEntityTypes`, is a choice shown.
- *  - NO_GST: verify-pan's `suggestedEntity` pre-selected ("Recommended");
- *    the vendor may change it.
+ *  - NO_GST: verify-pan's `suggestedEntity` pre-selected ("Recommended"),
+ *    or after a refresh the saved PAN's 4th letter; the vendor may change it.
  */
 export default function BusinessTypeStep() {
   const { kycPath, goToServerScreen, handleFlowError } = useOnboardingFlow();
@@ -35,7 +36,11 @@ export default function BusinessTypeStep() {
 
   const isGstPath = kycPath === KYC_PATHS.GST;
   const savedEntity = brand?.businessEntityType ?? null;
-  const suggested = isGstPath ? savedEntity : panResult?.suggestedEntity ?? null;
+  // NO_GST after a refresh: verify-pan's answer is gone, so derive it from the
+  // saved PAN (`brands/get` → `pan.pan`, guide §4.6).
+  const suggested = isGstPath
+    ? savedEntity
+    : panResult?.suggestedEntity ?? suggestedEntityFromPan(brand?.pan?.pan);
 
   // 409 ENTITY_FROM_GST → only these values are accepted.
   const [acceptedTypes, setAcceptedTypes] = useState(null);
