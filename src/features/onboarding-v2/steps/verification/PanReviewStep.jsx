@@ -1,113 +1,103 @@
 ﻿import { useCallback, useMemo, useState } from "react";
 import { Check, ChevronRight, IdCard, Pencil, TriangleAlert } from "lucide-react";
+import { getErrorCode, getErrorDetails } from "@/services/http/apiError";
 import Button from "../../components/ui/Button";
 import DetailGrid from "../../components/ui/DetailGrid";
-import Notice from "../../components/ui/Notice";
 import FormError from "../../components/ui/FormError";
+import Notice from "../../components/ui/Notice";
 import StatusPill from "../../components/ui/StatusPill";
 import StepCard from "../../components/ui/StepCard";
 import StepFooter from "../../components/ui/StepFooter";
 import VerifiedHeroCard from "../../components/ui/VerifiedHeroCard";
-import { SCREENS } from "../../config/onboardingFlow";
+import { KYC_PATHS, ONBOARDING_ERROR_CODES } from "../../config/screens";
+import { ENTITY_LABELS } from "../../constants/onboardingOptions";
 import { useOnboardingFlow } from "../../hooks/useOnboardingFlow";
-import { entityTypeFromPan } from "../../services/onboardingApi";
-import { useOnboardingV2Store } from "../../store/onboardingStore";
-import { readPanRecord, savePanReviewPath } from "./verificationRecords";
+import { addPanDetails } from "../../services/onboardingApi";
+import { useSavedBrandStore } from "../../store/brandStore";
+import { useVerifyStore } from "../../store/verifyStore";
+import { panErrorMessage, readPanRecord } from "./verificationRecords";
 
-const ENTITY_LABELS = {
-  PROPRIETORSHIP: "Proprietorship",
-  PARTNERSHIP: "Partnership / Firm",
-  LLP: "LLP",
-  PRIVATE_LIMITED: "Company",
-  TRUST: "Trust",
-  OTHERS: "Other",
-};
+const VERIFY_AGAIN = [ONBOARDING_ERROR_CODES.VERIFICATION_FAILED, ONBOARDING_ERROR_CODES.VERIFICATION_NOT_FOUND];
 
 /**
- * Screen 07r · PAN review — same layout as GST review. Continue saves names
- * → status → entity type (detected) → PAN on the backend right away.
+ * PAN_VERIFICATION · review sub-step. Confirm saves
+ * `add-pan-details { verificationId }` only (guide §4.5); on NO_GST the server
+ * sets the legal name from the PAN and locks the business status.
+ * @param {{ result: object, onChangeDetails: (message?: string, refillPan?: string) => void }} props
  */
-export default function PanReviewStep() {
-  const { next, goTo } = useOnboardingFlow();
-  const pan = useOnboardingV2Store((s) => s.form.pan);
-  const panDetails = useOnboardingV2Store((s) => s.form.panDetails);
-  const brandName = useOnboardingV2Store((s) => s.form.brandName);
-  const setField = useOnboardingV2Store((s) => s.setField);
-
+export default function PanReviewStep({ result, onChangeDetails }) {
+  const { kycPath, goToServerScreen, handleFlowError } = useOnboardingFlow();
+  const loadBrand = useSavedBrandStore((s) => s.load);
+  const clearResult = useVerifyStore((s) => s.clearResult);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  // Same as the production PAN step: the verified PAN is saved on the
-  // backend as soon as the vendor confirms it.
-  const handleContinue = useCallback(async () => {
-    if (!panDetails || saving) return;
+  const record = useMemo(() => readPanRecord(result), [result]);
+  const items = useMemo(
+    () => [
+      { label: "Name on PAN", value: record.name },
+      { label: "PAN holder", value: record.holderType },
+      // verify-pan `suggestedEntity` — chosen on the next screen (NO_GST).
+      kycPath === KYC_PATHS.NO_GST && { label: "Suggested business type", value: ENTITY_LABELS[result.suggestedEntity] ?? null },
+    ].filter(Boolean),
+    [kycPath, record, result.suggestedEntity],
+  );
+
+  const handleConfirm = useCallback(async () => {
+    if (saving) return;
     try {
       setSaving(true);
       setError("");
-      const result = await savePanReviewPath({ brandName, panDetails, pan });
-      setField("legalName", result.legalName);
-      setField("entityType", result.entityType);
-      next();
+      const res = await addPanDetails(result.verificationId);
+      loadBrand({ force: true }).catch((err) => console.error("Brand refresh failed:", err));
+      goToServerScreen(res?.data?.currentScreen);
     } catch (err) {
+      if (handleFlowError(err)) return;
       console.error("PAN save failed:", err);
-      setError(err?.message || "We couldn't save your PAN details. Please try again.");
+      const code = getErrorCode(err);
+      if (VERIFY_AGAIN.includes(code)) {
+        clearResult("PAN");
+        onChangeDetails(panErrorMessage(err));
+        return;
+      }
+      if (code === ONBOARDING_ERROR_CODES.PAN_NOT_IN_GSTIN) {
+        clearResult("PAN");
+        onChangeDetails(panErrorMessage(err), getErrorDetails(err)?.panFromGstin);
+        return;
+      }
+      setError(panErrorMessage(err));
     } finally {
       setSaving(false);
     }
-  }, [brandName, next, pan, panDetails, saving, setField]);
-
-  const record = useMemo(() => readPanRecord(panDetails), [panDetails]);
-  const items = useMemo(
-    () => [
-      { label: "Legal business name", value: record.name },
-      { label: "PAN holder", value: record.holderType },
-      { label: "PAN type", value: record.panType },
-      { label: "Business structure", value: ENTITY_LABELS[entityTypeFromPan(record.pan || pan)] || null },
-      { label: record.holderType === "Individual" ? "Date of birth" : "Date of incorporation", value: record.dateOfIncorporation },
-      { label: "PAN status", value: record.status },
-      { label: "Aadhaar linked", value: record.aadhaarLinked },
-      { label: "Registered business address", value: record.address, wide: true },
-    ],
-    [pan, record],
-  );
-
-  const changeDetails = useCallback(() => goTo(SCREENS.PAN_ENTER), [goTo]);
+  }, [clearResult, goToServerScreen, handleFlowError, loadBrand, onChangeDetails, result.verificationId, saving]);
 
   return (
     <StepCard
       icon={IdCard}
-      title="Business PAN verified"
-      subtitle="Review your verified business details before continuing."
-      headerAside={panDetails && <StatusPill icon={Check}>Verified · Active</StatusPill>}
+      title="PAN verified"
+      subtitle="Review the details before continuing."
+      headerAside={<StatusPill icon={Check}>Verified{result.reused ? " · already checked" : ""}</StatusPill>}
       footer={
         <StepFooter
           startLastOnMobile
           start={
-            <Button variant="ghost" icon={Pencil} iconPosition="start" onClick={changeDetails} disabled={saving}>
+            <Button variant="ghost" icon={Pencil} iconPosition="start" onClick={() => onChangeDetails()} disabled={saving}>
               Change details
             </Button>
           }
         >
-          <Button onClick={handleContinue} disabled={!panDetails} loading={saving} icon={ChevronRight}>
-            {saving ? "Saving…" : "Continue to Business entity"}
+          <Button onClick={handleConfirm} loading={saving} icon={ChevronRight}>
+            {saving ? "Saving…" : "Confirm & continue"}
           </Button>
         </StepFooter>
       }
     >
-      {panDetails ? (
-        <>
-          <VerifiedHeroCard label="Business PAN" value={record.pan || pan} />
-          <DetailGrid items={items} hideEmpty />
-          <Notice tone="warning" icon={TriangleAlert}>
-            Please confirm these details match your business PAN records before continuing.
-          </Notice>
-        </>
-      ) : (
-        <Notice tone="warning" icon={TriangleAlert}>
-          We don&apos;t have verified PAN details yet. Use &ldquo;Change details&rdquo; to enter and verify your business PAN.
-        </Notice>
-      )}
-
+      <VerifiedHeroCard label="PAN" value={record.pan} />
+      <DetailGrid items={items} hideEmpty />
+      <Notice tone="warning" icon={TriangleAlert}>
+        Once saved, your PAN can only be changed through support.
+        {kycPath === KYC_PATHS.NO_GST ? " The name on this PAN becomes your business's legal name." : ""}
+      </Notice>
       <FormError message={error} />
     </StepCard>
   );

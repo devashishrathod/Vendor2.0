@@ -6,7 +6,7 @@ import DetailGrid from "@/features/onboarding-v2/components/ui/DetailGrid";
 import FormError from "@/features/onboarding-v2/components/ui/FormError";
 import { TextField } from "@/features/onboarding-v2/components/ui/TextField";
 import { BRANCHES } from "@/features/onboarding-v2/config/onboardingFlow";
-import { entityTypeFromPan, fetchPanDetails } from "@/features/onboarding-v2/services/onboardingApi";
+import { fetchPanDetails } from "@/features/onboarding-v2/services/onboardingApi";
 import {
   CODE_INPUT_CLASS,
   panErrorMessage,
@@ -61,7 +61,8 @@ export default function PanCorrection({ brandId, branch, initialPan, onSaved }) 
       await updateBrandPanDetails(brandId, details);
       const legalName = nameIsLegalName && isSavableLegalName(record.name) ? record.name : null;
       if (legalName) await updateBasicDetails({ legalBusinessName: legalName });
-      const fromPan = branch === BRANCHES.REG_NO_GST ? entityTypeFromPan(record.pan || pan) : null;
+      // The server's suggestion from the PAN type (verify-pan `suggestedEntity`).
+      const fromPan = branch === BRANCHES.REG_NO_GST ? details.suggestedEntity ?? null : null;
       setSaved(true);
       onSaved({ legalName, suggestedEntity: isPickableEntity(fromPan) ? fromPan : null });
     } catch (err) {

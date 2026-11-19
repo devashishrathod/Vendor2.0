@@ -5,7 +5,8 @@ import Toaster from "@/features/onboarding-v2/components/ui/Toaster";
 import FormError from "@/features/onboarding-v2/components/ui/FormError";
 import { SelectField, TextField } from "@/features/onboarding-v2/components/ui/TextField";
 import { BANK_ACCOUNT_TYPES } from "@/features/onboarding-v2/constants/onboardingOptions";
-import { saveVerifiedBank } from "@/features/onboarding-v2/services/onboardingApi";
+import { addBankDetails } from "@/features/onboarding-v2/services/onboardingApi";
+import { onboardingErrorMessage } from "@/features/onboarding-v2/utils/errorMessages";
 import { useOnboardingV2Store } from "@/features/onboarding-v2/store/onboardingStore";
 import { useOnboardingStatusStore } from "@/features/onboarding-v2/store/statusStore";
 import {
@@ -19,10 +20,9 @@ import {
 import { allPassed, bankRules, toDigits, toUpperAlphanumeric } from "@/features/onboarding-v2/validation/rules";
 
 /**
- * "Add bank account" popup on the outlet review — same ₹1 penny-drop and
- * save as the onboarding Bank step: enter → verify → check details → save.
- * The verified account lands in the onboarding store, so the review's
- * Bank section and skipped list update straight away.
+ * "Add bank account" popup on the outlet review — same paid ₹1 penny drop
+ * and save as the onboarding Bank step: enter → verify-bank → check details →
+ * add-bank-details { verificationId }. The onboarding status is re-read after.
  * @param {{ open: boolean, onClose: () => void }} props
  */
 export default function AddBankModal({ open, onClose }) {
@@ -38,7 +38,7 @@ function BankModalBody({ onClose }) {
   const fetchStatus = useOnboardingStatusStore((s) => s.fetchStatus);
 
   const [phase, setPhase] = useState("enter"); // enter | review
-  const [verified, setVerified] = useState(null); // penny-drop result, not stored until saved
+  const [verified, setVerified] = useState(null); // { result, accountNumber, ifsc, accountType } — not saved until "Save"
   const [accountFocused, setAccountFocused] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -74,11 +74,17 @@ function BankModalBody({ onClose }) {
     setBusy(true);
     setError("");
     try {
-      setVerified(await verifyBankForm({ bank, ifscInfo, legalName }));
+      const draft = await verifyBankForm({ bank, legalName });
+      if (!draft.result?.isVerified) {
+        // A failed drop is a 200 with the bank's reason.
+        setError(draft.result?.message || "We couldn't verify this account. Check the details and try again.");
+        return;
+      }
+      setVerified(draft);
       setPhase("review");
     } catch (err) {
       console.error("Bank verification failed:", err);
-      setError(err?.message || "Bank verification failed. Please try again.");
+      setError(onboardingErrorMessage(err, "Bank verification failed. Please try again."));
     } finally {
       setBusy(false);
     }
@@ -89,21 +95,22 @@ function BankModalBody({ onClose }) {
     setBusy(true);
     setError("");
     try {
-      await saveVerifiedBank(verified, { enteredAccountNumber: verified.enteredAccountNumber, accountType: verified.accountType });
-      setField("bankDetails", verified);
+      await addBankDetails({ verificationId: verified.result.verificationId, accountType: verified.accountType });
+      setField("bankDetails", verified.result);
       // The server's status (items.bank, groups) is the tracker now.
       fetchStatus().catch((err) => console.error("Onboarding status refresh failed:", err));
       onClose();
     } catch (err) {
       console.error("Saving bank account failed:", err);
-      setError(err?.message || "We couldn't save your bank account. Please try again.");
+      setError(onboardingErrorMessage(err, "We couldn't save your bank account. Please try again."));
     } finally {
       setBusy(false);
     }
   };
 
   const result = verified?.result ?? {};
-  const nameMatched = result.is_name_match === true;
+  const details = result.details ?? {};
+  const nameMatched = result.isNameMatch === true;
   const typeLabel = BANK_ACCOUNT_TYPES.find((t) => t.value === verified?.accountType)?.label ?? verified?.accountType;
 
   return (
@@ -208,17 +215,17 @@ function BankModalBody({ onClose }) {
             <>
               <div className="rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-700 p-4 text-white shadow-sm">
                 <p className="text-[11.5px] font-semibold text-emerald-100">
-                  {result.bank_name || verified?.ifscBankName || "Bank account"}
+                  {details.bankName || result.bankName || ifscInfo?.BANK || "Bank account"}
                   {typeLabel ? ` · ${typeLabel}` : ""}
                 </p>
-                <p className="mt-1.5 text-lg font-extrabold tracking-[0.12em]">{maskForReview(verified?.enteredAccountNumber)}</p>
+                <p className="mt-1.5 text-lg font-extrabold tracking-[0.12em]">{details.maskedAccountNumber || maskForReview(verified?.accountNumber)}</p>
                 <p className="mt-2 text-[11px] text-emerald-100">Account holder</p>
-                <p className="text-sm font-bold">{result.account_holder_name || "—"}</p>
+                <p className="text-sm font-bold">{details.accountHolderName || result.nameOnRecord || "—"}</p>
               </div>
               <dl className="grid grid-cols-2 gap-3">
                 {[
-                  ["IFSC", result.account_ifsc || verified?.ifsc],
-                  ["Branch", result.bank_branch || verified?.ifscBranchName],
+                  ["IFSC", details.ifscCode || verified?.ifsc],
+                  ["Branch", details.branchName || result.branchName],
                 ].map(([label, value]) => (
                   <div key={label} className="rounded-xl bg-gray-50 px-3 py-2.5 ring-1 ring-inset ring-gray-200 dark:bg-gray-900/40 dark:ring-gray-700">
                     <dt className="text-[11px] text-gray-500 dark:text-gray-400">{label}</dt>
@@ -234,7 +241,7 @@ function BankModalBody({ onClose }) {
               ) : (
                 <p className="flex items-start gap-2 rounded-xl bg-amber-50 px-3 py-2.5 text-[12.5px] text-amber-900 ring-1 ring-inset ring-amber-200 dark:bg-amber-500/10 dark:text-amber-200 dark:ring-amber-500/30">
                   <TriangleAlert size={15} className="mt-0.5 shrink-0 text-amber-600" aria-hidden="true" />
-                  {result.is_name_match === false
+                  {result.isNameMatch === false
                     ? `The name on this account doesn't match ${legalName || "your business"}. Payouts may be held until our team checks it.`
                     : `We couldn't confirm this account belongs to ${legalName || "your business"}. Our team will check it during review.`}
                 </p>

@@ -7,6 +7,7 @@ import { useOnboardingStore } from './onboardingStore';
 import { useOnboardingV2Store } from '@/features/onboarding-v2/store/onboardingStore';
 import { useOnboardingStatusStore } from '@/features/onboarding-v2/store/statusStore';
 import { useSavedBrandStore } from '@/features/onboarding-v2/store/brandStore';
+import { useVerifyStore } from '@/features/onboarding-v2/store/verifyStore';
 import { clearDocumentFiles } from '@/features/onboarding-v2/utils/documentFileStore';
 
 // Session only. The onboarding screen is the server's: routing reads
@@ -79,6 +80,7 @@ export const useAuthStore = create(
         useOnboardingV2Store.getState().reset();
         useOnboardingStatusStore.getState().reset();
         useSavedBrandStore.getState().reset();
+        useVerifyStore.getState().reset();
         setAnalyticsUser(null);
 
         localStorage.removeItem('auth-storage');

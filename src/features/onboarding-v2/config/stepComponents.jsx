@@ -2,12 +2,12 @@ import PartnerContractStep from "../steps/agreement/PartnerContractStep";
 import BrandNameStep from "../steps/basics/BrandNameStep";
 import BusinessStatusStep from "../steps/basics/BusinessStatusStep";
 import CategoryStep from "../steps/basics/CategoryStep";
-import BankEnterStep from "../steps/payout/BankEnterStep";
+import BankVerificationStep from "../steps/payout/BankVerificationStep";
 import BusinessTypeStep from "../steps/verification/BusinessTypeStep";
 import DocumentsStep from "../steps/verification/DocumentsStep";
-import GstEnterStep from "../steps/verification/GstEnterStep";
+import GstVerificationStep from "../steps/verification/GstVerificationStep";
 import OwnerKycStep from "../steps/verification/OwnerKycStep";
-import PanEnterStep from "../steps/verification/PanEnterStep";
+import PanVerificationStep from "../steps/verification/PanVerificationStep";
 import { SCREENS } from "./screens";
 
 // Server screen → the element that renders it inside the onboarding shell.
@@ -18,11 +18,11 @@ export const STEP_ELEMENTS = {
   [SCREENS.BRAND_NAME]: <BrandNameStep />,
   [SCREENS.BUSINESS_CATEGORY]: <CategoryStep />,
   [SCREENS.REGISTRATION_STATUS]: <BusinessStatusStep />,
-  [SCREENS.GST_VERIFICATION]: <GstEnterStep />,
-  [SCREENS.PAN_VERIFICATION]: <PanEnterStep />,
+  [SCREENS.GST_VERIFICATION]: <GstVerificationStep />,
+  [SCREENS.PAN_VERIFICATION]: <PanVerificationStep />,
   [SCREENS.REGISTRATION_ENTITY_TYPE]: <BusinessTypeStep />,
   [SCREENS.OWNER_VERIFICATION]: <OwnerKycStep />,
   [SCREENS.KYC_DOCUMENTS]: <DocumentsStep />,
-  [SCREENS.BANK_VERIFICATION]: <BankEnterStep />,
+  [SCREENS.BANK_VERIFICATION]: <BankVerificationStep />,
   [SCREENS.PARTNERSHIP_DEED]: <PartnerContractStep />,
 };

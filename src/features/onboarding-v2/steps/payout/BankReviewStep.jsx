@@ -1,152 +1,114 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import { ArrowRight, BadgeCheck, Landmark, Lock, Pencil, TriangleAlert } from "lucide-react";
+import { getErrorCode } from "@/services/http/apiError";
 import Button from "../../components/ui/Button";
 import DetailGrid from "../../components/ui/DetailGrid";
+import FormError from "../../components/ui/FormError";
 import Notice from "../../components/ui/Notice";
 import StatusPill from "../../components/ui/StatusPill";
 import StepCard from "../../components/ui/StepCard";
 import StepFooter from "../../components/ui/StepFooter";
 import VerifiedHeroCard from "../../components/ui/VerifiedHeroCard";
-import { SCREENS } from "../../config/onboardingFlow";
+import { ONBOARDING_ERROR_CODES } from "../../config/screens";
 import { BANK_ACCOUNT_TYPES } from "../../constants/onboardingOptions";
 import { useOnboardingFlow } from "../../hooks/useOnboardingFlow";
-import { saveVerifiedBank } from "../../services/onboardingApi";
-import { useOnboardingV2Store } from "../../store/onboardingStore";
-import FormError from "../../components/ui/FormError";
+import { addBankDetails } from "../../services/onboardingApi";
+import { useVerifyStore } from "../../store/verifyStore";
+import { onboardingErrorMessage } from "../../utils/errorMessages";
 
-/** "XXXX XXXX 9012" */
-const maskForReview = (accountNumber = "") =>
-  accountNumber.length > 4 ? `XXXX XXXX ${accountNumber.slice(-4)}` : accountNumber || "—";
+const VERIFY_AGAIN = [ONBOARDING_ERROR_CODES.VERIFICATION_FAILED, ONBOARDING_ERROR_CODES.VERIFICATION_NOT_FOUND];
 
-/** One readable line from the bank address object / string. */
-function formatAddress(address, fallback) {
-  if (address && typeof address === "object") {
-    return [address.addressLine1, address.city, address.state, address.pinCode].filter(Boolean).join(", ") || fallback;
-  }
-  if (typeof address === "string" && address.trim()) return address;
-  return fallback;
-}
+/** verify-bank `isNameMatch` (only when a beneficiary name was sent). */
+const NAME_MATCH = {
+  true: { label: "Name match", value: "✓ Matches", tone: "success" },
+  false: { label: "Name match", value: "Doesn't match" },
+};
 
 /**
- * Screen 11 · Bank review. Shows the penny-drop result read-only, flags a
- * holder-name mismatch, and saves the verified account on Continue.
+ * BANK_VERIFICATION · review sub-step. Shows verify-bank's mapped `details`;
+ * Continue saves `add-bank-details { verificationId, accountType }` — never
+ * isVerified (the server decides it). After saving, the bank is locked.
+ * @param {{ verified: { result: object, accountType: string }, onChangeDetails: (message?: string) => void }} props
  */
-export default function BankReviewStep() {
-  const { next, goTo } = useOnboardingFlow();
-  const bankDetails = useOnboardingV2Store((s) => s.form.bankDetails);
-  const legalName = useOnboardingV2Store((s) => s.form.legalName);
-  const ownerName = useOnboardingV2Store((s) => s.form.ownerKyc.panName);
-
+export default function BankReviewStep({ verified, onChangeDetails }) {
+  const { goToServerScreen, handleFlowError } = useOnboardingFlow();
+  const clearResult = useVerifyStore((s) => s.clearResult);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
 
-  const view = useMemo(() => {
-    const raw = bankDetails ?? {};
-    const result = raw.result ?? {};
-    const typeValue = raw.accountType || result.account_type || "";
-    return {
-      bankName: result.bank_name || raw.ifscBankName || "Bank account",
-      typeLabel: BANK_ACCOUNT_TYPES.find((t) => t.value === typeValue)?.label ?? typeValue,
-      masked: maskForReview(raw.enteredAccountNumber || result.account_number || ""),
-      holder: result.account_holder_name || "—",
-      ifsc: result.account_ifsc || raw.ifsc || null,
-      branch: result.bank_branch || raw.ifscBranchName || null,
-      micr: result.micr_code || raw.ifscMicr || null,
-      address: formatAddress(
-        result.bank_address,
-        [raw.ifscBankAddress, raw.ifscCity, raw.ifscState].filter(Boolean).join(", ") || null,
-      ),
-      isNameMatch: result.is_name_match,
-      matchingScore: result.matching_score,
-    };
-  }, [bankDetails]);
-
-  const businessName = legalName.trim() || ownerName || "your business";
-  const nameMatched = view.isNameMatch === true;
-  const nameTile = nameMatched
-    ? { label: "Name match", value: "✓ Matches business", tone: "success" }
-    : {
-        label: "Name match",
-        value: view.isNameMatch === false ? "Doesn't match business" : "Not checked",
-      };
-
-  const goToEnter = useCallback(() => goTo(SCREENS.BANK_ENTER), [goTo]);
+  const result = verified.result ?? {};
+  const details = result.details ?? {};
+  const typeLabel = BANK_ACCOUNT_TYPES.find((t) => t.value === verified.accountType)?.label ?? verified.accountType;
+  const bankName = details.bankName || result.bankName || "Bank account";
 
   const handleContinue = useCallback(async () => {
-    if (!bankDetails) return;
+    if (saving) return;
     setSaving(true);
     setSaveError("");
     try {
-      await saveVerifiedBank(bankDetails, {
-        enteredAccountNumber: bankDetails.enteredAccountNumber,
-        accountType: bankDetails.accountType,
-      });
-      next();
-    } catch (error) {
-      console.error("Saving verified bank failed:", error);
-      setSaveError(error?.message || "We couldn't save your bank account. Please try again.");
+      const res = await addBankDetails({ verificationId: result.verificationId, accountType: verified.accountType });
+      clearResult("BANK");
+      goToServerScreen(res?.data?.currentScreen);
+    } catch (err) {
+      if (handleFlowError(err)) return;
+      console.error("Saving verified bank failed:", err);
+      if (VERIFY_AGAIN.includes(getErrorCode(err))) {
+        clearResult("BANK");
+        onChangeDetails(onboardingErrorMessage(err));
+        return;
+      }
+      setSaveError(onboardingErrorMessage(err, "We couldn't save your bank account. Please try again."));
     } finally {
       setSaving(false);
     }
-  }, [bankDetails, next]);
+  }, [clearResult, goToServerScreen, handleFlowError, onChangeDetails, result.verificationId, saving, verified.accountType]);
 
   return (
     <StepCard
       icon={BadgeCheck}
       title="Bank account verified"
       subtitle="Check the details. Payouts go to this account."
-      headerAside={bankDetails && <StatusPill icon={BadgeCheck}>Verified</StatusPill>}
+      headerAside={<StatusPill icon={BadgeCheck}>Verified</StatusPill>}
       footer={
         <StepFooter
           startLastOnMobile
           start={
-            <Button variant="ghost" icon={Pencil} iconPosition="start" onClick={goToEnter} disabled={saving}>
+            <Button variant="ghost" icon={Pencil} iconPosition="start" onClick={() => onChangeDetails()} disabled={saving}>
               Change details
             </Button>
           }
         >
           <FormError message={saveError} />
-          <Button onClick={handleContinue} disabled={!bankDetails} loading={saving} icon={ArrowRight}>
-            Continue
+          <Button onClick={handleContinue} loading={saving} icon={ArrowRight}>
+            {saving ? "Saving…" : "Save & continue"}
           </Button>
         </StepFooter>
       }
     >
-      {bankDetails ? (
-        <>
-          <VerifiedHeroCard
-            icon={Landmark}
-            label={view.typeLabel ? `${view.bankName} · ${view.typeLabel}` : view.bankName}
-            value={view.masked}
-            aside={{ label: "Account holder", value: view.holder }}
-          />
+      <VerifiedHeroCard
+        icon={Landmark}
+        label={typeLabel ? `${bankName} · ${typeLabel}` : bankName}
+        value={details.maskedAccountNumber || "—"}
+        aside={{ label: "Account holder", value: details.accountHolderName || result.nameOnRecord || "—" }}
+      />
 
-          <DetailGrid
-            columns={4}
-            items={[
-              { label: "IFSC", value: view.ifsc },
-              { label: "Branch", value: view.branch },
-              { label: "MICR", value: view.micr },
-              nameTile,
-              { label: "Bank address", value: view.address, wide: true },
-            ]}
-          />
+      <DetailGrid
+        columns={3}
+        hideEmpty
+        items={[
+          { label: "IFSC", value: details.ifscCode },
+          { label: "Branch", value: details.branchName || result.branchName },
+          NAME_MATCH[String(result.isNameMatch)] ?? { label: "Name match", value: null },
+        ]}
+      />
 
-          {!nameMatched && (
-            <Notice tone="warning" icon={TriangleAlert}>
-              {view.isNameMatch === false
-                ? `The name on this account (${view.holder}) doesn't match ${businessName}. Payouts may be held until our team checks it — change the account if this one isn't yours.`
-                : `We couldn't confirm that this account belongs to ${businessName}. Our team will check it during review.`}
-            </Notice>
-          )}
-
-          <Notice tone="warning" icon={Lock}>
-            After approval, the bank account can only be changed through support.
-          </Notice>
-        </>
-      ) : (
+      <Notice tone="warning" icon={Lock}>
+        Once saved, the bank account can only be changed through support.
+      </Notice>
+      {result.isNameMatch === false && (
         <Notice tone="warning" icon={TriangleAlert}>
-          No verified bank account yet. Go back and verify your account first.
+          The name on this account doesn&apos;t match the name you entered. Our team checks it during review — change the account
+          if this one isn&apos;t yours.
         </Notice>
       )}
     </StepCard>

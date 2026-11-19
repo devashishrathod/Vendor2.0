@@ -1,36 +1,45 @@
 import { useCallback, useMemo, useState } from "react";
 import { ArrowRight, Building2, Landmark, LoaderCircle, TriangleAlert } from "lucide-react";
 import Button from "../../components/ui/Button";
+import FormError from "../../components/ui/FormError";
 import InfoPanel from "../../components/ui/InfoPanel";
 import Notice from "../../components/ui/Notice";
 import RuleChecklist from "../../components/ui/RuleChecklist";
 import StepCard from "../../components/ui/StepCard";
 import StepFooter from "../../components/ui/StepFooter";
 import { SelectField, TextField } from "../../components/ui/TextField";
-import { SCREENS } from "../../config/onboardingFlow";
+import { SCREENS } from "../../config/screens";
 import { BANK_ACCOUNT_TYPES } from "../../constants/onboardingOptions";
 import { useOnboardingFlow } from "../../hooks/useOnboardingFlow";
+import { skipScreen } from "../../services/onboardingApi";
+import { useSavedBrand } from "../../store/brandStore";
 import { useOnboardingV2Store } from "../../store/onboardingStore";
+import { useVerifyStore } from "../../store/verifyStore";
+import { onboardingErrorMessage } from "../../utils/errorMessages";
 import { allPassed, bankRules, toDigits, toUpperAlphanumeric } from "../../validation/rules";
-import FormError from "../../components/ui/FormError";
-import { ACCOUNT_MAX, IFSC_LENGTH, maskGrouped, useIfscLookup, verifyBankForm } from "./bankHelpers";
+import { ACCOUNT_MAX, IFSC_LENGTH, isSameAccount, maskGrouped, useIfscLookup, verifyBankForm } from "./bankHelpers";
 
 /**
- * Screen 10 · Bank details. Account number + IFSC (looked up live) +
- * account type, then a ₹1 penny-drop. Skippable — skipping also skips the
- * review screen.
+ * BANK_VERIFICATION · enter sub-step (guide §4.9). "Verify account" runs ONE
+ * paid penny drop (an account + IFSC already verified this session isn't
+ * sent again). Skippable: `POST skip { screen: BANK_VERIFICATION }`, and the
+ * server's answer is the next screen.
+ * @param {{ onVerified: () => void }} props
  */
-export default function BankEnterStep() {
-  const { next, skip, isCompleted } = useOnboardingFlow();
+export default function BankEnterStep({ onVerified }) {
+  const { isViewingPast, goToServerScreen, handleFlowError } = useOnboardingFlow();
+  const { brand } = useSavedBrand();
+  // Name the server compares the account holder with, when no beneficiary is typed.
+  const legalName = brand?.legalBusinessName ?? "";
   const bank = useOnboardingV2Store((s) => s.form.bank);
-  const bankDetails = useOnboardingV2Store((s) => s.form.bankDetails);
-  const legalName = useOnboardingV2Store((s) => s.form.legalName);
   const setBankField = useOnboardingV2Store((s) => s.setBankField);
-  const setField = useOnboardingV2Store((s) => s.setField);
+  const verified = useVerifyStore((s) => s.results.BANK);
+  const setResult = useVerifyStore((s) => s.setResult);
 
   const [accountFocused, setAccountFocused] = useState(false);
   const [verifying, setVerifying] = useState(false);
-  const [verifyError, setVerifyError] = useState("");
+  const [skipping, setSkipping] = useState(false);
+  const [error, setError] = useState("");
 
   const rules = useMemo(() => bankRules(bank), [bank]);
   const isValid = allPassed(rules);
@@ -40,44 +49,54 @@ export default function BankEnterStep() {
   const handleField = useCallback(
     (key, value) => {
       setBankField(key, value);
-      setVerifyError("");
+      setError("");
     },
     [setBankField],
   );
 
   const handleVerify = useCallback(async () => {
-    if (!isValid) return;
-
+    if (!isValid || verifying) return;
     // Same account already passed the ₹1 test — don't charge it again.
-    const previous = bankDetails?.result ?? {};
-    const sameAccount =
-      bankDetails?.enteredAccountNumber === bank.accountNumber &&
-      (previous.account_ifsc || bankDetails?.ifsc) === bank.ifsc;
-    if (sameAccount) {
-      setField("bankDetails", { ...bankDetails, accountType: bank.accountType });
-      next();
+    if (isSameAccount(verified, bank)) {
+      setResult("BANK", { ...verified, accountType: bank.accountType });
+      onVerified();
       return;
     }
-
     setVerifying(true);
-    setVerifyError("");
+    setError("");
     try {
-      setField("bankDetails", await verifyBankForm({ bank, ifscInfo, legalName }));
-      next();
-    } catch (error) {
-      console.error("Bank verification failed:", error);
-      setVerifyError(error?.message || "Bank verification failed. Please try again.");
+      const draft = await verifyBankForm({ bank, legalName });
+      if (!draft.result?.isVerified) {
+        // A failed drop is a 200 with the bank's reason (guide §2.10).
+        setError(draft.result?.message || "We couldn't verify this account. Check the details and try again.");
+        return;
+      }
+      setResult("BANK", draft);
+      onVerified();
+    } catch (err) {
+      if (handleFlowError(err)) return;
+      console.error("Bank verification failed:", err);
+      setError(onboardingErrorMessage(err, "Bank verification failed. Please try again."));
     } finally {
       setVerifying(false);
     }
-  }, [bank, bankDetails, ifscInfo, isValid, legalName, next, setField]);
+  }, [bank, handleFlowError, isValid, legalName, onVerified, setResult, verified, verifying]);
 
-  // A verified-but-never-saved account (Review not completed) must not count
-  // as added once the vendor skips — nothing reached the backend.
-  const handleSkip = useCallback(() => {
-    if (!isCompleted(SCREENS.BANK_REVIEW)) setField("bankDetails", null);
-    skip();
-  }, [isCompleted, setField, skip]);
+  const handleSkip = useCallback(async () => {
+    if (skipping) return;
+    setSkipping(true);
+    setError("");
+    try {
+      const res = await skipScreen(SCREENS.BANK_VERIFICATION);
+      goToServerScreen(res?.data?.currentScreen);
+    } catch (err) {
+      if (handleFlowError(err)) return;
+      console.error("Skipping bank failed:", err);
+      setError(onboardingErrorMessage(err, "Couldn't skip this step. Please try again."));
+    } finally {
+      setSkipping(false);
+    }
+  }, [goToServerScreen, handleFlowError, skipping]);
 
   const accountDisplay = accountFocused ? bank.accountNumber : maskGrouped(bank.accountNumber);
   const accountLengthOk = bank.accountNumber.length >= 9;
@@ -86,7 +105,7 @@ export default function BankEnterStep() {
     <StepCard
       icon={Landmark}
       title="Add the bank account for payouts"
-      subtitle="We verify it instantly. Your settlements land in this account."
+      subtitle="We verify it instantly with a ₹1 test. Your settlements land in this account."
       aside={
         <>
           <RuleChecklist title="Checks" rules={rules} active={touched} />
@@ -98,12 +117,15 @@ export default function BankEnterStep() {
         </>
       }
       footer={
-        <StepFooter start={<FormError message={verifyError} />}>
-          <Button variant="secondary" onClick={handleSkip} disabled={verifying}>
-            Skip for now
-          </Button>
-          <Button onClick={handleVerify} disabled={!isValid} loading={verifying} icon={ArrowRight}>
-            {verifying ? "Verifying…" : "Verify account"}
+        <StepFooter start={<FormError message={error} />}>
+          {/* Skip only works on the vendor's own current screen (#23f). */}
+          {!isViewingPast && (
+            <Button variant="secondary" onClick={handleSkip} disabled={verifying} loading={skipping}>
+              Skip for now
+            </Button>
+          )}
+          <Button onClick={handleVerify} disabled={!isValid || skipping} loading={verifying} icon={ArrowRight}>
+            {verifying ? "Verifying…" : isSameAccount(verified, bank) ? "Review details" : "Verify account"}
           </Button>
         </StepFooter>
       }
@@ -157,9 +179,7 @@ export default function BankEnterStep() {
             </div>
           </div>
         )}
-        {lookupDone && !ifscInfo && lookupError && (
-          <p className="text-xs font-medium text-amber-700 dark:text-amber-400">{lookupError}</p>
-        )}
+        {lookupDone && !ifscInfo && lookupError && <p className="text-xs font-medium text-amber-700 dark:text-amber-400">{lookupError}</p>}
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -184,8 +204,8 @@ export default function BankEnterStep() {
       </div>
 
       <Notice tone="warning" icon={TriangleAlert}>
-        <strong className="font-bold">Skipping?</strong> You won&apos;t be able to sell vouchers until a bank account is
-        added. You can add it later from your profile.
+        <strong className="font-bold">Skipping?</strong> Without a bank account you can&apos;t sell vouchers to customers. You
+        can add it later from your profile.
       </Notice>
     </StepCard>
   );

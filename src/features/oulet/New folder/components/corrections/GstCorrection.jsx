@@ -5,7 +5,7 @@ import Button from "@/features/onboarding-v2/components/ui/Button";
 import DetailGrid from "@/features/onboarding-v2/components/ui/DetailGrid";
 import FormError from "@/features/onboarding-v2/components/ui/FormError";
 import { TextField } from "@/features/onboarding-v2/components/ui/TextField";
-import { entityTypeFromConstitution, fetchGstDetails } from "@/features/onboarding-v2/services/onboardingApi";
+import { fetchGstDetails } from "@/features/onboarding-v2/services/onboardingApi";
 import {
   CODE_INPUT_CLASS,
   gstErrorMessage,
@@ -63,7 +63,8 @@ export default function GstCorrection({ initialGstin, onSaved }) {
     try {
       await updateBrandGstDetails(details);
       const legalName = record.legalName || record.tradeName || "";
-      const entity = entityTypeFromConstitution(record.constitution || "");
+      // The server's suggestion from the GST constitution (verify-gst `suggestedEntity`).
+      const entity = details.suggestedEntity ?? null;
       const entityType = isPickableEntity(entity) ? entity : null;
       const basics = {
         ...(isSavableLegalName(legalName) ? { legalBusinessName: legalName } : {}),

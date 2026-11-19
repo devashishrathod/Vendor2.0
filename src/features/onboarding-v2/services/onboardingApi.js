@@ -2,32 +2,13 @@
 // server envelope `{ success, message, data }`; errors are ApiError with
 // `details.code` (services/http/apiError.js).
 
-import { useAuthStore } from "@/features/onboarding/store/authStore";
 import { request } from "@/features/onboarding/services/api/client";
-import {
-  updateBusinessEntityType,
-  updateBusinessName,
-  updateRegistrationStatus,
-} from "@/features/onboarding/services/api/brand.api";
-import {
-  acknowledgeApproval,
-  verifyBank,
-  verifyGST,
-  verifyPAN,
-} from "@/features/onboarding/services/api/verify.api";
-import {
-  submitVerifiedBankDetails,
-  submitVerifiedGstDetails,
-  submitVerifiedPanDetails,
-} from "@/features/onboarding/services/api/verificationDetails.api";
+import { updateBusinessName, updateRegistrationStatus } from "@/features/onboarding/services/api/brand.api";
+import { acknowledgeApproval } from "@/features/onboarding/services/api/verify.api";
 import { BRANCHES } from "../config/onboardingFlow";
 
 const IFSC_LOOKUP_URL = "https://ifsc.razorpay.com";
 
-/** The verify endpoints wrap their result in `data`; unwrap once. */
-const unwrap = (res) => res?.data ?? res;
-
-const currentBrandId = () => useAuthStore.getState().user?.brandId;
 
 // ── Status (the only routing read) ────────────────────────────────────────
 
@@ -78,58 +59,48 @@ export const saveBusinessNames = ({ legalName, brandName }) =>
 export const saveBusinessStatus = (branch) =>
   updateRegistrationStatus({ status: branch === BRANCHES.UNREGISTERED ? "UNREGISTERED" : "REGISTERED" });
 
-/** @param {string} entityType - PROPRIETORSHIP | PARTNERSHIP | LLP | PRIVATE_LIMITED | … */
-export const saveEntityType = (entityType) => updateBusinessEntityType({ entityType });
+// ── Step 2 · Business verification (paid verify → save by verificationId) ─
 
-// ── Step 2 · Verification ─────────────────────────────────────────────────
+/**
+ * POST /verification/brands/onboarding/verify-gst (#29) — PAID. Only on an
+ * explicit "Verify" press, never retried; same GSTIN within the reuse window
+ * comes back `reused: true` for free. A failed check is still 200 with
+ * `isVerified: false` and the provider's `message`.
+ * @param {string} gstNumber
+ * @returns {Promise<{ data: import('../types').VerifyResult }>}
+ */
+export const verifyGst = (gstNumber) => request("/verification/brands/onboarding/verify-gst", "POST", { gstNumber }, true);
 
-/** @param {string} gstin @returns {Promise<object>} GST record */
-export const fetchGstDetails = async (gstin) => unwrap(await verifyGST(gstin));
+/**
+ * POST /verification/brands/onboarding/verify-pan (#28) — PAID, same rules.
+ * @param {string} pan
+ * @returns {Promise<{ data: import('../types').VerifyResult }>}
+ */
+export const verifyPan = (pan) => request("/verification/brands/onboarding/verify-pan", "POST", { pan }, true);
 
-/** @param {string} pan @returns {Promise<object>} PAN record */
-export const fetchPanDetails = async (pan) => unwrap(await verifyPAN(pan));
+/** POST /brands/onboarding/add-gst-details (#22). @param {string} verificationId @returns {Promise<{ data: import('../types').KycSaveResult }>} */
+export const addGstDetails = (verificationId) => request("/brands/onboarding/add-gst-details", "POST", { verificationId }, true);
 
-/** Saves a verified PAN record on the brand. @param {object} panDetails */
-export const saveVerifiedPan = (panDetails) => submitVerifiedPanDetails(currentBrandId(), panDetails);
+/** POST /brands/onboarding/add-pan-details (#21). @param {string} verificationId @returns {Promise<{ data: import('../types').KycSaveResult }>} */
+export const addPanDetails = (verificationId) => request("/brands/onboarding/add-pan-details", "POST", { verificationId }, true);
 
-/** Saves a verified GST record on the brand. @param {object} gstDetails */
-export const saveVerifiedGst = (gstDetails) => submitVerifiedGstDetails(gstDetails);
+/**
+ * POST /brands/onboarding/skip (#23f) — KYC_DOCUMENTS, BANK_VERIFICATION or
+ * BRAND_PROFESSIONAL_DETAILS, only on the vendor's current screen.
+ * @param {string} screen
+ * @returns {Promise<{ data: { currentScreen: string } }>}
+ */
+export const skipScreen = (screen) => request("/brands/onboarding/skip", "POST", { screen }, true);
 
-// GST "constitution of business" → the backend's businessEntityType.
-const CONSTITUTION_TO_ENTITY = [
-  ["proprietor", "PROPRIETORSHIP"],
-  ["limited liability", "LLP"],
-  ["partnership", "PARTNERSHIP"],
-  ["one person", "ONE_PERSON_COMPANY"],
-  ["private limited", "PRIVATE_LIMITED"],
-  ["public limited", "PUBLIC_LIMITED"],
-  ["trust", "TRUST"],
-  ["society", "SOCIETY"],
-];
+/** POST /brands/onboarding/continue (#23g), no body. @returns {Promise<{ data: { currentScreen: string } }>} */
+export const continueScreen = () => request("/brands/onboarding/continue", "POST", null, true);
 
-/** @param {string} [constitution] @returns {string} */
-export function entityTypeFromConstitution(constitution = "") {
-  const value = constitution.toLowerCase();
-  return CONSTITUTION_TO_ENTITY.find(([keyword]) => value.includes(keyword))?.[1] || "OTHERS";
-}
-
-// PAN 4th letter → entity type (P = personal PAN → run by one owner). Every
-// valid letter maps to something, so a type is always pre-selected.
-const PAN_LETTER_TO_ENTITY = {
-  P: "PROPRIETORSHIP",
-  C: "PRIVATE_LIMITED",
-  F: "PARTNERSHIP",
-  T: "TRUST",
-  A: "OTHERS",
-  B: "OTHERS",
-  H: "OTHERS",
-  G: "OTHERS",
-  L: "OTHERS",
-  J: "OTHERS",
-};
-
-/** @param {string} pan @returns {string|null} */
-export const entityTypeFromPan = (pan = "") => PAN_LETTER_TO_ENTITY[pan.charAt(3).toUpperCase()] || null;
+// Legacy readers for the remediation screens (corrections/*, Milestone B).
+// The wizard uses verifyGst / verifyPan above and never these.
+/** @param {string} gstin @returns {Promise<import('../types').VerifyResult>} */
+export const fetchGstDetails = async (gstin) => (await verifyGst(gstin))?.data;
+/** @param {string} pan @returns {Promise<import('../types').VerifyResult>} */
+export const fetchPanDetails = async (pan) => (await verifyPan(pan))?.data;
 
 // ── Step 3 · Payout ───────────────────────────────────────────────────────
 
@@ -144,14 +115,28 @@ export async function lookupIfsc(ifsc) {
   return res.json();
 }
 
-/** ₹1 penny-drop. @param {{ accountNumber: string, ifsc: string }} bank */
-export const verifyBankAccount = (bank) => verifyBank(bank);
+/**
+ * POST /verification/brands/onboarding/verify-bank (#30) — PAID ₹1 penny
+ * drop. Same account + IFSC within the reuse window is free (`reused`).
+ * @param {{ accountNumber: string, ifscCode: string, beneficiaryName?: string }} bank
+ * @returns {Promise<{ data: import('../types').VerifyResult }>}
+ */
+export const verifyBankAccount = ({ accountNumber, ifscCode, beneficiaryName }) =>
+  request(
+    "/verification/brands/onboarding/verify-bank",
+    "POST",
+    { accountNumber, ifscCode, ...(beneficiaryName ? { beneficiaryName } : {}) },
+    true,
+  );
 
 /**
- * @param {object} bankDetails - verifyBankAccount() result
- * @param {{ enteredAccountNumber: string, accountType: string }} extra
+ * POST /brands/onboarding/add-bank-details (#23) — only the verificationId
+ * (+ optional accountType); never isVerified or provider data.
+ * @param {{ verificationId: string, accountType?: string }} input
+ * @returns {Promise<{ data: import('../types').KycSaveResult }>}
  */
-export const saveVerifiedBank = (bankDetails, extra) => submitVerifiedBankDetails(bankDetails, extra);
+export const addBankDetails = ({ verificationId, accountType }) =>
+  request("/brands/onboarding/add-bank-details", "POST", { verificationId, ...(accountType ? { accountType } : {}) }, true);
 
 // ── Step 4 · Agreement ────────────────────────────────────────────────────
 

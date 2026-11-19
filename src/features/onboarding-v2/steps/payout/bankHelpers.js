@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { lookupIfsc, verifyBankAccount } from "../../services/onboardingApi";
 
 // Shared by the onboarding Bank step and the outlet review's "Add bank
-// account" popup, so both verify and store the account the same way.
+// account" popup, so both verify and save the account the same way: a paid
+// verify-bank, then add-bank-details with only its verificationId.
 
 export const ACCOUNT_MAX = 18;
 export const IFSC_LENGTH = 11;
@@ -19,30 +20,6 @@ export function maskGrouped(accountNumber) {
 /** "XXXX XXXX 9012" */
 export const maskForReview = (accountNumber = "") =>
   accountNumber.length > 4 ? `XXXX XXXX ${accountNumber.slice(-4)}` : accountNumber || "—";
-
-const extractPincode = (address = "") => address.match(/\b\d{6}\b/g)?.pop() ?? undefined;
-
-/**
- * Bank address in the shape the save endpoint expects: the penny-drop
- * result's address when it has one, else the IFSC directory's.
- */
-function resolveBankAddress(verifyAddress, ifscInfo) {
-  if (verifyAddress && typeof verifyAddress === "object") return verifyAddress;
-  if (typeof verifyAddress === "string" && verifyAddress.trim()) {
-    return { addressLine1: verifyAddress.trim(), pinCode: extractPincode(verifyAddress), country: "India" };
-  }
-  if (ifscInfo?.ADDRESS) {
-    return {
-      addressLine1: ifscInfo.ADDRESS,
-      city: ifscInfo.CITY || undefined,
-      district: ifscInfo.DISTRICT || undefined,
-      state: ifscInfo.STATE || undefined,
-      pinCode: extractPincode(ifscInfo.ADDRESS),
-      country: "India",
-    };
-  }
-  return null;
-}
 
 /**
  * Live IFSC → bank + branch, debounced. Results are keyed by the IFSC they
@@ -89,41 +66,29 @@ function beneficiaryNameFor(bank, legalName) {
 }
 
 /**
- * Runs the ₹1 penny-drop and returns the record to keep as
- * `form.bankDetails`. Throws with a readable message when it fails.
- * @param {{ bank: { accountNumber: string, ifsc: string, beneficiary: string, accountType: string }, ifscInfo: object|null, legalName?: string }} input
+ * Runs the PAID ₹1 penny drop (verify-bank, API doc #30). Call only on an
+ * explicit "Verify" press. A failed drop is still a 200 with
+ * `isVerified: false` and the bank's reason in `message` — check
+ * `result.isVerified` before saving.
+ * @param {{ bank: { accountNumber: string, ifsc: string, beneficiary: string, accountType: string }, legalName?: string }} input
+ * @returns {Promise<{ result: import("../../types").VerifyResult, accountNumber: string, ifsc: string, accountType: string }>}
  */
-export async function verifyBankForm({ bank, ifscInfo, legalName = "" }) {
+export async function verifyBankForm({ bank, legalName = "" }) {
   const response = await verifyBankAccount({
     accountNumber: bank.accountNumber,
-    ifsc: bank.ifsc,
+    ifscCode: bank.ifsc,
     beneficiaryName: beneficiaryNameFor(bank, legalName),
   });
-  const data = response?.data || response || {};
-  const result = data.result ?? {};
-  if (!data.success || data.status === "FAILED" || result.is_valid === false) {
-    throw new Error(result.failure_reason || data.message || "Bank verification failed. Please check your details and try again.");
-  }
-  return {
-    ...data,
-    result: {
-      ...result,
-      account_ifsc: result.account_ifsc || bank.ifsc,
-      bank_name: result.bank_name ?? ifscInfo?.BANK ?? null,
-      bank_branch: result.bank_branch ?? ifscInfo?.BRANCH ?? null,
-      bank_address: resolveBankAddress(result.bank_address, ifscInfo),
-      micr_code: result.micr_code ?? ifscInfo?.MICR ?? null,
-    },
-    ifsc: bank.ifsc,
-    enteredAccountNumber: bank.accountNumber,
-    accountType: bank.accountType,
-    beneficiary: bank.beneficiary.trim() || null,
-    ifscBankName: ifscInfo?.BANK ?? null,
-    ifscBranchName: ifscInfo?.BRANCH ?? null,
-    ifscBankAddress: ifscInfo?.ADDRESS ?? null,
-    ifscCity: ifscInfo?.CITY ?? null,
-    ifscDistrict: ifscInfo?.DISTRICT ?? null,
-    ifscState: ifscInfo?.STATE ?? null,
-    ifscMicr: ifscInfo?.MICR ?? null,
-  };
+  // The raw provider payload is never kept; the panel reads mapped fields.
+  const result = { ...(response?.data ?? {}) };
+  delete result.providerResponse;
+  return { result, accountNumber: bank.accountNumber, ifsc: bank.ifsc, accountType: bank.accountType };
 }
+
+/**
+ * Same account + IFSC as a verification already held — no second paid call.
+ * @param {{ accountNumber: string, ifsc: string }|null} verified
+ * @param {{ accountNumber: string, ifsc: string }} bank
+ */
+export const isSameAccount = (verified, bank) =>
+  Boolean(verified?.result?.isVerified && verified.accountNumber === bank.accountNumber && verified.ifsc === bank.ifsc);

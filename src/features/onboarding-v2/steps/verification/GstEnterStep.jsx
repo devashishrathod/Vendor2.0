@@ -7,11 +7,11 @@ import StepCard from "../../components/ui/StepCard";
 import StepFooter from "../../components/ui/StepFooter";
 import { TextField } from "../../components/ui/TextField";
 import { useOnboardingFlow } from "../../hooks/useOnboardingFlow";
-import { fetchGstDetails, fetchPanDetails } from "../../services/onboardingApi";
-import { useOnboardingV2Store } from "../../store/onboardingStore";
+import { verifyGst } from "../../services/onboardingApi";
+import { useVerifyStore } from "../../store/verifyStore";
 import { allPassed, gstRules, toUpperAlphanumeric } from "../../validation/rules";
 import { BeforeContinuePanel, FooterSummary } from "./VerificationParts";
-import { CODE_INPUT_CLASS, gstErrorMessage, isGstActive, readGstRecord } from "./verificationRecords";
+import { CODE_INPUT_CLASS, gstErrorMessage, readGstRecord } from "./verificationRecords";
 
 const GSTIN_LENGTH = 15;
 
@@ -21,26 +21,29 @@ const BEFORE_CONTINUE = [
   "GST status must be Active.",
 ];
 
-/**
- * Screen 06 · GSTIN. Verifies the GSTIN and, alongside it, the PAN inside
- * it (characters 3–12). A failed PAN lookup doesn't block the GST path.
- */
-export default function GstEnterStep() {
-  const { next } = useOnboardingFlow();
-  const storedGstin = useOnboardingV2Store((s) => s.form.gstin);
-  const storedGstDetails = useOnboardingV2Store((s) => s.form.gstDetails);
-  const setField = useOnboardingV2Store((s) => s.setField);
+const NOT_ACTIVE_MESSAGE =
+  "This GSTIN isn't active. If you don't have an active GST, go back and choose “Registered, no GST”.";
 
-  const [gstin, setGstin] = useState(storedGstin);
+/**
+ * GST_VERIFICATION · enter sub-step (guide §4.4). "Verify" makes ONE paid
+ * verify-gst call (never retried; a GSTIN already verified this session is not
+ * sent again). A failed check comes back 200 with `isVerified: false` and the
+ * provider's message.
+ * @param {{ onVerified: (result: object) => void }} props
+ */
+export default function GstEnterStep({ onVerified }) {
+  const { handleFlowError } = useOnboardingFlow();
+  const previous = useVerifyStore((s) => s.results.GST);
+  const setResult = useVerifyStore((s) => s.setResult);
+
+  const [gstin, setGstin] = useState(previous?.details?.gstNumber ?? "");
   const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState("");
 
   const rules = useMemo(() => gstRules(gstin), [gstin]);
   const isValid = allPassed(rules);
-  const verifiedRecord = useMemo(
-    () => (storedGstDetails && storedGstin === gstin ? readGstRecord(storedGstDetails) : null),
-    [gstin, storedGstDetails, storedGstin],
-  );
+  const sameAsPrevious = Boolean(previous?.isVerified && previous?.details?.gstNumber === gstin);
+  const previousRecord = useMemo(() => (sameAsPrevious ? readGstRecord(previous) : null), [previous, sameAsPrevious]);
 
   const handleChange = useCallback((event) => {
     setGstin(toUpperAlphanumeric(event.target.value, GSTIN_LENGTH));
@@ -51,43 +54,37 @@ export default function GstEnterStep() {
     async (event) => {
       event.preventDefault();
       if (!isValid || verifying) return;
-      // Same GSTIN already verified and active — the lookups are paid, don't repeat them.
-      if (verifiedRecord && isGstActive(storedGstDetails)) {
-        next();
+      // Already verified this GSTIN in this session — don't pay for it again.
+      if (sameAsPrevious) {
+        if (previous.isActive === false) setError(NOT_ACTIVE_MESSAGE);
+        else onVerified(previous);
         return;
       }
-      const pan = gstin.slice(2, 12);
       try {
         setVerifying(true);
         setError("");
-        const [gstResult, panResult] = await Promise.allSettled([fetchGstDetails(gstin), fetchPanDetails(pan)]);
-        if (gstResult.status === "rejected") throw gstResult.reason;
-
-        const gstDetails = gstResult.value;
-        if (!isGstActive(gstDetails)) {
-          const status = readGstRecord(gstDetails).registrationStatus;
-          setError(
-            `This GST registration is ${status ? status.toLowerCase() : "not active"}. Only an Active GSTIN can be used. If you have no active GST, go back and pick "Registered, no GST".`,
-          );
+        const res = await verifyGst(gstin);
+        const result = res?.data;
+        if (!result?.isVerified) {
+          setError(result?.message || "We couldn't verify this GSTIN. Check the number and try again.");
           return;
         }
-        if (panResult.status === "rejected") {
-          console.error("PAN lookup during GST verification failed (not blocking):", panResult.reason);
+        setResult("GST", result);
+        if (result.isActive === false) {
+          setError(NOT_ACTIVE_MESSAGE);
+          return;
         }
-
-        setField("gstin", gstin);
-        setField("gstDetails", gstDetails);
-        setField("pan", pan);
-        setField("panDetails", panResult.status === "fulfilled" ? panResult.value : null);
-        next();
+        onVerified(result);
       } catch (err) {
+        if (handleFlowError(err)) return;
         console.error("GST verification failed:", err);
+        // DOCUMENT_IN_USE, PAN_NOT_IN_GSTIN (details.panOnBrand), BILLING_STATE_GSTIN_MISMATCH …
         setError(gstErrorMessage(err));
       } finally {
         setVerifying(false);
       }
     },
-    [gstin, isValid, next, setField, storedGstDetails, verifiedRecord, verifying],
+    [gstin, handleFlowError, isValid, onVerified, previous, sameAsPrevious, setResult, verifying],
   );
 
   return (
@@ -95,15 +92,15 @@ export default function GstEnterStep() {
       <StepCard
         icon={ReceiptText}
         title="Enter your GSTIN"
-        subtitle="One number fills your legal name, PAN, business type and address. No separate PAN step."
+        subtitle="One number fills your legal name, PAN, business type and address."
         footer={
           <StepFooter
             start={
               <FooterSummary label="GST registration details">
-                {verifiedRecord?.legalName ? (
+                {previousRecord?.legalName ? (
                   <span className="flex flex-wrap items-center gap-1.5 font-semibold text-gray-800 dark:text-gray-200">
                     <Check size={14} strokeWidth={3} className="text-emerald-600" aria-hidden="true" />
-                    {verifiedRecord.legalName}
+                    {previousRecord.legalName}
                   </span>
                 ) : (
                   "Your verified GST details will appear here."
@@ -112,7 +109,7 @@ export default function GstEnterStep() {
             }
           >
             <Button type="submit" disabled={!isValid} loading={verifying} icon={ArrowRight}>
-              {verifying ? "Verifying…" : "Verify & fetch details"}
+              {verifying ? "Verifying…" : sameAsPrevious ? "Review details" : "Verify & fetch details"}
             </Button>
           </StepFooter>
         }

@@ -1,122 +1,91 @@
 ﻿import { useCallback, useMemo, useState } from "react";
 import { ArrowRight, Briefcase, Lock } from "lucide-react";
+import { getErrorCode, getErrorDetails } from "@/services/http/apiError";
 import Button from "../../components/ui/Button";
-import Notice from "../../components/ui/Notice";
 import FormError from "../../components/ui/FormError";
+import Notice from "../../components/ui/Notice";
 import OptionCard from "../../components/ui/OptionCard";
 import StatusPill from "../../components/ui/StatusPill";
 import StepCard from "../../components/ui/StepCard";
 import StepFooter from "../../components/ui/StepFooter";
-import { BRANCHES } from "../../config/onboardingFlow";
-import { ENTITY_VALUES, PRIMARY_ENTITY_TYPES } from "../../constants/onboardingOptions";
+import { KYC_PATHS, ONBOARDING_ERROR_CODES, SCREENS } from "../../config/screens";
+import { ENTITY_LABELS, ENTITY_TYPES } from "../../constants/onboardingOptions";
 import { useOnboardingFlow } from "../../hooks/useOnboardingFlow";
-import { useOnboardingV2Store } from "../../store/onboardingStore";
-import { detectEntityType, saveChangedEntityType } from "./verificationRecords";
-
-// Business PAN 4th letter, in words, for the subtitle.
-const PAN_LETTER_MEANING = {
-  P: "personal PAN",
-  C: "company",
-  F: "firm",
-  T: "trust",
-  A: "association of persons",
-  B: "body of individuals",
-  H: "Hindu undivided family",
-  G: "government",
-  L: "local authority",
-  J: "artificial juridical person",
-};
-
-function DetectedPill({ source, locked }) {
-  if (locked) {
-    return (
-      <StatusPill icon={Lock} tone="neutral">
-        From GST · locked
-      </StatusPill>
-    );
-  }
-  return <StatusPill>{source === "not registered" ? "Recommended" : `Recommended · from ${source}`}</StatusPill>;
-}
+import { addBasicDetails } from "../../services/onboardingApi";
+import { useSavedBrand, useSavedBrandStore } from "../../store/brandStore";
+import { useVerifyStore } from "../../store/verifyStore";
+import { onboardingErrorMessage } from "../../utils/errorMessages";
 
 /**
- * Business entity — on every path, pre-selected from the GST constitution
- * (GST), the business PAN's 4th letter (registered, no GST) or
- * Proprietorship (not registered). Registered paths already saved the
- * detected type on their review screen, so Continue only saves again when
- * the vendor changes it.
+ * REGISTRATION_ENTITY_TYPE — "Business entity" (guide §4.6), GST and NO_GST
+ * paths. Saved with `add-basic-details { step: REGISTRATION_ENTITY_TYPE,
+ * businessEntityType }`.
+ *  - GST: read-only — the value the server set from GST
+ *    (`derived.businessEntityType`); just "Confirm". Only when GST mapped to
+ *    nothing (null), or the server answers 409 ENTITY_FROM_GST with
+ *    `details.acceptedEntityTypes`, is a choice shown.
+ *  - NO_GST: verify-pan's `suggestedEntity` pre-selected ("Recommended");
+ *    the vendor may change it.
  */
 export default function BusinessTypeStep() {
-  const { next, branch } = useOnboardingFlow();
-  const pan = useOnboardingV2Store((s) => s.form.pan);
-  const panDetails = useOnboardingV2Store((s) => s.form.panDetails);
-  const gstDetails = useOnboardingV2Store((s) => s.form.gstDetails);
-  const ownerPanDetails = useOnboardingV2Store((s) => s.form.ownerKyc.panDetails);
-  const ownerPan = useOnboardingV2Store((s) => s.form.ownerKyc.pan);
-  const storedEntityType = useOnboardingV2Store((s) => s.form.entityType);
-  const setField = useOnboardingV2Store((s) => s.setField);
+  const { kycPath, goToServerScreen, handleFlowError } = useOnboardingFlow();
+  const { brand, loading } = useSavedBrand();
+  const mergeBrand = useSavedBrandStore((s) => s.mergeBrand);
+  const panResult = useVerifyStore((s) => s.results.PAN);
 
-  // The entity belongs to the business, so the business PAN (on the GST path,
-  // the one inside the GSTIN) comes first; a director's or partner's own PAN
-  // (4th letter P) would wrongly suggest a proprietorship.
-  const entityPan = pan || ownerPan || "";
-  const { entityType: detected, source } = useMemo(
-    () => detectEntityType({ branch, gstDetails, pan: entityPan }),
-    [branch, entityPan, gstDetails],
-  );
-  // GST path with a clear GST "constitution": the entity comes from the GST
-  // registration and is view-only — the vendor can see it, not change it.
-  const locked = branch === BRANCHES.GST && source === "GST" && Boolean(detected);
-  // An older saved value outside the 5 options (e.g. OTHERS) counts as unset.
-  const storedValid = ENTITY_VALUES.includes(storedEntityType) ? storedEntityType : null;
-  const [picked, setSelected] = useState(storedValid ?? detected);
-  const selected = locked ? detected : picked;
+  const isGstPath = kycPath === KYC_PATHS.GST;
+  const savedEntity = brand?.businessEntityType ?? null;
+  const suggested = isGstPath ? savedEntity : panResult?.suggestedEntity ?? null;
+
+  // 409 ENTITY_FROM_GST → only these values are accepted.
+  const [acceptedTypes, setAcceptedTypes] = useState(null);
+  const gstReadOnly = isGstPath && Boolean(savedEntity) && !acceptedTypes;
+
+  const [picked, setPicked] = useState(null);
+  const selected = gstReadOnly ? savedEntity : picked ?? savedEntity ?? suggested;
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  const panLetter = entityPan.charAt(3).toUpperCase();
-  const isUnregistered = branch === BRANCHES.UNREGISTERED;
-  const needsPan = branch === BRANCHES.REG_NO_GST;
-  let subtitle = "Pick the type that matches your business registration.";
-  if (locked) subtitle = "Taken from your GST registration. It can't be changed here because it must match your GST.";
-  else if (source === "GST" && detected) subtitle = "We've selected the recommended type from your GST registration. Change it only if it looks wrong.";
-  else if (isUnregistered) subtitle = "Most unregistered businesses are run by one owner, so we've recommended that. Change it if yours is different.";
-  else if (source === "PAN" && detected && PAN_LETTER_MEANING[panLetter]) {
-    subtitle = `We've selected the recommended type from your PAN (4th letter ${panLetter} = ${PAN_LETTER_MEANING[panLetter]}). Change it only if it looks wrong.`;
-  }
-
+  const options = useMemo(
+    () => (acceptedTypes ? ENTITY_TYPES.filter((t) => acceptedTypes.includes(t.value)) : ENTITY_TYPES),
+    [acceptedTypes],
+  );
 
   const handleSelect = useCallback(
     (value) => {
-      if (locked) return;
-      setSelected(value);
+      if (gstReadOnly) return;
+      setPicked(value);
       setError("");
     },
-    [locked],
+    [gstReadOnly],
   );
 
   const handleContinue = useCallback(async () => {
-    if (!selected || (needsPan && !panDetails) || saving) return;
-    // Registered paths saved the detected type on their review screen; only
-    // a changed (or never-saved) type needs another save.
-    if (selected === storedEntityType) {
-      next();
-      return;
-    }
+    if (!selected || saving) return;
     try {
       setSaving(true);
       setError("");
-      // On the GST path the owner PAN was the last PAN saved — re-send that one.
-      const lastSavedPan = branch === BRANCHES.GST ? ownerPanDetails ?? panDetails : panDetails;
-      await saveChangedEntityType({ branch, entityType: selected, panDetails: lastSavedPan, gstDetails });
-      setField("entityType", selected);
-      next();
+      const res = await addBasicDetails(SCREENS.REGISTRATION_ENTITY_TYPE, { businessEntityType: selected });
+      mergeBrand(res?.data?.brand);
+      goToServerScreen(res?.data?.currentScreen);
     } catch (err) {
-      console.error("Registered-no-GST save failed:", err);
-      setError(err?.message || "We couldn't save your business details. Please try again.");
+      if (handleFlowError(err)) return;
+      console.error("Business entity save failed:", err);
+      const accepted = getErrorDetails(err)?.acceptedEntityTypes;
+      if (getErrorCode(err) === ONBOARDING_ERROR_CODES.ENTITY_FROM_GST && Array.isArray(accepted)) {
+        setAcceptedTypes(accepted);
+        setPicked(accepted[0] ?? null);
+      }
+      setError(onboardingErrorMessage(err, "We couldn't save your business entity. Please try again."));
     } finally {
       setSaving(false);
     }
-  }, [branch, gstDetails, needsPan, next, ownerPanDetails, panDetails, saving, selected, setField, storedEntityType]);
+  }, [goToServerScreen, handleFlowError, mergeBrand, saving, selected]);
+
+  let subtitle = "Pick the type that matches your business registration.";
+  if (gstReadOnly) subtitle = "Taken from your GST registration. Confirm it to continue.";
+  else if (isGstPath && acceptedTypes) subtitle = "Your GST registration allows these business types. Pick yours.";
+  else if (!isGstPath && suggested) subtitle = "We've recommended a type from your PAN. Change it only if it looks wrong.";
 
   return (
     <StepCard
@@ -124,39 +93,41 @@ export default function BusinessTypeStep() {
       title="Your business entity"
       subtitle={subtitle}
       footer={
-        <StepFooter>
-          <Button onClick={handleContinue} disabled={!selected || (needsPan && !panDetails)} loading={saving} icon={ArrowRight}>
-            {saving ? "Saving…" : "Continue"}
+        <StepFooter start={<FormError message={error} />}>
+          <Button onClick={handleContinue} disabled={!selected || loading} loading={saving} icon={ArrowRight}>
+            {saving ? "Saving…" : gstReadOnly ? "Confirm" : "Continue"}
           </Button>
         </StepFooter>
       }
     >
-      <div role="group" aria-label="Business entity" className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-5">
-        {PRIMARY_ENTITY_TYPES.map((type) => (
-          <OptionCard
-            key={type.value}
-            title={type.label}
-            description={type.description}
-            selected={selected === type.value}
-            onSelect={() => handleSelect(type.value)}
-            disabled={locked && selected !== type.value}
-            badge={detected === type.value ? <DetectedPill source={source} locked={locked} /> : null}
-          />
-        ))}
-      </div>
+      {gstReadOnly ? (
+        <div className="flex flex-wrap items-center gap-3 rounded-[14px] bg-gray-50 p-4 ring-1 ring-inset ring-gray-200 dark:bg-gray-800/50 dark:ring-gray-700">
+          <span className="text-[15px] font-extrabold text-gray-900 dark:text-gray-100">{ENTITY_LABELS[savedEntity] ?? savedEntity}</span>
+          <StatusPill icon={Lock} tone="neutral">
+            From GST · locked
+          </StatusPill>
+        </div>
+      ) : (
+        <div role="group" aria-label="Business entity" className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-5">
+          {options.map((type) => (
+            <OptionCard
+              key={type.value}
+              title={type.label}
+              description={type.description}
+              selected={selected === type.value}
+              onSelect={() => handleSelect(type.value)}
+              badge={!isGstPath && suggested === type.value ? <StatusPill>Recommended for you</StatusPill> : null}
+            />
+          ))}
+        </div>
+      )}
 
-
-
-      {locked && (
+      {isGstPath && (
         <Notice icon={Lock}>
-          Your business entity is read from your GST registration, so it can&apos;t be changed here. If it looks wrong, update it
-          on the GST portal first, or contact support.
+          Your business entity must match your GST registration. If it looks wrong, update it on the GST portal first, or
+          contact support.
         </Notice>
       )}
-      {needsPan && !panDetails && (
-        <Notice tone="warning">Verify your business PAN first. Go back to the Business PAN step to do it.</Notice>
-      )}
-      <FormError message={error} />
     </StepCard>
   );
 }
