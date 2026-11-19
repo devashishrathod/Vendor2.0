@@ -1,11 +1,10 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { DOCUMENT_RULES } from "../constants/onboardingOptions";
-import { SCREENS } from "../config/onboardingFlow";
 
-// Onboarding v3 state — where the vendor is, which path they're on, and
-// what they've entered so far. Persisted under its own key so it never
-// mixes with the production onboarding's "onboarding-store".
+// Onboarding form drafts only. Where the vendor is (screen, path, done /
+// skipped, progress) is the server's — store/statusStore.js. Persisted under
+// its own key so it never mixes with the old onboarding's "onboarding-store".
 
 /**
  * @typedef {Object} BusinessDocument
@@ -70,13 +69,6 @@ const initialForm = {
 };
 
 const initialState = {
-  currentScreen: SCREENS.BRAND_NAME,
-  // Set while editing a completed step from the preview: the screen the
-  // vendor was on, so Continue takes them straight back there.
-  returnTo: null,
-  branch: null,
-  completed: [],
-  skipped: [],
   form: initialForm,
 };
 
@@ -87,24 +79,11 @@ export const useOnboardingV2Store = create(
     (set) => ({
       ...initialState,
 
-      goTo: (screen) => set({ currentScreen: screen }),
-      setReturnTo: (screen) => set({ returnTo: screen }),
-      setBranch: (branch) => set({ branch }),
-
       setField: (key, value) => set((s) => ({ form: { ...s.form, [key]: value } })),
       /** Merge `patch` into an object field of the form (ownerKyc, bank, outlet …). */
       patchForm: (key, patch) =>
         set((s) => ({ form: { ...s.form, [key]: { ...(s.form[key] || {}), ...patch } } })),
       setBankField: (key, value) => set((s) => ({ form: { ...s.form, bank: { ...s.form.bank, [key]: value } } })),
-
-      markCompleted: (screen) =>
-        set((s) => ({
-          completed: s.completed.includes(screen) ? s.completed : [...s.completed, screen],
-          skipped: s.skipped.filter((id) => id !== screen),
-        })),
-
-      markSkipped: (screen) =>
-        set((s) => (s.skipped.includes(screen) ? {} : { skipped: [...s.skipped, screen] })),
 
       /** @param {string} [title] */
       addDocument: (title = "") =>
@@ -135,17 +114,10 @@ export const useOnboardingV2Store = create(
     {
       name: "onboarding-v2-store",
       storage: createJSONStorage(() => localStorage),
-      // v2 → v3 changed every screen id and most form keys; start fresh.
-      version: 3,
+      // v4: the screen / path / done / skipped tracker moved to the server.
+      version: 4,
       migrate: () => initialState,
-      partialize: (s) => ({
-        currentScreen: s.currentScreen,
-        returnTo: s.returnTo,
-        branch: s.branch,
-        completed: s.completed,
-        skipped: s.skipped,
-        form: s.form,
-      }),
+      partialize: (s) => ({ form: s.form }),
     },
   ),
 );

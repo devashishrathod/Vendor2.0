@@ -4,10 +4,10 @@ import { ArrowLeft, BadgeCheck, Building2, Check, Landmark, LoaderCircle, Shield
 import Toaster from "@/features/onboarding-v2/components/ui/Toaster";
 import FormError from "@/features/onboarding-v2/components/ui/FormError";
 import { SelectField, TextField } from "@/features/onboarding-v2/components/ui/TextField";
-import { SCREENS } from "@/features/onboarding-v2/config/onboardingFlow";
 import { BANK_ACCOUNT_TYPES } from "@/features/onboarding-v2/constants/onboardingOptions";
 import { saveVerifiedBank } from "@/features/onboarding-v2/services/onboardingApi";
 import { useOnboardingV2Store } from "@/features/onboarding-v2/store/onboardingStore";
+import { useOnboardingStatusStore } from "@/features/onboarding-v2/store/statusStore";
 import {
   ACCOUNT_MAX,
   IFSC_LENGTH,
@@ -35,7 +35,7 @@ function BankModalBody({ onClose }) {
   const legalName = useOnboardingV2Store((s) => s.form.legalName);
   const setBankField = useOnboardingV2Store((s) => s.setBankField);
   const setField = useOnboardingV2Store((s) => s.setField);
-  const markCompleted = useOnboardingV2Store((s) => s.markCompleted);
+  const fetchStatus = useOnboardingStatusStore((s) => s.fetchStatus);
 
   const [phase, setPhase] = useState("enter"); // enter | review
   const [verified, setVerified] = useState(null); // penny-drop result, not stored until saved
@@ -91,8 +91,8 @@ function BankModalBody({ onClose }) {
     try {
       await saveVerifiedBank(verified, { enteredAccountNumber: verified.enteredAccountNumber, accountType: verified.accountType });
       setField("bankDetails", verified);
-      markCompleted(SCREENS.BANK_ENTER);
-      markCompleted(SCREENS.BANK_REVIEW);
+      // The server's status (items.bank, groups) is the tracker now.
+      fetchStatus().catch((err) => console.error("Onboarding status refresh failed:", err));
       onClose();
     } catch (err) {
       console.error("Saving bank account failed:", err);

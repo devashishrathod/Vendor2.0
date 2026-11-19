@@ -1,6 +1,7 @@
 export { default as OnboardingPage } from "./pages/OnboardingPage";
-export { default as SystemVerificationPage } from "./pages/SystemVerificationPage";
+export { default as StatusGate } from "./components/StatusGate";
 export { useOnboardingV2Store } from "./store/onboardingStore";
+export { useOnboardingStatusStore } from "./store/statusStore";
 export { useOnboardingFlow } from "./hooks/useOnboardingFlow";
-export { SCREENS, BRANCHES, FLOW_GROUPS } from "./config/onboardingFlow";
-export { ONBOARDING_ROUTES, SCREEN_ROUTES, LIVE_DASHBOARD_ROUTE } from "./config/routes";
+export { SCREENS, KYC_PATHS } from "./config/screens";
+export { ONBOARDING_ROUTES, SCREEN_ROUTES, LIVE_DASHBOARD_ROUTE, routeForScreen } from "./config/routes";

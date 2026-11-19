@@ -1,8 +1,9 @@
-// Onboarding v3 → backend. Every call here hits a REAL endpoint, reusing the
-// production onboarding's API functions so payloads stay identical.
-// Screens with no backend yet call ./pendingApi.js instead.
+// Onboarding v2 → backend (API doc #20a–#32b). Every function returns the
+// server envelope `{ success, message, data }`; errors are ApiError with
+// `details.code` (services/http/apiError.js).
 
 import { useAuthStore } from "@/features/onboarding/store/authStore";
+import { request } from "@/features/onboarding/services/api/client";
 import {
   updateBasicDetails,
   updateBusinessEntityType,
@@ -12,7 +13,6 @@ import {
 import {
   acknowledgeApproval,
   approvePartnership,
-  systemVerify,
   verifyBank,
   verifyGST,
   verifyPAN,
@@ -31,6 +31,17 @@ const IFSC_LOOKUP_URL = "https://ifsc.razorpay.com";
 const unwrap = (res) => res?.data ?? res;
 
 const currentBrandId = () => useAuthStore.getState().user?.brandId;
+
+// ── Status (the only routing read) ────────────────────────────────────────
+
+/** GET /brands/onboarding/status (#20a). @returns {Promise<{ data: import('../types').OnboardingStatus }>} */
+export const getOnboardingStatus = () => request("/brands/onboarding/status", "GET", null, true);
+
+/** GET /brands/get (#31) — saved brand details for previews. */
+export const getBrand = () => request("/brands/get", "GET", null, true);
+
+/** GET /brands/onboarding/documents (#23b). @returns {Promise<{ data: import('../types').DocumentsList }>} */
+export const getKycDocuments = () => request("/brands/onboarding/documents", "GET", null, true);
 
 // ── Step 1 · Basic Details ──────────────────────────────────────────────
 
@@ -151,9 +162,12 @@ export const saveVerifiedBank = (bankDetails, extra) => submitVerifiedBankDetail
 
 export const acceptPartnerContract = () => approvePartnership();
 
-// ── Submit & status ───────────────────────────────────────────────────────
+// ── Submit & after approval ───────────────────────────────────────────────
 
-/** Runs PAN/GST/bank checks. @returns {Promise<{ status: string, flags?: object, remarks?: string }>} */
-export const runSystemVerification = async () => unwrap(await systemVerify());
+/**
+ * POST /brands/onboarding/submit (#24) — replaced GET system-verify. Used for
+ * the resubmit after a rejection; the review page's first submit is Milestone B.
+ */
+export const submitOnboarding = () => request("/brands/onboarding/submit", "POST", null, true);
 
 export const acknowledgeBrandApproval = () => acknowledgeApproval();

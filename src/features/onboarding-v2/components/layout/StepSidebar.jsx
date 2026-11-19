@@ -22,11 +22,11 @@ function GroupMarker({ status, number }) {
   );
 }
 
+// status.profileStrength.level (guide §11): LOW < 50 · MEDIUM 50–74 · STRONG ≥ 75.
 const STRENGTH_COLORS = {
-  Low: { bar: "bg-amber-400", text: "text-amber-700 dark:text-amber-400" },
-  Medium: { bar: "bg-sky-500", text: "text-sky-700 dark:text-sky-400" },
-  Good: { bar: "bg-emerald-500", text: "text-emerald-700 dark:text-emerald-400" },
-  Excellent: { bar: "bg-emerald-600", text: "text-emerald-700 dark:text-emerald-400" },
+  LOW: { bar: "bg-amber-400", text: "text-amber-700 dark:text-amber-400", label: "Low" },
+  MEDIUM: { bar: "bg-sky-500", text: "text-sky-700 dark:text-sky-400", label: "Medium" },
+  STRONG: { bar: "bg-emerald-500", text: "text-emerald-700 dark:text-emerald-400", label: "Strong" },
 };
 
 /** One compact "label · value" line with a thin bar under it. */
@@ -88,8 +88,8 @@ function SubStep({ sub }) {
 
 /**
  * Brand, progress + profile strength, the 5 steps (sub-steps listed under
- * the active one) and the help box. Rendered as the desktop sidebar and
- * inside the mobile drawer.
+ * the active one) and the help box — all from the server's onboarding
+ * status. Rendered as the desktop sidebar and inside the mobile drawer.
  * @param {{
  *   groups: ReturnType<typeof import('../../hooks/useOnboardingFlow').useOnboardingFlow>['groups'],
  *   progress: number, stepNumber: number, totalSteps: number,
@@ -133,7 +133,7 @@ export default function StepSidebar({ groups, progress, stepNumber, totalSteps, 
         {strength && (
           <ProgressRow
             label="Profile strength"
-            value={`${strength.score} · ${strength.level}`}
+            value={`${strength.score} · ${STRENGTH_COLORS[strength.level]?.label ?? strength.level}`}
             percent={strength.score}
             barClass={STRENGTH_COLORS[strength.level]?.bar ?? "bg-gray-400"}
             valueClass={STRENGTH_COLORS[strength.level]?.text ?? "text-gray-600"}

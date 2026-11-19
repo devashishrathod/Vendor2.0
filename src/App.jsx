@@ -7,7 +7,7 @@ import PublicRoute from './routes/PublicRoute';
 import DashboardLayout from './features/dashboard/layouts/DashboardLayout';
 
 import Step1WhatsApp from './features/onboarding/steps/Step1WhatsApp';
-import { ONBOARDING_ROUTES, OnboardingPage, SystemVerificationPage } from './features/onboarding-v2';
+import { ONBOARDING_ROUTES, OnboardingPage, StatusGate } from './features/onboarding-v2';
 
 import AnalysisReport from './features/dashboard/pages/AnalysisReport';
 import Transactions from './features/transaction/pages/Transactions';
@@ -93,6 +93,8 @@ function App() {
     <BrowserRouter>
     <AnalyticsRouteTracker />
     <PushNotificationToast toast={pushToast} onDismiss={() => setPushToast(null)} />
+     {/* Logged in → wait for GET /brands/onboarding/status, the only routing source. */}
+     <StatusGate>
      <PostAuthRouteGuard>   {/* ✅ yahan wrap karo — Routes ke bahar, Router ke andar */}
       <Routes>
 
@@ -104,8 +106,6 @@ function App() {
         <Route path={ONBOARDING_ROUTES.PLAN} element={<ProtectedRoute><SubscriptionPlan /></ProtectedRoute>} />
         <Route path={ONBOARDING_ROUTES.CHECKOUT} element={<ProtectedRoute><SubscriptionCheckout /></ProtectedRoute>} />
         <Route path={ONBOARDING_ROUTES.OUTLET} element={<ProtectedRoute><OnboardingOnlyRoute><CreateBrandOutlet /></OnboardingOnlyRoute></ProtectedRoute>} />
-        {/* Each system-verify call is a new attempt (API doc #24) — never let an onboarded vendor re-run it. */}
-        <Route path={ONBOARDING_ROUTES.VERIFY} element={<ProtectedRoute><OnboardingOnlyRoute><SystemVerificationPage /></OnboardingOnlyRoute></ProtectedRoute>} />
         <Route path={ONBOARDING_ROUTES.STATUS} element={<ProtectedRoute><UnderReview /></ProtectedRoute>} />
 
         {/* ─── DASHBOARD GROUP: header/footer YAHAN chahiye ─── */}
@@ -158,6 +158,7 @@ function App() {
 
       </Routes>
          </PostAuthRouteGuard>  
+     </StatusGate>
     </BrowserRouter>
   );
 }

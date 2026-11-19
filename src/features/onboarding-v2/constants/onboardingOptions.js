@@ -15,6 +15,56 @@ export const PRIMARY_ENTITY_TYPES = [
 /** The only entity values a vendor can pick (and that we recommend). */
 export const ENTITY_VALUES = PRIMARY_ENTITY_TYPES.map((t) => t.value);
 
+/** All BUSINESS_ENTITY_TYPE values the server accepts (API doc enum), in display order. */
+export const ENTITY_TYPES = [
+  ...PRIMARY_ENTITY_TYPES,
+  { value: "ONE_PERSON_COMPANY", label: "OPC", description: "One person company" },
+  { value: "TRUST", label: "Trust", description: "Registered trust" },
+  { value: "NGO", label: "NGO", description: "Non-profit organisation" },
+  { value: "SOCIETY", label: "Society", description: "Registered society" },
+  { value: "OTHERS", label: "Others", description: "Any other structure" },
+];
+
+/** BUSINESS_ENTITY_TYPE → label. */
+export const ENTITY_LABELS = Object.freeze({
+  PROPRIETORSHIP: "Proprietorship",
+  PARTNERSHIP: "Partnership",
+  LLP: "LLP",
+  PRIVATE_LIMITED: "Private Limited",
+  PUBLIC_LIMITED: "Public Limited",
+  ONE_PERSON_COMPANY: "One Person Company",
+  TRUST: "Trust",
+  NGO: "NGO",
+  SOCIETY: "Society",
+  OTHERS: "Others",
+});
+
+/** kycPath → the business status card title (guide §4.3). */
+export const KYC_PATH_LABELS = Object.freeze({
+  GST: "I have GST",
+  NO_GST: "Registered, no GST",
+  UNREGISTERED: "Not registered",
+});
+
+/**
+ * Labels for the 9 fixed business-document `docType` codes (API doc #23c).
+ * `hints` from GET /brands/onboarding/documents are these codes.
+ */
+export const DOC_TYPE_LABELS = Object.freeze({
+  FSSAI: "FSSAI licence",
+  DRUG_LICENCE: "Drug licence",
+  SHOP_ESTABLISHMENT: "Shop & Establishment",
+  TRADE_LICENCE: "Trade licence",
+  UDYAM: "Udyam registration",
+  SHOP_PHOTO: "Shop photo",
+  ELECTRICITY_BILL: "Electricity bill",
+  RENT_AGREEMENT: "Rent agreement",
+  OTHER: "Other",
+});
+
+/** @param {string|null|undefined} docType @returns {string|null} */
+export const docTypeLabel = (docType) => (docType ? DOC_TYPE_LABELS[docType] ?? docType : null);
+
 // Owner verification (not registered): ID types that can be uploaded instead of DigiLocker.
 export const OWNER_ID_TYPES = [
   { value: "DRIVING_LICENCE", label: "Driving licence" },

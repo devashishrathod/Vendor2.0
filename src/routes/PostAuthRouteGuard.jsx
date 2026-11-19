@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuthStore } from '@/features/onboarding/store/authStore';
-import { ONBOARDING_ROUTES, SCREEN_ROUTES } from '@/features/onboarding-v2/config/routes';
+import { routeForScreen } from '@/features/onboarding-v2/config/routes';
+import { useOnboardingStatusStore, selectCurrentScreen } from '@/features/onboarding-v2/store/statusStore';
 
 // ⚠️ FIXED: this only ever listed "/analysis-report" — but App.jsx's
 // DASHBOARD_GROUP_PREFIXES (this whole ProtectedRoute><DashboardLayout>
@@ -43,16 +43,14 @@ function isPathAllowed(currentScreen, pathname) {
   if (currentScreen === "DASHBOARD") {
     return DASHBOARD_GROUP_PREFIXES.some((p) => pathname.startsWith(p));
   }
-  // System verification runs right after the outlet is submitted, while the
-  // backend screen is already (or about to be) UNDER_REVIEW.
-  if (pathname === ONBOARDING_ROUTES.VERIFY && (currentScreen === "OUTLET_PAGE" || currentScreen === "UNDER_REVIEW")) return true;
-  return pathname === SCREEN_ROUTES[currentScreen];
+  return pathname === routeForScreen(currentScreen);
 }
 
 export default function PostAuthRouteGuard({ children }) {
   const navigate      = useNavigate();
   const location       = useLocation();
-  const currentScreen  = useAuthStore((s) => s.currentScreen);
+  // The server's screen (GET /brands/onboarding/status) — the only routing source.
+  const currentScreen  = useOnboardingStatusStore(selectCurrentScreen);
   const screenRef       = useRef(currentScreen);
 
   // The page the vendor is actually ON right now, kept in a ref (not just
@@ -86,8 +84,8 @@ export default function PostAuthRouteGuard({ children }) {
       }
 
       const screen       = screenRef.current;
-      const correctPath  = SCREEN_ROUTES[screen];
-      if (!correctPath) return;
+      if (!screen) return;
+      const correctPath  = routeForScreen(screen);
 
       if (isPathAllowed(screen, window.location.pathname)) return;
 

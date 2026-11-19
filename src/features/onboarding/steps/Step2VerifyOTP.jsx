@@ -2,37 +2,14 @@ import { useCallback, useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { validateOTP } from "../validation";
 import { useAuthStore } from "@/features/onboarding/store/authStore";
-import {
-  useOnboardingStore,
-  BASIC_SUB,
-  BIZ_SUB,
-  BANK_SUB,
-} from "@/features/onboarding/store/onboardingStore";
-import { STEPS } from "@/features/onboarding/constants/steps";
+import { useOnboardingStore } from "@/features/onboarding/store/onboardingStore";
 import { ROLES } from "@/constants";
 import { registerCurrentDevice } from "@/features/onboarding/services/api/deviceToken.api";
+import { routeForScreen } from "@/features/onboarding-v2/config/routes";
+import { useOnboardingStatusStore } from "@/features/onboarding-v2/store/statusStore";
 
 // One code per number every 60 seconds (API doc #1 note 2).
 const RESEND_WAIT_SECONDS = 60;
-
-const SCREEN_TO_STEP = {
-  BUSINESS_NAME:            { step: STEPS.BASIC_DETAILS,         subStep: BASIC_SUB.BUSINESS_NAME },
-  REGISTRATION_STATUS:      { step: STEPS.BASIC_DETAILS,         subStep: BASIC_SUB.REGISTRATION_STATUS },
-  REGISTRATION_ENTITY_TYPE: { step: STEPS.BASIC_DETAILS,         subStep: BASIC_SUB.REGISTRATION_ENTITY_TYPE },
-  PAN_VERIFICATION:         { step: STEPS.BUSINESS_VERIFICATION, subStep: BIZ_SUB.PAN_VERIFICATION },
-  GST_VERIFICATION:         { step: STEPS.BUSINESS_VERIFICATION, subStep: BIZ_SUB.GST_VERIFICATION },
-  BANK_VERIFICATION:        { step: STEPS.BANK_VERIFICATION,     subStep: BANK_SUB.BANK_VERIFICATION },
-  SYSTEM_VERIFICATION:      { step: STEPS.SYSTEM_VERIFY,         subStep: 1 },
-  PARTNERSHIP_DEED:         { step: STEPS.PARTNER_CONTRACT,      subStep: 1 },
-  SUBSCRIBE_PLAN:           { redirect: "/subscription" },
-  OUTLET_PAGE:              { redirect: "/brand-outlet" },
-  UNDER_REVIEW:             { redirect: "/under-review" },
-  // The /oulet route doesn't exist (it's commented out in App.jsx) — this
-  // was left stale from before DASHBOARD was repointed to Analysis Report,
-  // the dashboard group's new default page. PostAuthRouteGuard.jsx already
-  // has the correct "/analysis-report" mapping; this just matches it.
-  DASHBOARD:                { redirect: "/analysis-report" },
-};
 
 function ErrorMessage({ message }) {
   if (!message) return null;
@@ -73,11 +50,16 @@ function PrimaryButton({ children, onClick, disabled, loading, className = "" })
 
 export default function Step2VerifyOTP({ isOpen, onClose, phoneNumber, onVerified }) {
   const { verifyOTP, sendOTP, loading } = useAuthStore();
-  const { goToStep, setBrandId } = useOnboardingStore();
+  // brandId is still read from the old onboarding store by the under-review
+  // page and services/api getBrandId(); routing does not use this store.
+  const setBrandId = useOnboardingStore((s) => s.setBrandId);
+  const fetchStatus = useOnboardingStatusStore((s) => s.fetchStatus);
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [error, setError] = useState(null);
   const [resendTimer, setResendTimer] = useState(RESEND_WAIT_SECONDS);
   const [canResend, setCanResend] = useState(false);
+  // Loading the onboarding status right after the code is accepted.
+  const [verifying, setVerifying] = useState(false);
   const inputRefs = useRef([]);
   // The one running countdown. Kept in a ref so a resend replaces it instead
   // of starting a second interval (two ran the countdown at double speed).
@@ -148,42 +130,38 @@ export default function Step2VerifyOTP({ isOpen, onClose, phoneNumber, onVerifie
   const handleVerify = async () => {
     const err = validateOTP(otpString);
     if (err) return setError(err);
+    let res;
     try {
-      const res = await verifyOTP(phoneNumber, otpString, ROLES.VENDOR);
-
-      console.log('[OTP] verifyOTP response:', res);
-      console.log('[OTP] currentScreen from backend:', res?.data?.user?.currentScreen);
-
-      const brandId = res?.data?.user?.brandId;
-      if (brandId) {
-        setBrandId(brandId);
-        console.log('✅ brandId saved:', brandId);
-      }
-
-      // Register this device for push notifications now that the vendor
-      // has a valid session — failures here shouldn't block onboarding,
-      // just log and move on.
-      registerCurrentDevice().catch((err) => {
-        console.error('[OTP] registerCurrentDevice failed — FCM token generated: false');
-        console.error('[OTP] registerCurrentDevice error:', err);
-      });
-
-      const currentScreen = res?.data?.user?.currentScreen ?? "BUSINESS_NAME";
-      const mapped = SCREEN_TO_STEP[currentScreen];
-      console.log('[OTP] mapped:', mapped);
-
-      if (mapped?.redirect) {
-        onVerified?.();
-        navigate(mapped.redirect);
-        return;
-      }
-
-      const target = mapped ?? { step: STEPS.BASIC_DETAILS, subStep: BASIC_SUB.BUSINESS_NAME };
-      goToStep(target.step, target.subStep);
-      onVerified?.();
-      navigate("/onboarding");
+      res = await verifyOTP(phoneNumber, otpString, ROLES.VENDOR);
     } catch (e) {
+      // OTP errors (wrong / expired code, too many tries) carry no code — show the server's text.
       setError(e.message || "Invalid OTP. Please try again.");
+      return;
+    }
+
+    const brandId = res?.data?.user?.brandId;
+    if (brandId) setBrandId(brandId);
+
+    // Register this device for push notifications now that the vendor
+    // has a valid session — failures here shouldn't block onboarding,
+    // just log and move on.
+    registerCurrentDevice().catch((err) => {
+      console.error('[OTP] registerCurrentDevice failed:', err);
+    });
+
+    // Route from GET /brands/onboarding/status, never from the login
+    // response or isFirst (guide §2.3, §4.0). A pending deed confirmation is
+    // shown as a blocking popup over whatever page this opens.
+    try {
+      setVerifying(true);
+      const status = await fetchStatus();
+      onVerified?.();
+      navigate(routeForScreen(status?.currentScreen), { replace: true });
+    } catch (e) {
+      console.error('[OTP] onboarding status fetch failed:', e);
+      setError(e.message || "Logged in, but we couldn't load your progress. Please try again.");
+    } finally {
+      setVerifying(false);
     }
   };
 
@@ -298,8 +276,8 @@ export default function Step2VerifyOTP({ isOpen, onClose, phoneNumber, onVerifie
             )}
           </div>
 
-          <PrimaryButton onClick={handleVerify} disabled={otpString.length < 6} loading={loading}>
-            {loading ? "Verifying…" : "Continue →"}
+          <PrimaryButton onClick={handleVerify} disabled={otpString.length < 6} loading={loading || verifying}>
+            {loading || verifying ? "Verifying…" : "Continue →"}
           </PrimaryButton>
 
           <p className="text-center text-xs text-gray-500 dark:text-gray-400 mt-4">

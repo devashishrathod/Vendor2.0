@@ -1,216 +1,174 @@
 import { useCallback, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
-import { FLOW_GROUPS, SCREENS, TOTAL_GROUPS, getFlowScreens } from "../config/onboardingFlow";
-import { useOnboardingV2Store } from "../store/onboardingStore";
-import { getProfileStrength, strengthLevel } from "../utils/profileStrength";
+import { useLocation, useNavigate } from "react-router-dom";
+import { getErrorCode, getErrorDetails } from "@/services/http/apiError";
+import { isWizardScreen, routeForScreen } from "../config/routes";
+import { GROUP_LABELS, KYC_PATHS, ONBOARDING_ERROR_CODES, SCREEN_LABELS, SCREENS } from "../config/screens";
+import { useOnboardingStatusStore } from "../store/statusStore";
+import { useToastStore } from "../store/toastStore";
+
+const GROUP_STATE = Object.freeze({ DONE: "done", IN_PROGRESS: "active", UPCOMING: "upcoming" });
 
 /**
- * The screen the store is on right now (not the one this render saw), with
- * the same fallback the hook uses for a screen that isn't on the branch.
+ * Whether an earlier screen may be opened again from Back (panel-only — the
+ * server's screen does not move). Mirrors `status.editable` (guide §3, §4.8);
+ * verified GST / PAN / bank are view-only, so they are not reopened.
+ * @param {string} screen
+ * @param {import('../types').OnboardingStatus|null} status
  */
-function liveScreenId() {
-  const { branch, currentScreen } = useOnboardingV2Store.getState();
-  const list = getFlowScreens(branch);
-  return (list.find((s) => s.id === currentScreen) ?? list[0]).id;
-}
-
-const selectStrengthScore = (s) => getProfileStrength({ form: s.form, completed: s.completed, branch: s.branch }).score;
-
-/**
- * Builds the sidebar groups (with sub-steps) for a position in the flow.
- * @param {ReturnType<typeof getFlowScreens>} screens
- * @param {number} index - position of the current screen in `screens`
- * @param {string[]} skipped
- */
-function buildGroups(screens, index, skipped) {
-  const current = screens[index];
-  return FLOW_GROUPS.map((group, groupIndex) => {
-    const groupScreens = screens.filter((s) => s.groupId === group.id);
-    const subLabels = [...new Set(groupScreens.map((s) => s.sub).filter(Boolean))];
-    return {
-      id: group.id,
-      number: groupIndex + 1,
-      label: group.label,
-      status: groupIndex < current.groupIndex ? "done" : groupIndex === current.groupIndex ? "active" : "upcoming",
-      subs: subLabels.map((label) => {
-        const subScreens = groupScreens.filter((s) => s.sub === label);
-        const isCurrent = subScreens.some((s) => s.id === current.id);
-        const isPast = subScreens.every((s) => screens.indexOf(s) < index);
-        return {
-          label,
-          // First screen of the sub-step — what its sidebar preview shows.
-          screenId: subScreens[0].id,
-          isNew: subScreens.some((s) => s.isNew),
-          state: isCurrent ? "current" : isPast ? "done" : "upcoming",
-          skipped: isPast && subScreens.some((s) => skipped.includes(s.id)),
-        };
-      }),
-    };
-  });
+export function canRevisit(screen, status) {
+  const editable = status?.editable;
+  if (!editable) return false;
+  switch (screen) {
+    case SCREENS.BRAND_NAME:
+    case SCREENS.BUSINESS_CATEGORY:
+      return editable.legal;
+    case SCREENS.REGISTRATION_STATUS:
+      return editable.registrationStatus && !status.registrationStatusLocked;
+    case SCREENS.REGISTRATION_ENTITY_TYPE:
+      // GST path: the entity comes from GST and is read-only (guide §4.6).
+      return editable.entity && status.kycPath === KYC_PATHS.NO_GST;
+    case SCREENS.OWNER_VERIFICATION:
+      return editable.ownerVerification;
+    case SCREENS.KYC_DOCUMENTS:
+      return Boolean(editable.documents?.add || editable.documents?.change);
+    default:
+      return false;
+  }
 }
 
 /**
- * Everything a screen, the sidebar or the header needs to know about where
- * the vendor is — all derived from FLOW_GROUPS + the store.
+ * Sidebar groups from `status.groups` — only the brand's own path's screens
+ * are listed (the server never sends the others).
+ * @param {import('../types').OnboardingStatus|null} status
+ * @param {string|null} shown
+ */
+function buildSidebarGroups(status, shown) {
+  return (status?.groups ?? []).map((group, index) => ({
+    id: group.key,
+    number: index + 1,
+    label: GROUP_LABELS[group.key] ?? group.key,
+    status: GROUP_STATE[group.state] ?? "upcoming",
+    subs: (group.screens ?? []).map(({ screen, status: screenStatus }) => ({
+      label: SCREEN_LABELS[screen] ?? screen,
+      screenId: screen,
+      isNew: false,
+      state: screen === shown ? "current" : screenStatus === "MISSING" ? "upcoming" : "done",
+      skipped: screenStatus === "SKIPPED",
+    })),
+  }));
+}
+
+/**
+ * Where the vendor is and how to move — all from the server's onboarding
+ * status. The panel never decides the next screen: every save / skip /
+ * continue response carries `currentScreen`, and goToServerScreen() shows it.
  */
 export function useOnboardingFlow() {
   const navigate = useNavigate();
-  const currentScreen = useOnboardingV2Store((s) => s.currentScreen);
-  const branch = useOnboardingV2Store((s) => s.branch);
-  const completed = useOnboardingV2Store((s) => s.completed);
-  const skipped = useOnboardingV2Store((s) => s.skipped);
-  // Only the score — subscribing to the whole form re-rendered every screen
-  // using this hook on each keystroke.
-  const strengthScore = useOnboardingV2Store(selectStrengthScore);
-  const goTo = useOnboardingV2Store((s) => s.goTo);
-  const markCompleted = useOnboardingV2Store((s) => s.markCompleted);
-  const markSkipped = useOnboardingV2Store((s) => s.markSkipped);
-  const setBranch = useOnboardingV2Store((s) => s.setBranch);
-  const returnTo = useOnboardingV2Store((s) => s.returnTo);
-  const setReturnTo = useOnboardingV2Store((s) => s.setReturnTo);
+  const { pathname } = useLocation();
+  const status = useOnboardingStatusStore((s) => s.status);
+  const viewScreen = useOnboardingStatusStore((s) => s.viewScreen);
+  const fetchStatus = useOnboardingStatusStore((s) => s.fetchStatus);
+  const applyScreen = useOnboardingStatusStore((s) => s.applyScreen);
+  const openScreen = useOnboardingStatusStore((s) => s.openScreen);
+  const closeScreen = useOnboardingStatusStore((s) => s.closeScreen);
+  const pushToast = useToastStore((s) => s.push);
 
-  const screens = useMemo(() => getFlowScreens(branch), [branch]);
-  // A persisted screen that's no longer on this branch falls back to the start.
-  const index = Math.max(0, screens.findIndex((s) => s.id === currentScreen));
-  const current = screens[index];
-  const contractAccepted = completed.includes(SCREENS.PARTNER_CONTRACT);
+  const currentScreen = status?.currentScreen ?? null;
+  // An earlier screen opened from Back, else the server's screen.
+  const screen = viewScreen ?? currentScreen;
+  const isViewingPast = Boolean(viewScreen && viewScreen !== currentScreen);
 
-  // A review screen is unreachable once its entry screen was skipped.
-  const isPassable = useCallback((screen) => !(screen.reviewOf && skipped.includes(screen.reviewOf)), [skipped]);
-
-  // Shell screens render in place; screens with a route are their own page.
-  const open = useCallback(
-    (screen) => {
-      goTo(screen.id);
-      if (screen.route) navigate(screen.route);
+  const goToRoute = useCallback(
+    (nextScreen) => {
+      const route = routeForScreen(nextScreen);
+      if (route !== pathname) navigate(route);
     },
-    [goTo, navigate],
+    [navigate, pathname],
   );
 
   /**
-   * While editing a completed step from the preview (`returnTo` set), go
-   * straight back to where the vendor was — except into the review screen
-   * of the screen just edited (GSTIN → GST review, PAN → PAN review, bank →
-   * review), which still has to save first.
+   * Shows the screen a response returned (`data.currentScreen`). Without
+   * one, re-reads the status and routes from it.
+   * @param {string|null|undefined} nextScreen
    */
-  const resolveTarget = useCallback(
-    (list, fromIndex, target) => {
-      if (!returnTo) return target;
-      const back = list.find((s) => s.id === returnTo);
-      const backIndex = list.indexOf(back);
-      const intoReview = target && target.reviewOf === list[fromIndex].id;
-      if (!back || backIndex <= fromIndex || intoReview) return target;
-      setReturnTo(null);
-      return back;
+  const goToServerScreen = useCallback(
+    (nextScreen) => {
+      if (nextScreen) {
+        applyScreen(nextScreen);
+        goToRoute(nextScreen);
+        return;
+      }
+      closeScreen();
+      fetchStatus()
+        .then((fresh) => goToRoute(fresh?.currentScreen))
+        .catch((error) => console.error("Onboarding status refresh failed:", error));
     },
-    [returnTo, setReturnTo],
-  );
-
-  const next = useCallback(() => {
-    // A save that finished after the vendor already moved to another screen
-    // must not pull them forward from there.
-    if (liveScreenId() !== current.id) return;
-    markCompleted(current.id);
-    // Completing a screen that was skipped earlier makes its review
-    // reachable again (`skipped` here is from this render, before the update).
-    const reachable = (s) => s.reviewOf === current.id || isPassable(s);
-    const target = resolveTarget(screens, index, screens.slice(index + 1).find(reachable));
-    if (target) open(target);
-  }, [current.id, index, isPassable, markCompleted, open, resolveTarget, screens]);
-
-  // Business status changes which screens follow, so the next screen is
-  // looked up in the NEW branch's list, not the one rendered now. A changed
-  // status means new steps to fill, so an edit's "return" is dropped then.
-  const chooseBranch = useCallback(
-    (nextBranch) => {
-      if (liveScreenId() !== current.id) return;
-      const changed = nextBranch !== branch;
-      if (changed) setReturnTo(null);
-      setBranch(nextBranch);
-      markCompleted(current.id);
-      const list = getFlowScreens(nextBranch);
-      const from = list.findIndex((s) => s.id === current.id);
-      const plain = list.slice(from + 1).find(isPassable);
-      const target = changed ? plain : resolveTarget(list, from, plain);
-      if (target) open(target);
-    },
-    [branch, current.id, isPassable, markCompleted, open, resolveTarget, setBranch, setReturnTo],
-  );
-
-  // Skipping an entry screen also skips its review screen.
-  const skip = useCallback(() => {
-    if (liveScreenId() !== current.id) return;
-    markSkipped(current.id);
-    const plain = screens.slice(index + 1).find((s) => s.reviewOf !== current.id);
-    const target = resolveTarget(screens, index, plain);
-    if (target) open(target);
-  }, [current.id, index, markSkipped, open, resolveTarget, screens]);
-
-  /** Start editing a completed screen; Continue returns to the current one. */
-  const editScreen = useCallback(
-    (screenId) => {
-      if (screenId === current.id) return;
-      setReturnTo(returnTo ?? current.id);
-      goTo(screenId);
-    },
-    [current.id, goTo, returnTo, setReturnTo],
+    [applyScreen, closeScreen, fetchStatus, goToRoute],
   );
 
   /**
-   * Business status changed from the review page: switch path and open the
-   * new path's first verification screen (its steps have to be done again).
-   * @param {string} nextBranch
+   * `409 ONBOARDING_SCREEN_MISMATCH` (another tab, or an admin moved the
+   * vendor): go to `details.currentScreen`, refresh, small toast (guide §2.6).
+   * @param {unknown} error
+   * @returns {boolean} true when handled
    */
-  const changeBranch = useCallback(
-    (nextBranch) => {
-      setReturnTo(null);
-      setBranch(nextBranch);
-      const first = getFlowScreens(nextBranch).find((s) => s.groupId === "verification");
-      if (first) goTo(first.id);
+  const handleFlowError = useCallback(
+    (error) => {
+      if (getErrorCode(error) !== ONBOARDING_ERROR_CODES.SCREEN_MISMATCH) return false;
+      pushToast({ tone: "info", message: "Your progress changed elsewhere, so we've opened the step you're on now." });
+      goToServerScreen(getErrorDetails(error)?.currentScreen);
+      return true;
     },
-    [goTo, setBranch, setReturnTo],
+    [goToServerScreen, pushToast],
   );
 
-  /** Abandon an edit and jump back to the screen it started from. */
-  const cancelEdit = useCallback(() => {
-    if (!returnTo) return;
-    const target = returnTo;
-    setReturnTo(null);
-    goTo(target);
-  }, [goTo, returnTo, setReturnTo]);
+  const pathScreens = useMemo(
+    () => (status?.groups ?? []).flatMap((g) => (g.screens ?? []).map((s) => s.screen)),
+    [status],
+  );
 
-  const canGoBack = index > 0 && !contractAccepted;
+  const previousScreen = useMemo(() => {
+    const index = pathScreens.indexOf(screen);
+    if (index <= 0) return null;
+    return (
+      pathScreens
+        .slice(0, index)
+        .reverse()
+        .find((s) => isWizardScreen(s) && canRevisit(s, status)) ?? null
+    );
+  }, [pathScreens, screen, status]);
 
   const back = useCallback(() => {
-    if (!canGoBack) return;
-    const target = screens.slice(0, index).reverse().find(isPassable);
-    if (target) goTo(target.id);
-  }, [canGoBack, goTo, index, isPassable, screens]);
+    if (previousScreen) openScreen(previousScreen);
+  }, [openScreen, previousScreen]);
 
-  const groups = useMemo(() => buildGroups(screens, index, skipped), [index, screens, skipped]);
-  const strength = useMemo(() => ({ score: strengthScore, level: strengthLevel(strengthScore) }), [strengthScore]);
+  const groups = useMemo(() => buildSidebarGroups(status, screen), [screen, status]);
+  const activeGroup = groups.find((g) => g.subs.some((s) => s.screenId === screen)) ?? groups.find((g) => g.status === "active");
+  const strength = status?.profileStrength
+    ? { score: status.profileStrength.score, level: status.profileStrength.level }
+    : null;
 
   return {
-    branch,
-    current,
-    screens,
+    status,
+    currentScreen,
+    screen,
+    screenTitle: SCREEN_LABELS[screen] ?? "",
+    isViewingPast,
+    kycPath: status?.kycPath ?? null,
+    limits: status?.limits ?? null,
+    editable: status?.editable ?? null,
     groups,
-    stepNumber: current.groupIndex + 1,
-    totalSteps: TOTAL_GROUPS,
-    stepLabel: groups[current.groupIndex].label,
-    progress: Math.round((index / screens.length) * 100),
+    stepNumber: status?.progress?.group ?? 1,
+    totalSteps: status?.progress?.groupCount ?? Object.keys(GROUP_LABELS).length,
+    stepLabel: activeGroup?.label ?? "",
+    progress: status?.progress?.percent ?? 0,
     strength,
-    canGoBack,
-    isCompleted: (screen) => completed.includes(screen),
-    isSkipped: (screen) => skipped.includes(screen),
-    next,
-    skip,
+    canGoBack: Boolean(previousScreen),
     back,
-    goTo,
-    chooseBranch,
-    editScreen,
-    cancelEdit,
-    changeBranch,
-    returnTo: screens.find((s) => s.id === returnTo) ?? null,
+    openScreen,
+    closeScreen,
+    goToServerScreen,
+    handleFlowError,
   };
 }

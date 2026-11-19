@@ -73,9 +73,10 @@ const REVIEW_CONFETTI_ITEMS = Array.from({ length: 18 }, (_, i) => ({
 }));
 
 import { useOnboardingStore } from "@/features/onboarding/store/onboardingStore";
-import { useAuthStore } from "@/features/onboarding/store/authStore";
 import { getBrandById, getBrandVerificationHistory } from "../services/brandOutletApi"; // ← path apne project ke hisaab se adjust karo
-import { acknowledgeApproval, systemVerify } from "@/features/onboarding/services/api/verify.api";
+import { acknowledgeApproval } from "@/features/onboarding/services/api/verify.api";
+import { submitOnboarding } from "@/features/onboarding-v2/services/onboardingApi";
+import { useOnboardingStatusStore, selectCurrentScreen } from "@/features/onboarding-v2/store/statusStore";
 
 export default function UnderReview() {
   const navigate = useNavigate();
@@ -148,14 +149,14 @@ export default function UnderReview() {
     fetchStatus();
   }, [fetchBrand, fetchStatus]);
 
-  // ── Also react if authStore's currentScreen updates live (e.g. via
-  // socket/poll elsewhere in the app) ─────────────────────────────
-  const authCurrentScreen = useAuthStore((s) => s.currentScreen);
+  // ── Also react if the onboarding status moves to DASHBOARD (status is
+  // the only routing source — onboarding v2 guide §2.3) ───────────────
+  const statusScreen = useOnboardingStatusStore(selectCurrentScreen);
   useEffect(() => {
-    if (authCurrentScreen === "DASHBOARD") {
+    if (statusScreen === "DASHBOARD") {
       navigate("/analysis-report", { replace: true });
     }
-  }, [authCurrentScreen, navigate]);
+  }, [statusScreen, navigate]);
 
   const handleRecheck = () => {
     fetchBrand({ silent: true });
@@ -267,7 +268,8 @@ export default function UnderReview() {
   const handleSubmitForReview = async () => {
     setSubmittingReview(true);
     try {
-      await systemVerify();
+      // POST /brands/onboarding/submit (API doc #24) replaced GET system-verify.
+      await submitOnboarding();
       setVerifySuccessMsg("Submitted for review.");
       setHasUpdated(false);
       await Promise.all([fetchBrand({ silent: true }), fetchStatus({ silent: true })]);

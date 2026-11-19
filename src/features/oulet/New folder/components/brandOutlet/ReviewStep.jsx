@@ -21,8 +21,8 @@ import {
 } from "lucide-react";
 import { WEEK_DAYS } from "../../constants/brandOutletConstants";
 import { useOnboardingV2Store } from "@/features/onboarding-v2/store/onboardingStore";
-import { BRANCHES } from "@/features/onboarding-v2/config/onboardingFlow";
-import { getProfileStrength } from "@/features/onboarding-v2/utils/profileStrength";
+import { BRANCHES, branchFromKycPath } from "@/features/onboarding-v2/config/onboardingFlow";
+import { useOnboardingStatusStore, selectKycPath } from "@/features/onboarding-v2/store/statusStore";
 import { readGstRecord, readOwnerIdentity, readPanRecord } from "@/features/onboarding-v2/steps/verification/verificationRecords";
 import AddBankModal from "./layout/AddBankModal";
 import AddDocumentsModal from "./layout/AddDocumentsModal";
@@ -472,8 +472,9 @@ export default function ReviewStep({
   onCreate,
 }) {
   const form = useOnboardingV2Store((s) => s.form);
-  const branch = useOnboardingV2Store((s) => s.branch);
-  const completed = useOnboardingV2Store((s) => s.completed);
+  // Path and strength come from the server's onboarding status (guide §3, §11).
+  const branch = branchFromKycPath(useOnboardingStatusStore(selectKycPath));
+  const profileStrength = useOnboardingStatusStore((s) => s.status?.profileStrength);
   const [open, setOpen] = useState({ brand: true, listing: true, showcase: true });
   const [docsOpen, setDocsOpen] = useState(false);
   const [bankOpen, setBankOpen] = useState(false);
@@ -758,27 +759,7 @@ export default function ReviewStep({
     onOpenShowcase,
   ]);
 
-  const strength = useMemo(
-    () =>
-      getProfileStrength({
-        completed,
-        branch,
-        form: {
-          ...form,
-          payment: subscription ? { amount: subscription.paidAmount } : form.payment,
-          outlet: {
-            ...form.outlet,
-            logoUrl: logoUrl || null,
-            coverUrl: coverUrl || null,
-            description,
-            showcaseCount: showcaseAlbums.filter((a) => a.persisted).length,
-            locationSaved: Boolean(address),
-            hoursSaved: true,
-          },
-        },
-      }),
-    [address, branch, completed, coverUrl, description, form, logoUrl, showcaseAlbums, subscription],
-  );
+  const strength = { score: profileStrength?.score ?? 0, level: profileStrength?.level ?? "" };
 
   return (
     <div className="flex flex-col gap-4">

@@ -3,8 +3,8 @@ import { AlertTriangle, ArrowLeft, Check, ChevronRight, Clock, Info, Loader2, Pe
 import { useNavigate } from "react-router-dom";
 import { useBrand } from "../../../../hooks/useBrand";
 import OnboardingPageHeader from "@/features/onboarding-v2/components/layout/OnboardingPageHeader";
-import { SCREENS } from "@/features/onboarding-v2/config/onboardingFlow";
-import { SYSTEM_VERIFY_CACHE_KEY } from "@/features/onboarding-v2/config/routes";
+import { routeForScreen } from "@/features/onboarding-v2/config/routes";
+import { useOnboardingStatusStore } from "@/features/onboarding-v2/store/statusStore";
 import { useOnboardingV2Store } from "@/features/onboarding-v2/store/onboardingStore";
 import { getCurrentSubscription } from "@/features/subscriptions/services/subscriptionApi";
 import { ANALYTICS_EVENTS } from "@/constants/analytics";
@@ -858,14 +858,11 @@ export default function CreateBrandOutlet() {
       clearOutletImages(brand._id);
       setDraftReady(false);
       trackEvent(ANALYTICS_EVENTS.OUTLET_CREATED, { outlet_type: subBrandPatch.outletType });
-      showSuccess("Outlet saved! Running verification…");
-      // Fresh verification for this submit, not a result cached from before.
-      try {
-        sessionStorage.removeItem(SYSTEM_VERIFY_CACHE_KEY);
-      } catch {
-        /* ignore */
-      }
-      navigate("/verification");
+      showSuccess("Outlet saved!");
+      // Where to go next is the server's call (GET /brands/onboarding/status);
+      // the System Verification page and GET system-verify are gone.
+      const status = await useOnboardingStatusStore.getState().fetchStatus();
+      navigate(routeForScreen(status?.currentScreen));
     } catch (err) {
       console.error("Failed to save brand outlet:", err);
       showError(err.message || "Couldn't save your outlet. Please try again.");
@@ -1011,7 +1008,7 @@ export default function CreateBrandOutlet() {
         </div>
       )}
 
-      <OnboardingPageHeader screenId={SCREENS.OUTLET} title={OUTLET_STEP_TITLES[wizardStep] ?? "Brand Outlet"}>
+      <OnboardingPageHeader title={OUTLET_STEP_TITLES[wizardStep] ?? "Brand Outlet"}>
         <span className="hidden 2xl:inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-xs font-semibold text-gray-600 dark:text-gray-300 whitespace-nowrap">
           Merchant Token: <span className="text-gray-900 dark:text-gray-100">{merchantToken}</span>
         </span>

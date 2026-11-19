@@ -149,10 +149,9 @@ import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import AppBackground from "@/components/common/AppBackground";
 import AppTopBar from "@/components/common/AppTopBar";
-import { useAuthStore } from "@/features/onboarding/store/authStore";
 import { isOnboardingComplete } from "@/features/onboarding/utils/onboardingStatus";
 import OnboardingPageHeader from "@/features/onboarding-v2/components/layout/OnboardingPageHeader";
-import { SCREENS } from "@/features/onboarding-v2/config/onboardingFlow";
+import { useOnboardingStatusStore } from "@/features/onboarding-v2/store/statusStore";
 import HeroBanner from "../components/HeroBanner";
 import OffersRibbon from "../components/OffersRibbon";
 import PlanTabs from "../components/PlanTabs";
@@ -198,9 +197,8 @@ export default function SubscriptionPlan({
   useBlockBack(!returnTo);
 
   // Onboarding (not the dashboard's upgrade flow): keep the wizard's header.
-  const authUser = useAuthStore((s) => s.user);
-  const authScreen = useAuthStore((s) => s.currentScreen);
-  const inOnboarding = !returnTo && !isOnboardingComplete({ user: authUser, currentScreen: authScreen });
+  const onboardingStatus = useOnboardingStatusStore((s) => s.status);
+  const inOnboarding = !returnTo && !isOnboardingComplete(onboardingStatus);
 
   const { brand, loading: brandLoading } = useBrand();
 
@@ -307,7 +305,7 @@ export default function SubscriptionPlan({
       />
 
       {inOnboarding ? (
-        <OnboardingPageHeader screenId={SCREENS.PLAN} title="Choose your plan" />
+        <OnboardingPageHeader title="Choose your plan" />
       ) : (
         <AppTopBar
           onBack={

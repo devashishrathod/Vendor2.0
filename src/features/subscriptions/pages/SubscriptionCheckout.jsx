@@ -4,10 +4,9 @@ import AppBackground from "@/components/common/AppBackground";
 import AppTopBar from "@/components/common/AppTopBar";
 import { previewCheckout, getCurrentSubscription } from "../services/subscriptionApi";
 import { useBrand } from "../../../hooks/useBrand";
-import { useAuthStore } from "@/features/onboarding/store/authStore";
 import { isOnboardingComplete, isOnboardingCompleteNow } from "@/features/onboarding/utils/onboardingStatus";
 import OnboardingPageHeader from "@/features/onboarding-v2/components/layout/OnboardingPageHeader";
-import { SCREENS } from "@/features/onboarding-v2/config/onboardingFlow";
+import { useOnboardingStatusStore } from "@/features/onboarding-v2/store/statusStore";
 import TrustBar from "../components/TrustBar";
 import PlanInfo from "../components/PlanInfo";
 import { useOnboardingV2Store } from "@/features/onboarding-v2/store/onboardingStore";
@@ -104,9 +103,8 @@ export default function SubscriptionCheckout() {
   const returnTo = state?.returnTo ?? readCheckoutReturnTo() ?? undefined;
 
   // Onboarding (not the dashboard's upgrade flow): keep the wizard's header.
-  const authUser = useAuthStore((s) => s.user);
-  const authScreen = useAuthStore((s) => s.currentScreen);
-  const inOnboarding = !returnTo && !isOnboardingComplete({ user: authUser, currentScreen: authScreen });
+  const onboardingStatus = useOnboardingStatusStore((s) => s.status);
+  const inOnboarding = !returnTo && !isOnboardingComplete(onboardingStatus);
 
   // Applied promo code mirrors ?promo= so a refresh re-runs the preview
   // with it. A ref (not a dep of the load effect) so applying/removing a
@@ -278,7 +276,6 @@ export default function SubscriptionCheckout() {
           actually came from in this side flow. */}
       {inOnboarding ? (
         <OnboardingPageHeader
-          screenId={SCREENS.PAYMENT}
           title="Payment"
           onBack={() => navigate("/subscription", { state: { returnTo } })}
         />

@@ -36,16 +36,6 @@ export async function verifyBank({ accountNumber, ifsc, beneficiaryName }) {
   );
 }
 
-// System Verify
-export async function systemVerify() {
-  return request(
-    "/brands/onboarding/system-verify",
-    "GET",
-    null,
-    true
-  );
-}
-
 // Approve Partnership
 export async function approvePartnership() {
   return request(

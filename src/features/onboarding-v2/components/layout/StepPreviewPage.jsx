@@ -184,7 +184,7 @@ export default function StepPreviewPage({ title, sections, currentTitle, onClose
       <footer className="flex flex-col-reverse gap-3 rounded-b-2xl border-t border-gray-200 bg-[#FCFDFC] px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:rounded-b-[20px] sm:px-8 dark:border-gray-800 dark:bg-gray-900">
         <p className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
           <Lock size={12} aria-hidden="true" />
-          {onEdit ? "Changes save right here. Verified sections open their step to re-verify." : "Locked after the partner contract — contact support to change."}
+          {lockedIds.length > 0 ? "Locked sections can only be changed through support." : "Changes save right here."}
         </p>
         <button
           type="button"

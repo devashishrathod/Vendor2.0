@@ -1,20 +1,19 @@
-import { BRANCHES, SCREENS } from "../config/onboardingFlow";
-import { readGstRecord, readOwnerIdentity, readPanRecord } from "../steps/verification/verificationRecords";
+import { KYC_PATHS, SCREEN_LABELS, SCREENS } from "../config/screens";
+import { ENTITY_LABELS, KYC_PATH_LABELS, docTypeLabel } from "../constants/onboardingOptions";
 
-// Read-only summary of what the vendor entered / got verified on a
-// completed screen — shown in the sidebar's preview popup.
+// Read-only summary of a completed sidebar group, built from what the SERVER
+// has saved: GET /brands/get (brand), GET /brands/onboarding/documents and the
+// onboarding status. Shown by StepPreviewPage.
 
-const STATUS_LABELS = {
-  [BRANCHES.GST]: "I have GST",
-  [BRANCHES.REG_NO_GST]: "Registered, no GST",
-  [BRANCHES.UNREGISTERED]: "Not registered",
-};
-
-const titleCase = (value = "") =>
-  String(value)
-    .toLowerCase()
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+/**
+ * @typedef {Object} PreviewSection
+ * @property {string} screenId
+ * @property {string} title
+ * @property {{ label: string, value: string|null, wide?: boolean }[]} rows
+ * @property {boolean} [compact]   one big value
+ * @property {'documents'} [kind]
+ * @property {string} [note]
+ */
 
 const formatDate = (iso) => {
   if (!iso) return null;
@@ -22,171 +21,108 @@ const formatDate = (iso) => {
   return Number.isNaN(d.getTime()) ? null : d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
 };
 
-const maskAccount = (acc = "") => (acc ? `XXXX XXXX ${String(acc).slice(-4)}` : null);
+const maskAccount = (account) => (account ? `XXXX XXXX ${String(account).slice(-4)}` : null);
 
-function gstRows(form) {
-  const r = readGstRecord(form.gstDetails);
-  return [
-    { label: "GSTIN", value: r.gstNumber || form.gstin },
-    { label: "Legal business name", value: r.legalName },
-    { label: "Trade name", value: r.tradeName },
-    { label: "Business structure", value: r.constitution },
-    { label: "Status", value: r.registrationStatus },
-    { label: "Registered address", value: r.address, wide: true },
-  ];
-}
+const OWNER_METHOD_LABELS = { PAN: "Owner PAN verified", ID_DOCUMENT: "Owner ID document uploaded" };
+
+const SKIPPED_NOTE = "Skipped — you can add this later.";
 
 /**
- * PAN type from the verify response; when the provider leaves it out, the
- * holder type the PAN's own 4th letter encodes (C = Company, P = Individual…).
+ * @param {string} screen
+ * @param {{ status: object, brand: object|null, documents: object|null }} data
+ * @returns {Omit<PreviewSection, 'screenId'|'title'>}
  */
-const panTypeLabel = (record) => (record.panType ? titleCase(record.panType) : record.holderType);
-
-/** "Date of birth" for a person's PAN, "Date of incorporation" otherwise. */
-const panDateLabel = (record) => (record.holderType === "Individual" ? "Date of birth" : "Date of incorporation");
-
-function panRows(form) {
-  const r = readPanRecord(form.panDetails);
-  return [
-    { label: "Business PAN", value: r.pan || form.pan },
-    { label: "Legal business name", value: r.name },
-    { label: "PAN type", value: panTypeLabel(r) },
-    { label: panDateLabel(r), value: r.dateOfIncorporation },
-    { label: "Address", value: r.address, wide: true },
-  ];
-}
-
-function bankRows(form) {
-  const result = form.bankDetails?.result ?? form.bankDetails ?? {};
-  return [
-    { label: "Account number", value: maskAccount(form.bank?.accountNumber) },
-    { label: "IFSC", value: result.account_ifsc || form.bank?.ifsc },
-    { label: "Bank", value: [result.bank_name, result.bank_branch].filter(Boolean).join(" · ") || null },
-    { label: "Account type", value: form.bank?.accountType ? titleCase(form.bank.accountType) : null },
-    { label: "Account holder", value: result.account_holder_name || form.bank?.beneficiary },
-  ];
-}
-
-/**
- * Every completed sub-step, grouped under its main step, for the single
- * "Preview your details" popup. Groups with nothing completed are left out.
- * @param {{ label: string, subs: { label: string, screenId: string, state: string }[] }[]} groups
- * @param {{ form: object, branch: string|null, skipped: string[] }} state
- * @returns {{ label: string, sections: ReturnType<typeof getStepPreview>[] }[]}
- */
-export function getAllPreviews(groups, state) {
-  return groups
-    .map((group) => {
-      const seen = new Set();
-      const sections = group.subs
-        .filter((sub) => sub.state === "done")
-        .map((sub) => {
-          const section = getStepPreview(sub.screenId, state);
-          // screenId = where the preview's edit (pencil) button goes.
-          return section && { ...section, screenId: sub.screenId };
-        })
-        .filter((section) => section && !seen.has(section.title) && seen.add(section.title));
-      return { label: group.label, sections };
-    })
-    .filter((group) => group.sections.length > 0);
-}
-
-/**
- * @typedef {Object} PreviewSection
- * @property {string} title
- * @property {{ label: string, value: string|null, wide?: boolean }[]} rows
- * @property {string} [note]
- * @property {boolean} [compact]  - one value, shown big under the title (no label)
- * @property {'documents'} [kind] - rendered as a file list
- */
-
-/**
- * @param {string} screenId
- * @param {{ form: object, branch: string|null, skipped: string[] }} state
- * @returns {PreviewSection|null}
- */
-export function getStepPreview(screenId, { form, branch, skipped }) {
-  switch (screenId) {
+function sectionBody(screen, { status, brand, documents }) {
+  const b = brand ?? {};
+  switch (screen) {
     case SCREENS.BRAND_NAME:
-      return { title: "Brand name", compact: true, rows: [{ label: "Brand name", value: form.brandName }] };
-    case SCREENS.CATEGORY:
+      return { compact: true, rows: [{ label: "Brand name", value: b.brandName ?? null }] };
+    case SCREENS.BUSINESS_CATEGORY:
       return {
-        title: "Category",
         rows: [
-          { label: "Category", value: form.categoryName },
-          { label: "Sub-categories", value: (form.subCategories || []).map((s) => s.name).join(", ") || null },
+          { label: "Category", value: b.category?.name ?? null },
+          { label: "Sub-categories", value: (b.subCategories ?? []).map((s) => s.name).join(", ") || null },
         ],
       };
-    case SCREENS.BUSINESS_STATUS:
-      return { title: "Business status", compact: true, rows: [{ label: "Business status", value: STATUS_LABELS[branch] || null }] };
-    case SCREENS.GST_ENTER:
-    case SCREENS.GST_REVIEW:
-      return { title: "GST details", rows: gstRows(form) };
-    case SCREENS.PAN_ENTER:
-    case SCREENS.PAN_REVIEW:
-      return { title: "Business PAN", rows: panRows(form) };
-    case SCREENS.BUSINESS_TYPE:
+    case SCREENS.REGISTRATION_STATUS:
+      return { compact: true, rows: [{ label: "Business status", value: KYC_PATH_LABELS[status?.kycPath] ?? null }] };
+    case SCREENS.GST_VERIFICATION:
       return {
-        title: "Business entity",
-        compact: true,
-        rows: [{ label: "Business entity", value: form.entityType ? titleCase(form.entityType) : null }],
-      };
-    case SCREENS.OWNER_PAN:
-    case SCREENS.OWNER_PAN_REVIEW: {
-      const kyc = form.ownerKyc || {};
-      const r = readPanRecord(kyc.panDetails);
-      return {
-        title: "PAN details",
         rows: [
-          { label: "Owner PAN", value: kyc.pan },
-          { label: "Name on PAN", value: kyc.panName || r.name },
-          { label: "PAN type", value: panTypeLabel(r) },
-          { label: "Aadhaar linked", value: r.aadhaarLinked },
-          { label: "Address", value: r.address, wide: true },
+          { label: "GSTIN", value: b.gst?.gstNumber ?? null },
+          { label: "Legal business name", value: b.legalBusinessName ?? null },
+        ],
+      };
+    case SCREENS.PAN_VERIFICATION:
+      return {
+        rows: [
+          { label: status?.kycPath === KYC_PATHS.UNREGISTERED ? "Owner PAN" : "PAN", value: b.pan?.pan ?? null },
+          { label: "Legal business name", value: b.legalBusinessName ?? null },
+        ],
+      };
+    case SCREENS.REGISTRATION_ENTITY_TYPE:
+      return { compact: true, rows: [{ label: "Business entity", value: ENTITY_LABELS[b.businessEntityType] ?? null }] };
+    case SCREENS.OWNER_VERIFICATION:
+      return {
+        rows: [
+          { label: "Method", value: OWNER_METHOD_LABELS[status?.items?.ownerVerificationMethod] ?? null },
+          { label: "Owner PAN", value: status?.items?.ownerVerificationMethod === "PAN" ? b.pan?.pan ?? null : null },
+          { label: "Legal business name", value: b.legalBusinessName ?? null },
+        ],
+      };
+    case SCREENS.KYC_DOCUMENTS: {
+      const rows = (documents?.documents ?? [])
+        .filter((d) => d.purpose === "BUSINESS")
+        .map((d) => ({ label: d.title, value: [docTypeLabel(d.docType), d.file?.originalName].filter(Boolean).join(" · ") || null }));
+      return { kind: "documents", rows, note: status?.items?.documents === "SKIPPED" ? SKIPPED_NOTE : undefined };
+    }
+    case SCREENS.BANK_VERIFICATION:
+      return {
+        rows: [
+          { label: "Account", value: maskAccount(b.bank?.accountNumber) },
+          { label: "IFSC", value: b.bank?.ifscCode ?? null },
+        ],
+        note: status?.items?.bank === "SKIPPED" ? SKIPPED_NOTE : undefined,
+      };
+    case SCREENS.PARTNERSHIP_DEED: {
+      const deed = status?.deed ?? {};
+      return {
+        rows: [
+          { label: "Partner contract", value: deed.accepted ? "Accepted" : null },
+          // Legacy (pre-v2) accepts have no date (guide §3).
+          { label: "Accepted on", value: deed.isLegacy ? null : formatDate(deed.acceptedAt) },
         ],
       };
     }
-    case SCREENS.OWNER_KYC:
-    case SCREENS.OWNER_KYC_REVIEW: {
-      // Everything the owner review screen shows: the verified owner PAN and
-      // how the owner proved identity.
-      const kyc = form.ownerKyc || {};
-      const r = readPanRecord(kyc.panDetails);
-      const rows = [
-        { label: "Owner PAN", value: kyc.pan || r.pan },
-        { label: "Name on PAN", value: kyc.panName || r.name },
-        { label: "PAN type", value: panTypeLabel(r) },
-        { label: panDateLabel(r), value: r.dateOfIncorporation },
-        { label: "PAN status", value: r.status },
-        { label: "Aadhaar linked", value: r.aadhaarLinked },
-      ];
-      if (branch === BRANCHES.UNREGISTERED) {
-        const identity = readOwnerIdentity(kyc);
-        rows.push({ label: "Identity", value: identity.method }, { label: identity.detailLabel, value: identity.detail });
-      }
-      rows.push({ label: "Address", value: r.address, wide: true });
-      return { title: branch === BRANCHES.UNREGISTERED ? "Owner verification" : "Business PAN", rows };
-    }
-    case SCREENS.DOCUMENTS: {
-      const docs = (form.documents || []).filter((d) => d.status === "uploaded");
-      if (skipped.includes(SCREENS.DOCUMENTS) || docs.length === 0) {
-        return { title: "Business documents", rows: [], note: "Skipped — you can add documents later from your profile." };
-      }
+    case SCREENS.SUBSCRIBE_PLAN:
       return {
-        title: "Business documents",
-        kind: "documents",
-        rows: docs.map((d) => ({ label: d.title || "Document", value: d.fileName })),
+        rows: [
+          { label: "Plan", value: b.subscribed?.status ?? null },
+          { label: "Valid till", value: formatDate(b.subscribed?.endDate) },
+        ],
       };
-    }
-    case SCREENS.BANK_ENTER:
-    case SCREENS.BANK_REVIEW:
-      if (skipped.includes(SCREENS.BANK_ENTER) || !form.bankDetails) {
-        return { title: "Bank details", rows: [], note: "Skipped — add a bank account later to start selling vouchers." };
-      }
-      return { title: "Bank details", rows: bankRows(form) };
-    case SCREENS.PARTNER_CONTRACT:
-      return { title: "Partner contract", rows: [{ label: "Accepted on", value: formatDate(form.contractAcceptedAt) }, { label: "Accepted by", value: form.legalName }] };
     default:
-      return null;
+      return { rows: [] };
   }
+}
+
+/**
+ * Preview sections of one sidebar group, in the server's screen order.
+ * @param {string} groupKey
+ * @param {{ status: import('../types').OnboardingStatus, brand: object|null, documents: import('../types').DocumentsList|null }} data
+ * @returns {PreviewSection[]}
+ */
+export function getGroupPreview(groupKey, data) {
+  const group = data.status?.groups?.find((g) => g.key === groupKey);
+  return (group?.screens ?? [])
+    .filter((s) => s.status !== "MISSING")
+    .map(({ screen, status }) => {
+      const body = sectionBody(screen, data);
+      return {
+        screenId: screen,
+        title: SCREEN_LABELS[screen] ?? screen,
+        ...body,
+        note: status === "SKIPPED" ? SKIPPED_NOTE : body.note,
+      };
+    });
 }
