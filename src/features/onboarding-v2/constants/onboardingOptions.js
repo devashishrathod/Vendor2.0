@@ -101,12 +101,6 @@ export const DOCUMENT_RULES = Object.freeze({
   maxDocuments: 5,
 });
 
-export const NAME_LIMITS = Object.freeze({
-  legalMax: 60,
-  brandMin: 2,
-  brandMax: 15,
-});
-
 export const PARTNER_AGREEMENT_URL = "https://trydood.com/partner-agreement";
 export const TERMS_URL = "https://trydood.com/terms-of-service";
 export const HELPDESK_EMAIL = "helpdesk@trydood.com";

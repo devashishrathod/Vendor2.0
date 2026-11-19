@@ -1,9 +1,8 @@
-import { DOCUMENT_RULES, NAME_LIMITS } from "../constants/onboardingOptions";
+import { DOCUMENT_RULES } from "../constants/onboardingOptions";
 
 // Each `*Rules` function returns the live checklist a step shows:
 // [{ label, passed }]. A field is valid when every rule passes.
 
-const NAME_CHARS = /^[A-Za-z&.'\-,() ]+$/;
 const PAN_FORMAT = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
 const GSTIN_FORMAT = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
 const IFSC_FORMAT = /^[A-Z]{4}0[A-Z0-9]{6}$/;
@@ -18,21 +17,30 @@ export const toUpperAlphanumeric = (value, maxLength) =>
 export const toDigits = (value, maxLength) => value.replace(/\D/g, "").slice(0, maxLength);
 
 /**
- * Brand name on screen 03: 2–15 characters, letters, spaces and & . ' - , ( ),
- * at least one letter.
- * @param {string} brandName
+ * Brand-name length limits from GET /brands/onboarding/status `limits`
+ * (owner answer 1 / guide §2.9) — never hardcoded.
+ * @param {import('../types').OnboardingLimits|null|undefined} limits
+ * @returns {{ min: number|null, max: number|null }}
  */
-export function brandNameRules(brandName) {
+export const brandNameLimits = (limits) => ({
+  min: limits?.brandNameMinLength ?? null,
+  max: limits?.brandNameMaxLength ?? null,
+});
+
+/**
+ * Brand name: the server's rule only — trimmed length within the limits
+ * (API doc #20, D112). Without limits (status not loaded) only "not empty"
+ * is checked here; the server still validates.
+ * @param {string} brandName
+ * @param {{ min: number|null, max: number|null }} limits
+ */
+export function brandNameRules(brandName, { min = null, max = null } = {}) {
   const brand = brandName.trim();
-  return [
-    { label: "Shown on vouchers and your outlet page", passed: brand.length > 0 },
-    { label: "Only letters and & . ' - , ( )", passed: brand.length > 0 && NAME_CHARS.test(brand) },
-    {
-      label: `Brand name: ${NAME_LIMITS.brandMin}–${NAME_LIMITS.brandMax} characters`,
-      passed: brand.length >= NAME_LIMITS.brandMin && brand.length <= NAME_LIMITS.brandMax,
-    },
-    { label: "Brand name has at least one letter", passed: /[A-Za-z]/.test(brand) },
-  ];
+  const rules = [{ label: "Shown on vouchers and your outlet page", passed: brand.length > 0 }];
+  if (min != null && max != null) {
+    rules.push({ label: `Brand name: ${min}–${max} characters`, passed: brand.length >= min && brand.length <= max });
+  }
+  return rules;
 }
 
 /** Shown under the PAN checklist: a personal PAN works too. */

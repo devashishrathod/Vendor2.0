@@ -1,55 +1,21 @@
-﻿import { useCallback, useEffect, useState } from "react";
-import { ArrowRight, Building2, Check, CircleHelp, Receipt, Store, TriangleAlert, Lock } from "lucide-react";
+﻿import { useCallback, useState } from "react";
+import { ArrowRight, Check, CircleHelp, Lock } from "lucide-react";
+import { getErrorCode } from "@/services/http/apiError";
 import Button from "../../components/ui/Button";
+import FormError from "../../components/ui/FormError";
 import Notice from "../../components/ui/Notice";
 import OptionCard from "../../components/ui/OptionCard";
 import StatusPill from "../../components/ui/StatusPill";
 import StepCard from "../../components/ui/StepCard";
 import StepFooter from "../../components/ui/StepFooter";
-import { BRANCHES } from "../../config/onboardingFlow";
+import { KYC_PATHS, ONBOARDING_ERROR_CODES, SCREENS } from "../../config/screens";
+import { KYC_PATH_LABELS } from "../../constants/onboardingOptions";
 import { useOnboardingFlow } from "../../hooks/useOnboardingFlow";
-import { fetchGstMandatoryCategoryIds } from "../../services/pendingApi";
-import { useOnboardingV2Store } from "../../store/onboardingStore";
-import { selectStatusLocked } from "../../utils/statusLock";
-
-const STATUS_OPTIONS = [
-  {
-    branch: BRANCHES.GST,
-    icon: Receipt,
-    title: "I have GST",
-    description: "GSTIN for this business, any business entity.",
-    pill: "Fastest · 1 number fills most details",
-    verified: true,
-    nextItems: [
-      "GSTIN (verified instantly)",
-      "Business PAN (verified instantly)",
-      "Business entity (auto-selected from GST)",
-      "Business documents · optional",
-    ],
-  },
-  {
-    branch: BRANCHES.REG_NO_GST,
-    icon: Building2,
-    title: "Registered, no GST",
-    description: "Company, LLP, firm, trust or society without a GSTIN yet.",
-    pill: "Business PAN needed",
-    verified: true,
-    nextItems: [
-      "Business or personal PAN (verified instantly)",
-      "Business entity (auto-selected from your PAN)",
-      "Business documents · optional",
-    ],
-  },
-  {
-    branch: BRANCHES.UNREGISTERED,
-    icon: Store,
-    title: "Not registered",
-    description: "Small shop, home business or new venture.",
-    pill: "No GST needed · sell in your state",
-    verified: false,
-    nextItems: ["Owner verification", "Business entity (recommended for you)", "Business documents · optional"],
-  },
-];
+import { addBasicDetails } from "../../services/onboardingApi";
+import { useOnboardingStatusStore } from "../../store/statusStore";
+import { useSavedBrandStore } from "../../store/brandStore";
+import { onboardingErrorMessage } from "../../utils/errorMessages";
+import { STATUS_OPTIONS } from "./businessStatusOptions";
 
 /** "Pill + Next you'll add" block inside each radio card. */
 function NextItems({ option, selected }) {
@@ -78,51 +44,44 @@ function NextItems({ option, selected }) {
 }
 
 /**
- * Screen 05 · Business status. Picks the Step 2 path (GST / registered
- * without GST / not registered). GST-mandatory categories only allow GST.
+ * REGISTRATION_STATUS (guide §4.3) — picks the verification path. Saved with
+ * `add-basic-details { step: REGISTRATION_STATUS, kycPath }`; the server
+ * answers with the path's first screen. Read-only once
+ * `status.registrationStatusLocked` (GST saved on GST path / PAN on NO_GST).
  */
 export default function BusinessStatusStep() {
-  const { chooseBranch } = useOnboardingFlow();
-  const storedBranch = useOnboardingV2Store((s) => s.branch);
-  const categoryId = useOnboardingV2Store((s) => s.form.categoryId);
-  const categoryName = useOnboardingV2Store((s) => s.form.categoryName);
-  // Locked once this path's business verification is done.
-  const statusLocked = useOnboardingV2Store(selectStatusLocked);
+  const { status, goToServerScreen, handleFlowError } = useOnboardingFlow();
+  const fetchStatus = useOnboardingStatusStore((s) => s.fetchStatus);
+  const mergeBrand = useSavedBrandStore((s) => s.mergeBrand);
+  const savedPath = status?.kycPath ?? null;
+  const locked = Boolean(status?.registrationStatusLocked) || status?.editable?.registrationStatus === false;
 
-  const [picked, setSelected] = useState(storedBranch ?? BRANCHES.GST);
-  const selected = statusLocked ? storedBranch : picked;
-  const lockedTitle = STATUS_OPTIONS.find((o) => o.branch === storedBranch)?.title;
-  const [gstOnly, setGstOnly] = useState(false);
-  const [checking, setChecking] = useState(true);
-  const [checkError, setCheckError] = useState("");
-  const [attempt, setAttempt] = useState(0);
+  const [picked, setPicked] = useState(null);
+  // Nothing saved yet: the design pre-selects "I have GST".
+  const selected = locked ? savedPath : picked ?? savedPath ?? KYC_PATHS.GST;
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      try {
-        setChecking(true);
-        setCheckError("");
-        const ids = await fetchGstMandatoryCategoryIds();
-        if (cancelled) return;
-        const mandatory = Array.isArray(ids) && ids.map(String).includes(String(categoryId));
-        setGstOnly(mandatory);
-        if (mandatory) setSelected(BRANCHES.GST);
-      } catch (err) {
-        console.error("GST-mandatory categories fetch failed:", err);
-        if (!cancelled) setCheckError("We couldn't check whether your category needs GST.");
-      } finally {
-        if (!cancelled) setChecking(false);
+  const handleContinue = useCallback(async () => {
+    if (!selected || saving) return;
+    try {
+      setSaving(true);
+      setError("");
+      const res = await addBasicDetails(SCREENS.REGISTRATION_STATUS, { kycPath: selected });
+      mergeBrand(res?.data?.brand);
+      goToServerScreen(res?.data?.currentScreen);
+    } catch (err) {
+      if (handleFlowError(err)) return;
+      console.error("Business status save failed:", err);
+      setError(onboardingErrorMessage(err, "Couldn't save your business status. Please try again."));
+      // Locked in the meantime (another tab saved GST / PAN): show it locked.
+      if (getErrorCode(err) === ONBOARDING_ERROR_CODES.REGISTRATION_STATUS_LOCKED) {
+        fetchStatus().catch((refreshError) => console.error("Onboarding status refresh failed:", refreshError));
       }
+    } finally {
+      setSaving(false);
     }
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [categoryId, attempt]);
-
-  const retryCheck = useCallback(() => setAttempt((n) => n + 1), []);
-  const handleContinue = useCallback(() => chooseBranch(selected), [chooseBranch, selected]);
+  }, [fetchStatus, goToServerScreen, handleFlowError, mergeBrand, saving, selected]);
 
   return (
     <StepCard
@@ -130,8 +89,8 @@ export default function BusinessStatusStep() {
       title="Which one describes your business?"
       subtitle="This decides what we verify next. All three can sell on Trydood."
       footer={
-        <StepFooter>
-          <Button onClick={handleContinue} disabled={checking || Boolean(checkError)} loading={checking} icon={ArrowRight}>
+        <StepFooter start={<FormError message={error} />}>
+          <Button onClick={handleContinue} disabled={!selected} loading={saving} icon={ArrowRight}>
             Continue
           </Button>
         </StepFooter>
@@ -139,16 +98,19 @@ export default function BusinessStatusStep() {
     >
       <div role="group" aria-label="Business status" className="grid grid-cols-1 gap-3 md:grid-cols-3">
         {STATUS_OPTIONS.map((option) => {
-          const isSelected = selected === option.branch;
+          const isSelected = selected === option.kycPath;
           return (
             <OptionCard
-              key={option.branch}
+              key={option.kycPath}
               icon={option.icon}
-              title={option.title}
+              title={KYC_PATH_LABELS[option.kycPath]}
               description={option.description}
               selected={isSelected}
-              disabled={statusLocked ? option.branch !== storedBranch : gstOnly && option.branch !== BRANCHES.GST}
-              onSelect={() => setSelected(option.branch)}
+              disabled={locked && option.kycPath !== savedPath}
+              onSelect={() => {
+                setPicked(option.kycPath);
+                setError("");
+              }}
             >
               <NextItems option={option} selected={isSelected} />
             </OptionCard>
@@ -156,33 +118,14 @@ export default function BusinessStatusStep() {
         })}
       </div>
 
-      {statusLocked && (
+      {locked ? (
         <Notice icon={Lock}>
-          <strong className="font-bold">Locked — your business verification is done.</strong> Your business status stays
-          &ldquo;{lockedTitle}&rdquo;. To change it, contact support.
+          <strong className="font-bold">Locked — your GST / PAN is saved.</strong> Your business status stays &ldquo;
+          {KYC_PATH_LABELS[savedPath]}&rdquo;. To change it, contact support.
         </Notice>
+      ) : (
+        <Notice>Picked the wrong one? You can change it until your GST or PAN is saved.</Notice>
       )}
-
-      {gstOnly && !statusLocked && (
-        <Notice tone="warning" icon={TriangleAlert}>
-          {categoryName || "Your category"} needs GST to sell on Trydood, so only the first option is available for it.
-        </Notice>
-      )}
-
-      {checkError && (
-        <Notice
-          tone="error"
-          action={
-            <Button variant="secondary" onClick={retryCheck} className="min-h-9 px-3 text-xs">
-              Retry
-            </Button>
-          }
-        >
-          {checkError}
-        </Notice>
-      )}
-
-      {!statusLocked && <Notice>Picked the wrong one? You can come back and change it before you submit for review.</Notice>}
     </StepCard>
   );
 }

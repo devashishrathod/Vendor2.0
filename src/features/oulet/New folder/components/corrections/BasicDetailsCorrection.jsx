@@ -4,9 +4,9 @@ import { updateBasicDetails } from "@/features/onboarding/services/api/brand.api
 import Button from "@/features/onboarding-v2/components/ui/Button";
 import FormError from "@/features/onboarding-v2/components/ui/FormError";
 import { SelectField, TextField } from "@/features/onboarding-v2/components/ui/TextField";
-import { NAME_LIMITS } from "@/features/onboarding-v2/constants/onboardingOptions";
+import { useOnboardingStatusStore, selectLimits } from "@/features/onboarding-v2/store/statusStore";
 import { toOption } from "@/features/onboarding-v2/steps/basics/categoryHelpers";
-import { brandNameRules } from "@/features/onboarding-v2/validation/rules";
+import { brandNameLimits, brandNameRules } from "@/features/onboarding-v2/validation/rules";
 import { useCategories } from "../../hooks/useCategories";
 import { updateBrandDetails } from "../../services/brandOutletApi";
 import {
@@ -85,7 +85,10 @@ export default function BasicDetailsCorrection({
   const subCategoryOptions = useMemo(() => toSelectOptions(subCategories), [subCategories]);
 
   const trimmed = brandName.trim();
-  const rules = useMemo(() => brandNameRules(brandName), [brandName]);
+  // Limits from the server's onboarding status (owner answer 1), not hardcoded.
+  const statusLimits = useOnboardingStatusStore(selectLimits);
+  const nameLimits = useMemo(() => brandNameLimits(statusLimits), [statusLimits]);
+  const rules = useMemo(() => brandNameRules(brandName, nameLimits), [brandName, nameLimits]);
   const brandChanged = trimmed !== savedBrandName.trim();
   const brandError = brandChanged ? rules.find((rule) => !rule.passed)?.label : "";
   const statusChanged = !statusLocked && status !== savedStatus;
@@ -157,9 +160,9 @@ export default function BasicDetailsCorrection({
             setBrandName(e.target.value);
             touch();
           }}
-          maxLength={NAME_LIMITS.brandMax}
+          maxLength={nameLimits.max ?? undefined}
           error={brandError || undefined}
-          counter={`${trimmed.length} / ${NAME_LIMITS.brandMax}`}
+          counter={nameLimits.max ? `${trimmed.length} / ${nameLimits.max}` : undefined}
           valid={brandChanged && !brandError}
         />
 

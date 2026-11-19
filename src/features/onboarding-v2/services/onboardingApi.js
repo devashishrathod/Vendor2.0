@@ -5,7 +5,6 @@
 import { useAuthStore } from "@/features/onboarding/store/authStore";
 import { request } from "@/features/onboarding/services/api/client";
 import {
-  updateBasicDetails,
   updateBusinessEntityType,
   updateBusinessName,
   updateRegistrationStatus,
@@ -21,7 +20,6 @@ import {
   submitVerifiedGstDetails,
   submitVerifiedPanDetails,
 } from "@/features/onboarding/services/api/verificationDetails.api";
-import { updateBrandDetails } from "@/features/oulet/New folder/services/brandOutletApi";
 import { BRANCHES } from "../config/onboardingFlow";
 
 const IFSC_LOOKUP_URL = "https://ifsc.razorpay.com";
@@ -45,34 +43,32 @@ export const getKycDocuments = () => request("/brands/onboarding/documents", "GE
 // ── Step 1 · Basic Details ──────────────────────────────────────────────
 
 /**
+ * POST /brands/onboarding/add-basic-details (#20). `step` is the screen being
+ * SAVED (not the next one); only that step's fields. Never sends
+ * currentScreen or legalBusinessName — the server owns both.
+ * @param {'BRAND_NAME'|'BUSINESS_CATEGORY'|'REGISTRATION_STATUS'|'REGISTRATION_ENTITY_TYPE'} step
+ * @param {{ brandName?: string, categoryId?: string, subCategoryIds?: string[], kycPath?: string, businessEntityType?: string }} fields
+ * @returns {Promise<{ data: { brand: object, currentScreen: string } }>}
+ */
+export const addBasicDetails = (step, fields) =>
+  request("/brands/onboarding/add-basic-details", "POST", { step, ...fields }, true);
+
+/**
+ * PUT /brands/onboarding/update-basic-details (#27) — edits from the Basic
+ * Details preview. At least one field; categoryId + subCategoryIds together.
+ * The screen doesn't move, except a business-status switch before submit.
+ * @param {{ brandName?: string, categoryId?: string, subCategoryIds?: string[], kycPath?: string, businessEntityType?: string }} fields
+ * @returns {Promise<{ data: { brand: object, currentScreen: string } }>}
+ */
+export const editBasicDetails = (fields) => request("/brands/onboarding/update-basic-details", "PUT", fields, true);
+
+/**
  * Brand + legal name. The legal name is only known after GST / PAN / owner
  * PAN is verified, so this is sent from those review screens, not screen 03.
  * @param {{ legalName: string, brandName: string }} names
  */
 export const saveBusinessNames = ({ legalName, brandName }) =>
   updateBusinessName({ legalBusinessName: legalName, brandName });
-
-/**
- * Category at Basic Details → the brand update API, PUT /brands/update
- * (API doc #32: `{ isOnboarding: true, subCategoryId }`). The backend keeps
- * ONE sub-category and sets the category from it, so the first one picked
- * is saved. A category with no sub-categories has nothing the backend can
- * store, so it stays local.
- * @param {{ categoryId: string, subCategoryIds: string[] }} selection
- * @returns {Promise<object|null>}
- */
-export async function saveCategorySelection({ subCategoryIds }) {
-  const subCategoryId = subCategoryIds?.[0];
-  if (!subCategoryId) return null;
-  return updateBrandDetails(currentBrandId(), { isOnboarding: true, subCategoryId });
-}
-
-/**
- * Brand name edited later (review / sidebar preview). Uses the edit endpoint
- * so the backend's onboarding screen isn't moved (API doc #20 note 4, #27).
- * @param {string} brandName
- */
-export const updateBrandName = (brandName) => updateBasicDetails({ brandName });
 
 /**
  * The backend knows REGISTERED / UNREGISTERED only; "registered, no GST"

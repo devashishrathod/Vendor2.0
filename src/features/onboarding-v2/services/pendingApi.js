@@ -26,12 +26,6 @@ const resolveLater = (value, ms = 400) => new Promise((resolve) => setTimeout(()
  */
 export const fetchRequiredDocuments = (selection = {}) => resolveLater(documentsForCategory(selection), 0);
 
-/**
- * Category ids that can only sell with a GSTIN.
- * @returns {Promise<string[]>}
- */
-export const fetchGstMandatoryCategoryIds = () => resolveLater([], 0);
-
 /** Starts DigiLocker consent for Aadhaar. @returns {Promise<{ verified: boolean, aadhaarLast4: string }>} */
 export const verifyAadhaarWithDigiLocker = () => resolveLater({ verified: true, aadhaarLast4: "" }, 900);
 
