@@ -6,7 +6,7 @@ import BankVerificationStep from "../steps/payout/BankVerificationStep";
 import BusinessTypeStep from "../steps/verification/BusinessTypeStep";
 import DocumentsStep from "../steps/verification/DocumentsStep";
 import GstVerificationStep from "../steps/verification/GstVerificationStep";
-import OwnerKycStep from "../steps/verification/OwnerKycStep";
+import OwnerVerificationStep from "../steps/verification/OwnerVerificationStep";
 import PanVerificationStep from "../steps/verification/PanVerificationStep";
 import { SCREENS } from "./screens";
 
@@ -21,7 +21,7 @@ export const STEP_ELEMENTS = {
   [SCREENS.GST_VERIFICATION]: <GstVerificationStep />,
   [SCREENS.PAN_VERIFICATION]: <PanVerificationStep />,
   [SCREENS.REGISTRATION_ENTITY_TYPE]: <BusinessTypeStep />,
-  [SCREENS.OWNER_VERIFICATION]: <OwnerKycStep />,
+  [SCREENS.OWNER_VERIFICATION]: <OwnerVerificationStep />,
   [SCREENS.KYC_DOCUMENTS]: <DocumentsStep />,
   [SCREENS.BANK_VERIFICATION]: <BankVerificationStep />,
   [SCREENS.PARTNERSHIP_DEED]: <PartnerContractStep />,

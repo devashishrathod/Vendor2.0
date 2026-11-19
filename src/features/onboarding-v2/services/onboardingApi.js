@@ -2,10 +2,8 @@
 // server envelope `{ success, message, data }`; errors are ApiError with
 // `details.code` (services/http/apiError.js).
 
-import { request } from "@/features/onboarding/services/api/client";
-import { updateBusinessName, updateRegistrationStatus } from "@/features/onboarding/services/api/brand.api";
+import { request, requestForm } from "@/features/onboarding/services/api/client";
 import { acknowledgeApproval } from "@/features/onboarding/services/api/verify.api";
-import { BRANCHES } from "../config/onboardingFlow";
 
 const IFSC_LOOKUP_URL = "https://ifsc.razorpay.com";
 
@@ -43,22 +41,6 @@ export const addBasicDetails = (step, fields) =>
  */
 export const editBasicDetails = (fields) => request("/brands/onboarding/update-basic-details", "PUT", fields, true);
 
-/**
- * Brand + legal name. The legal name is only known after GST / PAN / owner
- * PAN is verified, so this is sent from those review screens, not screen 03.
- * @param {{ legalName: string, brandName: string }} names
- */
-export const saveBusinessNames = ({ legalName, brandName }) =>
-  updateBusinessName({ legalBusinessName: legalName, brandName });
-
-/**
- * The backend knows REGISTERED / UNREGISTERED only; "registered, no GST"
- * is REGISTERED with no GST record.
- * @param {string} branch - BRANCHES value
- */
-export const saveBusinessStatus = (branch) =>
-  updateRegistrationStatus({ status: branch === BRANCHES.UNREGISTERED ? "UNREGISTERED" : "REGISTERED" });
-
 // ── Step 2 · Business verification (paid verify → save by verificationId) ─
 
 /**
@@ -94,6 +76,28 @@ export const skipScreen = (screen) => request("/brands/onboarding/skip", "POST",
 
 /** POST /brands/onboarding/continue (#23g), no body. @returns {Promise<{ data: { currentScreen: string } }>} */
 export const continueScreen = () => request("/brands/onboarding/continue", "POST", null, true);
+
+/**
+ * POST /brands/onboarding/owner-verification (#23a) — UNREGISTERED path.
+ * PAN: JSON { method: "PAN", verificationId } after a verify-pan.
+ * @param {string} verificationId
+ * @returns {Promise<{ data: { ownerVerification: object, legalBusinessName: string, currentScreen: string } }>}
+ */
+export const saveOwnerPan = (verificationId) =>
+  request("/brands/onboarding/owner-verification", "POST", { method: "PAN", verificationId }, true);
+
+/**
+ * Same route, ID document: multipart { method: "ID_DOCUMENT", idType, file }
+ * (PDF, or JPG / PNG with a short side ≥ 800 px; max 5 MB).
+ * @param {{ idType: AADHAAR|DRIVING_LICENCE|PASSPORT|VOTER_ID, file: File }} input
+ */
+export function saveOwnerIdDocument({ idType, file }) {
+  const form = new FormData();
+  form.append("method", "ID_DOCUMENT");
+  form.append("idType", idType);
+  form.append("file", file);
+  return requestForm("/brands/onboarding/owner-verification", "POST", form);
+}
 
 // Legacy readers for the remediation screens (corrections/*, Milestone B).
 // The wizard uses verifyGst / verifyPan above and never these.

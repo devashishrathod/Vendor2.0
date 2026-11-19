@@ -65,8 +65,11 @@ export const DOC_TYPE_LABELS = Object.freeze({
 /** @param {string|null|undefined} docType @returns {string|null} */
 export const docTypeLabel = (docType) => (docType ? DOC_TYPE_LABELS[docType] ?? docType : null);
 
-// Owner verification (not registered): ID types that can be uploaded instead of DigiLocker.
+// Owner verification (not registered): ID types for the "Upload an ID" choice.
+// owner-verification `idType` values (API doc #23a). Aadhaar must be the
+// masked copy (only the last 4 digits visible).
 export const OWNER_ID_TYPES = [
+  { value: "AADHAAR", label: "Aadhaar (masked)" },
   { value: "DRIVING_LICENCE", label: "Driving licence" },
   { value: "PASSPORT", label: "Passport" },
   { value: "VOTER_ID", label: "Voter ID" },

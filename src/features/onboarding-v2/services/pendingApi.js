@@ -26,14 +26,6 @@ const resolveLater = (value, ms = 400) => new Promise((resolve) => setTimeout(()
  */
 export const fetchRequiredDocuments = (selection = {}) => resolveLater(documentsForCategory(selection), 0);
 
-/** Starts DigiLocker consent for Aadhaar. @returns {Promise<{ verified: boolean, aadhaarLast4: string }>} */
-export const verifyAadhaarWithDigiLocker = () => resolveLater({ verified: true, aadhaarLast4: "" }, 900);
-
-/**
- * @param {{ pan: string, panName: string, idMethod: string, idType?: string, selfieTaken: boolean }} kyc
- */
-export const saveOwnerKyc = (kyc) => resolveLater({ success: true, data: kyc });
-
 /**
  * Uploads one titled business document. Reports progress 0-100.
  * @param {{ file: File, title: string }} doc

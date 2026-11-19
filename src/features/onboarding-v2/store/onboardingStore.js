@@ -39,16 +39,14 @@ const initialForm = {
   entityType: null,
   /** Filled from GST / business PAN / owner PAN — never typed by the vendor. */
   legalName: "",
+  // Read by the outlet review page (Milestone B). Owner verification itself
+  // is saved on the server (owner-verification); DigiLocker and selfie are gone.
   ownerKyc: {
     pan: "",
     panName: "",
     panDetails: null,
-    idMethod: "digilocker", // 'digilocker' | 'upload'
-    idType: null, // 'DRIVING_LICENCE' | 'PASSPORT' | 'VOTER_ID'
+    idType: null,
     idFileName: null,
-    idVerified: false,
-    aadhaarLast4: "",
-    selfieTaken: false,
   },
   /** @type {BusinessDocument[]} */
   documents: [],
