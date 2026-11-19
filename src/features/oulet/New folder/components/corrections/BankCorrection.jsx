@@ -65,7 +65,6 @@ export default function BankCorrection({ initialBank, legalName, onSaved }) {
       await submitVerifiedBankDetails(details, {
         enteredAccountNumber: bank.accountNumber,
         accountType: bank.accountType,
-        keepScreen: true,
       });
       setSaved(true);
       onSaved();

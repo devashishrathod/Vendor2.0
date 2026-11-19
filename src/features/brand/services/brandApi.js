@@ -441,11 +441,9 @@ export async function getShowcaseSections({ brandId, page = 1, limit = 20, searc
         const { data } = await api.get('/showcase/section/get-all', { params });
         return data;
     } catch (error) {
-        // The vendor list endpoint uses 404 to represent an empty list.
-        if (
-            error?.response?.status === 404 &&
-            error?.response?.data?.message === 'No any showcasesection found'
-        ) {
+        // The vendor list endpoint uses 404 to represent an empty list
+        // (API doc "Pagination") — judged by the status, not the message text.
+        if (error?.response?.status === 404) {
             return { success: true, data: { total: 0, totalPages: 0, page, limit, data: [] } };
         }
         handleError(error);
