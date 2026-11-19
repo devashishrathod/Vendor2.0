@@ -17,6 +17,11 @@ import { useState, useCallback } from "react";
 import { ANALYTICS_EVENTS } from "@/constants/analytics";
 import razorpayAPI from "@/features/subscriptions/services/razorpay.api";
 import { trackEvent } from "@/utils/analytics";
+import { getErrorCode } from "@/services/http/apiError";
+import { ONBOARDING_ERROR_CODES } from "@/features/onboarding-v2/config/screens";
+
+/** create-order answers that mean "not ready to pay" — never a payment failure. */
+export const NOT_PAYMENT_FAILURES = [ONBOARDING_ERROR_CODES.BILLING_ADDRESS_REQUIRED, ONBOARDING_ERROR_CODES.SCREEN_MISMATCH];
 
 // Loads the Razorpay checkout script once and caches the promise.
 let razorpayScriptPromise = null;
@@ -199,11 +204,16 @@ export function useRazorpayCheckout() {
       });
     } catch (err) {
       setProcessing(false);
-      setError(err.message || "Something went wrong. Please try again.");
-      trackEvent(ANALYTICS_EVENTS.PAYMENT_FAILED, {
-        items:  [{ item_id: subscriptionId }],
-        reason: err.message,
-      });
+      // 422 BILLING_ADDRESS_REQUIRED / 409 ONBOARDING_SCREEN_MISMATCH from
+      // create-order are not payment failures — no money moved; the page
+      // opens the billing form / follows the server's screen instead.
+      if (!NOT_PAYMENT_FAILURES.includes(getErrorCode(err))) {
+        setError(err.message || "Something went wrong. Please try again.");
+        trackEvent(ANALYTICS_EVENTS.PAYMENT_FAILED, {
+          items:  [{ item_id: subscriptionId }],
+          reason: err.message,
+        });
+      }
       onFailure?.(err);
       throw err;
     }

@@ -1,67 +1,21 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import AppBackground from "@/components/common/AppBackground";
 import AppTopBar from "@/components/common/AppTopBar";
-import { previewCheckout, getCurrentSubscription } from "../services/subscriptionApi";
+import { previewCheckout } from "../services/subscriptionApi";
 import { useBrand } from "../../../hooks/useBrand";
 import { isOnboardingComplete, isOnboardingCompleteNow } from "@/features/onboarding/utils/onboardingStatus";
 import OnboardingPageHeader from "@/features/onboarding-v2/components/layout/OnboardingPageHeader";
+import { routeForScreen } from "@/features/onboarding-v2/config/routes";
+import { SCREENS } from "@/features/onboarding-v2/config/screens";
 import { useOnboardingStatusStore } from "@/features/onboarding-v2/store/statusStore";
 import TrustBar from "../components/TrustBar";
 import PlanInfo from "../components/PlanInfo";
-import { useOnboardingV2Store } from "@/features/onboarding-v2/store/onboardingStore";
 import BillingAddressCard from "../components/BillingAddressCard";
 import BillingDetailsCard from "../components/BillingDetailsCard";
 import OrderSummary from "../components/OrderSummary";
-import {
-  markCheckoutPaid,
-  readCheckoutBilling,
-  readCheckoutReturnTo,
-  saveCheckoutBilling,
-  wasCheckoutPaid,
-} from "../utils/checkoutSession";
-
-// A hard page reload loses React Router's navigation `state` (that's how
-// this page normally gets `plan.id`), which used to send the vendor back
-// to /subscription unconditionally — including right after they'd already
-// paid (e.g. reloading while the WelcomePage success modal was showing).
-// Check the real subscription status first so an already-paid vendor is
-// sent forward instead of back to checkout/plan-picking. Confirmed real
-// shape (GET /subscribeds/get): top-level `isSubscribed` boolean, plus
-// `subscription.status === "ACTIVE"`.
-/**
- * A GST address split into billing-address fields. The brand record stores
- * it camelCase (floorNumber, buildingName…); the raw GST verify response
- * (onboarding wizard) uses snake_case — `snake` picks that shape.
- * @param {object|null|undefined} a
- * @param {boolean} [snake]
- * @returns {{ line1: string, line2: string, city: string, state: string, pin: string }|null}
- */
-function gstAddressFrom(a, snake = false) {
-  if (!a) return null;
-  const pick = (camel, snakeKey) => String((snake ? a[snakeKey] : a[camel]) ?? "").trim();
-  const line1 = [pick("floorNumber", "floor_number"), pick("buildingNumber", "building_number"), pick("buildingName", "building_name")]
-    .filter(Boolean)
-    .join(", ");
-  const city = pick("city", "city") || pick("district", "district");
-  const state = pick("state", "state");
-  const pin = pick("pin", "pin");
-  // GST "location" usually repeats the whole address — keep only the parts
-  // not already in line 1 / city / state / PIN (locality, landmark).
-  const taken = [line1, city, pick("district", "district"), state, pin].join(",").toLowerCase();
-  const line2 = pick("location", "location")
-    .split(",")
-    .map((part) => part.trim())
-    .filter((part) => part && !taken.includes(part.toLowerCase()))
-    .join(", ");
-  const address = { line1: line1 || line2, line2: line1 ? line2 : "", city, state, pin };
-  return address.line1 || address.city ? address : null;
-}
-
-function hasActiveSubscription(sub) {
-  if (!sub) return false;
-  return !!sub.isSubscribed || sub.subscription?.status === "ACTIVE";
-}
+import { toFormAddress, useBillingAddress } from "../hooks/useBillingAddress";
+import { markCheckoutPaid, readCheckoutReturnTo, wasCheckoutPaid } from "../utils/checkoutSession";
 
 export default function SubscriptionCheckout() {
   const { state } = useLocation();
@@ -73,12 +27,12 @@ export default function SubscriptionCheckout() {
   // legalBusinessName — pulled from the same useBrand() hook WelcomePage.jsx
   // already uses for it instead of guessing a new field on preview.
   const { brand } = useBrand();
-  // GST record from the onboarding wizard — fallback when the brand record
-  // has no GST address yet.
-  const onboardingGstAddress = useOnboardingV2Store((s) => {
-    const gst = s.form.gstDetails;
-    return (gst?.data ?? gst)?.address ?? null;
-  });
+  // Billing address lives on the server (GET / PUT /brands/billing-address);
+  // its `gstAddress` is the "Same as GST" prefill (owner answer 13).
+  const billingAddress = useBillingAddress();
+  const fetchStatus = useOnboardingStatusStore((s) => s.fetchStatus);
+  // create-order answered 422 BILLING_ADDRESS_REQUIRED — point at the form.
+  const [billingNeeded, setBillingNeeded] = useState(false);
 
   // The plan picked on the pricing page only supplies the id to preview —
   // everything shown on this page (plan details, billing, pricing/GST
@@ -136,10 +90,6 @@ export default function SubscriptionCheckout() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Local edits to billing details before paying — starts from the
-  // server's billingDetails, editable via BillingDetailsCard.
-  const [billing, setBilling] = useState(null);
-
   // Applying/removing a promo code just re-runs the preview with/without
   // `promoCode` and swaps in whatever the server returns — same as the
   // initial load, no local discount math. Feedback for both shows inline,
@@ -162,13 +112,12 @@ export default function SubscriptionCheckout() {
         navigate("/subscription", { replace: true });
         return;
       }
-      // Still onboarding: before bouncing back to plan-picking, confirm the
-      // vendor hasn't already paid — a reload here (state lost) used to
-      // always send an already-successful payment back to /subscription
-      // instead of forward, letting them stumble into paying again.
-      getCurrentSubscription(brand?._id)
-        .then((sub) => {
-          navigate(hasActiveSubscription(sub) ? "/brand-outlet" : "/subscription", { replace: true });
+      // Still onboarding: where to go is the server's call — once the plan
+      // is live the status has moved past SUBSCRIBE_PLAN (guide §4.11).
+      fetchStatus()
+        .then((status) => {
+          const screen = status?.currentScreen;
+          navigate(screen && screen !== SCREENS.SUBSCRIBE_PLAN ? routeForScreen(screen) : "/subscription", { replace: true });
         })
         .catch(() => navigate("/subscription", { replace: true }));
       return;
@@ -177,8 +126,6 @@ export default function SubscriptionCheckout() {
     previewCheckout(subscriptionId, promoRef.current || undefined)
       .then((data) => {
         setPreview(data);
-        // Unpaid billing edits from before a refresh win over the server copy.
-        setBilling(readCheckoutBilling(subscriptionId) ?? data?.billingDetails ?? null);
         // A ?promo= code that no longer applies (expired, wrong plan) —
         // show why. The stale param itself is overwritten by the next
         // apply/remove (kept out of this effect so URL updates don't
@@ -190,7 +137,7 @@ export default function SubscriptionCheckout() {
       })
       .catch((err) => setError(err.message || "Couldn't load checkout details."))
       .finally(() => setLoading(false));
-  }, [subscriptionId, navigate, brand?._id]);
+  }, [subscriptionId, navigate, fetchStatus]);
 
   const handleApplyPromo = async (code) => {
     setApplyingPromo(true);
@@ -233,35 +180,49 @@ export default function SubscriptionCheckout() {
     }
   };
 
-  const handleSaveBilling = (next) => {
-    setBilling(next);
-    saveCheckoutBilling(subscriptionId, next);
-  };
+  // Billing saved → the preview's billingAddressRequired / billingDetails
+  // change, and so does status.hasBillingAddress.
+  const saveAddress = billingAddress.save;
+  const handleAddressChange = useCallback(
+    async (parts) => {
+      await saveAddress(parts);
+      setBillingNeeded(false);
+      fetchStatus().catch((err) => console.error("Onboarding status refresh failed:", err));
+      try {
+        setPreview(await previewCheckout(subscriptionId, promoRef.current || undefined));
+      } catch (err) {
+        console.error("Checkout preview refresh failed:", err);
+      }
+    },
+    [fetchStatus, saveAddress, subscriptionId],
+  );
+
+  const handleBillingRequired = useCallback(() => {
+    setBillingNeeded(true);
+    document.getElementById("billing-address")?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, []);
 
   if (loading || !preview) {
     return <div>{error || "Loading..."}</div>;
   }
 
   const businessName = preview.billingDetails?.brandName || preview.brand?.brandName;
+  const billing = preview.billingDetails ?? null;
 
   // Verified identity for the Billing Details card.
-  const billingWithLegalName = billing
-    ? { legalBusinessName: brand?.legalBusinessName, ...billing }
-    : billing;
+  const billingWithLegalName = billing ? { legalBusinessName: brand?.legalBusinessName, ...billing } : billing;
 
-  // Billing Address: structured fields, defaulting to the GST address when
-  // the brand has one ("Same as my GST address" ticked), else the preview's
-  // single-line address as line 1.
-  const gstAddress = gstAddressFrom(brand?.gst?.address) ?? gstAddressFrom(onboardingGstAddress, true);
-  const addressValue = billing?.addressParts ?? (
-    gstAddress
-      ? { ...gstAddress, sameAsGst: true }
-      : { line1: billing?.address || "", line2: "", city: "", state: "", pin: "", sameAsGst: false }
-  );
-  const handleAddressChange = (parts) => {
-    const address = [parts.line1, parts.line2, parts.city, parts.state, parts.pin].filter(Boolean).join(", ");
-    handleSaveBilling({ ...billing, addressParts: parts, address });
-  };
+  // Billing Address form: the saved address; else the server's
+  // suggestedAddress (GST, else PAN); else empty. "Same as GST" only for a
+  // GST brand, filled from `gstAddress`; an empty state defaults to the GSTIN's.
+  const gstAddress = billingAddress.gstin ? toFormAddress(billingAddress.gstAddress) : null;
+  const saved = toFormAddress(billingAddress.billingAddress);
+  const suggested = toFormAddress(billingAddress.suggestedAddress);
+  const emptyAddress = { line1: "", line2: "", city: "", state: gstAddress?.state ?? "", pin: "" };
+  let addressValue = { ...emptyAddress, sameAsGst: false };
+  if (saved) addressValue = { ...saved, sameAsGst: false };
+  else if (suggested) addressValue = { ...suggested, sameAsGst: Boolean(gstAddress) && billingAddress.suggestedAddress?.source === "GST" };
+  const billingRequired = preview.billingAddressRequired === true || billingNeeded;
 
   return (
     <div className="app-shell-bg relative isolate min-h-screen">
@@ -293,12 +254,20 @@ export default function SubscriptionCheckout() {
                 horizontally inside so they stay short. */}
             <div className="flex flex-col gap-4">
               <BillingDetailsCard details={billingWithLegalName} />
-              <BillingAddressCard
-                value={addressValue}
-                gstAddress={gstAddress}
-                onChange={handleAddressChange}
-                isSaved={Boolean(billing?.addressParts)}
-              />
+              {billingAddress.loading ? (
+                <p className="rounded-xl bg-white px-4 py-3 text-sm text-gray-500 ring-1 ring-gray-200/70 dark:bg-gray-800 dark:text-gray-400 dark:ring-gray-700">
+                  Loading billing address…
+                </p>
+              ) : (
+                <BillingAddressCard
+                  key={saved ? "saved" : "draft"}
+                  value={addressValue}
+                  gstAddress={gstAddress}
+                  onChange={handleAddressChange}
+                  isSaved={Boolean(saved)}
+                  required={billingRequired}
+                />
+              )}
             </div>
           </div>
 
@@ -314,6 +283,8 @@ export default function SubscriptionCheckout() {
             requiresPayment={preview.requiresPayment}
             blockedReason={preview.blockedReason}
             notices={preview.notices}
+            billingAddressRequired={billingRequired}
+            onBillingRequired={handleBillingRequired}
             businessName={businessName}
             billingDetails={billing}
             onApplyPromo={handleApplyPromo}

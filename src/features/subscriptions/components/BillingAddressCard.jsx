@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import { Check, LoaderCircle, MapPin, Save } from "lucide-react";
+import { onboardingErrorMessage } from "@/features/onboarding-v2/utils/errorMessages";
 
 const PIN_PATTERN = /^\d{6}$/;
 const EMPTY_ADDRESS = { line1: "", line2: "", city: "", state: "", pin: "" };
@@ -23,23 +24,26 @@ function Field({ id, label, required, error, children }) {
 }
 
 /**
- * Billing Address — printed on every invoice. Always shown as a form. When
- * the vendor has a GST registration, "Same as my GST address" (inside the
- * form, on by default) fills the fields from it and locks them; unticking
- * clears them for a different address. Edits stay a draft until **Save**,
- * which hands the address to `onChange`.
+ * Billing Address — printed on every invoice (guide §4.11). Always shown as a
+ * form. A GST brand gets "Same as my GST address", which fills the fields
+ * from the server's `gstAddress` (a prefill only) and locks them;
+ * unticking clears them. Edits stay a draft until **Save**, which hands the
+ * address to `onChange` (PUT /brands/billing-address); a failed save shows
+ * the server's reason by code (e.g. BILLING_STATE_GSTIN_MISMATCH).
  * @param {{
  *   value: { line1: string, line2: string, city: string, state: string, pin: string, sameAsGst: boolean },
  *   gstAddress: { line1: string, line2: string, city: string, state: string, pin: string }|null,
- *   onChange: (next: object) => void,
- *   isSaved?: boolean,   - an address has actually been saved before (not just the GST default)
+ *   onChange: (next: object) => Promise<void>,
+ *   isSaved?: boolean,    - an address is saved on the server
+ *   required?: boolean,   - checkout needs it before paying (preview billingAddressRequired)
  * }} props
  */
-export default function BillingAddressCard({ value, gstAddress, onChange, isSaved = false }) {
+export default function BillingAddressCard({ value, gstAddress, onChange, isSaved = false, required = false }) {
   const [draft, setDraft] = useState(value);
   const [savedValue, setSavedValue] = useState(value);
   const [saving, setSaving] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
+  const [saveError, setSaveError] = useState("");
 
   // The saved address changed from outside (e.g. loaded later) → follow it,
   // unless the vendor is mid-edit.
@@ -56,11 +60,13 @@ export default function BillingAddressCard({ value, gstAddress, onChange, isSave
 
   const toggleSameAsGst = (checked) => {
     setJustSaved(false);
+    setSaveError("");
     setDraft(checked ? { ...gstAddress, sameAsGst: true } : { ...EMPTY_ADDRESS, sameAsGst: false });
   };
 
   const setField = (key, raw) => {
     setJustSaved(false);
+    setSaveError("");
     const next = key === "pin" ? raw.replace(/\D/g, "").slice(0, 6) : raw;
     setDraft((d) => ({ ...d, [key]: next }));
   };
@@ -68,10 +74,14 @@ export default function BillingAddressCard({ value, gstAddress, onChange, isSave
   const handleSave = useCallback(async () => {
     if (!complete) return;
     setSaving(true);
+    setSaveError("");
     try {
       await onChange(draft);
       setSavedValue(draft);
       setJustSaved(true);
+    } catch (err) {
+      console.error("Billing address save failed:", err);
+      setSaveError(onboardingErrorMessage(err, "Couldn't save the address. Please try again."));
     } finally {
       setSaving(false);
     }
@@ -91,7 +101,12 @@ export default function BillingAddressCard({ value, gstAddress, onChange, isSave
   );
 
   return (
-    <section className="overflow-hidden rounded-xl bg-white ring-1 ring-gray-200/70 dark:bg-gray-800 dark:ring-gray-700">
+    <section
+      id="billing-address"
+      className={`overflow-hidden rounded-xl bg-white dark:bg-gray-800 ${
+        required && dirty ? "ring-2 ring-amber-400 dark:ring-amber-500/60" : "ring-1 ring-gray-200/70 dark:ring-gray-700"
+      }`}
+    >
       <header className="flex flex-wrap items-center gap-x-2.5 gap-y-2 px-4 pb-1 pt-3">
         <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
           <MapPin size={14} aria-hidden="true" />
@@ -173,6 +188,15 @@ export default function BillingAddressCard({ value, gstAddress, onChange, isSave
             })}
           </Field>
         </div>
+
+        {saveError && (
+          <p className="text-xs font-medium text-red-600 dark:text-red-400" role="alert">
+            {saveError}
+          </p>
+        )}
+        {required && dirty && !saveError && (
+          <p className="text-xs font-semibold text-amber-700 dark:text-amber-400">Save your billing address to continue to payment.</p>
+        )}
 
         <div className="flex flex-col gap-2 pt-1 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-[11.5px] text-gray-500 dark:text-gray-400">

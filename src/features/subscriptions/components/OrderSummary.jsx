@@ -1,7 +1,11 @@
 import { useState, useEffect } from "react";
 import { Lock, ReceiptText, ShieldCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useRazorpayCheckout } from "../hooks/useRazorpayCheckout";
+import { getErrorCode, getErrorDetails } from "@/services/http/apiError";
+import { isOnboardingCompleteNow } from "@/features/onboarding/utils/onboardingStatus";
+import { ONBOARDING_ERROR_CODES } from "@/features/onboarding-v2/config/screens";
+import { useOnboardingFlow } from "@/features/onboarding-v2/hooks/useOnboardingFlow";
+import { NOT_PAYMENT_FAILURES, useRazorpayCheckout } from "../hooks/useRazorpayCheckout";
 import { formatINR, mergeGstRowsToIgst } from "../utils/priceCalculator";
 import SummaryRow from "./SummaryRow";
 import PromoCodePanel from "./PromoCodePanel";
@@ -28,6 +32,8 @@ export default function OrderSummary({
   canProceed,
   requiresPayment,
   blockedReason,
+  billingAddressRequired = false,
+  onBillingRequired,
   businessName,
   billingDetails,
   onApplyPromo,
@@ -37,6 +43,8 @@ export default function OrderSummary({
   promoError,
 }) {
   const navigate = useNavigate();
+  // The server's screen is the only routing source (guide §2.2).
+  const { goToServerScreen } = useOnboardingFlow();
   const [successOrder, setSuccessOrder] = useState(null); // API response's `data`, once confirmed
   // Single source of truth for what the person sees after tapping Check Out:
   // 'idle' -> 'processing' -> 'success' -> WelcomePage modal, OR 'processing' -> 'failed'
@@ -46,9 +54,29 @@ export default function OrderSummary({
   const { pay, processing, error } = useRazorpayCheckout();
   const [toastError, setToastError] = useState(null);
 
+  // create-order refusals that aren't payment failures (no money moved):
+  // 422 BILLING_ADDRESS_REQUIRED → open the billing form (never the failure
+  // screen); 409 ONBOARDING_SCREEN_MISMATCH → the server's screen.
+  const handlePayError = (err) => {
+    const code = getErrorCode(err);
+    if (NOT_PAYMENT_FAILURES.includes(code)) {
+      setPaymentState("idle");
+      setPaymentError("");
+      if (code === ONBOARDING_ERROR_CODES.BILLING_ADDRESS_REQUIRED) onBillingRequired?.(getErrorDetails(err));
+      else goToServerScreen(getErrorDetails(err)?.currentScreen);
+      return;
+    }
+    setPaymentError(err?.description || err?.message || error || "");
+    setPaymentState("failed");
+  };
+
   const handleCheckout = async () => {
     if (!subscriptionId) {
       console.error("OrderSummary: missing subscriptionId — cannot create a payment order.");
+      return;
+    }
+    if (billingAddressRequired) {
+      onBillingRequired?.(null);
       return;
     }
 
@@ -76,10 +104,7 @@ export default function OrderSummary({
           setSuccessOrder(response?.data ?? response);
           setPaymentState("success"); // overlay plays the checkmark animation, then hands off
         },
-        onFailure: (err) => {
-          setPaymentError(err?.description || err?.message || "");
-          setPaymentState("failed");
-        },
+        onFailure: handlePayError,
       });
       // ⚠️ FIXED: useRazorpayCheckout's modal.ondismiss resolves with `null`
       // when the person closes the Razorpay widget without paying — that's
@@ -97,8 +122,7 @@ export default function OrderSummary({
       // Razorpay popup being closed/cancelled by the person, backend
       // verification failing, etc.) — anything that isn't a clean
       // onFailure callback still lands on the same failure screen.
-      setPaymentError(err?.message || error || "");
-      setPaymentState("failed");
+      handlePayError(err);
     }
   };
 
@@ -219,10 +243,15 @@ export default function OrderSummary({
           </div>
         )}
 
+        {canCheckout && billingAddressRequired && (
+          <p className="mb-2 text-xs font-semibold text-amber-700 dark:text-amber-400">
+            Save your billing address first — it&apos;s printed on your invoice.
+          </p>
+        )}
         {canCheckout ? (
           <button
             onClick={handleCheckout}
-            disabled={processing || paymentState === "processing"}
+            disabled={processing || paymentState === "processing" || billingAddressRequired}
             className="mb-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#09B285] to-[#0F0E20] text-base font-bold text-white shadow-sm transition-all duration-150 hover:from-[#07a077] hover:to-[#1a1a3e] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
           >
             <Lock size={16} aria-hidden="true" />
@@ -234,10 +263,11 @@ export default function OrderSummary({
           // canProceed:false means the backend already considers this
           // handled (e.g. already paid/subscribed) — don't let Checkout
           // keep hitting create-order in that state, just move the vendor
-          // forward instead.
+          // forward instead: the dashboard, or during onboarding the
+          // server's current screen.
           <button
             type="button"
-            onClick={() => navigate("/analysis-report")}
+            onClick={() => (returnTo || isOnboardingCompleteNow() ? navigate("/analysis-report") : goToServerScreen(null))}
             className="mb-3 min-h-12 w-full rounded-xl bg-emerald-600 text-base font-bold text-white transition-all duration-150 hover:bg-emerald-700 active:scale-[0.99]"
           >
             Continue
