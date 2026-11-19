@@ -1,39 +1,36 @@
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Check, FileText, X } from "lucide-react";
 import Toaster from "@/features/onboarding-v2/components/ui/Toaster";
-import { useOnboardingV2Store } from "@/features/onboarding-v2/store/onboardingStore";
+import { useKycDocuments } from "@/features/onboarding-v2/hooks/useKycDocuments";
+import { useOnboardingStatusStore } from "@/features/onboarding-v2/store/statusStore";
 import DocumentsEditor from "@/features/onboarding-v2/steps/verification/DocumentsEditor";
-import {
-  documentsStatus,
-  documentsSubtitle,
-  dropEmptyDocumentRows,
-} from "@/features/onboarding-v2/steps/verification/documentsHelpers";
+import { documentsSubtitle } from "@/features/onboarding-v2/steps/verification/documentsHelpers";
 
 /**
- * "Add business documents" popup on the outlet review — the same editor the
- * onboarding Documents step uses, so documents added here land in the same
- * onboarding store the review reads.
+ * "Add business documents" popup on the outlet review — the same server-backed
+ * editor as the onboarding Documents step (GET / POST / PUT / DELETE
+ * /brands/onboarding/documents). What may be added or changed follows
+ * `status.editable.documents`.
  * @param {{ open: boolean, onClose: () => void }} props
  */
 export default function AddDocumentsModal({ open, onClose }) {
-  const branch = useOnboardingV2Store((s) => s.branch);
-  const documents = useOnboardingV2Store((s) => s.form.documents);
-  const { uploadedCount, anyUploading, unsavedCount, canFinish } = documentsStatus(documents);
-  const categoryName = useOnboardingV2Store((s) => s.form.categoryName);
-  const subCategories = useOnboardingV2Store((s) => s.form.subCategories);
-  const entityType = useOnboardingV2Store((s) => s.form.entityType);
-  const subtitle = documentsSubtitle({ categoryName, subCategories, entityType, branch });
+  if (!open) return null;
+  return createPortal(<DocumentsModalBody onClose={onClose} />, document.body);
+}
 
-  // Closing never loses an upload in flight: wait until it finishes.
+function DocumentsModalBody({ onClose }) {
+  const status = useOnboardingStatusStore((s) => s.status);
+  const docs = useKycDocuments();
+  const [unsaved, setUnsaved] = useState(0);
+
+  // Closing never drops a new document the vendor hasn't saved yet.
   const close = useCallback(() => {
-    if (anyUploading) return;
-    dropEmptyDocumentRows();
+    if (unsaved > 0) return;
     onClose();
-  }, [anyUploading, onClose]);
+  }, [onClose, unsaved]);
 
   useEffect(() => {
-    if (!open) return undefined;
     const onKeyDown = (event) => {
       if (event.key === "Escape") close();
     };
@@ -44,11 +41,9 @@ export default function AddDocumentsModal({ open, onClose }) {
       document.removeEventListener("keydown", onKeyDown);
       document.body.style.overflow = overflow;
     };
-  }, [open, close]);
+  }, [close]);
 
-  if (!open) return null;
-
-  return createPortal(
+  return (
     <div className="fixed inset-0 z-[70] flex items-end justify-center sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-labelledby="add-docs-title">
       <Toaster />
       <button type="button" aria-label="Close" onClick={close} className="absolute inset-0 h-full w-full cursor-default bg-gray-900/50 backdrop-blur-sm" />
@@ -62,12 +57,12 @@ export default function AddDocumentsModal({ open, onClose }) {
             <h2 id="add-docs-title" className="text-base font-extrabold text-gray-900 dark:text-gray-50">
               Add business documents
             </h2>
-            <p className="mt-0.5 text-[12.5px] leading-snug text-gray-500 dark:text-gray-400">{subtitle}</p>
+            <p className="mt-0.5 text-[12.5px] leading-snug text-gray-500 dark:text-gray-400">{documentsSubtitle(status?.kycPath ?? null)}</p>
           </div>
           <button
             type="button"
             onClick={close}
-            disabled={anyUploading}
+            disabled={unsaved > 0}
             aria-label="Close"
             className="grid size-9 shrink-0 place-items-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 disabled:opacity-40 dark:hover:bg-gray-700"
           >
@@ -76,23 +71,24 @@ export default function AddDocumentsModal({ open, onClose }) {
         </header>
 
         <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-5 py-5 sm:px-6">
-          <DocumentsEditor />
+          <DocumentsEditor
+            docs={docs}
+            canAdd={status?.editable?.documents?.add !== false}
+            canChange={status?.editable?.documents?.change !== false}
+            onDraftsChange={setUnsaved}
+          />
         </div>
 
         <footer className="flex items-center justify-between gap-3 border-t border-gray-100 bg-gray-50 px-5 py-3.5 sm:px-6 dark:border-gray-700 dark:bg-gray-900/40">
           <p className="text-xs font-bold text-gray-600 dark:text-gray-400">
-            {anyUploading
-              ? "Uploading…"
-              : unsavedCount > 0
-                ? `Save ${unsavedCount === 1 ? "the chosen file" : `${unsavedCount} chosen files`} first`
-                : uploadedCount === 1
-                  ? "1 document saved"
-                  : `${uploadedCount} documents saved`}
+            {unsaved > 0
+              ? `Save or discard ${unsaved === 1 ? "the new document" : `${unsaved} new documents`} first`
+              : `${docs.count} document${docs.count === 1 ? "" : "s"} saved`}
           </p>
           <button
             type="button"
             onClick={close}
-            disabled={!canFinish}
+            disabled={unsaved > 0}
             className="inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-emerald-600 px-6 text-sm font-bold text-white shadow-sm hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Check size={16} strokeWidth={2.5} aria-hidden="true" />
@@ -100,7 +96,6 @@ export default function AddDocumentsModal({ open, onClose }) {
           </button>
         </footer>
       </div>
-    </div>,
-    document.body,
+    </div>
   );
 }

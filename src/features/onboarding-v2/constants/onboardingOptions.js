@@ -1,5 +1,3 @@
-import { BRANCHES } from "../config/onboardingFlow";
-
 // Category tiles shown before "More" expands the rest.
 export const VISIBLE_CATEGORY_COUNT = 7;
 
@@ -86,22 +84,16 @@ export const BANK_ACCOUNT_TYPES = [
   { value: "OTHER", label: "Other" },
 ];
 
-// Business documents: suggested titles per branch. `null` is replaced by
-// the selected category's licence.
-const REGISTERED_DOCUMENT_SUGGESTIONS = [null, "Shop & Establishment", "Trade licence", "Shop photo", "Rent agreement"];
-export const DOCUMENT_SUGGESTIONS = {
-  [BRANCHES.GST]: REGISTERED_DOCUMENT_SUGGESTIONS,
-  [BRANCHES.REG_NO_GST]: REGISTERED_DOCUMENT_SUGGESTIONS,
-  [BRANCHES.UNREGISTERED]: ["Aadhaar (masked)", "Voter ID", null, "Electricity bill", "Shop photo", "Rent agreement"],
-};
-
+// File + title rules the server applies to KYC documents (API doc #23a /
+// #23c). Checked here first only to save a failed upload; the document
+// COUNT limit is the server's (`limit` from GET documents / status.limits).
 export const DOCUMENT_RULES = Object.freeze({
   maxSizeBytes: 5 * 1024 * 1024,
   minImageSidePx: 800,
   acceptedTypes: ["application/pdf", "image/jpeg", "image/png"],
   accept: ".pdf,.jpg,.jpeg,.png",
-  maxTitleLength: 60,
-  maxDocuments: 5,
+  minTitleLength: 2,
+  maxTitleLength: 80,
 });
 
 export const PARTNER_AGREEMENT_URL = "https://trydood.com/partner-agreement";

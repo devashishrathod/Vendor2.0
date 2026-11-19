@@ -1,329 +1,425 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Plus } from "lucide-react";
-import Button from "../../components/ui/Button";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Check, Eye, FileText, LoaderCircle, Pencil, Plus, RefreshCw, Save, Trash2, Upload, X } from "lucide-react";
 import DocumentPreviewModal from "../../components/ui/DocumentPreviewModal";
-import DocumentRow from "../../components/ui/DocumentRow";
 import FormError from "../../components/ui/FormError";
-import { BRANCHES } from "../../config/onboardingFlow";
-import { DOCUMENT_RULES } from "../../constants/onboardingOptions";
-import { fetchRequiredDocuments, uploadBusinessDocument } from "../../services/pendingApi";
-import { useOnboardingV2Store } from "../../store/onboardingStore";
-import { deleteDocumentFile, getDocumentFile, putDocumentFile } from "../../utils/documentFileStore";
-import { DOCUMENT_COPY } from "./documentsHelpers";
+import StatusPill from "../../components/ui/StatusPill";
+import { DOCUMENT_RULES, OWNER_ID_TYPES, docTypeLabel } from "../../constants/onboardingOptions";
+import { onboardingErrorMessage } from "../../utils/errorMessages";
+import { checkDocumentFile, formatFileSize } from "../../validation/rules";
 
+const SMALL_BUTTON =
+  "inline-flex min-h-10 items-center justify-center gap-1.5 rounded-[10px] px-3 text-xs font-bold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 disabled:cursor-not-allowed disabled:opacity-50";
+const OUTLINE = "bg-white text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:bg-gray-900 dark:text-gray-200 dark:ring-gray-700 dark:hover:bg-gray-800";
+const PRIMARY = "bg-emerald-600 text-white hover:bg-emerald-700";
 
-const EMPTY_FILE = { fileName: null, fileSize: null, status: "empty", progress: 0, url: null };
+// Document review status (API doc #23b).
+const STATUS_PILLS = {
+  UPLOADED: { tone: "neutral", label: "Uploaded" },
+  ACCEPTED: { tone: "success", label: "Accepted" },
+  REJECTED: { tone: "danger", label: "Rejected" },
+};
 
-const normalizeTitle = (title) => title.trim().toLowerCase();
+const titleValid = (title) => {
+  const length = title.trim().length;
+  return length >= DOCUMENT_RULES.minTitleLength && length <= DOCUMENT_RULES.maxTitleLength;
+};
+
+let draftSeq = 0;
+const newDraft = (title = "", docType = null) => ({ id: `draft-${++draftSeq}`, title, docType, file: null });
+
+/** Picks a file, checks type / size / resolution, then hands it over. */
+function useFilePicker(onPicked) {
+  const inputRef = useRef(null);
+  const [checking, setChecking] = useState(false);
+  const [fileError, setFileError] = useState("");
+
+  const onChange = useCallback(
+    async (event) => {
+      const file = event.target.files?.[0];
+      event.target.value = "";
+      if (!file) return;
+      setChecking(true);
+      setFileError("");
+      const problem = await checkDocumentFile(file);
+      setChecking(false);
+      if (problem) setFileError(problem);
+      else onPicked(file);
+    },
+    [onPicked],
+  );
+
+  const input = (
+    <input ref={inputRef} type="file" accept={DOCUMENT_RULES.accept} onChange={onChange} className="sr-only" tabIndex={-1} aria-hidden="true" />
+  );
+  return { open: () => inputRef.current?.click(), checking, fileError, input };
+}
+
+/** The owner's ID (unregistered path) — shown first, changed only in Owner verification. */
+function OwnerIdRow({ document, onPreview }) {
+  const pill = STATUS_PILLS[document.status];
+  return (
+    <div className="flex flex-col gap-2 rounded-xl bg-gray-50 p-3.5 ring-1 ring-inset ring-gray-200 sm:flex-row sm:items-center dark:bg-gray-800/50 dark:ring-gray-700">
+      <div className="min-w-0 flex-1">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">Owner ID</p>
+        <p className="truncate text-sm font-extrabold text-gray-900 dark:text-gray-100">
+          {OWNER_ID_TYPES.find((t) => t.value === document.idType)?.label ?? document.title}
+        </p>
+        <p className="text-[11.5px] text-gray-500 dark:text-gray-400">Change it in Owner verification.</p>
+      </div>
+      <div className="flex items-center gap-1.5">
+        {pill && <StatusPill tone={pill.tone}>{pill.label}</StatusPill>}
+        <button type="button" onClick={onPreview} className={`${SMALL_BUTTON} ${OUTLINE}`}>
+          <Eye size={14} aria-hidden="true" />
+          Preview
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** A business document saved on the server: preview, rename, replace, delete. */
+function SavedRow({ document, canChange, onPreview, onUpdate, onRemove }) {
+  const [editing, setEditing] = useState(false);
+  const [title, setTitle] = useState(document.title);
+  const [busy, setBusy] = useState("");
+  const [error, setError] = useState("");
+
+  const run = useCallback(async (kind, action) => {
+    setBusy(kind);
+    setError("");
+    try {
+      await action();
+      return true;
+    } catch (err) {
+      console.error(`Document ${kind} failed:`, err);
+      setError(onboardingErrorMessage(err, "That didn't work. Please try again."));
+      return false;
+    } finally {
+      setBusy("");
+    }
+  }, []);
+
+  const replace = useFilePicker(useCallback((file) => run("replace", () => onUpdate(document._id, { file })), [document._id, onUpdate, run]));
+  const saveTitle = async () => {
+    if (!titleValid(title) || title.trim() === document.title) {
+      setEditing(false);
+      setTitle(document.title);
+      return;
+    }
+    if (await run("rename", () => onUpdate(document._id, { title: title.trim() }))) setEditing(false);
+  };
+
+  const pill = STATUS_PILLS[document.status];
+  const message = replace.fileError || error;
+
+  return (
+    <div className="rounded-xl bg-emerald-50 p-3.5 ring-1 ring-inset ring-emerald-200 dark:bg-emerald-500/10 dark:ring-emerald-500/30">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <span className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-white text-emerald-600 dark:bg-gray-900">
+            <FileText size={18} strokeWidth={1.8} aria-hidden="true" />
+          </span>
+          <div className="min-w-0 flex-1">
+            {editing ? (
+              <div className="flex items-center gap-1.5">
+                <input
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  maxLength={DOCUMENT_RULES.maxTitleLength}
+                  aria-label="Document title"
+                  autoFocus
+                  className="w-full min-w-0 rounded-md border border-gray-300 bg-white px-2 py-1 text-sm font-bold text-gray-900 outline-none focus:border-emerald-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                />
+                <button type="button" onClick={saveTitle} disabled={busy === "rename"} aria-label="Save title" className={`${SMALL_BUTTON} ${PRIMARY} min-h-8 px-2`}>
+                  {busy === "rename" ? <LoaderCircle size={13} className="animate-spin" aria-hidden="true" /> : <Check size={13} aria-hidden="true" />}
+                </button>
+              </div>
+            ) : (
+              <div className="flex min-w-0 items-center gap-1">
+                <p className="truncate text-sm font-extrabold text-gray-900 dark:text-gray-100">{document.title}</p>
+                {canChange && (
+                  <button
+                    type="button"
+                    onClick={() => setEditing(true)}
+                    aria-label={`Rename ${document.title}`}
+                    className="grid size-7 shrink-0 place-items-center rounded-md text-gray-400 hover:bg-white hover:text-emerald-600 dark:hover:bg-gray-800"
+                  >
+                    <Pencil size={13} aria-hidden="true" />
+                  </button>
+                )}
+              </div>
+            )}
+            <p className="truncate text-[11.5px] text-gray-600 dark:text-gray-400">
+              {[docTypeLabel(document.docType), document.file?.originalName, document.file?.sizeBytes ? formatFileSize(document.file.sizeBytes) : null]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5">
+          {pill && <StatusPill tone={pill.tone}>{pill.label}</StatusPill>}
+          <button type="button" onClick={onPreview} className={`${SMALL_BUTTON} ${OUTLINE}`}>
+            <Eye size={14} aria-hidden="true" />
+            Preview
+          </button>
+          {canChange && (
+            <>
+              <button type="button" onClick={replace.open} disabled={Boolean(busy) || replace.checking} className={`${SMALL_BUTTON} ${OUTLINE}`}>
+                {busy === "replace" || replace.checking ? <LoaderCircle size={14} className="animate-spin" aria-hidden="true" /> : <RefreshCw size={14} aria-hidden="true" />}
+                Replace
+              </button>
+              <button
+                type="button"
+                onClick={() => run("delete", () => onRemove(document._id))}
+                disabled={Boolean(busy)}
+                aria-label={`Delete ${document.title}`}
+                className="grid size-10 place-items-center rounded-[10px] text-red-700 hover:bg-red-50 disabled:opacity-50 dark:text-red-400 dark:hover:bg-red-500/10"
+              >
+                {busy === "delete" ? <LoaderCircle size={16} className="animate-spin" aria-hidden="true" /> : <Trash2 size={16} aria-hidden="true" />}
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+      {document.status === "REJECTED" && document.reason && (
+        <p className="mt-2 text-xs font-medium text-red-700 dark:text-red-400">Rejected: {document.reason}. Upload a new document.</p>
+      )}
+      {message && (
+        <p className="mt-2 text-xs font-medium text-red-600 dark:text-red-400" role="alert">
+          {message}
+        </p>
+      )}
+      {replace.input}
+    </div>
+  );
+}
+
+/** A new document being added: title + file, uploaded on Save. */
+function DraftRow({ draft, onChange, onSave, onDiscard, onPreview }) {
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const picker = useFilePicker(useCallback((file) => onChange({ file }), [onChange]));
+  const ready = titleValid(draft.title) && Boolean(draft.file);
+
+  const save = async () => {
+    if (!ready || saving) return;
+    setSaving(true);
+    setError("");
+    try {
+      await onSave();
+    } catch (err) {
+      console.error("Document upload failed:", err);
+      // KYC_DOCUMENT_LIMIT, KYC_FILE_TYPE, KYC_IMAGE_TOO_SMALL, 413, KYC_STORAGE_UNAVAILABLE …
+      setError(onboardingErrorMessage(err, "Upload failed. Please try again."));
+      setSaving(false);
+    }
+  };
+
+  const message = picker.fileError || error;
+
+  return (
+    <div className="rounded-xl bg-white p-3.5 ring-[1.5px] ring-inset ring-amber-300 dark:bg-gray-900 dark:ring-amber-500/40">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="min-w-0 flex-1">
+          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400" htmlFor={draft.id}>
+            Document title <span className="text-red-500">*</span>
+          </label>
+          <input
+            id={draft.id}
+            value={draft.title}
+            onChange={(e) => onChange({ title: e.target.value })}
+            maxLength={DOCUMENT_RULES.maxTitleLength}
+            placeholder="e.g. Trade licence 2026"
+            className="w-full min-w-0 border-0 bg-transparent p-0 py-1 text-base font-extrabold text-gray-900 outline-none placeholder:font-semibold placeholder:text-gray-400 sm:text-sm dark:text-gray-100"
+          />
+          {draft.file && (
+            <p className="truncate text-[11.5px] text-gray-600 dark:text-gray-400">
+              {draft.file.name} · {formatFileSize(draft.file.size)}
+            </p>
+          )}
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5">
+          {draft.file && (
+            <button type="button" onClick={onPreview} className={`${SMALL_BUTTON} ${OUTLINE}`}>
+              <Eye size={14} aria-hidden="true" />
+              Preview
+            </button>
+          )}
+          <button type="button" onClick={picker.open} disabled={picker.checking || saving} className={`${SMALL_BUTTON} ${draft.file ? OUTLINE : PRIMARY}`}>
+            {picker.checking ? <LoaderCircle size={14} className="animate-spin" aria-hidden="true" /> : draft.file ? <RefreshCw size={14} aria-hidden="true" /> : <Upload size={14} aria-hidden="true" />}
+            {draft.file ? "Change file" : "Choose file"}
+          </button>
+          {draft.file && (
+            <button type="button" onClick={save} disabled={!ready || saving} className={`${SMALL_BUTTON} ${PRIMARY}`}>
+              {saving ? <LoaderCircle size={14} className="animate-spin" aria-hidden="true" /> : <Save size={14} aria-hidden="true" />}
+              {saving ? "Uploading…" : "Save"}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onDiscard}
+            disabled={saving}
+            aria-label="Discard this document"
+            className="grid size-10 place-items-center rounded-[10px] text-gray-500 hover:bg-gray-100 disabled:opacity-50 dark:hover:bg-gray-800"
+          >
+            <X size={16} aria-hidden="true" />
+          </button>
+        </div>
+      </div>
+      {!message && draft.file && !titleValid(draft.title) && (
+        <p className="mt-2 text-xs font-medium text-amber-700 dark:text-amber-400">
+          Give it a title ({DOCUMENT_RULES.minTitleLength}–{DOCUMENT_RULES.maxTitleLength} characters) so our team knows what it is.
+        </p>
+      )}
+      {message && (
+        <p className="mt-2 text-xs font-medium text-red-600 dark:text-red-400" role="alert">
+          {message}
+        </p>
+      )}
+      {picker.input}
+    </div>
+  );
+}
 
 /**
- * The business documents editor: suggestion chips (required / optional),
- * titled rows with real upload progress, and "Add a document". Used by the
- * onboarding Documents step and by the outlet review's "Add documents"
- * popup. File objects never reach the persisted store — only name, size,
- * status and the uploaded url.
+ * Business documents editor (guide §4.8), server-backed through
+ * useKycDocuments: recommended chips from `hints` (docType codes → labels),
+ * the owner ID first and apart, saved documents (preview / rename / replace /
+ * delete when `canChange`), and new ones added with a title. The add limit is
+ * the server's `limit` / `count`. Used by the KYC_DOCUMENTS screen and the
+ * outlet review's "Add documents" popup.
+ * @param {{
+ *   docs: ReturnType<typeof import('../../hooks/useKycDocuments').useKycDocuments>,
+ *   canAdd?: boolean, canChange?: boolean,
+ *   onDraftsChange?: (unsavedCount: number) => void,
+ * }} props
  */
-export default function DocumentsEditor() {
-  const branch = useOnboardingV2Store((s) => s.branch);
-  const documents = useOnboardingV2Store((s) => s.form.documents);
-  const subCategories = useOnboardingV2Store((s) => s.form.subCategories);
-  const categoryName = useOnboardingV2Store((s) => s.form.categoryName);
-  const entityType = useOnboardingV2Store((s) => s.form.entityType);
-  const addDocument = useOnboardingV2Store((s) => s.addDocument);
-  const updateDocument = useOnboardingV2Store((s) => s.updateDocument);
-  const removeDocument = useOnboardingV2Store((s) => s.removeDocument);
-
-  const isUnregistered = branch === BRANCHES.UNREGISTERED;
-  const copy = isUnregistered ? DOCUMENT_COPY.unregistered : DOCUMENT_COPY.registered;
-
-  const [suggested, setSuggested] = useState({ required: [], optional: [] });
-  const [suggestionsLoading, setSuggestionsLoading] = useState(true);
-  const [suggestionsError, setSuggestionsError] = useState("");
-  const [reloadKey, setReloadKey] = useState(0);
-  const [uploadErrors, setUploadErrors] = useState({});
-  // docId → token of the upload in flight; a stale token means it was cancelled.
-  const uploadsRef = useRef(new Map());
-  // docId → File chosen in this visit. IndexedDB only covers a refresh; when
-  // it's unavailable (private mode, quota, blocked) Save still has the file.
-  const filesRef = useRef(new Map());
-  const readFile = useCallback(async (id) => filesRef.current.get(id) ?? (await getDocumentFile(id)), []);
-
-  // Suggestions follow the category picked in Basic Details — nothing else.
-  const selectionKey = useMemo(
-    () => [entityType || "", categoryName, ...subCategories.map((s) => s.name)].join("|"),
-    [categoryName, entityType, subCategories],
-  );
+export default function DocumentsEditor({ docs, canAdd = true, canChange = true, onDraftsChange }) {
+  const [drafts, setDrafts] = useState([]);
+  const [preview, setPreview] = useState(null); // { title, file?, url?, fileName? }
 
   useEffect(() => {
-    let active = true;
-    const load = async () => {
-      try {
-        const [entity, category, ...subs] = selectionKey.split("|");
-        const result = await fetchRequiredDocuments({ categoryName: category, subCategoryNames: subs, entityType: entity || null });
-        if (active) {
-          setSuggested({ required: result?.required ?? [], optional: result?.optional ?? [] });
-          setSuggestionsError("");
-        }
-      } catch (error) {
-        console.error("Required documents fetch failed:", error);
-        if (active) setSuggestionsError("We couldn't load document suggestions. You can still add documents yourself.");
-      } finally {
-        if (active) setSuggestionsLoading(false);
-      }
-    };
-    load();
-    return () => {
-      active = false;
-    };
-  }, [selectionKey, reloadKey]);
+    onDraftsChange?.(drafts.length);
+  }, [drafts.length, onDraftsChange]);
 
-  // After a reload: an interrupted upload goes back to "chosen, not saved"
-  // if its file is still kept locally, otherwise to empty; same for a chosen
-  // file that was lost.
-  useEffect(() => {
-    const { form, updateDocument: update } = useOnboardingV2Store.getState();
-    form.documents
-      .filter((d) => d.status === "uploading" || d.status === "selected")
-      .forEach(async (d) => {
-        const file = await getDocumentFile(d.id);
-        update(d.id, file ? { status: "selected", progress: 0 } : EMPTY_FILE);
-      });
-  }, []);
+  const atLimit = docs.limit != null && docs.count + drafts.length >= docs.limit;
+  const usedTypes = new Set([...docs.businessDocuments.map((d) => d.docType), ...drafts.map((d) => d.docType)].filter(Boolean));
 
-  const retrySuggestions = useCallback(() => {
-    setSuggestionsLoading(true);
-    setSuggestionsError("");
-    setReloadKey((k) => k + 1);
-  }, []);
-
-  const atLimit = documents.length >= DOCUMENT_RULES.maxDocuments;
-
-  const addedTitles = useMemo(() => new Set(documents.map((d) => normalizeTitle(d.title))), [documents]);
-  // Only an uploaded document earns the chip's ✓ — a titled row without a
-  // file is added, not done.
-  const uploadedTitles = useMemo(
-    () => new Set(documents.filter((d) => d.status === "uploaded").map((d) => normalizeTitle(d.title))),
-    [documents],
-  );
-
-  const optionalTitles = useMemo(() => {
-    const required = new Set(suggested.required.map(normalizeTitle));
-    const seen = new Set();
-    return suggested.optional.filter((title) => {
-      const key = normalizeTitle(title);
-      if (required.has(key) || seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-  }, [suggested]);
-
-  const requiredFor = categoryName || "your category";
-
-  const setUploadError = useCallback((id, message) => {
-    setUploadErrors((prev) => {
-      if (!message && !prev[id]) return prev;
-      const nextErrors = { ...prev };
-      if (message) nextErrors[id] = message;
-      else delete nextErrors[id];
-      return nextErrors;
-    });
-  }, []);
-
-  // Choosing a file only stages it (kept locally for Preview); nothing is
-  // uploaded until the vendor presses Save on that row.
-  const stageFile = useCallback(
-    async (doc, file) => {
-      setUploadError(doc.id, "");
-      filesRef.current.set(doc.id, file);
-      await putDocumentFile(doc.id, file);
-      updateDocument(doc.id, { fileName: file.name, fileSize: file.size, status: "selected", progress: 0, url: null });
-    },
-    [setUploadError, updateDocument],
-  );
-
-  const saveDocument = useCallback(
-    async (doc) => {
-      // A second click while this row is already saving does nothing.
-      if (uploadsRef.current.has(doc.id)) return;
-      const token = {};
-      uploadsRef.current.set(doc.id, token);
-      const isCurrent = () => uploadsRef.current.get(doc.id) === token;
-
-      const file = await readFile(doc.id);
-      if (!isCurrent()) return;
-      if (!file) {
-        uploadsRef.current.delete(doc.id);
-        updateDocument(doc.id, EMPTY_FILE);
-        setUploadError(doc.id, "We lost this file — please choose it again.");
-        return;
-      }
-      setUploadError(doc.id, "");
-      updateDocument(doc.id, { status: "uploading", progress: 0 });
-
-      try {
-        const result = await uploadBusinessDocument({ file, title: doc.title }, (percent) => {
-          if (isCurrent()) updateDocument(doc.id, { progress: percent });
-        });
-        if (!isCurrent()) return;
-        updateDocument(doc.id, { status: "uploaded", progress: 100, url: result?.url ?? null });
-      } catch (error) {
-        console.error("Document upload failed:", error);
-        if (!isCurrent()) return;
-        updateDocument(doc.id, { status: "selected", progress: 0 });
-        setUploadError(doc.id, error?.message || "Upload failed. Please try again.");
-      } finally {
-        if (isCurrent()) uploadsRef.current.delete(doc.id);
-      }
-    },
-    [readFile, setUploadError, updateDocument],
-  );
-
-  // Stopping an upload keeps the chosen file, ready to Save again.
-  const cancelUpload = useCallback(
-    (id) => {
-      uploadsRef.current.delete(id);
-      updateDocument(id, { status: "selected", progress: 0 });
-    },
-    [updateDocument],
-  );
-
-  const handleRemove = useCallback(
-    (id) => {
-      uploadsRef.current.delete(id);
-      filesRef.current.delete(id);
-      setUploadError(id, "");
-      deleteDocumentFile(id);
-      removeDocument(id);
-    },
-    [removeDocument, setUploadError],
-  );
-
-  const [preview, setPreview] = useState(null); // { doc, file }
-  const openPreview = useCallback(
-    async (doc) => {
-      const file = await readFile(doc.id);
-      if (file || doc.url) setPreview({ doc, file });
-      else setUploadError(doc.id, "Preview isn't available for this file — choose it again to see it.");
-    },
-    [readFile, setUploadError],
-  );
-
-  const renderChip = (title, required) => {
-    const added = addedTitles.has(normalizeTitle(title));
-    if (added) {
-      return (
-        <span
-          key={title}
-          className="inline-flex min-h-9 items-center rounded-full bg-gray-100 px-3 text-xs font-semibold text-gray-500 dark:bg-gray-800 dark:text-gray-400"
-        >
-          {uploadedTitles.has(normalizeTitle(title)) ? `✓ ${title}` : title}
-        </span>
-      );
-    }
-    return (
-      <button
-        key={title}
-        type="button"
-        onClick={() => addDocument(title)}
-        disabled={atLimit}
-        className={`min-h-9 rounded-full px-3 text-xs font-bold ring-1 ring-inset transition disabled:cursor-not-allowed disabled:opacity-40 ${
-          required
-            ? "bg-red-50 text-red-700 ring-red-200 hover:bg-red-100 dark:bg-red-500/10 dark:text-red-300 dark:ring-red-500/30"
-            : "bg-emerald-50 text-emerald-700 ring-emerald-200 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:ring-emerald-500/30"
-        }`}
-      >
-        + {title}
-      </button>
-    );
+  const addDraft = (title, docType) => {
+    if (!canAdd || atLimit) return;
+    setDrafts((list) => [...list, newDraft(title, docType)]);
   };
+  const patchDraft = (id, patch) => setDrafts((list) => list.map((d) => (d.id === id ? { ...d, ...patch } : d)));
+  const dropDraft = (id) => setDrafts((list) => list.filter((d) => d.id !== id));
+
+  const saveDraft = async (draft) => {
+    await docs.add({ title: draft.title.trim(), docType: draft.docType, file: draft.file });
+    dropDraft(draft.id);
+  };
+
+  // Signed links are short-lived (#23a note 3): a missing link → read again.
+  const previewSaved = async (document) => {
+    if (!document.fileUrl) {
+      await docs.reload();
+      return;
+    }
+    setPreview({ title: document.title, url: document.fileUrl, fileName: document.file?.originalName });
+  };
+
+  if (docs.loading) {
+    return (
+      <p className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400" role="status">
+        <LoaderCircle size={14} className="animate-spin" aria-hidden="true" />
+        Loading your documents…
+      </p>
+    );
+  }
 
   return (
     <>
-      {/* Suggestion chips */}
-      <div className="flex flex-col gap-3 rounded-xl bg-gray-50 p-3.5 ring-1 ring-inset ring-gray-200 sm:flex-row sm:flex-wrap sm:items-center dark:bg-gray-800/50 dark:ring-gray-700">
-        {suggestionsLoading ? (
-          <p className="text-xs text-gray-500 dark:text-gray-400" role="status">
-            Loading suggestions…
-          </p>
-        ) : (
-          <>
-            {suggested.required.length > 0 && (
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="w-full text-[11px] font-bold text-gray-600 sm:w-auto dark:text-gray-400">
-                  Required for {requiredFor}:
-                </span>
-                {suggested.required.map((title) => renderChip(title, true))}
-              </div>
-            )}
-            {suggested.required.length > 0 && optionalTitles.length > 0 && (
-              <span className="hidden h-6 w-px bg-gray-300 sm:block dark:bg-gray-700" aria-hidden="true" />
-            )}
-            {optionalTitles.length > 0 && (
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="w-full text-[11px] font-bold text-gray-600 sm:w-auto dark:text-gray-400">
-                  Recommended for {requiredFor}:
-                </span>
-                {optionalTitles.map((title) => renderChip(title, false))}
-              </div>
-            )}
-          </>
-        )}
-      </div>
-      <FormError message={suggestionsError} />
-      {suggestionsError && (
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-xs text-gray-500 dark:text-gray-400">Suggestions didn&apos;t load.</p>
-          <Button variant="secondary" onClick={retrySuggestions} className="min-h-9 px-3 text-xs">
+      {docs.error && (
+        <div className="flex flex-wrap items-center gap-2">
+          <FormError message={onboardingErrorMessage(docs.error, "We couldn't load your documents.")} />
+          <button type="button" onClick={docs.reload} className={`${SMALL_BUTTON} ${OUTLINE}`}>
             Retry
-          </Button>
+          </button>
         </div>
       )}
 
-      {/* Document rows */}
+      {docs.hints.length > 0 && canAdd && (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl bg-gray-50 p-3.5 ring-1 ring-inset ring-gray-200 dark:bg-gray-800/50 dark:ring-gray-700">
+          <span className="w-full text-[11px] font-bold text-gray-600 sm:w-auto dark:text-gray-400">Recommended for your business:</span>
+          {docs.hints.map((code) =>
+            usedTypes.has(code) ? (
+              <span
+                key={code}
+                className="inline-flex min-h-9 items-center rounded-full bg-gray-100 px-3 text-xs font-semibold text-gray-500 dark:bg-gray-800 dark:text-gray-400"
+              >
+                ✓ {docTypeLabel(code)}
+              </span>
+            ) : (
+              <button
+                key={code}
+                type="button"
+                onClick={() => addDraft(docTypeLabel(code), code)}
+                disabled={atLimit}
+                className="min-h-9 rounded-full bg-emerald-50 px-3 text-xs font-bold text-emerald-700 ring-1 ring-inset ring-emerald-200 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-emerald-500/10 dark:text-emerald-400 dark:ring-emerald-500/30"
+              >
+                + {docTypeLabel(code)}
+              </button>
+            ),
+          )}
+        </div>
+      )}
+
       <div className="flex flex-col gap-2.5">
-        {documents.map((doc) => (
-          <DocumentRow
-            key={doc.id}
-            document={doc}
-            placeholder={copy.placeholder}
-            error={uploadErrors[doc.id]}
-            onTitleChange={(title) => updateDocument(doc.id, { title })}
-            onFileSelected={(file) => stageFile(doc, file)}
-            onSave={() => saveDocument(doc)}
-            onPreview={() => openPreview(doc)}
-            onCancel={() => cancelUpload(doc.id)}
-            onRemove={() => handleRemove(doc.id)}
+        {docs.ownerId && <OwnerIdRow document={docs.ownerId} onPreview={() => previewSaved(docs.ownerId)} />}
+        {docs.businessDocuments.map((document) => (
+          <SavedRow
+            key={document._id}
+            document={document}
+            canChange={canChange}
+            onPreview={() => previewSaved(document)}
+            onUpdate={docs.update}
+            onRemove={docs.remove}
           />
         ))}
-        {atLimit ? (
-          <p className="rounded-xl bg-gray-50 px-3.5 py-3 text-center text-xs font-semibold text-gray-600 ring-1 ring-inset ring-gray-200 dark:bg-gray-800/50 dark:text-gray-400 dark:ring-gray-700">
-            You&apos;ve added the maximum of {DOCUMENT_RULES.maxDocuments} documents. Remove one to add another.
-          </p>
-        ) : (
-        <button
-          type="button"
-          onClick={() => addDocument()}
-          className="flex min-h-12 items-center justify-center gap-2 rounded-xl text-[13px] font-bold text-emerald-700 ring-[1.5px] ring-inset ring-emerald-200 transition hover:bg-emerald-50 dark:text-emerald-400 dark:ring-emerald-500/30 dark:hover:bg-emerald-500/10"
-        >
-          <Plus size={16} strokeWidth={2.5} aria-hidden="true" />
-          {documents.length ? `Add another document (${documents.length}/${DOCUMENT_RULES.maxDocuments})` : "Add a document"}
-        </button>
-        )}
+        {drafts.map((draft) => (
+          <DraftRow
+            key={draft.id}
+            draft={draft}
+            onChange={(patch) => patchDraft(draft.id, patch)}
+            onSave={() => saveDraft(draft)}
+            onDiscard={() => dropDraft(draft.id)}
+            onPreview={() => setPreview({ title: draft.title || "Document", file: draft.file, fileName: draft.file?.name })}
+          />
+        ))}
+
+        {canAdd &&
+          (atLimit ? (
+            <p className="rounded-xl bg-gray-50 px-3.5 py-3 text-center text-xs font-semibold text-gray-600 ring-1 ring-inset ring-gray-200 dark:bg-gray-800/50 dark:text-gray-400 dark:ring-gray-700">
+              You&apos;ve reached the limit of {docs.limit} documents.{canChange ? " Delete one to add another." : ""}
+            </p>
+          ) : (
+            <button
+              type="button"
+              onClick={() => addDraft("", null)}
+              className="flex min-h-12 items-center justify-center gap-2 rounded-xl text-[13px] font-bold text-emerald-700 ring-[1.5px] ring-inset ring-emerald-200 transition hover:bg-emerald-50 dark:text-emerald-400 dark:ring-emerald-500/30 dark:hover:bg-emerald-500/10"
+            >
+              <Plus size={16} strokeWidth={2.5} aria-hidden="true" />
+              {docs.count ? `Add another document${docs.limit != null ? ` (${docs.count}/${docs.limit})` : ""}` : "Add a document"}
+            </button>
+          ))}
       </div>
 
       <p className="text-[11.5px] leading-relaxed text-gray-600 dark:text-gray-400">
-        PDF preferred — JPG or PNG also work (at least 800 px on the short side). Up to 5 MB each, {DOCUMENT_RULES.maxDocuments} documents max. Add a title, choose
-        the file, check it with Preview, then press Save.
+        PDF preferred — JPG or PNG also work (at least {DOCUMENT_RULES.minImageSidePx} px on the short side). Up to 5 MB each.
+        {docs.limit != null ? ` Up to ${docs.limit} documents.` : ""} Give each a title, choose the file, check it with Preview, then
+        press Save.
       </p>
 
       {preview && (
-        <DocumentPreviewModal
-          file={preview.file}
-          url={preview.doc.url}
-          title={preview.doc.title}
-          fileName={preview.doc.fileName}
-          onClose={() => setPreview(null)}
-        />
+        <DocumentPreviewModal file={preview.file} url={preview.url} title={preview.title} fileName={preview.fileName} onClose={() => setPreview(null)} />
       )}
     </>
   );

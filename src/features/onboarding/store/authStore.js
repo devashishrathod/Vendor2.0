@@ -8,7 +8,6 @@ import { useOnboardingV2Store } from '@/features/onboarding-v2/store/onboardingS
 import { useOnboardingStatusStore } from '@/features/onboarding-v2/store/statusStore';
 import { useSavedBrandStore } from '@/features/onboarding-v2/store/brandStore';
 import { useVerifyStore } from '@/features/onboarding-v2/store/verifyStore';
-import { clearDocumentFiles } from '@/features/onboarding-v2/utils/documentFileStore';
 
 // Session only. The onboarding screen is the server's: routing reads
 // GET /brands/onboarding/status (useOnboardingStatusStore), never this store
@@ -86,8 +85,6 @@ export const useAuthStore = create(
         localStorage.removeItem('auth-storage');
         localStorage.removeItem('onboarding-store');
         localStorage.removeItem('onboarding-v2-store');
-        // The next vendor on this browser must not see this one's documents.
-        clearDocumentFiles();
       },
 
       setError:   (error) => set({ error }),

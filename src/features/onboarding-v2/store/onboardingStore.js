@@ -1,21 +1,9 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import { DOCUMENT_RULES } from "../constants/onboardingOptions";
 
 // Onboarding form drafts only. Where the vendor is (screen, path, done /
 // skipped, progress) is the server's — store/statusStore.js. Persisted under
 // its own key so it never mixes with the old onboarding's "onboarding-store".
-
-/**
- * @typedef {Object} BusinessDocument
- * @property {string} id
- * @property {string} title
- * @property {string|null} fileName
- * @property {number|null} fileSize
- * @property {'empty'|'selected'|'uploading'|'uploaded'} status   - selected = chosen, not saved yet
- * @property {number} [progress]   - 0-100 while uploading
- * @property {string|null} [url]   - uploaded file location, once the upload API exists
- */
 
 /**
  * @typedef {Object} SubCategory
@@ -48,8 +36,6 @@ const initialForm = {
     idType: null,
     idFileName: null,
   },
-  /** @type {BusinessDocument[]} */
-  documents: [],
 
   // Step 3 · Payout
   bank: { accountNumber: "", ifsc: "", beneficiary: "", accountType: "" },
@@ -70,8 +56,6 @@ const initialState = {
   form: initialForm,
 };
 
-const newDocumentId = () => `doc-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
-
 export const useOnboardingV2Store = create(
   persist(
     (set) => ({
@@ -82,30 +66,6 @@ export const useOnboardingV2Store = create(
       patchForm: (key, patch) =>
         set((s) => ({ form: { ...s.form, [key]: { ...(s.form[key] || {}), ...patch } } })),
       setBankField: (key, value) => set((s) => ({ form: { ...s.form, bank: { ...s.form.bank, [key]: value } } })),
-
-      /** @param {string} [title] */
-      addDocument: (title = "") =>
-        set((s) => (s.form.documents.length >= DOCUMENT_RULES.maxDocuments ? {} : {
-          form: {
-            ...s.form,
-            documents: [
-              ...s.form.documents,
-              { id: newDocumentId(), title, fileName: null, fileSize: null, status: "empty", progress: 0, url: null },
-            ],
-          },
-        })),
-
-      /** @param {string} id @param {Partial<BusinessDocument>} patch */
-      updateDocument: (id, patch) =>
-        set((s) => ({
-          form: {
-            ...s.form,
-            documents: s.form.documents.map((doc) => (doc.id === id ? { ...doc, ...patch } : doc)),
-          },
-        })),
-
-      removeDocument: (id) =>
-        set((s) => ({ form: { ...s.form, documents: s.form.documents.filter((doc) => doc.id !== id) } })),
 
       reset: () => set(initialState),
     }),

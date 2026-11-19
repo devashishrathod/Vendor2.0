@@ -19,6 +19,42 @@ export const getBrand = () => request("/brands/get", "GET", null, true);
 /** GET /brands/onboarding/documents (#23b). @returns {Promise<{ data: import('../types').DocumentsList }>} */
 export const getKycDocuments = () => request("/brands/onboarding/documents", "GET", null, true);
 
+/**
+ * POST /brands/onboarding/documents (#23c) — multipart `file` + `title`
+ * (2–80) + `docType` only when picked from a hint chip (custom → server OTHER).
+ * @param {{ title: string, docType?: string|null, file: File }} input
+ * @returns {Promise<{ data: { document: import('../types').KycDocument, documentsStatus: string } }>}
+ */
+export function addKycDocument({ title, docType, file }) {
+  const form = new FormData();
+  form.append("title", title);
+  if (docType) form.append("docType", docType);
+  form.append("file", file);
+  return requestForm("/brands/onboarding/documents", "POST", form);
+}
+
+/**
+ * PUT /brands/onboarding/documents/:documentId (#23d) — rename and / or
+ * replace. A new file comes back as a NEW `_id`.
+ * @param {string} documentId
+ * @param {{ title?: string, file?: File }} changes
+ * @returns {Promise<{ data: { document: import('../types').KycDocument } }>}
+ */
+export function updateKycDocument(documentId, { title, file }) {
+  const form = new FormData();
+  if (title) form.append("title", title);
+  if (file) form.append("file", file);
+  return requestForm(`/brands/onboarding/documents/${encodeURIComponent(documentId)}`, "PUT", form);
+}
+
+/**
+ * DELETE /brands/onboarding/documents/:documentId (#23e).
+ * @param {string} documentId
+ * @returns {Promise<{ data: { documentsStatus: string, count: number } }>}
+ */
+export const deleteKycDocument = (documentId) =>
+  request(`/brands/onboarding/documents/${encodeURIComponent(documentId)}`, "DELETE", null, true);
+
 // ── Step 1 · Basic Details ──────────────────────────────────────────────
 
 /**

@@ -1,75 +1,122 @@
-import { useCallback } from "react";
-import { ArrowRight, Check, FileText } from "lucide-react";
+import { useCallback, useState } from "react";
+import { ArrowRight, Check, FileText, TriangleAlert } from "lucide-react";
 import Button from "../../components/ui/Button";
+import FormError from "../../components/ui/FormError";
+import Notice from "../../components/ui/Notice";
 import StatusPill from "../../components/ui/StatusPill";
 import StepCard from "../../components/ui/StepCard";
 import StepFooter from "../../components/ui/StepFooter";
-import { BRANCHES } from "../../config/onboardingFlow";
+import { KYC_PATHS, SCREENS } from "../../config/screens";
+import { useKycDocuments } from "../../hooks/useKycDocuments";
 import { useOnboardingFlow } from "../../hooks/useOnboardingFlow";
-import { useOnboardingV2Store } from "../../store/onboardingStore";
+import { continueScreen, skipScreen } from "../../services/onboardingApi";
+import { onboardingErrorMessage } from "../../utils/errorMessages";
 import DocumentsEditor from "./DocumentsEditor";
-import { documentsStatus, documentsSubtitle, dropEmptyDocumentRows } from "./documentsHelpers";
+import { documentsSubtitle } from "./documentsHelpers";
 
 /**
- * Screen 09 / 09u · Business documents. The editor itself (chips, rows,
- * uploads) is DocumentsEditor, shared with the outlet review's "Add
- * documents" popup; this screen adds the step frame, skip and Continue.
+ * KYC_DOCUMENTS — "Business documents" (guide §4.8), all three paths,
+ * skippable. ≥ 1 business document → POST continue; none → POST skip
+ * { screen: KYC_DOCUMENTS }. Both answer with the next screen. When `hints`
+ * contains FSSAI, skipping first shows the FSSAI warning (a warning only —
+ * never matched on the category name). Opened again from Back, it only
+ * edits documents (continue / skip work on the current screen only).
  */
 export default function DocumentsStep() {
-  const { next, skip, branch } = useOnboardingFlow();
-  const documents = useOnboardingV2Store((s) => s.form.documents);
-  const panDetails = useOnboardingV2Store((s) => s.form.panDetails);
-  const gstDetails = useOnboardingV2Store((s) => s.form.gstDetails);
+  const { status, kycPath, isViewingPast, closeScreen, goToServerScreen, handleFlowError } = useOnboardingFlow();
+  const docs = useKycDocuments();
+  const [unsaved, setUnsaved] = useState(0);
+  const [busy, setBusy] = useState("");
+  const [error, setError] = useState("");
+  const [fssaiWarning, setFssaiWarning] = useState(false);
 
-  const isUnregistered = branch === BRANCHES.UNREGISTERED;
-  const categoryName = useOnboardingV2Store((s) => s.form.categoryName);
-  const subCategories = useOnboardingV2Store((s) => s.form.subCategories);
-  const entityType = useOnboardingV2Store((s) => s.form.entityType);
-  const subtitle = documentsSubtitle({ categoryName, subCategories, entityType, branch });
-  const { uploadedCount, anyUploading, unsavedCount, canFinish } = documentsStatus(documents);
+  const canAdd = status?.editable?.documents?.add !== false;
+  const canChange = status?.editable?.documents?.change !== false;
+  const hasDocuments = docs.count > 0;
 
-  const handleContinue = useCallback(() => {
-    dropEmptyDocumentRows();
-    next();
-  }, [next]);
-
-  const headerPills = isUnregistered ? (
-    <StatusPill tone="warning">Unregistered · no GST needed</StatusPill>
-  ) : (
-    <>
-      {panDetails && <StatusPill icon={Check}>PAN verified</StatusPill>}
-      {branch === BRANCHES.GST && gstDetails && <StatusPill icon={Check}>GST verified</StatusPill>}
-    </>
+  const move = useCallback(
+    async (kind, call) => {
+      setBusy(kind);
+      setError("");
+      try {
+        const res = await call();
+        goToServerScreen(res?.data?.currentScreen);
+      } catch (err) {
+        if (handleFlowError(err)) return;
+        console.error(`Documents ${kind} failed:`, err);
+        // 422 ONBOARDING_STEP_INCOMPLETE (missing DOCUMENT) / SCREEN_NOT_SKIPPABLE …
+        setError(onboardingErrorMessage(err, "That didn't work. Please try again."));
+      } finally {
+        setBusy("");
+      }
+    },
+    [goToServerScreen, handleFlowError],
   );
+
+  const handleContinue = useCallback(() => move("continue", continueScreen), [move]);
+
+  const handleSkip = useCallback(() => {
+    if (docs.hints.includes("FSSAI") && !fssaiWarning) {
+      setFssaiWarning(true);
+      return;
+    }
+    move("skip", () => skipScreen(SCREENS.KYC_DOCUMENTS));
+  }, [docs.hints, fssaiWarning, move]);
+
+  const items = status?.items ?? {};
+  const headerPills =
+    kycPath === KYC_PATHS.UNREGISTERED ? (
+      <StatusPill tone="warning">Not registered · no GST needed</StatusPill>
+    ) : (
+      <>
+        {items.pan === "PROVIDED" && <StatusPill icon={Check}>PAN verified</StatusPill>}
+        {items.gst === "PROVIDED" && <StatusPill icon={Check}>GST verified</StatusPill>}
+      </>
+    );
+
+  let footerNote = hasDocuments ? `${docs.count} document${docs.count === 1 ? "" : "s"} saved` : "No documents yet — you can skip and add them later.";
+  if (unsaved > 0) footerNote = `Save or discard ${unsaved === 1 ? "the new document" : `${unsaved} new documents`} first`;
+
+  let actions;
+  if (isViewingPast) {
+    actions = (
+      <Button onClick={closeScreen} disabled={unsaved > 0} icon={ArrowRight}>
+        Done
+      </Button>
+    );
+  } else if (hasDocuments) {
+    actions = (
+      <Button onClick={handleContinue} disabled={unsaved > 0} loading={busy === "continue"} icon={ArrowRight}>
+        Continue to Bank
+      </Button>
+    );
+  } else {
+    actions = (
+      <Button variant="secondary" onClick={handleSkip} disabled={unsaved > 0 || docs.loading} loading={busy === "skip"}>
+        {fssaiWarning ? "Skip anyway" : "Skip for now"}
+      </Button>
+    );
+  }
 
   return (
     <StepCard
       icon={FileText}
       title="Add your business documents"
-      subtitle={subtitle}
+      subtitle={documentsSubtitle(kycPath)}
       headerAside={headerPills}
       footer={
-        <StepFooter
-          start={
-            <p className="text-xs font-bold text-gray-600 dark:text-gray-400">
-              {unsavedCount > 0
-                ? `Save ${unsavedCount === 1 ? "the chosen document" : `${unsavedCount} chosen documents`} to continue`
-                : uploadedCount === 1
-                  ? "1 document saved"
-                  : `${uploadedCount} documents saved`}
-            </p>
-          }
-        >
-          <Button variant="secondary" onClick={skip} disabled={anyUploading}>
-            Skip for now
-          </Button>
-          <Button onClick={handleContinue} disabled={!canFinish} icon={ArrowRight}>
-            Continue to Bank
-          </Button>
-        </StepFooter>
+        <StepFooter start={<p className="text-xs font-bold text-gray-600 dark:text-gray-400">{footerNote}</p>}>{actions}</StepFooter>
       }
     >
-      <DocumentsEditor />
+      <DocumentsEditor docs={docs} canAdd={canAdd} canChange={canChange} onDraftsChange={setUnsaved} />
+
+      {fssaiWarning && !hasDocuments && (
+        <Notice tone="warning" icon={TriangleAlert} title="FSSAI licence">
+          An FSSAI licence is legally required for a food business. You can still skip now and add it later from your profile.
+        </Notice>
+      )}
+
+      <FormError message={error} />
     </StepCard>
   );
 }
