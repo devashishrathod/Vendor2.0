@@ -2,11 +2,13 @@ import { useCallback, useEffect } from "react";
 import { LoaderCircle, RotateCw } from "lucide-react";
 import { useAuthStore } from "@/features/onboarding/store/authStore";
 import { useOnboardingStatusStore } from "../store/statusStore";
+import DeedConfirmationModal from "./deed/DeedConfirmationModal";
 
 /**
  * Logged-in pages wait for GET /brands/onboarding/status — read every time
- * the panel opens (guide §2.3) — because routing comes only from it. Logged
- * out, the children render straight away.
+ * the panel opens (guide §2.3) — because routing comes only from it; a
+ * pending deed confirmation then blocks every page with a popup. Logged out,
+ * the children render straight away.
  * @param {{ children: import('react').ReactNode }} props
  */
 export default function StatusGate({ children }) {
@@ -24,7 +26,16 @@ export default function StatusGate({ children }) {
     if (token && !status) load();
   }, [load, status, token]);
 
-  if (!token || status) return children;
+  if (!token) return children;
+  if (status) {
+    return (
+      <>
+        {children}
+        {/* Blocking, over every page — dashboard too (guide §5). */}
+        {status.deed?.requiresDeedConfirmation && <DeedConfirmationModal />}
+      </>
+    );
+  }
 
   return (
     <div className="grid min-h-dvh place-items-center bg-app px-4 font-sans dark:bg-gray-950">

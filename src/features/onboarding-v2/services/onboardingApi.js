@@ -12,7 +12,6 @@ import {
 } from "@/features/onboarding/services/api/brand.api";
 import {
   acknowledgeApproval,
-  approvePartnership,
   verifyBank,
   verifyGST,
   verifyPAN,
@@ -160,7 +159,13 @@ export const saveVerifiedBank = (bankDetails, extra) => submitVerifiedBankDetail
 
 // ── Step 4 · Agreement ────────────────────────────────────────────────────
 
-export const acceptPartnerContract = () => approvePartnership();
+/**
+ * PUT /brands/onboarding/accept-partnership (#25). On PARTNERSHIP_DEED it
+ * accepts the deed and moves the screen; with deed.requiresDeedConfirmation
+ * it confirms the admin's offline deed from any screen (screen unchanged).
+ * @returns {Promise<{ data: { deed: import('../types').OnboardingDeed, currentScreen: string } }>}
+ */
+export const acceptPartnership = () => request("/brands/onboarding/accept-partnership", "PUT", null, true);
 
 // ── Submit & after approval ───────────────────────────────────────────────
 
