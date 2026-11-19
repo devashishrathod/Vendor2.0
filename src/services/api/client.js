@@ -1,4 +1,5 @@
 import { BASE_URL } from "../../config";
+import { ApiError, reportSessionEnd, toApiError } from "../http/apiError";
 
 // ───────────────────────────────────────────────
 // Token
@@ -79,13 +80,20 @@ export async function request(
   try {
     response = await fetch(`${BASE_URL}${endpoint}`, config);
   } catch {
-    throw new Error("Network Error");
+    throw new ApiError("Network Error");
   }
 
-  const data = await response.json();
+  let data;
+  try {
+    data = await response.json();
+  } catch {
+    throw new ApiError("Invalid response from server.", { status: response.status });
+  }
 
   if (!response.ok) {
-    throw new Error(data.message || "Something went wrong");
+    const error = toApiError(response.status, data, "Something went wrong");
+    reportSessionEnd(error);
+    throw error;
   }
 
   return data;

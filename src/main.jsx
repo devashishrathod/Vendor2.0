@@ -4,6 +4,9 @@ import "./index.css";
 import "./config/firebase.js";
 import App from "./App.jsx";
 import { ThemeProvider } from "./context/ThemeContext.jsx";
+import { installSessionEndHandler } from "./features/onboarding/utils/sessionEnd";
+
+installSessionEndHandler();
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>

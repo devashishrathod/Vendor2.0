@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { attachApiErrorInterceptor } from '@/services/http/apiError';
 
 // ── Base URL ────────────────────────────────────────────────
 const BASE_URL = import.meta.env.VITE_BASE_URL;
@@ -9,6 +10,7 @@ const BASE_URL = import.meta.env.VITE_BASE_URL;
 export const api = axios.create({
     baseURL: BASE_URL,
 });
+attachApiErrorInterceptor(api);
 
 // Attach auth token automatically
 api.interceptors.request.use(async (config) => {

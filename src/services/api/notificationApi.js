@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { attachApiErrorInterceptor } from '@/services/http/apiError';
 
 // ── Base URL / Axios instance (same pattern as the other feature-level
 // services — e.g. VoucherService.js, brandApi.js) ──────────────────────
@@ -7,6 +8,7 @@ const BASE_URL = import.meta.env.VITE_BASE_URL;
 const api = axios.create({
     baseURL: BASE_URL,
 });
+attachApiErrorInterceptor(api);
 
 api.interceptors.request.use(async (config) => {
     const { useAuthStore } = await import('../../features/onboarding/store/authStore');

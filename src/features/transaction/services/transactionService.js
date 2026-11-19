@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { attachApiErrorInterceptor } from '@/services/http/apiError';
 
 import { getSubBrands } from '@/features/voucher/services/voucher/VoucherService';
 
@@ -11,6 +12,7 @@ const BASE_URL = import.meta.env.VITE_BASE_URL;
 const api = axios.create({
   baseURL: BASE_URL,
 });
+attachApiErrorInterceptor(api);
 
 // Attach auth token automatically (same pattern as onboarding's verify.api.js
 // / locationApi.js). The real authStore in this project lives under

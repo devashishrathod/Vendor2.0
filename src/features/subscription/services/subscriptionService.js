@@ -11,11 +11,13 @@
 // PlanBenefits) already expects.
 
 import axios from 'axios';
+import { attachApiErrorInterceptor } from '@/services/http/apiError';
 import { PLAN_STATUS } from '../constants/subscription.constants';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 const api = axios.create({ baseURL: BASE_URL });
+attachApiErrorInterceptor(api);
 
 // Attach auth token automatically (same pattern as the other feature
 // services in this codebase, e.g. brandApi.js / transactionService.js).

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { attachApiErrorInterceptor } from '@/services/http/apiError';
 
 // ── Base URL ────────────────────────────────────────────────
 // Matches the Postman env variable {{TryDood2.0BaseUrl}}
@@ -8,6 +9,7 @@ const BASE_URL = import.meta.env.VITE_BASE_URL;
 const api = axios.create({
     baseURL: BASE_URL,
 });
+attachApiErrorInterceptor(api);
 
 // Attach auth token automatically (same pattern as authApi.js / planApi.js)
 // NOTE: adjust this relative path to wherever authStore.js actually lives

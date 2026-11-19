@@ -1,4 +1,5 @@
 import { BASE_URL } from "../../../../config";
+import { ApiError, reportSessionEnd, toApiError } from "@/services/http/apiError";
 
 // ── Token helpers ─────────────────────────────────────────────────────────────
 export const getToken = () => localStorage.getItem("token");
@@ -7,6 +8,8 @@ export const clearToken = () => localStorage.removeItem("token");
 
 // ── Core request ──────────────────────────────────────────────────────────────
 /**
+ * Errors are thrown as ApiError (`status`, `details`, `code` = details.code).
+ * A session-end error (401 / 403 with a session code) also logs out.
  * @param {string}  endpoint      - e.g. '/auth/loginOrSignUp-with-whatsapp'
  * @param {'GET'|'POST'|'PUT'|'PATCH'|'DELETE'} method
  * @param {object}  body          - JSON body (optional)
@@ -22,7 +25,11 @@ export async function request(
 
   if (requiresAuth) {
     const token = getToken();
-    if (!token) throw new Error("Session expired. Please log in again.");
+    if (!token) {
+      const error = new ApiError("Session expired. Please log in again.", { status: 401, details: { code: "TOKEN_MISSING" } });
+      reportSessionEnd(error);
+      throw error;
+    }
     headers["Authorization"] = `Bearer ${token}`;
   }
 
@@ -33,24 +40,21 @@ export async function request(
   try {
     res = await fetch(`${BASE_URL}${endpoint}`, config);
   } catch {
-    throw new Error("Network error. Please check your internet connection.");
+    throw new ApiError("Network error. Please check your internet connection.");
   }
 
   let data;
   try {
     data = await res.json();
   } catch {
-    throw new Error("Invalid response from server.");
+    throw new ApiError("Invalid response from server.", { status: res.status });
   }
 
   if (!res.ok) {
-    const err = new Error(
-      data?.message || data?.error || `Error ${res.status}: ${res.statusText}`,
-    );
-    err.status = res.status;
     // e.g. 429 → details.retryAfterSeconds (API doc #1 note 2).
-    err.details = data?.details ?? null;
-    throw err;
+    const error = toApiError(res.status, data, `Error ${res.status}: ${res.statusText}`);
+    reportSessionEnd(error);
+    throw error;
   }
 
   return data;

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   AlertCircle,
   ArrowRight,
@@ -13,6 +13,7 @@ import Image2 from "../../../assets/Logo1.png";
 import Step2OTP from "./Step2VerifyOTP";
 import { validateWhatsApp } from "../validation";
 import { useAuthStore } from "@/features/onboarding/store/authStore";
+import { clearSessionEndNotice, readSessionEndNotice } from "@/features/onboarding/utils/sessionEnd";
 import { ROLES } from "@/constants";
 
 function ErrorMessage({ message }) {
@@ -28,8 +29,12 @@ function ErrorMessage({ message }) {
 export default function Step1WhatsApp() {
   const { sendOTP, loading } = useAuthStore();
   const [phoneOrEmail, setPhoneOrEmail] = useState("");
-  const [error, setError] = useState(null);
+  // After a forced logout (session expired, account deactivated) the server's
+  // message is shown here once.
+  const [error, setError] = useState(readSessionEndNotice);
   const [otpModalOpen, setOtpModalOpen] = useState(false);
+
+  useEffect(() => clearSessionEndNotice(), []);
 
   const isDisabled = loading || phoneOrEmail.length < 10;
 

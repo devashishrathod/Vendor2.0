@@ -5,6 +5,7 @@
 // without the wizard's step/sub-step navigation (this is called from the
 // standalone Under Review page, not a wizard step).
 import { BASE_URL } from "../../../../config";
+import { reportSessionEnd, toApiError } from "@/services/http/apiError";
 
 function getToken() {
   return localStorage.getItem("token");
@@ -22,14 +23,10 @@ async function postJSON(endpoint, payload) {
   });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    const errMsg = err?.message?.toLowerCase() || "";
-    // Step7/9/12 treat "already exists" as a soft-success (the wizard
-    // just moves on) rather than a real failure — same here.
-    if (res.status === 400 && (errMsg.includes("already exists") || errMsg.includes("already in use"))) {
-      return { alreadyExists: true };
-    }
-    throw new Error(err?.message || `Server error ${res.status}`);
+    const body = await res.json().catch(() => ({}));
+    const error = toApiError(res.status, body, `Server error ${res.status}`);
+    reportSessionEnd(error);
+    throw error;
   }
 
   return res.json().catch(() => ({}));

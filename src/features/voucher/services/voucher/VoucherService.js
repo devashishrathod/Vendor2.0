@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { attachApiErrorInterceptor } from '@/services/http/apiError';
 import { uploadFileViaPresign, uploadFilesViaPresign, UPLOAD_PURPOSES } from '@/services/uploadApi';
 
 // ── Base URL ────────────────────────────────────────────────
@@ -9,6 +10,7 @@ const BASE_URL = import.meta.env.VITE_BASE_URL;
 const api = axios.create({
     baseURL: BASE_URL,
 });
+attachApiErrorInterceptor(api);
 
 // Attach auth token automatically (same pattern as authApi.js / planApi.js /
 // CategoryApi.js / showcaseApi.js). NOTE: adjust this relative path to
