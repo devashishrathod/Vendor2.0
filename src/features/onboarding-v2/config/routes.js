@@ -11,6 +11,10 @@ export const ONBOARDING_ROUTES = Object.freeze({
   STATUS: "/under-review",
 });
 
+// sessionStorage key of the last system-verify result (shown again on a
+// refresh instead of creating another attempt). Cleared on outlet submit and logout.
+export const SYSTEM_VERIFY_CACHE_KEY = "v2-system-verify-result";
+
 // Production dashboard a live vendor lands on.
 export const LIVE_DASHBOARD_ROUTE = "/analysis-report";
 

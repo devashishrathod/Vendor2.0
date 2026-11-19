@@ -43,6 +43,10 @@ export default function DocumentsEditor() {
   const [uploadErrors, setUploadErrors] = useState({});
   // docId → token of the upload in flight; a stale token means it was cancelled.
   const uploadsRef = useRef(new Map());
+  // docId → File chosen in this visit. IndexedDB only covers a refresh; when
+  // it's unavailable (private mode, quota, blocked) Save still has the file.
+  const filesRef = useRef(new Map());
+  const readFile = useCallback(async (id) => filesRef.current.get(id) ?? (await getDocumentFile(id)), []);
 
   // Suggestions follow the category picked in Basic Details — nothing else.
   const selectionKey = useMemo(
@@ -95,6 +99,12 @@ export default function DocumentsEditor() {
   const atLimit = documents.length >= DOCUMENT_RULES.maxDocuments;
 
   const addedTitles = useMemo(() => new Set(documents.map((d) => normalizeTitle(d.title))), [documents]);
+  // Only an uploaded document earns the chip's ✓ — a titled row without a
+  // file is added, not done.
+  const uploadedTitles = useMemo(
+    () => new Set(documents.filter((d) => d.status === "uploaded").map((d) => normalizeTitle(d.title))),
+    [documents],
+  );
 
   const optionalTitles = useMemo(() => {
     const required = new Set(suggested.required.map(normalizeTitle));
@@ -124,6 +134,7 @@ export default function DocumentsEditor() {
   const stageFile = useCallback(
     async (doc, file) => {
       setUploadError(doc.id, "");
+      filesRef.current.set(doc.id, file);
       await putDocumentFile(doc.id, file);
       updateDocument(doc.id, { fileName: file.name, fileSize: file.size, status: "selected", progress: 0, url: null });
     },
@@ -132,18 +143,23 @@ export default function DocumentsEditor() {
 
   const saveDocument = useCallback(
     async (doc) => {
-      const file = await getDocumentFile(doc.id);
+      // A second click while this row is already saving does nothing.
+      if (uploadsRef.current.has(doc.id)) return;
+      const token = {};
+      uploadsRef.current.set(doc.id, token);
+      const isCurrent = () => uploadsRef.current.get(doc.id) === token;
+
+      const file = await readFile(doc.id);
+      if (!isCurrent()) return;
       if (!file) {
+        uploadsRef.current.delete(doc.id);
         updateDocument(doc.id, EMPTY_FILE);
         setUploadError(doc.id, "We lost this file — please choose it again.");
         return;
       }
-      const token = {};
-      uploadsRef.current.set(doc.id, token);
       setUploadError(doc.id, "");
       updateDocument(doc.id, { status: "uploading", progress: 0 });
 
-      const isCurrent = () => uploadsRef.current.get(doc.id) === token;
       try {
         const result = await uploadBusinessDocument({ file, title: doc.title }, (percent) => {
           if (isCurrent()) updateDocument(doc.id, { progress: percent });
@@ -159,7 +175,7 @@ export default function DocumentsEditor() {
         if (isCurrent()) uploadsRef.current.delete(doc.id);
       }
     },
-    [setUploadError, updateDocument],
+    [readFile, setUploadError, updateDocument],
   );
 
   // Stopping an upload keeps the chosen file, ready to Save again.
@@ -174,6 +190,7 @@ export default function DocumentsEditor() {
   const handleRemove = useCallback(
     (id) => {
       uploadsRef.current.delete(id);
+      filesRef.current.delete(id);
       setUploadError(id, "");
       deleteDocumentFile(id);
       removeDocument(id);
@@ -184,11 +201,11 @@ export default function DocumentsEditor() {
   const [preview, setPreview] = useState(null); // { doc, file }
   const openPreview = useCallback(
     async (doc) => {
-      const file = await getDocumentFile(doc.id);
+      const file = await readFile(doc.id);
       if (file || doc.url) setPreview({ doc, file });
       else setUploadError(doc.id, "Preview isn't available for this file — choose it again to see it.");
     },
-    [setUploadError],
+    [readFile, setUploadError],
   );
 
   const renderChip = (title, required) => {
@@ -199,7 +216,7 @@ export default function DocumentsEditor() {
           key={title}
           className="inline-flex min-h-9 items-center rounded-full bg-gray-100 px-3 text-xs font-semibold text-gray-500 dark:bg-gray-800 dark:text-gray-400"
         >
-          ✓ {title}
+          {uploadedTitles.has(normalizeTitle(title)) ? `✓ ${title}` : title}
         </span>
       );
     }

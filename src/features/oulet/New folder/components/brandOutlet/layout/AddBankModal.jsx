@@ -74,7 +74,7 @@ function BankModalBody({ onClose }) {
     setBusy(true);
     setError("");
     try {
-      setVerified(await verifyBankForm({ bank, ifscInfo }));
+      setVerified(await verifyBankForm({ bank, ifscInfo, legalName }));
       setPhase("review");
     } catch (err) {
       console.error("Bank verification failed:", err);

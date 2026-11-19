@@ -2,7 +2,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AlertTriangle, ArrowLeft, Check, ChevronRight, Clock, Info, Loader2, Pencil, SkipForward, Undo2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useBrand } from "../../../../hooks/useBrand";
-import AppTopBar from "@/components/common/AppTopBar";
+import OnboardingPageHeader from "@/features/onboarding-v2/components/layout/OnboardingPageHeader";
+import { SCREENS } from "@/features/onboarding-v2/config/onboardingFlow";
+import { SYSTEM_VERIFY_CACHE_KEY } from "@/features/onboarding-v2/config/routes";
 import { useOnboardingV2Store } from "@/features/onboarding-v2/store/onboardingStore";
 import { getCurrentSubscription } from "@/features/subscriptions/services/subscriptionApi";
 import { ANALYTICS_EVENTS } from "@/constants/analytics";
@@ -21,6 +23,8 @@ import {
 } from "../services/brandOutletApi";
 import {
   createLocation,
+  updateLocation,
+  toLocationUpdatePatch,
   mapLocationToSelectedPlace,
   buildLocationPayloadFromPlace,
   hasValidCoordinates,
@@ -110,6 +114,8 @@ function SkippedNotice({ name, onUndo }) {
 }
 
 const WEEK_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+// Header breadcrumb title for each step of this page.
+const OUTLET_STEP_TITLES = { 1: "Brand details", 2: "Outlet details", 3: "Review" };
 const OUTLET_DRAFT_STORAGE_PREFIX = "trydood:create-brand-outlet-draft:";
 const LOGO_MAX_MB = 1.5;
 const COVER_MAX_MB = 3;
@@ -195,9 +201,7 @@ export default function CreateBrandOutlet() {
   const {
     categories,
     subCategories,
-    categoriesLoading,
     subCategoriesLoading,
-    categoriesError,
     subCategoriesError,
   } = useCategories(brandType);
 
@@ -209,6 +213,14 @@ export default function CreateBrandOutlet() {
   const [selectedPlace, setSelectedPlace] = useState(null);
 
   const [savedLocationId, setSavedLocationId] = useState(null);
+  // The outlet's location record on the server ({ id, subBrandId }). Unlike
+  // savedLocationId (cleared when the vendor starts picking again), this
+  // stays, so a new pick updates that record — a second create for the same
+  // outlet is rejected with 409 (API doc #38).
+  const serverLocationRef = useRef(null);
+  // Bumped on every working-hours edit, so a save that finishes after a
+  // later edit doesn't mark the newer hours as saved.
+  const hoursVersionRef = useRef(0);
   const [locationSaving, setLocationSaving] = useState(false);
   const [locationSaveError, setLocationSaveError] = useState("");
   const [locationLoading, setLocationLoading] = useState(true);
@@ -374,9 +386,15 @@ export default function CreateBrandOutlet() {
     setLocationSaving(true);
     setLocationSaveError("");
     try {
-      const res = await createLocation(payload);
+      const existing = serverLocationRef.current;
+      const existingId = existing?.subBrandId === payload.subBrandId ? existing.id : null;
+      const res = existingId
+        ? await updateLocation(existingId, toLocationUpdatePatch(payload))
+        : await createLocation(payload);
       const saved = res?.data ?? res;
-      setSavedLocationId(saved?._id || saved?.id || null);
+      const id = saved?._id || saved?.id || existingId || null;
+      if (id) serverLocationRef.current = { id, subBrandId: payload.subBrandId };
+      setSavedLocationId(id);
       showSuccess("Outlet location saved.");
       return saved;
     } catch (err) {
@@ -495,10 +513,14 @@ export default function CreateBrandOutlet() {
 
   const handleSaveWorkingHours = useCallback(async () => {
     if (!subBrandId) return;
+    const version = hoursVersionRef.current;
     setWorkingHoursSaving(true);
     setWorkingHoursSaveError("");
     try {
       await upsertWorkHours({ subBrandId, hours: workingHours });
+      // Edited while this was saving → what's on screen isn't what was
+      // saved, so it still needs another save.
+      if (hoursVersionRef.current !== version) return;
       setWorkingHoursSaved(true);
       showSuccess("Working hours saved.");
     } catch (err) {
@@ -513,6 +535,7 @@ export default function CreateBrandOutlet() {
   // Hours changed after a save → that save is now stale, require re-save
   // before the final "Save & Process" button unlocks again.
   const handleWorkingHoursChange = useCallback((next) => {
+    hoursVersionRef.current += 1;
     setWorkingHours(next);
     setWorkingHoursSaved(false);
   }, []);
@@ -592,8 +615,10 @@ export default function CreateBrandOutlet() {
       // blank and the vendor has to add one.
       if (fsb.location) {
         const place = mapLocationToSelectedPlace(fsb.location);
+        const locationId = fsb.location._id || fsb.location.id || null;
         setSelectedPlace(place);
-        setSavedLocationId(fsb.location._id || fsb.location.id || null);
+        setSavedLocationId(locationId);
+        if (locationId && fsb._id) serverLocationRef.current = { id: locationId, subBrandId: fsb._id };
       }
 
       // ── Working hours ──
@@ -637,8 +662,9 @@ export default function CreateBrandOutlet() {
           if (typeof draft.brandMobile === "string") setBrandMobile(draft.brandMobile);
           if (typeof draft.mobileSameAsWhatsapp === "boolean") setMobileSameAsWhatsapp(draft.mobileSameAsWhatsapp);
           if (typeof draft.brandDescription === "string") setBrandDescription(draft.brandDescription);
-          if (typeof draft.brandType === "string") setBrandType(draft.brandType);
-          if (typeof draft.brandSubType === "string") setBrandSubType(draft.brandSubType);
+          // Empty draft values must not wipe what the brand record already has.
+          if (typeof draft.brandType === "string" && draft.brandType) setBrandType(draft.brandType);
+          if (typeof draft.brandSubType === "string" && draft.brandSubType) setBrandSubType(draft.brandSubType);
           if (Array.isArray(draft.listingFeatures)) setListingFeatures(draft.listingFeatures);
           if (Array.isArray(draft.showcaseAlbums)) setShowcaseAlbums(draft.showcaseAlbums);
           if (typeof draft.listingSkipped === "boolean") setListingSkipped(draft.listingSkipped);
@@ -649,7 +675,9 @@ export default function CreateBrandOutlet() {
           if (typeof draft.gstSameAsOutlet === "boolean") setGstSameAsOutlet(draft.gstSameAsOutlet);
           if (typeof draft.locationMode === "string") setLocationMode(draft.locationMode);
           if ("selectedPlace" in draft) setSelectedPlace(draft.selectedPlace);
-          if ("savedLocationId" in draft) setSavedLocationId(draft.savedLocationId);
+          // A location saved on the backend stays saved even if the draft was
+          // mid re-pick (null) when the page was left.
+          if (draft.savedLocationId) setSavedLocationId(draft.savedLocationId);
           if (!verifiedOutlet) {
             restoreWhatsappDraft({ outletWhatsapp: draft.outletWhatsapp, useBrandNumber: draft.useBrandNumber });
           }
@@ -657,8 +685,9 @@ export default function CreateBrandOutlet() {
       } catch (err) {
         console.error("Couldn't restore outlet form draft:", err);
       }
-      // Category picked in the onboarding wizard (not saved on the backend
-      // yet) fills the selects when neither the brand nor a draft has one.
+      // The wizard now saves the category on the brand (brands/update), so
+      // brands/get above normally has it; the wizard's local pick is the
+      // fallback for brands that went through before that.
       const { categoryId, subCategories: pickedSubs } = useOnboardingV2Store.getState().form;
       if (categoryId) {
         setBrandType((prev) => prev || categoryId);
@@ -791,11 +820,6 @@ export default function CreateBrandOutlet() {
   const gstAddress = brand?.gst?.address?.location || "";
   const outletAddress = gstSameAsOutlet ? gstAddress : (selectedPlace?.address || "");
 
-  const handleCategoryChange = (value) => {
-    setBrandType(value);
-    setBrandSubType("");
-  };
-
   const handleSave = async () => {
     if (!subBrandId || !brand?._id) return;
     setSaving(true);
@@ -837,7 +861,7 @@ export default function CreateBrandOutlet() {
       showSuccess("Outlet saved! Running verification…");
       // Fresh verification for this submit, not a result cached from before.
       try {
-        sessionStorage.removeItem("v2-system-verify-result");
+        sessionStorage.removeItem(SYSTEM_VERIFY_CACHE_KEY);
       } catch {
         /* ignore */
       }
@@ -876,7 +900,9 @@ export default function CreateBrandOutlet() {
   // workingHoursSaved — so also require at least one open day with both
   // times set, otherwise an outlet "open 0 days a week" could get through.
   const hasOpenDay = Object.values(workingHours || {}).some(
-    (d) => d?.isOpen && d.start && d.end && d.start !== d.end
+    // HH:mm strings compare correctly; the backend needs end after start
+    // (API doc #37 — no overnight ranges).
+    (d) => d?.isOpen && d.start && d.end && d.start < d.end
   );
 
   const canFinalSave =
@@ -908,10 +934,6 @@ export default function CreateBrandOutlet() {
   const subCategoryName = subCategories.find((s) => s._id === brandSubType)?.name || "";
 
   const outletTypeLabel = OUTLET_TYPE_OPTIONS.find((o) => o.value === outletType)?.label || "";
-  // Category comes from onboarding (or the brand record); the picker is a
-  // fallback only, so a missing category can never block the final save.
-  const needsCategory =
-    draftReady && (!brandType || (!brandSubType && !subCategoriesLoading && !subCategoriesError && subCategories.length > 0));
   const logoDisplayUrl = logoPreviewUrl || existingLogoUrl;
   const coverDisplayUrl = coverPreviewUrl || existingCoverUrl;
   const inputClass =
@@ -989,11 +1011,11 @@ export default function CreateBrandOutlet() {
         </div>
       )}
 
-      <AppTopBar>
-        <span className="hidden lg:inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-xs font-semibold text-gray-600 dark:text-gray-300 whitespace-nowrap">
+      <OnboardingPageHeader screenId={SCREENS.OUTLET} title={OUTLET_STEP_TITLES[wizardStep] ?? "Brand Outlet"}>
+        <span className="hidden 2xl:inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-xs font-semibold text-gray-600 dark:text-gray-300 whitespace-nowrap">
           Merchant Token: <span className="text-gray-900 dark:text-gray-100">{merchantToken}</span>
         </span>
-      </AppTopBar>
+      </OnboardingPageHeader>
 
       <main className="mx-auto w-full max-w-[1200px] px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
         {/* Header + 2-step tracker for Brand details / Outlet details. The
@@ -1141,49 +1163,6 @@ export default function CreateBrandOutlet() {
                   </div>
                 </div>
               </OutletCard>
-
-              {/* ── Category — already picked in onboarding; only shown as a
-                  fallback when neither the brand nor onboarding has one ── */}
-              {needsCategory && (
-              <OutletCard title="Category" subtitle="We couldn't find the category you picked in onboarding — choose it again.">
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <div>
-                    <label className={labelClass}>
-                      Category <span className="text-red-500">*</span>
-                    </label>
-                    <Select
-                      value={brandType}
-                      onChange={handleCategoryChange}
-                      options={categories.map((c) => ({ value: c._id, label: c.name }))}
-                      placeholder={categoriesLoading ? "Loading categories…" : "eg : Food & Drinks"}
-                      disabled={categoriesLoading}
-                      className="border border-gray-300 bg-white text-gray-700 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
-                    />
-                    {categoriesError && <p className="mt-1 text-xs text-red-500">{categoriesError}</p>}
-                    {!categoriesLoading && !categoriesError && categories.length === 0 && (
-                      <p className="mt-1 text-xs text-gray-400">No categories available right now.</p>
-                    )}
-                  </div>
-                  <div>
-                    <label className={labelClass}>
-                      Sub-category <span className="text-red-500">*</span>
-                    </label>
-                    <Select
-                      value={brandSubType}
-                      onChange={setBrandSubType}
-                      options={subCategories.map((s) => ({ value: s._id, label: s.name }))}
-                      placeholder={subCategoriesLoading ? "Loading…" : "eg : Buffet restaurants"}
-                      disabled={!brandType || subCategoriesLoading}
-                      className="border border-gray-300 bg-white text-gray-700 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
-                    />
-                    {subCategoriesError && <p className="mt-1 text-xs text-red-500">{subCategoriesError}</p>}
-                    {brandType && !subCategoriesLoading && !subCategoriesError && subCategories.length === 0 && (
-                      <p className="mt-1 text-xs text-gray-400">No sub-categories for this category.</p>
-                    )}
-                  </div>
-                </div>
-              </OutletCard>
-              )}
 
               {/* ── Listing Features (recommended, skippable) ── */}
               <div id="outlet-listing-features" className="scroll-mt-24">

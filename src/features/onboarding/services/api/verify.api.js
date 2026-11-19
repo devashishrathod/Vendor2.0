@@ -21,13 +21,16 @@ export async function verifyGST(gstin) {
 }
 
 // Bank Verification
-export async function verifyBank({ accountNumber, ifsc }) {
+// beneficiaryName (optional, 3–100 chars) is what the backend name-matches
+// the account holder against — it feeds the bankMatched flag (API doc #30).
+export async function verifyBank({ accountNumber, ifsc, beneficiaryName }) {
   return request(
     "/verification/brands/onboarding/verify-bank",
     "POST",
     {
       accountNumber,
       ifscCode: ifsc,
+      ...(beneficiaryName ? { beneficiaryName } : {}),
     },
     true
   );

@@ -37,6 +37,17 @@ export async function updateRegistrationStatus({ status }) {
   return request(ENDPOINT, "POST", body, true);
 }
 
+// ── Edit after the onboarding screens ─────────────────────────────────────────
+// PUT /brands/onboarding/update-basic-details — every field optional and no
+// screen-scoped validation, meant for edits/review (API doc #27). Use this,
+// not add-basic-details, once the vendor is past the business-name screen.
+/**
+ * @param {{ brandName?: string, legalBusinessName?: string, businessRegistrationStatus?: string, businessEntityType?: string }} fields
+ */
+export async function updateBasicDetails(fields) {
+  return request("/brands/onboarding/update-basic-details", "PUT", fields, true);
+}
+
 // ── Screen 3 — Business Type (Step5BusinessType) ──────────────────────────────
 // currentScreen: "BUSINESS_VERIFICATION"
 // Sends: businessEntityType — one of:

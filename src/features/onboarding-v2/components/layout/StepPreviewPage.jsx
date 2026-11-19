@@ -1,33 +1,92 @@
 import { useState } from "react";
-import { ArrowLeft, Check, Eye, Lock, Pencil } from "lucide-react";
+import { ArrowLeft, Check, Eye, FileText, Lock, Pencil } from "lucide-react";
 
 const EDIT_BUTTON =
-  "inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-[10px] border border-gray-300 bg-white px-3 text-xs font-bold text-emerald-700 shadow-[0_1px_2px_rgba(16,24,40,0.05)] transition-colors hover:bg-emerald-50 focus-visible:outline-2 focus-visible:outline-emerald-600 dark:border-gray-600 dark:bg-gray-900 dark:text-emerald-400 dark:hover:bg-emerald-500/10";
+  "inline-flex min-h-8 shrink-0 items-center gap-1 rounded-lg px-2.5 text-xs font-bold text-emerald-700 transition-colors hover:bg-emerald-50 focus-visible:outline-2 focus-visible:outline-emerald-600 dark:text-emerald-400 dark:hover:bg-emerald-500/10";
 
-function PreviewSection({ section, index, editing, wide, canEdit, onStartEdit, renderEditor, onDone }) {
-  // A one-field section (brand name, business status…) shows its value right
-  // under the title — no extra label repeating it.
-  const single = section.rows.length === 1 && !section.note;
+/** Rows that actually have a value — empty fields aren't shown as "—". */
+const filledRows = (section) => section.rows.filter((row) => row.value);
 
+/** Sections with several fields (GST, PAN, bank…) take a full row of the grid. */
+const isWideSection = (section) => {
+  if (section.compact || section.kind === "documents") return false;
+  const rows = filledRows(section);
+  return rows.length > 3 || rows.some((row) => row.wide);
+};
+
+function DocumentList({ rows }) {
+  return (
+    <ul className="flex flex-col gap-2">
+      {rows.map((row, i) => (
+        <li key={`${row.label}-${i}`} className="flex items-center gap-3 rounded-xl bg-gray-50 px-3 py-2.5 dark:bg-gray-800/60">
+          <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-white text-emerald-600 ring-1 ring-inset ring-gray-200 dark:bg-gray-900 dark:text-emerald-400 dark:ring-gray-700" aria-hidden="true">
+            <FileText size={15} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[13px] font-bold text-gray-900 dark:text-gray-100">{row.label}</p>
+            <p className="truncate text-[11.5px] text-gray-500 dark:text-gray-400" title={row.value}>
+              {row.value}
+            </p>
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function FieldGrid({ rows, wide }) {
+  return (
+    <dl className={`grid grid-cols-1 gap-x-6 gap-y-3 ${wide ? "sm:grid-cols-2 lg:grid-cols-3" : ""}`}>
+      {rows.map((row) => (
+        <div key={row.label} className={`min-w-0 ${row.wide && wide ? "col-span-full" : ""}`}>
+          <dt className="text-[11px] font-medium uppercase tracking-[0.04em] text-gray-500 dark:text-gray-400">{row.label}</dt>
+          <dd className="mt-0.5 break-words text-[13.5px] font-semibold text-gray-900 dark:text-gray-100">{row.value}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+function SectionBody({ section, wide }) {
+  const rows = filledRows(section);
+  return (
+    <>
+      {section.note && (
+        <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:ring-amber-500/30">
+          {section.note}
+        </p>
+      )}
+      {rows.length === 0 && !section.note && <p className="text-[13px] text-gray-500 dark:text-gray-400">Not available yet.</p>}
+      {rows.length > 0 &&
+        (section.compact ? (
+          <p className="break-words text-base font-bold text-gray-900 dark:text-gray-100">{rows[0].value}</p>
+        ) : section.kind === "documents" ? (
+          <DocumentList rows={rows} />
+        ) : (
+          <FieldGrid rows={rows} wide={wide} />
+        ))}
+    </>
+  );
+}
+
+function PreviewSection({ section, editing, wide, canEdit, onStartEdit, renderEditor, onDone }) {
   return (
     <div
-      className={`flex h-full flex-col rounded-[14px] border bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)] dark:bg-gray-900 ${
-        editing ? "border-emerald-300 ring-4 ring-emerald-500/10 dark:border-emerald-500/40" : "border-[#E4E9E2] dark:border-gray-700"
+      className={`flex h-full flex-col rounded-2xl border bg-white transition-shadow dark:bg-gray-900 ${
+        editing
+          ? "border-emerald-300 ring-4 ring-emerald-500/10 dark:border-emerald-500/40"
+          : "border-gray-200 shadow-[0_1px_2px_rgba(16,24,40,0.04)] hover:shadow-[0_4px_12px_-4px_rgba(16,24,40,0.08)] dark:border-gray-700"
       }`}
     >
-      {/* Header: step number + title, edit button */}
-      <div className="flex items-center gap-2.5 border-b border-gray-100 px-4 py-2.5 dark:border-gray-800">
-        <span className="grid size-6 shrink-0 place-items-center rounded-full bg-emerald-500 text-white">
-          <Check size={13} strokeWidth={3} aria-hidden="true" />
+      <div className="flex items-center gap-2.5 px-4 pb-2 pt-3">
+        <span className="grid size-5 shrink-0 place-items-center rounded-full bg-emerald-500 text-white" aria-hidden="true">
+          <Check size={11} strokeWidth={3.5} />
         </span>
-        <p className="min-w-0 flex-1 truncate text-[13px] font-bold text-gray-700 dark:text-gray-200">
-          <span className="mr-1 text-gray-400">{index + 1}.</span>
-          {section.title}
-        </p>
+        <h2 className="min-w-0 flex-1 truncate text-[12px] font-bold uppercase tracking-[0.06em] text-gray-500 dark:text-gray-400">{section.title}</h2>
         {!editing &&
           (canEdit ? (
-            <button type="button" onClick={onStartEdit} aria-label={`Edit ${section.title}`} title={`Edit ${section.title}`} className={EDIT_BUTTON}>
-              <Pencil size={13} aria-hidden="true" />
+            <button type="button" onClick={onStartEdit} aria-label={`Edit ${section.title}`} className={EDIT_BUTTON}>
+              <Pencil size={12} aria-hidden="true" />
               Edit
             </button>
           ) : (
@@ -38,34 +97,7 @@ function PreviewSection({ section, index, editing, wide, canEdit, onStartEdit, r
           ))}
       </div>
 
-      {/* Body */}
-      <div className="flex-1 px-4 py-3">
-        {editing ? (
-          renderEditor(onDone)
-        ) : (
-          <>
-            {section.note && (
-              <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:ring-amber-500/30">
-                {section.note}
-              </p>
-            )}
-            {single ? (
-              <p className="break-words text-[15px] font-bold text-gray-900 dark:text-gray-100">{section.rows[0].value || "—"}</p>
-            ) : (
-              section.rows.length > 0 && (
-                <dl className={`grid grid-cols-1 gap-x-6 gap-y-2.5 ${wide ? "sm:grid-cols-2 lg:grid-cols-3" : ""}`}>
-                  {section.rows.map((row) => (
-                    <div key={row.label} className={`min-w-0 ${row.wide && wide ? "sm:col-span-2 lg:col-span-3" : ""}`}>
-                      <dt className="text-[11px] font-medium text-gray-500 dark:text-gray-400">{row.label}</dt>
-                      <dd className="mt-0.5 break-words text-[13px] font-bold text-gray-900 dark:text-gray-100">{row.value || "—"}</dd>
-                    </div>
-                  ))}
-                </dl>
-              )
-            )}
-          </>
-        )}
-      </div>
+      <div className="flex-1 px-4 pb-4 pt-1">{editing ? renderEditor(onDone) : <SectionBody section={section} wide={wide} />}</div>
     </div>
   );
 }
@@ -79,7 +111,7 @@ function PreviewSection({ section, index, editing, wide, canEdit, onStartEdit, r
  * locked once the partner contract is accepted.
  * @param {{
  *   title: string,
- *   sections: { title: string, screenId: string, rows: { label: string, value: string|null, wide?: boolean }[], note?: string }[],
+ *   sections: (import("../../utils/stepPreview").PreviewSection & { screenId: string })[],
  *   currentTitle: string,
  *   onClose: () => void,
  *   onEdit?: (screenId: string) => void,
@@ -95,6 +127,11 @@ export default function StepPreviewPage({ title, sections, currentTitle, onClose
     if (inlineEditors[section.screenId]) setEditingId(section.screenId);
     else onEdit?.(section.screenId);
   };
+
+  // Three compact cards (Basic Details) fit one row; otherwise pairs, so a
+  // row never ends with an empty slot next to a lone card.
+  const compactCount = sections.filter((s) => !isWideSection(s)).length;
+  const gridCols = compactCount > 0 && compactCount % 3 === 0 ? "sm:grid-cols-2 lg:grid-cols-3" : "sm:grid-cols-2";
 
   return (
     <section className="rounded-2xl border border-gray-200 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04),0_12px_32px_-16px_rgba(16,24,40,0.10)] sm:rounded-[20px] dark:border-gray-800 dark:bg-gray-900 dark:shadow-none">
@@ -121,18 +158,16 @@ export default function StepPreviewPage({ title, sections, currentTitle, onClose
         {sections.length === 0 ? (
           <p className="mt-6 py-6 text-center text-sm text-gray-500 dark:text-gray-400">No details to show for this step yet.</p>
         ) : (
-          <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className={`mt-6 grid grid-cols-1 gap-3 ${gridCols}`}>
             {sections.map((section, index) => {
-              const editing = editingId === section.screenId;
-              // Compact cards sit side by side (also while editing); only
-              // sections with lots of fields (GST, bank…) take the full row.
-              const wide = section.rows.length > 3 || section.rows.some((r) => r.wide);
+              const wide = isWideSection(section);
+              // A lone compact card at the end of a 2-up grid takes the full row.
+              const lastOdd = !wide && gridCols === "sm:grid-cols-2" && compactCount % 2 === 1 && index === sections.length - 1;
               return (
-                <div key={section.title} className={wide ? "sm:col-span-2 lg:col-span-3" : ""}>
+                <div key={section.title} className={`animate-fade-up ${wide || lastOdd ? "col-span-full" : ""}`} style={{ animationDelay: `${index * 50}ms` }}>
                   <PreviewSection
                     section={section}
-                    index={index}
-                    editing={editing}
+                    editing={editingId === section.screenId}
                     wide={wide}
                     canEdit={Boolean(onEdit) && !lockedIds.includes(section.screenId)}
                     onStartEdit={() => startEdit(section)}

@@ -7,6 +7,7 @@ import RuleChecklist from "../../components/ui/RuleChecklist";
 import StepCard from "../../components/ui/StepCard";
 import StepFooter from "../../components/ui/StepFooter";
 import { SelectField, TextField } from "../../components/ui/TextField";
+import { SCREENS } from "../../config/onboardingFlow";
 import { BANK_ACCOUNT_TYPES } from "../../constants/onboardingOptions";
 import { useOnboardingFlow } from "../../hooks/useOnboardingFlow";
 import { useOnboardingV2Store } from "../../store/onboardingStore";
@@ -20,9 +21,10 @@ import { ACCOUNT_MAX, IFSC_LENGTH, maskGrouped, useIfscLookup, verifyBankForm } 
  * review screen.
  */
 export default function BankEnterStep() {
-  const { next, skip } = useOnboardingFlow();
+  const { next, skip, isCompleted } = useOnboardingFlow();
   const bank = useOnboardingV2Store((s) => s.form.bank);
   const bankDetails = useOnboardingV2Store((s) => s.form.bankDetails);
+  const legalName = useOnboardingV2Store((s) => s.form.legalName);
   const setBankField = useOnboardingV2Store((s) => s.setBankField);
   const setField = useOnboardingV2Store((s) => s.setField);
 
@@ -60,7 +62,7 @@ export default function BankEnterStep() {
     setVerifying(true);
     setVerifyError("");
     try {
-      setField("bankDetails", await verifyBankForm({ bank, ifscInfo }));
+      setField("bankDetails", await verifyBankForm({ bank, ifscInfo, legalName }));
       next();
     } catch (error) {
       console.error("Bank verification failed:", error);
@@ -68,7 +70,14 @@ export default function BankEnterStep() {
     } finally {
       setVerifying(false);
     }
-  }, [bank, bankDetails, ifscInfo, isValid, next, setField]);
+  }, [bank, bankDetails, ifscInfo, isValid, legalName, next, setField]);
+
+  // A verified-but-never-saved account (Review not completed) must not count
+  // as added once the vendor skips — nothing reached the backend.
+  const handleSkip = useCallback(() => {
+    if (!isCompleted(SCREENS.BANK_REVIEW)) setField("bankDetails", null);
+    skip();
+  }, [isCompleted, setField, skip]);
 
   const accountDisplay = accountFocused ? bank.accountNumber : maskGrouped(bank.accountNumber);
   const accountLengthOk = bank.accountNumber.length >= 9;
@@ -90,7 +99,7 @@ export default function BankEnterStep() {
       }
       footer={
         <StepFooter start={<FormError message={verifyError} />}>
-          <Button variant="secondary" onClick={skip} disabled={verifying}>
+          <Button variant="secondary" onClick={handleSkip} disabled={verifying}>
             Skip for now
           </Button>
           <Button onClick={handleVerify} disabled={!isValid} loading={verifying} icon={ArrowRight}>

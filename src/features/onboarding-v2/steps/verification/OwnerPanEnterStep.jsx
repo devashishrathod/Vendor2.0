@@ -32,6 +32,7 @@ export default function OwnerPanEnterStep() {
   const { next, branch } = useOnboardingFlow();
   const ownerKyc = useOnboardingV2Store((s) => s.form.ownerKyc);
   const businessPan = useOnboardingV2Store((s) => s.form.pan);
+  const businessPanDetails = useOnboardingV2Store((s) => s.form.panDetails);
   const patchForm = useOnboardingV2Store((s) => s.patchForm);
 
   // A proprietorship's GSTIN carries the owner's own PAN (4th letter P).
@@ -52,10 +53,16 @@ export default function OwnerPanEnterStep() {
     async (event) => {
       event.preventDefault();
       if (!isValid || verifying) return;
+      // The lookup is paid: reuse a record we already hold for this PAN —
+      // this screen's earlier result, or the business PAN fetched with the GSTIN.
+      if (pan === ownerKyc.pan && ownerKyc.panDetails) {
+        next();
+        return;
+      }
       try {
         setVerifying(true);
         setError("");
-        const panDetails = await fetchPanDetails(pan);
+        const panDetails = pan === businessPan && businessPanDetails ? businessPanDetails : await fetchPanDetails(pan);
         const name = readPanRecord(panDetails).name;
         if (!name) throw new Error("We couldn't read the name on this PAN. Check the number and try again.");
         patchForm("ownerKyc", { pan, panName: name, panDetails });
@@ -67,7 +74,7 @@ export default function OwnerPanEnterStep() {
         setVerifying(false);
       }
     },
-    [isValid, next, pan, patchForm, verifying],
+    [businessPan, businessPanDetails, isValid, next, ownerKyc.pan, ownerKyc.panDetails, pan, patchForm, verifying],
   );
 
   return (

@@ -15,6 +15,13 @@ export const PRIMARY_ENTITY_TYPES = [
 /** The only entity values a vendor can pick (and that we recommend). */
 export const ENTITY_VALUES = PRIMARY_ENTITY_TYPES.map((t) => t.value);
 
+// Owner verification (not registered): ID types that can be uploaded instead of DigiLocker.
+export const OWNER_ID_TYPES = [
+  { value: "DRIVING_LICENCE", label: "Driving licence" },
+  { value: "PASSPORT", label: "Passport" },
+  { value: "VOTER_ID", label: "Voter ID" },
+];
+
 // Values match the backend BANK_ACCOUNT_TYPES enum.
 export const BANK_ACCOUNT_TYPES = [
   { value: "SAVINGS", label: "Savings" },
@@ -53,8 +60,10 @@ export const NAME_LIMITS = Object.freeze({
 export const PARTNER_AGREEMENT_URL = "https://trydood.com/partner-agreement";
 export const TERMS_URL = "https://trydood.com/terms-of-service";
 export const HELPDESK_EMAIL = "helpdesk@trydood.com";
+// Contact shown on the partner agreement (same as the old Step14PartnerContract).
+export const SUPPORT_EMAIL = "support@trydood.com";
 
-// Same summary clauses the current partner contract step shows.
+// Same summary clauses the old partner contract step (Step14PartnerContract) shows.
 export const PARTNER_TERMS = [
   {
     title: "Partnership Scope",

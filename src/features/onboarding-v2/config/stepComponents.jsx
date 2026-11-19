@@ -8,6 +8,7 @@ import BusinessTypeStep from "../steps/verification/BusinessTypeStep";
 import DocumentsStep from "../steps/verification/DocumentsStep";
 import GstEnterStep from "../steps/verification/GstEnterStep";
 import GstReviewStep from "../steps/verification/GstReviewStep";
+import OwnerKycReviewStep from "../steps/verification/OwnerKycReviewStep";
 import OwnerKycStep from "../steps/verification/OwnerKycStep";
 import OwnerPanEnterStep from "../steps/verification/OwnerPanEnterStep";
 import OwnerPanReviewStep from "../steps/verification/OwnerPanReviewStep";
@@ -29,6 +30,7 @@ export const STEP_ELEMENTS = {
   [SCREENS.OWNER_PAN]: <OwnerPanEnterStep />,
   [SCREENS.OWNER_PAN_REVIEW]: <OwnerPanReviewStep />,
   [SCREENS.OWNER_KYC]: <OwnerKycStep />,
+  [SCREENS.OWNER_KYC_REVIEW]: <OwnerKycReviewStep />,
   [SCREENS.DOCUMENTS]: <DocumentsStep />,
   [SCREENS.BANK_ENTER]: <BankEnterStep />,
   [SCREENS.BANK_REVIEW]: <BankReviewStep />,

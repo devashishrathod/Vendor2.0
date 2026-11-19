@@ -29,6 +29,7 @@ const BEFORE_CONTINUE = [
 export default function PanEnterStep() {
   const { next } = useOnboardingFlow();
   const storedPan = useOnboardingV2Store((s) => s.form.pan);
+  const storedPanDetails = useOnboardingV2Store((s) => s.form.panDetails);
   const setField = useOnboardingV2Store((s) => s.setField);
 
   const [pan, setPan] = useState(storedPan);
@@ -47,6 +48,11 @@ export default function PanEnterStep() {
     async (event) => {
       event.preventDefault();
       if (!isValid || verifying) return;
+      // Same PAN already verified — the lookup is paid, don't repeat it.
+      if (pan === storedPan && storedPanDetails) {
+        next();
+        return;
+      }
       try {
         setVerifying(true);
         setError("");
@@ -61,7 +67,7 @@ export default function PanEnterStep() {
         setVerifying(false);
       }
     },
-    [isValid, next, pan, setField, verifying],
+    [isValid, next, pan, setField, storedPan, storedPanDetails, verifying],
   );
 
   return (

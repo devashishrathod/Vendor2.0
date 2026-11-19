@@ -48,6 +48,8 @@ export async function request(
       data?.message || data?.error || `Error ${res.status}: ${res.statusText}`,
     );
     err.status = res.status;
+    // e.g. 429 → details.retryAfterSeconds (API doc #1 note 2).
+    err.details = data?.details ?? null;
     throw err;
   }
 

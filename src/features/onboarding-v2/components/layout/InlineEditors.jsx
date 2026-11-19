@@ -4,8 +4,7 @@ import { useCategories } from "@/features/oulet/New folder/hooks/useCategories";
 import { BRANCHES } from "../../config/onboardingFlow";
 import FormError from "../ui/FormError";
 import { NAME_LIMITS } from "../../constants/onboardingOptions";
-import { saveBusinessNames } from "../../services/onboardingApi";
-import { saveCategorySelection } from "../../services/pendingApi";
+import { saveCategorySelection, updateBrandName } from "../../services/onboardingApi";
 import { useOnboardingV2Store } from "../../store/onboardingStore";
 import { selectStatusLocked } from "../../utils/statusLock";
 import { toOption } from "../../steps/basics/categoryHelpers";
@@ -58,8 +57,9 @@ export function BrandNameEditor({ onDone }) {
     try {
       setSaving(true);
       setError("");
-      // Names are already on the backend once the legal name is known.
-      if (legalName) await saveBusinessNames({ legalName, brandName: value });
+      // Names are already on the backend once the legal name is known; an
+      // edit goes through the edit endpoint, which doesn't move the screen.
+      if (legalName) await updateBrandName(value);
       setField("brandName", value);
       onDone();
     } catch (err) {

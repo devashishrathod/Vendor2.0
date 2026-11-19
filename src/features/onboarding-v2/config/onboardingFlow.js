@@ -21,6 +21,7 @@ export const SCREENS = Object.freeze({
   OWNER_PAN: "OWNER_PAN",
   OWNER_PAN_REVIEW: "OWNER_PAN_REVIEW",
   OWNER_KYC: "OWNER_KYC",
+  OWNER_KYC_REVIEW: "OWNER_KYC_REVIEW",
   DOCUMENTS: "DOCUMENTS",
   BANK_ENTER: "BANK_ENTER",
   BANK_REVIEW: "BANK_REVIEW",
@@ -85,6 +86,8 @@ export const FLOW_GROUPS = [
       { id: SCREENS.OWNER_PAN_REVIEW, title: "PAN Review", sub: "PAN Review", branches: [BRANCHES.GST], reviewOf: SCREENS.OWNER_PAN },
       { id: SCREENS.BUSINESS_TYPE, title: "Business Entity", sub: "Business Entity", branches: [BRANCHES.GST] },
       { id: SCREENS.OWNER_KYC, title: "Owner Verification", sub: "Owner Verification", isNew: true, branches: [BRANCHES.UNREGISTERED] },
+      // Same enter → review pattern as GSTIN / PAN: the owner's details are saved from the review.
+      { id: SCREENS.OWNER_KYC_REVIEW, title: "Owner Review", sub: "Owner Review", branches: [BRANCHES.UNREGISTERED], reviewOf: SCREENS.OWNER_KYC },
       { id: SCREENS.BUSINESS_TYPE, title: "Business Entity", sub: "Business Entity", branches: [BRANCHES.UNREGISTERED] },
       { id: SCREENS.DOCUMENTS, title: "Business Documents", sub: "Business Documents", skippable: true },
     ],

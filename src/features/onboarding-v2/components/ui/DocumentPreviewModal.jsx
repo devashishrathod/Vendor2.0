@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import { ExternalLink, FileText, X } from "lucide-react";
 
@@ -11,7 +11,20 @@ export default function DocumentPreviewModal({ file, url, title, fileName, onClo
   const src = useMemo(() => (file ? URL.createObjectURL(file) : url || null), [file, url]);
   const isPdf = file ? file.type === "application/pdf" : /\.pdf($|\?)/i.test(url || fileName || "");
 
-  useEffect(() => () => file && src && URL.revokeObjectURL(src), [file, src]);
+  // Revoke the object URL once nothing shows it any more. StrictMode (dev)
+  // runs this effect's cleanup and setup back to back with the same URL;
+  // revoking straight away left the preview blank, so check after a tick.
+  const shownSrcRef = useRef(null);
+  useEffect(() => {
+    shownSrcRef.current = src;
+    return () => {
+      shownSrcRef.current = null;
+      if (!file || !src) return;
+      setTimeout(() => {
+        if (shownSrcRef.current !== src) URL.revokeObjectURL(src);
+      }, 0);
+    };
+  }, [file, src]);
 
   useEffect(() => {
     const onKeyDown = (event) => {

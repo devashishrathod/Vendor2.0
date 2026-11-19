@@ -5,6 +5,8 @@ import { setAnalyticsUser, trackEvent } from '@/utils/analytics';
 import { authAPI } from '../services/api/index';
 import { useOnboardingStore } from './onboardingStore';
 import { useOnboardingV2Store } from '@/features/onboarding-v2/store/onboardingStore';
+import { clearDocumentFiles } from '@/features/onboarding-v2/utils/documentFileStore';
+import { SYSTEM_VERIFY_CACHE_KEY } from '@/features/onboarding-v2/config/routes';
 
 // ─── SCREEN_MAP — backend string → frontend canonical screen name ─────────────
 // Fix: SUBSCRIBE_PLAN, UNDER_REVIEW, DASHBOARD added (ye missing the isliye
@@ -88,17 +90,28 @@ export const useAuthStore = create(
       verifyOTP: async (whatsappNumber, otp, role = 'VENDOR') => {
         set({ loading: true, error: null });
         try {
-          const { isFirst, currentScreen } = get();
-          const screenToSend = isFirst ? 'BUSINESS_NAME' : currentScreen;
+          const { isFirst } = get();
+          // Only a brand-new vendor starts at BUSINESS_NAME. A returning
+          // vendor's screen is the backend's — sending ours (always
+          // BUSINESS_NAME, since send-OTP doesn't return it) would reset it.
+          const screenToSend = isFirst ? 'BUSINESS_NAME' : undefined;
           const res   = await authAPI.verifyOTP(whatsappNumber, otp, role, screenToSend);
           const token = res?.data?.token;
           const user  = res?.data?.user;
           if (!token) throw new Error('Token not received. Please try again.');
-          set({ token, user, loading: false });
+          // verify-otp returns user.currentScreen (API doc #2 note 3) — the
+          // screen routing and the back-button guard resume from.
+          const backendScreen = user?.currentScreen;
+          set({
+            token,
+            user,
+            loading: false,
+            ...(backendScreen ? { currentScreen: SCREEN_MAP[backendScreen] ?? 'BUSINESS_NAME' } : {}),
+          });
           setAnalyticsUser(user?._id ?? null);
           trackEvent(isFirst ? ANALYTICS_EVENTS.SIGN_UP : ANALYTICS_EVENTS.LOGIN, {
             method:      LOGIN_METHOD,
-            resume_from: screenToSend,
+            resume_from: backendScreen ?? screenToSend,
           });
           return { ...res, isFirst };
         } catch (e) {
@@ -160,6 +173,14 @@ export const useAuthStore = create(
         localStorage.removeItem('auth-storage');
         localStorage.removeItem('onboarding-store');
         localStorage.removeItem('onboarding-v2-store');
+        // The next vendor on this browser must not see this one's documents
+        // or system-verification result.
+        clearDocumentFiles();
+        try {
+          sessionStorage.removeItem(SYSTEM_VERIFY_CACHE_KEY);
+        } catch {
+          /* storage blocked — nothing to clear */
+        }
       },
 
       setError:   (error) => set({ error }),

@@ -13,7 +13,7 @@ import {
   saveVerifiedPan,
 } from "../../services/onboardingApi";
 import { BRANCHES } from "../../config/onboardingFlow";
-import { ENTITY_VALUES } from "../../constants/onboardingOptions";
+import { ENTITY_VALUES, OWNER_ID_TYPES } from "../../constants/onboardingOptions";
 
 const ACTIVE_STATUSES = ["active", "success"];
 
@@ -101,6 +101,24 @@ export function readPanRecord(panDetails) {
     gender: clean(raw.gender),
     aadhaarLinked: typeof aadhaarLinked === "boolean" ? (aadhaarLinked ? "Yes" : "No") : null,
     address: addressParts.join(", ") || null,
+  };
+}
+
+/**
+ * How the owner proved their identity (not-registered path), for review
+ * screens: DigiLocker Aadhaar (last 4 digits) or an uploaded ID (its file).
+ * @param {object} [kyc] - form.ownerKyc
+ * @returns {{ method: string|null, detailLabel: string, detail: string|null }}
+ */
+export function readOwnerIdentity(kyc = {}) {
+  if (kyc.idMethod === "upload") {
+    const label = OWNER_ID_TYPES.find((t) => t.value === kyc.idType)?.label;
+    return { method: label ? `${label} uploaded` : null, detailLabel: "ID file", detail: kyc.idFileName || null };
+  }
+  return {
+    method: kyc.idVerified ? "Aadhaar via DigiLocker" : null,
+    detailLabel: "Aadhaar",
+    detail: kyc.aadhaarLast4 ? `XXXX XXXX ${kyc.aadhaarLast4}` : null,
   };
 }
 

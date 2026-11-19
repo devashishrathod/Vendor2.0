@@ -12,7 +12,8 @@ import StepCard from "../../components/ui/StepCard";
 import StepFooter from "../../components/ui/StepFooter";
 import { VISIBLE_CATEGORY_COUNT } from "../../constants/onboardingOptions";
 import { useOnboardingFlow } from "../../hooks/useOnboardingFlow";
-import { fetchRequiredDocuments, saveCategorySelection } from "../../services/pendingApi";
+import { saveCategorySelection } from "../../services/onboardingApi";
+import { fetchRequiredDocuments } from "../../services/pendingApi";
 import { useOnboardingV2Store } from "../../store/onboardingStore";
 import { iconForCategory, toOption } from "./categoryHelpers";
 
@@ -35,18 +36,22 @@ function SectionLabel({ children }) {
   return <p className="text-[10.5px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{children}</p>;
 }
 
-/** "Documents you'll need" aside, for the selected category + sub-categories. */
-function RequiredDocumentsPanel({ subCategoryIds, categoryName, subCategoryNames }) {
+/**
+ * "Documents you'll need" aside, for the selected category + sub-categories.
+ * `categoryOnly`: the category has no sub-categories, so the list comes from
+ * the category alone instead of waiting for a sub-category pick.
+ */
+function RequiredDocumentsPanel({ subCategoryIds, categoryName, subCategoryNames, categoryOnly = false }) {
   const [docs, setDocs] = useState({ required: [], optional: [] });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
   const idsKey = subCategoryIds.join(",");
   const namesKey = [categoryName, ...subCategoryNames].join("|");
-  const hasSelection = subCategoryIds.length > 0;
+  const hasSelection = subCategoryIds.length > 0 || (categoryOnly && Boolean(categoryName));
 
   useEffect(() => {
-    if (!idsKey) return undefined;
+    if (!hasSelection) return undefined;
     let cancelled = false;
     async function load() {
       try {
@@ -66,7 +71,7 @@ function RequiredDocumentsPanel({ subCategoryIds, categoryName, subCategoryNames
     return () => {
       cancelled = true;
     };
-  }, [idsKey, namesKey, attempt]);
+  }, [hasSelection, idsKey, namesKey, attempt]);
 
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
 
@@ -349,6 +354,7 @@ function CategoryStepContent({ onRetry }) {
             subCategoryIds={selectedIds}
             categoryName={categoryName}
             subCategoryNames={selectedSubs.map((s) => s.name)}
+            categoryOnly={noSubsAvailable}
           />
         </>
       }

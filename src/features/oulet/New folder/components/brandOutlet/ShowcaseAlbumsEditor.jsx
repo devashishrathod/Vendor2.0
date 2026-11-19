@@ -151,8 +151,11 @@ export default function ShowcaseAlbumsEditor({ albums, onChange, brandId }) {
 
   const canAddAlbum = albums.length < MAX_ALBUMS;
 
+  // Functional update: this also runs after awaits, when `albums` from this
+  // render may be stale (another album changed meanwhile) — writing that
+  // copy back would undo those changes.
   const patchAlbum = (id, patch) => {
-    onChange(albums.map((a) => (a.id === id ? { ...a, ...patch } : a)));
+    onChange((prev) => prev.map((a) => (a.id === id ? { ...a, ...patch } : a)));
   };
 
   const patchAlbumById = (list, id, patch) =>

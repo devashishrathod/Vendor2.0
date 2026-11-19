@@ -4,6 +4,7 @@
 
 import { useAuthStore } from "@/features/onboarding/store/authStore";
 import {
+  updateBasicDetails,
   updateBusinessEntityType,
   updateBusinessName,
   updateRegistrationStatus,
@@ -21,6 +22,7 @@ import {
   submitVerifiedGstDetails,
   submitVerifiedPanDetails,
 } from "@/features/onboarding/services/api/verificationDetails.api";
+import { updateBrandDetails } from "@/features/oulet/New folder/services/brandOutletApi";
 import { BRANCHES } from "../config/onboardingFlow";
 
 const IFSC_LOOKUP_URL = "https://ifsc.razorpay.com";
@@ -39,6 +41,28 @@ const currentBrandId = () => useAuthStore.getState().user?.brandId;
  */
 export const saveBusinessNames = ({ legalName, brandName }) =>
   updateBusinessName({ legalBusinessName: legalName, brandName });
+
+/**
+ * Category at Basic Details → the brand update API, PUT /brands/update
+ * (API doc #32: `{ isOnboarding: true, subCategoryId }`). The backend keeps
+ * ONE sub-category and sets the category from it, so the first one picked
+ * is saved. A category with no sub-categories has nothing the backend can
+ * store, so it stays local.
+ * @param {{ categoryId: string, subCategoryIds: string[] }} selection
+ * @returns {Promise<object|null>}
+ */
+export async function saveCategorySelection({ subCategoryIds }) {
+  const subCategoryId = subCategoryIds?.[0];
+  if (!subCategoryId) return null;
+  return updateBrandDetails(currentBrandId(), { isOnboarding: true, subCategoryId });
+}
+
+/**
+ * Brand name edited later (review / sidebar preview). Uses the edit endpoint
+ * so the backend's onboarding screen isn't moved (API doc #20 note 4, #27).
+ * @param {string} brandName
+ */
+export const updateBrandName = (brandName) => updateBasicDetails({ brandName });
 
 /**
  * The backend knows REGISTERED / UNREGISTERED only; "registered, no GST"

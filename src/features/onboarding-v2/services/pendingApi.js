@@ -4,7 +4,8 @@
 // ship. The data itself already lives in the persisted onboarding store.
 //
 // Missing on the backend (docs/vendor_panel_api_doc.md):
-//   - saving category + MULTIPLE sub-categories at Basic Details
+//   - MULTIPLE sub-categories (the category itself is saved for real —
+//     onboardingApi.saveCategorySelection — with the first sub-category)
 //   - owner / signatory KYC (owner PAN save, Aadhaar via DigiLocker, ID upload, selfie)
 //   - business documents upload with a title
 //   - required / optional documents per sub-category
@@ -16,11 +17,6 @@ import { documentsForCategory } from "../constants/categoryDocuments";
 export const PENDING_BACKEND = true;
 
 const resolveLater = (value, ms = 400) => new Promise((resolve) => setTimeout(() => resolve(value), ms));
-
-/**
- * @param {{ categoryId: string, subCategoryIds: string[] }} selection
- */
-export const saveCategorySelection = (selection) => resolveLater({ success: true, data: selection });
 
 /**
  * Documents a vendor needs for the category they picked. Until the backend

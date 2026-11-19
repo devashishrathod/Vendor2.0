@@ -1,28 +1,42 @@
-import { ChevronRight, CloudCheck, House, Menu } from "lucide-react";
+import { ArrowLeft, ChevronRight, CloudCheck, House, Menu } from "lucide-react";
 import ThemeToggleButton from "@/components/common/ThemeToggleButton";
 import ProfileMenu from "./ProfileMenu";
 import ProgressRing from "./ProgressRing";
 
 /**
- * Top bar. Phones/tablets get a menu button (opens the steps drawer) and
- * the brand mark; the breadcrumb appears from md, the save note from xl.
+ * Top bar. Phones/tablets get a menu button (opens the steps drawer) when
+ * `onMenuClick` is given, and the brand mark; the breadcrumb appears from
+ * md, the save note from xl. Pages after the wizard (plan, outlet, review)
+ * use it without the menu, optionally with a Back button and extra items.
  * @param {{
- *   crumbs: string[], stepNumber: number, totalSteps: number,
- *   progress: number, onMenuClick: () => void,
+ *   crumbs: string[], stepNumber: number, totalSteps: number, progress: number,
+ *   onMenuClick?: () => void, onBack?: () => void, children?: import('react').ReactNode,
  * }} props
  */
-export default function OnboardingHeader({ crumbs, stepNumber, totalSteps, progress, onMenuClick }) {
+export default function OnboardingHeader({ crumbs, stepNumber, totalSteps, progress, onMenuClick, onBack, children }) {
   return (
     <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between gap-3 border-b border-gray-200 bg-white/95 px-4 backdrop-blur sm:px-6 lg:px-8 dark:border-gray-800 dark:bg-gray-900/95">
       <div className="flex min-w-0 items-center gap-2">
-        <button
-          type="button"
-          onClick={onMenuClick}
-          aria-label="Open onboarding steps"
-          className="-ml-1.5 grid size-10 shrink-0 place-items-center rounded-xl text-gray-600 hover:bg-gray-100 lg:hidden dark:text-gray-300 dark:hover:bg-gray-800"
-        >
-          <Menu size={20} aria-hidden="true" />
-        </button>
+        {onMenuClick && (
+          <button
+            type="button"
+            onClick={onMenuClick}
+            aria-label="Open onboarding steps"
+            className="-ml-1.5 grid size-10 shrink-0 place-items-center rounded-xl text-gray-600 hover:bg-gray-100 lg:hidden dark:text-gray-300 dark:hover:bg-gray-800"
+          >
+            <Menu size={20} aria-hidden="true" />
+          </button>
+        )}
+        {onBack && (
+          <button
+            type="button"
+            onClick={onBack}
+            aria-label="Back"
+            className="-ml-1.5 grid size-10 shrink-0 place-items-center rounded-xl text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+          >
+            <ArrowLeft size={20} aria-hidden="true" />
+          </button>
+        )}
         <span className="flex items-center gap-2 md:hidden">
           <span className="grid size-8 place-items-center rounded-[9px] bg-emerald-600 text-[15px] font-extrabold text-white">T</span>
           <span className="text-base font-extrabold tracking-tight text-gray-900 dark:text-gray-50">Trydood</span>
@@ -53,6 +67,7 @@ export default function OnboardingHeader({ crumbs, stepNumber, totalSteps, progr
       </div>
 
       <div className="flex shrink-0 items-center gap-2 sm:gap-3.5">
+        {children}
         <span className="hidden items-center gap-1.5 text-[12.5px] font-medium text-gray-500 xl:flex">
           <CloudCheck size={16} strokeWidth={2} className="text-emerald-500" aria-hidden="true" />
           Progress saved

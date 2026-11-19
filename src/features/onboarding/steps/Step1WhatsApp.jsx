@@ -42,6 +42,9 @@ export default function Step1WhatsApp() {
       setOtpModalOpen(true);
     } catch (e) {
       setError(e.message || "Failed to send OTP. Please try again.");
+      // 429: a code was already sent to this number moments ago (one per
+      // 60s, API doc #1 note 2) — let the vendor enter that one.
+      if (e?.status === 429) setOtpModalOpen(true);
     }
   };
 

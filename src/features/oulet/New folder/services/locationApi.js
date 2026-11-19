@@ -181,7 +181,23 @@ export async function updateLocation(id, rawPatch = {}) {
         handleError(error);
     }
 }
-// kfhdkjhfjhdskfhsd
+// Fields PUT /locations/update/:id accepts (API doc #41). Owner ids are not
+// in it, and isBrandAddress / isSubBrandAddress can't change (400), so a
+// create payload is trimmed to these before updating an existing location.
+const LOCATION_UPDATE_FIELDS = [
+    'addressLine1', 'addressLine2', 'landmark', 'city', 'district', 'state',
+    'zipcode', 'country', 'formattedAddress', 'coordinates', 'addressType', 'isDefault',
+];
+
+/**
+ * A createLocation payload reduced to what the update endpoint takes.
+ * @param {object} payload - from buildLocationPayloadFromPlace
+ * @returns {object}
+ */
+export function toLocationUpdatePatch(payload = {}) {
+    return Object.fromEntries(LOCATION_UPDATE_FIELDS.filter((key) => key in payload).map((key) => [key, payload[key]]));
+}
+
 // ── Delete Location ───────────────────────────────────────────────
 // DELETE {{TryDood2.0BaseUrl}}/locations/:id
 export async function deleteLocation(id) {

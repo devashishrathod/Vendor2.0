@@ -16,10 +16,10 @@ import StatusPill from "../../components/ui/StatusPill";
 import StepCard from "../../components/ui/StepCard";
 import StepFooter from "../../components/ui/StepFooter";
 import { TextField } from "../../components/ui/TextField";
-import { BRANCHES } from "../../config/onboardingFlow";
+import { OWNER_ID_TYPES } from "../../constants/onboardingOptions";
 import { useOnboardingFlow } from "../../hooks/useOnboardingFlow";
-import { fetchPanDetails, saveBusinessNames, saveBusinessStatus } from "../../services/onboardingApi";
-import { saveOwnerKyc, verifyAadhaarWithDigiLocker } from "../../services/pendingApi";
+import { fetchPanDetails } from "../../services/onboardingApi";
+import { verifyAadhaarWithDigiLocker } from "../../services/pendingApi";
 import { useOnboardingV2Store } from "../../store/onboardingStore";
 import { toUpperAlphanumeric } from "../../validation/rules";
 import FormError from "../../components/ui/FormError";
@@ -27,11 +27,6 @@ import FormError from "../../components/ui/FormError";
 const PAN_LENGTH = 10;
 const PAN_FORMAT = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
 
-const ID_TYPES = [
-  { value: "DRIVING_LICENCE", label: "Driving licence" },
-  { value: "PASSPORT", label: "Passport" },
-  { value: "VOTER_ID", label: "Voter ID" },
-];
 const ID_FILE_ACCEPT = "image/*,.pdf";
 
 const WHY_WE_ASK = [
@@ -50,30 +45,26 @@ function panHolderName(details) {
 /**
  * Screen 08u · Owner KYC — "Not registered" path only (registered paths use
  * OwnerPanEnterStep → OwnerPanReviewStep). Owner PAN + identity (DigiLocker
- * or an uploaded ID); the owner's PAN name becomes the
- * legal name and the first backend saves run here.
+ * or an uploaded ID). Continue opens OwnerKycReviewStep, which saves them —
+ * the owner's PAN name becomes the legal name there.
  */
 export default function OwnerKycStep() {
   const { next } = useOnboardingFlow();
   const ownerKyc = useOnboardingV2Store((s) => s.form.ownerKyc);
-  const brandName = useOnboardingV2Store((s) => s.form.brandName);
   const patchForm = useOnboardingV2Store((s) => s.patchForm);
-  const setField = useOnboardingV2Store((s) => s.setField);
 
   const [pan, setPan] = useState(ownerKyc.pan || "");
   const [panLoading, setPanLoading] = useState(false);
   const [panError, setPanError] = useState("");
   const [digiLoading, setDigiLoading] = useState(false);
   const [idError, setIdError] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState("");
   const idFileRef = useRef(null);
 
   const panFormatValid = PAN_FORMAT.test(pan);
   const panVerified = Boolean(ownerKyc.panDetails && ownerKyc.panName && ownerKyc.pan === pan);
   const isDigiLocker = ownerKyc.idMethod !== "upload";
   const identityDone = isDigiLocker ? ownerKyc.idVerified : Boolean(ownerKyc.idType && ownerKyc.idFileName);
-  const canContinue = panVerified && identityDone && !saving;
+  const canContinue = panVerified && identityDone;
 
   const panHint = "Your name here becomes the business's legal name";
 
@@ -95,14 +86,18 @@ export default function OwnerKycStep() {
       if (data?.success === false) throw new Error(data.message || "We couldn't verify this PAN.");
       const name = panHolderName(details);
       if (!name) throw new Error("We couldn't read the name on this PAN. Check the number and try again.");
-      patchForm("ownerKyc", { pan, panName: name, panDetails: details });
+      // A different person's PAN: the earlier Aadhaar / ID check was for
+      // someone else, so it has to be done again.
+      const identityReset =
+        ownerKyc.pan && ownerKyc.pan !== pan ? { idVerified: false, aadhaarLast4: "", idType: null, idFileName: null } : {};
+      patchForm("ownerKyc", { pan, panName: name, panDetails: details, ...identityReset });
     } catch (error) {
       console.error("Owner PAN verification failed:", error);
       setPanError(error?.message || "PAN verification failed. Please try again.");
     } finally {
       setPanLoading(false);
     }
-  }, [pan, patchForm]);
+  }, [ownerKyc.pan, pan, patchForm]);
 
   const selectMethod = useCallback(
     (idMethod) => {
@@ -145,31 +140,12 @@ export default function OwnerKycStep() {
     [patchForm],
   );
 
-  const handleContinue = useCallback(async () => {
-    if (!canContinue) return;
-    setSaving(true);
-    setSaveError("");
-    const kyc = {
-      pan: ownerKyc.pan,
-      panName: ownerKyc.panName,
-      idMethod: ownerKyc.idMethod,
-      idType: isDigiLocker ? undefined : ownerKyc.idType,
-    };
-    try {
-      await saveBusinessNames({ legalName: ownerKyc.panName, brandName });
-      await saveBusinessStatus(BRANCHES.UNREGISTERED);
-      await saveOwnerKyc(kyc);
-      setField("legalName", ownerKyc.panName);
-      next();
-    } catch (error) {
-      console.error("Owner KYC save failed:", error);
-      setSaveError(error?.message || "We couldn't save your details. Please try again.");
-    } finally {
-      setSaving(false);
-    }
-  }, [brandName, canContinue, isDigiLocker, next, ownerKyc, setField]);
+  // Like GSTIN / PAN: this screen verifies, the review screen after it saves.
+  const handleContinue = useCallback(() => {
+    if (canContinue) next();
+  }, [canContinue, next]);
 
-  const selectedIdLabel = ID_TYPES.find((t) => t.value === ownerKyc.idType)?.label;
+  const selectedIdLabel = OWNER_ID_TYPES.find((t) => t.value === ownerKyc.idType)?.label;
 
   return (
     <StepCard
@@ -179,9 +155,9 @@ export default function OwnerKycStep() {
       headerAside={<StatusPill tone="success">+10 profile strength</StatusPill>}
       aside={<InfoPanel title="Why we ask" tone="emerald" items={WHY_WE_ASK} />}
       footer={
-        <StepFooter start={<FormError message={saveError} />}>
-          <Button onClick={handleContinue} disabled={!canContinue} loading={saving} icon={ArrowRight}>
-            Continue
+        <StepFooter>
+          <Button onClick={handleContinue} disabled={!canContinue} icon={ArrowRight}>
+            Review details
           </Button>
         </StepFooter>
       }
@@ -339,7 +315,7 @@ function UnregisteredIdentity({
               <span className="text-[15px] font-extrabold text-gray-900 dark:text-gray-100">Or upload another ID</span>
             </button>
             <div className="flex flex-wrap gap-2" role="group" aria-label="ID type">
-              {ID_TYPES.map((type) => {
+              {OWNER_ID_TYPES.map((type) => {
                 const selected = !isDigiLocker && ownerKyc.idType === type.value;
                 return (
                   <button

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useCallback, useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { validateOTP } from "../validation";
 import { useAuthStore } from "@/features/onboarding/store/authStore";
@@ -11,6 +11,9 @@ import {
 import { STEPS } from "@/features/onboarding/constants/steps";
 import { ROLES } from "@/constants";
 import { registerCurrentDevice } from "@/features/onboarding/services/api/deviceToken.api";
+
+// One code per number every 60 seconds (API doc #1 note 2).
+const RESEND_WAIT_SECONDS = 60;
 
 const SCREEN_TO_STEP = {
   BUSINESS_NAME:            { step: STEPS.BASIC_DETAILS,         subStep: BASIC_SUB.BUSINESS_NAME },
@@ -73,23 +76,39 @@ export default function Step2VerifyOTP({ isOpen, onClose, phoneNumber, onVerifie
   const { goToStep, setBrandId } = useOnboardingStore();
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [error, setError] = useState(null);
-  const [resendTimer, setResendTimer] = useState(60);
+  const [resendTimer, setResendTimer] = useState(RESEND_WAIT_SECONDS);
   const [canResend, setCanResend] = useState(false);
   const inputRefs = useRef([]);
+  // The one running countdown. Kept in a ref so a resend replaces it instead
+  // of starting a second interval (two ran the countdown at double speed).
+  const timerRef = useRef(null);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if (!isOpen) return;
-    setResendTimer(60);
-    setCanResend(false);
-    const interval = setInterval(() => {
+  const startCountdown = useCallback(() => {
+    clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
       setResendTimer((t) => {
-        if (t <= 1) { clearInterval(interval); setCanResend(true); return 0; }
+        if (t <= 1) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+          setCanResend(true);
+          return 0;
+        }
         return t - 1;
       });
     }, 1000);
-    return () => clearInterval(interval);
-  }, [isOpen]);
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    setResendTimer(RESEND_WAIT_SECONDS);
+    setCanResend(false);
+    startCountdown();
+    return () => {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    };
+  }, [isOpen, startCountdown]);
 
   useEffect(() => {
     if (isOpen) {
@@ -117,10 +136,11 @@ export default function Step2VerifyOTP({ isOpen, onClose, phoneNumber, onVerifie
   const handlePaste = (e) => {
     e.preventDefault();
     const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
-    if (pasted.length === 6) {
-      setOtp(pasted.split(""));
-      inputRefs.current[5]?.focus();
-    }
+    if (!pasted) return;
+    // Fill what was pasted (a partial code too) instead of dropping it.
+    setOtp(Array.from({ length: 6 }, (_, i) => pasted[i] ?? ""));
+    inputRefs.current[Math.min(pasted.length, 5)]?.focus();
+    setError(null);
   };
 
   const otpString = otp.join("");
@@ -172,18 +192,22 @@ export default function Step2VerifyOTP({ isOpen, onClose, phoneNumber, onVerifie
     setOtp(["", "", "", "", "", ""]);
     setError(null);
     setCanResend(false);
-    setResendTimer(60);
     try {
-      await sendOTP(phoneNumber, "VENDOR");
+      await sendOTP(phoneNumber, ROLES.VENDOR);
+      setResendTimer(RESEND_WAIT_SECONDS);
+      startCountdown();
     } catch (e) {
       setError(e.message || "Failed to resend OTP.");
+      // 429 says how long until the next code is allowed; any other failure
+      // can be retried straight away.
+      const wait = Number(e?.details?.retryAfterSeconds);
+      if (e?.status === 429 && wait > 0) {
+        setResendTimer(Math.ceil(wait));
+        startCountdown();
+      } else {
+        setCanResend(true);
+      }
     }
-    const interval = setInterval(() => {
-      setResendTimer((t) => {
-        if (t <= 1) { clearInterval(interval); setCanResend(true); return 0; }
-        return t - 1;
-      });
-    }, 1000);
     inputRefs.current[0]?.focus();
   };
 
@@ -268,7 +292,7 @@ export default function Step2VerifyOTP({ isOpen, onClose, phoneNumber, onVerifie
               <p className="text-xs text-gray-400">
                 Resend Code in{" "}
                 <span className="text-emerald-500 font-bold tabular-nums">
-                  00:{String(resendTimer).padStart(2, "0")}
+                  {String(Math.floor(resendTimer / 60)).padStart(2, "0")}:{String(resendTimer % 60).padStart(2, "0")}
                 </span>
               </p>
             )}

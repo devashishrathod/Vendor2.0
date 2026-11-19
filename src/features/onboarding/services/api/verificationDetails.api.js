@@ -233,7 +233,10 @@ function extractPincode(address) {
 // `bankDetails` is the shape verifyBank() resolves to, merged with
 // `enteredAccountNumber`/`accountType` the same way Step11BankEnter merges
 // them onto formData.bankDetails before Step12 reads it.
-export async function submitVerifiedBankDetails(bankDetails, { enteredAccountNumber, accountType } = {}) {
+// `keepScreen`: leave `currentScreen` out — for saves after onboarding
+// (e.g. fixing a rejected brand), where it would move the vendor's screen
+// back into the wizard.
+export async function submitVerifiedBankDetails(bankDetails, { enteredAccountNumber, accountType, keepScreen = false } = {}) {
   const raw = bankDetails ?? {};
   const verifyResult = raw.result ?? raw ?? {};
 
@@ -316,6 +319,7 @@ export async function submitVerifiedBankDetails(bankDetails, { enteredAccountNum
     chargeable: raw.chargeble === "true" || raw.chargeble === true,
     userConsent: raw.user_consent === "true" || raw.user_consent === true,
   };
+  if (keepScreen) delete payload.currentScreen;
 
   return postJSON("/brands/onboarding/add-bank-details", payload);
 }

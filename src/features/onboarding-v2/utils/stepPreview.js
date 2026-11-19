@@ -1,5 +1,5 @@
 import { BRANCHES, SCREENS } from "../config/onboardingFlow";
-import { readGstRecord, readPanRecord } from "../steps/verification/verificationRecords";
+import { readGstRecord, readOwnerIdentity, readPanRecord } from "../steps/verification/verificationRecords";
 
 // Read-only summary of what the vendor entered / got verified on a
 // completed screen — shown in the sidebar's preview popup.
@@ -36,13 +36,22 @@ function gstRows(form) {
   ];
 }
 
+/**
+ * PAN type from the verify response; when the provider leaves it out, the
+ * holder type the PAN's own 4th letter encodes (C = Company, P = Individual…).
+ */
+const panTypeLabel = (record) => (record.panType ? titleCase(record.panType) : record.holderType);
+
+/** "Date of birth" for a person's PAN, "Date of incorporation" otherwise. */
+const panDateLabel = (record) => (record.holderType === "Individual" ? "Date of birth" : "Date of incorporation");
+
 function panRows(form) {
   const r = readPanRecord(form.panDetails);
   return [
     { label: "Business PAN", value: r.pan || form.pan },
     { label: "Legal business name", value: r.name },
-    { label: "PAN type", value: r.panType },
-    { label: "Date of incorporation", value: r.dateOfIncorporation },
+    { label: "PAN type", value: panTypeLabel(r) },
+    { label: panDateLabel(r), value: r.dateOfIncorporation },
     { label: "Address", value: r.address, wide: true },
   ];
 }
@@ -83,14 +92,23 @@ export function getAllPreviews(groups, state) {
 }
 
 /**
+ * @typedef {Object} PreviewSection
+ * @property {string} title
+ * @property {{ label: string, value: string|null, wide?: boolean }[]} rows
+ * @property {string} [note]
+ * @property {boolean} [compact]  - one value, shown big under the title (no label)
+ * @property {'documents'} [kind] - rendered as a file list
+ */
+
+/**
  * @param {string} screenId
  * @param {{ form: object, branch: string|null, skipped: string[] }} state
- * @returns {{ title: string, rows: { label: string, value: string|null, wide?: boolean }[], note?: string }|null}
+ * @returns {PreviewSection|null}
  */
 export function getStepPreview(screenId, { form, branch, skipped }) {
   switch (screenId) {
     case SCREENS.BRAND_NAME:
-      return { title: "Brand name", rows: [{ label: "Brand name", value: form.brandName }] };
+      return { title: "Brand name", compact: true, rows: [{ label: "Brand name", value: form.brandName }] };
     case SCREENS.CATEGORY:
       return {
         title: "Category",
@@ -100,7 +118,7 @@ export function getStepPreview(screenId, { form, branch, skipped }) {
         ],
       };
     case SCREENS.BUSINESS_STATUS:
-      return { title: "Business status", rows: [{ label: "Business status", value: STATUS_LABELS[branch] || null }] };
+      return { title: "Business status", compact: true, rows: [{ label: "Business status", value: STATUS_LABELS[branch] || null }] };
     case SCREENS.GST_ENTER:
     case SCREENS.GST_REVIEW:
       return { title: "GST details", rows: gstRows(form) };
@@ -108,7 +126,11 @@ export function getStepPreview(screenId, { form, branch, skipped }) {
     case SCREENS.PAN_REVIEW:
       return { title: "Business PAN", rows: panRows(form) };
     case SCREENS.BUSINESS_TYPE:
-      return { title: "Business entity", rows: [{ label: "Business entity", value: form.entityType ? titleCase(form.entityType) : null }] };
+      return {
+        title: "Business entity",
+        compact: true,
+        rows: [{ label: "Business entity", value: form.entityType ? titleCase(form.entityType) : null }],
+      };
     case SCREENS.OWNER_PAN:
     case SCREENS.OWNER_PAN_REVIEW: {
       const kyc = form.ownerKyc || {};
@@ -118,24 +140,31 @@ export function getStepPreview(screenId, { form, branch, skipped }) {
         rows: [
           { label: "Owner PAN", value: kyc.pan },
           { label: "Name on PAN", value: kyc.panName || r.name },
-          { label: "PAN type", value: r.panType },
+          { label: "PAN type", value: panTypeLabel(r) },
           { label: "Aadhaar linked", value: r.aadhaarLinked },
           { label: "Address", value: r.address, wide: true },
         ],
       };
     }
-    case SCREENS.OWNER_KYC: {
+    case SCREENS.OWNER_KYC:
+    case SCREENS.OWNER_KYC_REVIEW: {
+      // Everything the owner review screen shows: the verified owner PAN and
+      // how the owner proved identity.
       const kyc = form.ownerKyc || {};
+      const r = readPanRecord(kyc.panDetails);
       const rows = [
-        { label: "Owner PAN", value: kyc.pan },
-        { label: "Name on PAN", value: kyc.panName },
+        { label: "Owner PAN", value: kyc.pan || r.pan },
+        { label: "Name on PAN", value: kyc.panName || r.name },
+        { label: "PAN type", value: panTypeLabel(r) },
+        { label: panDateLabel(r), value: r.dateOfIncorporation },
+        { label: "PAN status", value: r.status },
+        { label: "Aadhaar linked", value: r.aadhaarLinked },
       ];
       if (branch === BRANCHES.UNREGISTERED) {
-        rows.push({
-          label: "Identity",
-          value: kyc.idMethod === "upload" ? `${titleCase(kyc.idType || "ID")} uploaded` : kyc.idVerified ? "Aadhaar via DigiLocker" : null,
-        });
+        const identity = readOwnerIdentity(kyc);
+        rows.push({ label: "Identity", value: identity.method }, { label: identity.detailLabel, value: identity.detail });
       }
+      rows.push({ label: "Address", value: r.address, wide: true });
       return { title: branch === BRANCHES.UNREGISTERED ? "Owner verification" : "Business PAN", rows };
     }
     case SCREENS.DOCUMENTS: {
@@ -143,7 +172,11 @@ export function getStepPreview(screenId, { form, branch, skipped }) {
       if (skipped.includes(SCREENS.DOCUMENTS) || docs.length === 0) {
         return { title: "Business documents", rows: [], note: "Skipped — you can add documents later from your profile." };
       }
-      return { title: "Business documents", rows: docs.map((d) => ({ label: d.title || "Document", value: d.fileName })) };
+      return {
+        title: "Business documents",
+        kind: "documents",
+        rows: docs.map((d) => ({ label: d.title || "Document", value: d.fileName })),
+      };
     }
     case SCREENS.BANK_ENTER:
     case SCREENS.BANK_REVIEW:

@@ -51,6 +51,11 @@ export default function GstEnterStep() {
     async (event) => {
       event.preventDefault();
       if (!isValid || verifying) return;
+      // Same GSTIN already verified and active — the lookups are paid, don't repeat them.
+      if (verifiedRecord && isGstActive(storedGstDetails)) {
+        next();
+        return;
+      }
       const pan = gstin.slice(2, 12);
       try {
         setVerifying(true);
@@ -82,7 +87,7 @@ export default function GstEnterStep() {
         setVerifying(false);
       }
     },
-    [gstin, isValid, next, setField, verifying],
+    [gstin, isValid, next, setField, storedGstDetails, verifiedRecord, verifying],
   );
 
   return (

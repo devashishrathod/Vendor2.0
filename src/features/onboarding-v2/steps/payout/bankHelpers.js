@@ -76,13 +76,29 @@ export function useIfscLookup(ifsc) {
   return { ifscValid, lookupDone, ifscInfo: lookupDone ? lookup.info : null, lookupError: lookupDone ? lookup.error : "" };
 }
 
+const BENEFICIARY_MIN = 3;
+const BENEFICIARY_MAX = 100;
+
+/**
+ * Name the backend matches the account holder against: the beneficiary the
+ * vendor typed, else the business's legal name. Left out if too short.
+ */
+function beneficiaryNameFor(bank, legalName) {
+  const name = (bank.beneficiary || "").trim() || (legalName || "").trim();
+  return name.length >= BENEFICIARY_MIN ? name.slice(0, BENEFICIARY_MAX) : undefined;
+}
+
 /**
  * Runs the ₹1 penny-drop and returns the record to keep as
  * `form.bankDetails`. Throws with a readable message when it fails.
- * @param {{ bank: { accountNumber: string, ifsc: string, beneficiary: string, accountType: string }, ifscInfo: object|null }} input
+ * @param {{ bank: { accountNumber: string, ifsc: string, beneficiary: string, accountType: string }, ifscInfo: object|null, legalName?: string }} input
  */
-export async function verifyBankForm({ bank, ifscInfo }) {
-  const response = await verifyBankAccount({ accountNumber: bank.accountNumber, ifsc: bank.ifsc });
+export async function verifyBankForm({ bank, ifscInfo, legalName = "" }) {
+  const response = await verifyBankAccount({
+    accountNumber: bank.accountNumber,
+    ifsc: bank.ifsc,
+    beneficiaryName: beneficiaryNameFor(bank, legalName),
+  });
   const data = response?.data || response || {};
   const result = data.result ?? {};
   if (!data.success || data.status === "FAILED" || result.is_valid === false) {

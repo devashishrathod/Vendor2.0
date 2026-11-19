@@ -55,10 +55,13 @@ export default function BusinessTypeStep() {
   const storedEntityType = useOnboardingV2Store((s) => s.form.entityType);
   const setField = useOnboardingV2Store((s) => s.setField);
 
+  // The entity belongs to the business, so the business PAN (on the GST path,
+  // the one inside the GSTIN) comes first; a director's or partner's own PAN
+  // (4th letter P) would wrongly suggest a proprietorship.
+  const entityPan = pan || ownerPan || "";
   const { entityType: detected, source } = useMemo(
-    // GST path: the PAN entered after GST is the owner/business PAN.
-    () => detectEntityType({ branch, gstDetails, pan: branch === BRANCHES.GST ? ownerPan || pan : pan }),
-    [branch, gstDetails, ownerPan, pan],
+    () => detectEntityType({ branch, gstDetails, pan: entityPan }),
+    [branch, entityPan, gstDetails],
   );
   // GST path with a clear GST "constitution": the entity comes from the GST
   // registration and is view-only — the vendor can see it, not change it.
@@ -70,7 +73,7 @@ export default function BusinessTypeStep() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  const panLetter = (branch === BRANCHES.GST ? ownerPan || pan : pan).charAt(3).toUpperCase();
+  const panLetter = entityPan.charAt(3).toUpperCase();
   const isUnregistered = branch === BRANCHES.UNREGISTERED;
   const needsPan = branch === BRANCHES.REG_NO_GST;
   let subtitle = "Pick the type that matches your business registration.";

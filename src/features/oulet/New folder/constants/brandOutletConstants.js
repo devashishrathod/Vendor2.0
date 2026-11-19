@@ -95,7 +95,7 @@ export const GUIDELINES = {
     sections: [
       { heading: "Why It Matters", body: "Accurate hours prevent customers from showing up when you're closed and improve your ranking in \"open now\" searches." },
       { heading: "Setting a Day", body: "Toggle a day \"Open\" and set its start and end time. Leave a day toggled off if you're closed that day." },
-      { heading: "Overnight Hours", body: "If you close after midnight, set the end time for the next day (e.g. 23:00 → 02:00) — this is handled automatically." },
+      { heading: "Closing After Midnight", body: "Closing time must be later than opening time on the same day. If you close after midnight, set the closing time to 23:59." },
       { heading: "Do's", body: "✅ Double-check AM/PM against the 24-hour display\n✅ Update hours when they change seasonally\n✅ Set every day you're actually open" },
       { heading: "Don'ts", body: "❌ Don't leave hours blank for days you're open\n❌ Don't set an end time earlier than the start time\n❌ Don't mark a day open with no hours filled in" },
     ],

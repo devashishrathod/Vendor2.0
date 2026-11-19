@@ -1,4 +1,4 @@
-import { SCREENS } from "../config/onboardingFlow";
+import { BRANCHES, SCREENS } from "../config/onboardingFlow";
 
 // Profile strength (out of 100). Onboarding itself is worth 45 points;
 // the other 55 come from optional items that show as dashboard to-dos.
@@ -31,20 +31,34 @@ const hasDocument = (documents, keyword) =>
  */
 
 /**
+ * Screens that complete the owner PAN / KYC item. The registered-no-GST path
+ * has no separate owner screen — its PAN review already verified the PAN.
+ */
+const KYC_SCREENS = {
+  [BRANCHES.REG_NO_GST]: [SCREENS.PAN_REVIEW],
+  // The owner's details are saved on their review screens.
+  default: [SCREENS.OWNER_KYC_REVIEW, SCREENS.OWNER_PAN_REVIEW],
+};
+
+/**
  * Every item that counts towards profile strength, with whether it's done.
- * @param {{ form: object, completed: string[] }} state
+ * @param {{ form: object, completed: string[], branch?: string|null }} state
  * @returns {StrengthItem[]}
  */
-export function getStrengthItems({ form, completed }) {
+export function getStrengthItems({ form, completed, branch = null }) {
   const docs = form.documents || [];
   const outlet = form.outlet || {};
   const identityDone = Boolean(form.gstDetails || form.panDetails || form.ownerKyc?.panDetails);
+  // A category with no sub-categories can be continued without any picked;
+  // a completed Category screen means its choice was valid either way.
+  const categoryDone = Boolean(form.categoryId && (form.subCategories?.length || completed.includes(SCREENS.CATEGORY)));
+  const kycScreens = KYC_SCREENS[branch] ?? KYC_SCREENS.default;
 
   return [
     { id: "basics", title: "Brand and category", note: "", points: 10, kind: "core",
-      done: Boolean(form.brandName && form.categoryId && form.subCategories?.length) },
+      done: Boolean(form.brandName) && categoryDone },
     { id: "identity", title: "Identity", note: "", points: 15, kind: "core", done: identityDone },
-    { id: "kyc", title: "Owner PAN / KYC", note: "", points: 10, kind: "core", done: completed.includes(SCREENS.OWNER_KYC) || completed.includes(SCREENS.OWNER_PAN_REVIEW) },
+    { id: "kyc", title: "Owner PAN / KYC", note: "", points: 10, kind: "core", done: kycScreens.some((id) => completed.includes(id)) },
     { id: "contract", title: "Contract and plan", note: "", points: 5, kind: "core",
       done: Boolean(form.contractAcceptedAt && form.payment) },
     { id: "outlet", title: "Outlet location and hours", note: "", points: 5, kind: "core",
@@ -72,7 +86,7 @@ export function getStrengthItems({ form, completed }) {
 }
 
 /**
- * @param {{ form: object, completed: string[] }} state
+ * @param {{ form: object, completed: string[], branch?: string|null }} state
  * @returns {{ score: number, level: string, items: StrengthItem[] }}
  */
 export function getProfileStrength(state) {

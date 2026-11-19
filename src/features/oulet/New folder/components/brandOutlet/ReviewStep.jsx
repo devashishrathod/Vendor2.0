@@ -23,7 +23,7 @@ import { WEEK_DAYS } from "../../constants/brandOutletConstants";
 import { useOnboardingV2Store } from "@/features/onboarding-v2/store/onboardingStore";
 import { BRANCHES } from "@/features/onboarding-v2/config/onboardingFlow";
 import { getProfileStrength } from "@/features/onboarding-v2/utils/profileStrength";
-import { readGstRecord } from "@/features/onboarding-v2/steps/verification/verificationRecords";
+import { readGstRecord, readOwnerIdentity, readPanRecord } from "@/features/onboarding-v2/steps/verification/verificationRecords";
 import AddBankModal from "./layout/AddBankModal";
 import AddDocumentsModal from "./layout/AddDocumentsModal";
 
@@ -524,6 +524,9 @@ export default function ReviewStep({
     const isUnregistered = branch === BRANCHES.UNREGISTERED;
     const panNumber = isUnregistered ? form.ownerKyc?.pan : form.pan || form.ownerKyc?.pan;
     const panName = isUnregistered ? form.ownerKyc?.panName : pan.fullName || form.ownerKyc?.panName;
+    // Not registered: the PAN shown is the owner's (form.ownerKyc), with how they proved identity.
+    const panRecord = readPanRecord(isUnregistered ? form.ownerKyc?.panDetails : form.panDetails);
+    const identity = isUnregistered ? readOwnerIdentity(form.ownerKyc) : null;
     const legalName = form.legalName || gst.legalName || panName || "";
     const category = subCategoryName ? `${categoryName} › ${subCategoryName}` : categoryName;
     const registration = REGISTRATION_LABELS[branch] || "";
@@ -554,8 +557,17 @@ export default function ReviewStep({
         rows: [
           { label: "PAN", value: panNumber },
           { label: "Name on PAN", value: panName },
-          { label: "PAN type", value: pan.panType ? titleCase(pan.panType) : "" },
-        ],
+          { label: "PAN type", value: panRecord.panType ? titleCase(panRecord.panType) : panRecord.holderType || "" },
+          ...(isUnregistered
+            ? [
+                { label: panRecord.holderType === "Individual" ? "Date of birth" : "Date of incorporation", value: panRecord.dateOfIncorporation },
+                { label: "PAN status", value: panRecord.status },
+                { label: "Aadhaar linked", value: panRecord.aadhaarLinked },
+                { label: "Identity", value: identity.method },
+                { label: identity.detailLabel, value: identity.detail },
+              ]
+            : []),
+        ].filter((r) => r.value),
       },
     ];
 
@@ -750,6 +762,7 @@ export default function ReviewStep({
     () =>
       getProfileStrength({
         completed,
+        branch,
         form: {
           ...form,
           payment: subscription ? { amount: subscription.paidAmount } : form.payment,
@@ -764,7 +777,7 @@ export default function ReviewStep({
           },
         },
       }),
-    [address, completed, coverUrl, description, form, logoUrl, showcaseAlbums, subscription],
+    [address, branch, completed, coverUrl, description, form, logoUrl, showcaseAlbums, subscription],
   );
 
   return (

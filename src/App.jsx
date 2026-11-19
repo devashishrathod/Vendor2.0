@@ -100,11 +100,12 @@ function App() {
         <Route path={ONBOARDING_ROUTES.LOGIN} element={<PublicRoute><Step1WhatsApp /></PublicRoute>} />
 
         {/* ─── ONBOARDING (v3, login → partnership deed) / OUTLET-SETUP FLOW: header/footer NAHI ─── */}
-        <Route path={ONBOARDING_ROUTES.WIZARD} element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
+        <Route path={ONBOARDING_ROUTES.WIZARD} element={<ProtectedRoute><OnboardingOnlyRoute><OnboardingPage /></OnboardingOnlyRoute></ProtectedRoute>} />
         <Route path={ONBOARDING_ROUTES.PLAN} element={<ProtectedRoute><SubscriptionPlan /></ProtectedRoute>} />
         <Route path={ONBOARDING_ROUTES.CHECKOUT} element={<ProtectedRoute><SubscriptionCheckout /></ProtectedRoute>} />
         <Route path={ONBOARDING_ROUTES.OUTLET} element={<ProtectedRoute><OnboardingOnlyRoute><CreateBrandOutlet /></OnboardingOnlyRoute></ProtectedRoute>} />
-        <Route path={ONBOARDING_ROUTES.VERIFY} element={<ProtectedRoute><SystemVerificationPage /></ProtectedRoute>} />
+        {/* Each system-verify call is a new attempt (API doc #24) — never let an onboarded vendor re-run it. */}
+        <Route path={ONBOARDING_ROUTES.VERIFY} element={<ProtectedRoute><OnboardingOnlyRoute><SystemVerificationPage /></OnboardingOnlyRoute></ProtectedRoute>} />
         <Route path={ONBOARDING_ROUTES.STATUS} element={<ProtectedRoute><UnderReview /></ProtectedRoute>} />
 
         {/* ─── DASHBOARD GROUP: header/footer YAHAN chahiye ─── */}

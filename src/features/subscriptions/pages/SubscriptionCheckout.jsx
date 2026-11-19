@@ -4,7 +4,10 @@ import AppBackground from "@/components/common/AppBackground";
 import AppTopBar from "@/components/common/AppTopBar";
 import { previewCheckout, getCurrentSubscription } from "../services/subscriptionApi";
 import { useBrand } from "../../../hooks/useBrand";
-import { isOnboardingCompleteNow } from "@/features/onboarding/utils/onboardingStatus";
+import { useAuthStore } from "@/features/onboarding/store/authStore";
+import { isOnboardingComplete, isOnboardingCompleteNow } from "@/features/onboarding/utils/onboardingStatus";
+import OnboardingPageHeader from "@/features/onboarding-v2/components/layout/OnboardingPageHeader";
+import { SCREENS } from "@/features/onboarding-v2/config/onboardingFlow";
 import TrustBar from "../components/TrustBar";
 import PlanInfo from "../components/PlanInfo";
 import { useOnboardingV2Store } from "@/features/onboarding-v2/store/onboardingStore";
@@ -99,6 +102,11 @@ export default function SubscriptionCheckout() {
   // Back-target for the Upgrade flow — router state is lost on refresh,
   // sessionStorage (written by SubscriptionPlan.jsx) isn't.
   const returnTo = state?.returnTo ?? readCheckoutReturnTo() ?? undefined;
+
+  // Onboarding (not the dashboard's upgrade flow): keep the wizard's header.
+  const authUser = useAuthStore((s) => s.user);
+  const authScreen = useAuthStore((s) => s.currentScreen);
+  const inOnboarding = !returnTo && !isOnboardingComplete({ user: authUser, currentScreen: authScreen });
 
   // Applied promo code mirrors ?promo= so a refresh re-runs the preview
   // with it. A ref (not a dep of the load effect) so applying/removing a
@@ -268,7 +276,15 @@ export default function SubscriptionCheckout() {
           popstate handling, which redirects any browser back/forward to
           the vendor's currentScreen route regardless of where they
           actually came from in this side flow. */}
-      <AppTopBar onBack={() => navigate("/subscription", { state: { returnTo } })} />
+      {inOnboarding ? (
+        <OnboardingPageHeader
+          screenId={SCREENS.PAYMENT}
+          title="Payment"
+          onBack={() => navigate("/subscription", { state: { returnTo } })}
+        />
+      ) : (
+        <AppTopBar onBack={() => navigate("/subscription", { state: { returnTo } })} />
+      )}
       {/* Full-bleed: sits outside the max-w container so the ribbon spans
           the whole viewport width edge to edge. */}
       <TrustBar />

@@ -27,6 +27,8 @@ async function run(mode, action) {
       const request = action(tx.objectStore(STORE));
       tx.oncomplete = () => resolve(request?.result);
       tx.onerror = () => reject(tx.error);
+      // Aborted (e.g. storage quota) without an error event — don't hang.
+      tx.onabort = () => reject(tx.error || new Error("Document file transaction aborted"));
     });
   } finally {
     db.close();
@@ -49,3 +51,7 @@ export const getDocumentFile = (id) =>
 /** @param {string} id */
 export const deleteDocumentFile = (id) =>
   run("readwrite", (store) => store.delete(id)).catch((err) => console.error("Couldn't delete document file:", err));
+
+/** Removes every kept file (on logout — they're the vendor's business documents). */
+export const clearDocumentFiles = () =>
+  run("readwrite", (store) => store.clear()).catch((err) => console.error("Couldn't clear document files:", err));

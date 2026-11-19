@@ -2,7 +2,19 @@ import { useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { FLOW_GROUPS, SCREENS, TOTAL_GROUPS, getFlowScreens } from "../config/onboardingFlow";
 import { useOnboardingV2Store } from "../store/onboardingStore";
-import { getProfileStrength } from "../utils/profileStrength";
+import { getProfileStrength, strengthLevel } from "../utils/profileStrength";
+
+/**
+ * The screen the store is on right now (not the one this render saw), with
+ * the same fallback the hook uses for a screen that isn't on the branch.
+ */
+function liveScreenId() {
+  const { branch, currentScreen } = useOnboardingV2Store.getState();
+  const list = getFlowScreens(branch);
+  return (list.find((s) => s.id === currentScreen) ?? list[0]).id;
+}
+
+const selectStrengthScore = (s) => getProfileStrength({ form: s.form, completed: s.completed, branch: s.branch }).score;
 
 /**
  * Builds the sidebar groups (with sub-steps) for a position in the flow.
@@ -47,7 +59,9 @@ export function useOnboardingFlow() {
   const branch = useOnboardingV2Store((s) => s.branch);
   const completed = useOnboardingV2Store((s) => s.completed);
   const skipped = useOnboardingV2Store((s) => s.skipped);
-  const form = useOnboardingV2Store((s) => s.form);
+  // Only the score — subscribing to the whole form re-rendered every screen
+  // using this hook on each keystroke.
+  const strengthScore = useOnboardingV2Store(selectStrengthScore);
   const goTo = useOnboardingV2Store((s) => s.goTo);
   const markCompleted = useOnboardingV2Store((s) => s.markCompleted);
   const markSkipped = useOnboardingV2Store((s) => s.markSkipped);
@@ -93,8 +107,14 @@ export function useOnboardingFlow() {
   );
 
   const next = useCallback(() => {
+    // A save that finished after the vendor already moved to another screen
+    // must not pull them forward from there.
+    if (liveScreenId() !== current.id) return;
     markCompleted(current.id);
-    const target = resolveTarget(screens, index, screens.slice(index + 1).find(isPassable));
+    // Completing a screen that was skipped earlier makes its review
+    // reachable again (`skipped` here is from this render, before the update).
+    const reachable = (s) => s.reviewOf === current.id || isPassable(s);
+    const target = resolveTarget(screens, index, screens.slice(index + 1).find(reachable));
     if (target) open(target);
   }, [current.id, index, isPassable, markCompleted, open, resolveTarget, screens]);
 
@@ -103,6 +123,7 @@ export function useOnboardingFlow() {
   // status means new steps to fill, so an edit's "return" is dropped then.
   const chooseBranch = useCallback(
     (nextBranch) => {
+      if (liveScreenId() !== current.id) return;
       const changed = nextBranch !== branch;
       if (changed) setReturnTo(null);
       setBranch(nextBranch);
@@ -118,6 +139,7 @@ export function useOnboardingFlow() {
 
   // Skipping an entry screen also skips its review screen.
   const skip = useCallback(() => {
+    if (liveScreenId() !== current.id) return;
     markSkipped(current.id);
     const plain = screens.slice(index + 1).find((s) => s.reviewOf !== current.id);
     const target = resolveTarget(screens, index, plain);
@@ -166,7 +188,7 @@ export function useOnboardingFlow() {
   }, [canGoBack, goTo, index, isPassable, screens]);
 
   const groups = useMemo(() => buildGroups(screens, index, skipped), [index, screens, skipped]);
-  const strength = useMemo(() => getProfileStrength({ form, completed }), [form, completed]);
+  const strength = useMemo(() => ({ score: strengthScore, level: strengthLevel(strengthScore) }), [strengthScore]);
 
   return {
     branch,
