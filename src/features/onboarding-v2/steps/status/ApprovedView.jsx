@@ -1,14 +1,15 @@
-import { useState } from "react";
-import { ArrowRight, PartyPopper } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowRight, MessageSquareText, PartyPopper } from "lucide-react";
 import Button from "../../components/ui/Button";
 import FormError from "../../components/ui/FormError";
 import { useOnboardingFlow } from "../../hooks/useOnboardingFlow";
-import { acknowledgeBrandApproval } from "../../services/onboardingApi";
+import { acknowledgeBrandApproval, getVerificationHistory } from "../../services/onboardingApi";
 import { useSavedBrand } from "../../store/brandStore";
 import { onboardingErrorMessage } from "../../utils/errorMessages";
 
 /**
- * Approved, not yet seen (guide §7.3): congratulations, then "Continue" →
+ * Approved, not yet seen (guide §7.3): congratulations (with our team's
+ * note — the newest APPROVED history row's `reason`), then "Continue" →
  * PUT acknowledge-approval → DASHBOARD. Also after a re-approval (the
  * vendor is already on DASHBOARD). 409 = the approval changed meanwhile →
  * the status is read again and the page follows it.
@@ -18,6 +19,13 @@ export default function ApprovedView() {
   const { brand } = useSavedBrand();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [note, setNote] = useState("");
+
+  useEffect(() => {
+    getVerificationHistory()
+      .then((rows) => setNote(rows.find((row) => row.action === "APPROVED")?.reason || ""))
+      .catch((err) => console.error("Verification history fetch failed:", err));
+  }, []);
 
   const handleContinue = async () => {
     setBusy(true);
@@ -44,6 +52,15 @@ export default function ApprovedView() {
         Our team has approved {brand?.brandName ? <strong className="font-bold">{brand.brandName}</strong> : "your brand"}. Head to your
         dashboard to create vouchers and manage your outlets.
       </p>
+      {note && (
+        <div className="mx-auto mt-5 flex max-w-md items-start gap-2.5 rounded-xl bg-gray-50 px-4 py-3 text-left ring-1 ring-inset ring-gray-200 dark:bg-gray-800/50 dark:ring-gray-700">
+          <MessageSquareText size={16} className="mt-0.5 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+          <p className="text-[13px] text-gray-700 dark:text-gray-300">
+            <span className="block text-[11px] font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">Note from our team</span>
+            {note}
+          </p>
+        </div>
+      )}
       <div className="mt-8 flex flex-col items-center gap-3">
         <Button onClick={handleContinue} loading={busy} icon={ArrowRight}>
           Go to my dashboard
