@@ -23,6 +23,9 @@ export default function VoucherFormPage() {
     removeTag,
     handleTagKeyDown,
     isEditMode,
+    subCategoryOptions,
+    needsSubCategory,
+    subCategoryError,
     isLoading,
     isSubmitting,
     uploadProgress,
@@ -62,6 +65,9 @@ export default function VoucherFormPage() {
       successMessage={successMessage}
       clearSuccessMessage={clearSuccessMessage}
       onSubmit={submit}
+      subCategoryOptions={subCategoryOptions}
+      needsSubCategory={needsSubCategory}
+      subCategoryError={subCategoryError}
     />
   );
 }

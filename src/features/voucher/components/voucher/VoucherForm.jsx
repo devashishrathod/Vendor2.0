@@ -230,6 +230,9 @@ export default function VoucherForm({
   successMessage,
   clearSuccessMessage,
   onSubmit,
+  subCategoryOptions = [],
+  needsSubCategory = false,
+  subCategoryError = "",
 }) {
   const navigate = useNavigate();
   const isEdit = mode === "edit";
@@ -295,6 +298,25 @@ export default function VoucherForm({
               className={`${inputBase} resize-y`}
             />
           </div>
+
+          {/* Subcategory — only when the brand has more than one (guide §10). */}
+          {needsSubCategory && (
+            <div className="mt-4">
+              <FieldLabel>Subcategory *</FieldLabel>
+              <Select
+                value={form.subCategoryId}
+                onChange={(value) => setField("subCategoryId", value)}
+                options={subCategoryOptions}
+                placeholder="Choose which of your subcategories this voucher is for"
+                className={inputBase}
+              />
+              {subCategoryError && (
+                <p className="mt-1.5 text-xs font-medium text-red-600 dark:text-red-400" role="alert">
+                  {subCategoryError}
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Banner (left) + Images (right) side by side on md+, stacked on
               mobile. Edit mode has no banner section, so Images takes the
