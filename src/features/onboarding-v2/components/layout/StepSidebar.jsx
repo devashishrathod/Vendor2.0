@@ -87,6 +87,26 @@ function SubStep({ sub }) {
 }
 
 /**
+ * Caption under a step. A skipped screen counts as passed for the group
+ * (`state: DONE`), but its own status is SKIPPED — say so instead of "Completed".
+ * @param {{ status: string, subs: { label: string, skipped: boolean }[] }} group
+ */
+function groupCaption(group) {
+  if (group.status === "active") return { text: "In progress", tone: "active" };
+  if (group.status !== "done") return { text: "Up next", tone: "muted" };
+  const skipped = group.subs.filter((s) => s.skipped);
+  if (skipped.length > 0 && skipped.length === group.subs.length) return { text: "Skipped", tone: "skipped" };
+  if (skipped.length > 0) return { text: `Completed · ${skipped.map((s) => s.label).join(", ")} skipped`, tone: "muted" };
+  return { text: "Completed", tone: "muted" };
+}
+
+const CAPTION_TONES = {
+  active: "font-semibold text-emerald-700 dark:text-emerald-400",
+  skipped: "font-semibold text-amber-700 dark:text-amber-400",
+  muted: "text-gray-400",
+};
+
+/**
  * Brand, progress + profile strength, the 5 steps (sub-steps listed under
  * the active one) and the help box — all from the server's onboarding
  * status. Rendered as the desktop sidebar and inside the mobile drawer.
@@ -154,7 +174,7 @@ export default function StepSidebar({ groups, progress, stepNumber, totalSteps, 
 
       <nav aria-label="Onboarding steps" className="flex-1 px-5 pt-3">
         <ol>
-          {groups.map((group, i) => (
+          {groups.map((g) => ({ ...g, caption: groupCaption(g) })).map((group, i) => (
             <li key={group.id} className="flex gap-3" aria-current={group.status === "active" ? "step" : undefined}>
               <div className="flex flex-col items-center">
                 <GroupMarker status={group.status} number={group.number} />
@@ -190,9 +210,7 @@ export default function StepSidebar({ groups, progress, stepNumber, totalSteps, 
                     </button>
                   )}
                 </div>
-                <p className={`mt-0.5 text-[11.5px] ${group.status === "active" ? "font-semibold text-emerald-700 dark:text-emerald-400" : "text-gray-400"}`}>
-                  {group.status === "done" ? "Completed" : group.status === "active" ? "In progress" : "Up next"}
-                </p>
+                <p className={`mt-0.5 text-[11.5px] ${CAPTION_TONES[group.caption.tone]}`}>{group.caption.text}</p>
                 {group.status === "active" && group.subs.length > 0 && (
                   <ul className="mt-2.5 flex flex-col gap-0.5">
                     {group.subs.map((sub) => (

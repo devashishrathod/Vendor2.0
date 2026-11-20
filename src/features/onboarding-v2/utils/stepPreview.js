@@ -13,6 +13,7 @@ import { ENTITY_LABELS, KYC_PATH_LABELS, docTypeLabel } from "../constants/onboa
  * @property {boolean} [compact]   one big value
  * @property {'documents'} [kind]
  * @property {string} [note]
+ * @property {boolean} [skipped]   the screen's status is SKIPPED
  */
 
 const formatDate = (iso) => {
@@ -122,6 +123,7 @@ export function getGroupPreview(groupKey, data) {
         screenId: screen,
         title: SCREEN_LABELS[screen] ?? screen,
         ...body,
+        skipped: status === "SKIPPED",
         note: status === "SKIPPED" ? SKIPPED_NOTE : body.note,
       };
     });

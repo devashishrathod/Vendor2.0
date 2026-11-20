@@ -133,6 +133,17 @@ export default function StepPreviewPage({ title, sections, currentTitle, onClose
   const compactCount = sections.filter((s) => !isWideSection(s)).length;
   const gridCols = compactCount > 0 && compactCount % 3 === 0 ? "sm:grid-cols-2 lg:grid-cols-3" : "sm:grid-cols-2";
 
+  // A skipped screen passes the step, but say it was skipped (status screen SKIPPED).
+  const skippedCount = sections.filter((s) => s.skipped).length;
+  const doneCount = sections.length - skippedCount;
+  const allSkipped = sections.length > 0 && skippedCount === sections.length;
+  const summary = [
+    doneCount > 0 ? `${doneCount} section${doneCount === 1 ? "" : "s"} completed` : null,
+    skippedCount > 0 ? `${skippedCount} skipped` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
   return (
     <section className="rounded-2xl border border-gray-200 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04),0_12px_32px_-16px_rgba(16,24,40,0.10)] sm:rounded-[20px] dark:border-gray-800 dark:bg-gray-900 dark:shadow-none">
       <div className="p-5 sm:p-8">
@@ -144,15 +155,21 @@ export default function StepPreviewPage({ title, sections, currentTitle, onClose
             <div className="min-w-0">
               <h1 className="text-xl font-bold tracking-tight text-gray-900 sm:text-[22px] dark:text-gray-50">Review {title}</h1>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                {sections.length} section{sections.length === 1 ? "" : "s"} completed
+                {summary || "0 sections completed"}
                 {onEdit ? " · use Edit to change anything" : ""}
               </p>
             </div>
           </div>
-          <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700 ring-1 ring-inset ring-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:ring-emerald-500/30">
-            <Check size={13} strokeWidth={3} aria-hidden="true" />
-            Completed
-          </span>
+          {allSkipped ? (
+            <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700 ring-1 ring-inset ring-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:ring-amber-500/30">
+              Skipped
+            </span>
+          ) : (
+            <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700 ring-1 ring-inset ring-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:ring-emerald-500/30">
+              <Check size={13} strokeWidth={3} aria-hidden="true" />
+              Completed
+            </span>
+          )}
         </header>
 
         {sections.length === 0 ? (
