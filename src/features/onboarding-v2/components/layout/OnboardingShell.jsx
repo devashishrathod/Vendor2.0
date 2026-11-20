@@ -163,7 +163,7 @@ export default function OnboardingShell({ children }) {
 
       <div className="flex min-w-0 flex-1 flex-col">
         <OnboardingHeader
-          crumbs={previewGroupId ? [previewTitle, "Preview"] : [flow.stepLabel, flow.screenTitle]}
+          crumbs={(previewGroupId ? [previewTitle, "Preview"] : [flow.stepLabel, flow.screenTitle]).filter(Boolean)}
           stepNumber={flow.stepNumber}
           totalSteps={flow.totalSteps}
           progress={flow.progress}

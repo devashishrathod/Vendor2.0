@@ -187,9 +187,23 @@ export const acceptPartnership = () => request("/brands/onboarding/accept-partne
 // ── Submit & after approval ───────────────────────────────────────────────
 
 /**
- * POST /brands/onboarding/submit (#24) — replaced GET system-verify. Used for
- * the resubmit after a rejection; the review page's first submit is Milestone B.
+ * POST /brands/onboarding/submit (#24), no body — the first submit from
+ * ONBOARDING_REVIEW (→ UNDER_REVIEW), and the resubmit after a rejection /
+ * revoke (screen stays). 422 ONBOARDING_STEP_INCOMPLETE `missing[]`,
+ * 409 ONBOARDING_SCREEN_MISMATCH / ONBOARDING_LOCKED / LEGAL_FIELD_LOCKED.
+ * @returns {Promise<{ data: { currentScreen: string, attemptNumber: number, submittedAt: string, systemChecks: import('../types').SystemCheck[] } }>}
  */
 export const submitOnboarding = () => request("/brands/onboarding/submit", "POST", null, true);
+
+/**
+ * GET /brands/verifications/history (#33) — the review timeline, newest
+ * first (SYSTEM_VERIFIED, RESUBMITTED, REJECTED, APPROVED, DETAIL_ADDED…).
+ * @param {{ limit?: number }} [options]
+ * @returns {Promise<object[]>}
+ */
+export async function getVerificationHistory({ limit = 50 } = {}) {
+  const res = await request(`/brands/verifications/history?limit=${limit}&sortOrder=DESC`, "GET", null, true);
+  return res?.data?.data ?? [];
+}
 
 export const acknowledgeBrandApproval = () => acknowledgeApproval();

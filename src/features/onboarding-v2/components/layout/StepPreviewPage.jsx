@@ -1,18 +1,9 @@
 import { useState } from "react";
-import { ArrowLeft, Check, Eye, FileText, Lock, Pencil } from "lucide-react";
+import { ArrowLeft, Check, Eye, FileText, Lock, Pencil, Plus } from "lucide-react";
+import { filledRows, isWideSection } from "../../utils/stepPreview";
 
 const EDIT_BUTTON =
   "inline-flex min-h-8 shrink-0 items-center gap-1 rounded-lg px-2.5 text-xs font-bold text-emerald-700 transition-colors hover:bg-emerald-50 focus-visible:outline-2 focus-visible:outline-emerald-600 dark:text-emerald-400 dark:hover:bg-emerald-500/10";
-
-/** Rows that actually have a value — empty fields aren't shown as "—". */
-const filledRows = (section) => section.rows.filter((row) => row.value);
-
-/** Sections with several fields (GST, PAN, bank…) take a full row of the grid. */
-const isWideSection = (section) => {
-  if (section.compact || section.kind === "documents") return false;
-  const rows = filledRows(section);
-  return rows.length > 3 || rows.some((row) => row.wide);
-};
 
 function DocumentList({ rows }) {
   return (
@@ -69,7 +60,12 @@ function SectionBody({ section, wide }) {
   );
 }
 
-function PreviewSection({ section, editing, wide, canEdit, onStartEdit, renderEditor, onDone }) {
+/**
+ * One saved section: title, Edit / 🔒 Locked, and its fields (or an inline
+ * editor while editing). `editLabel` + `points` turn Edit into "Add (+N)"
+ * for a skipped item (review page).
+ */
+export function PreviewSection({ section, editing, wide, canEdit, onStartEdit, renderEditor, onDone, editLabel = "Edit", points = 0 }) {
   return (
     <div
       className={`flex h-full flex-col rounded-2xl border bg-white transition-shadow dark:bg-gray-900 ${
@@ -79,15 +75,19 @@ function PreviewSection({ section, editing, wide, canEdit, onStartEdit, renderEd
       }`}
     >
       <div className="flex items-center gap-2.5 px-4 pb-2 pt-3">
-        <span className="grid size-5 shrink-0 place-items-center rounded-full bg-emerald-500 text-white" aria-hidden="true">
+        <span
+          className={`grid size-5 shrink-0 place-items-center rounded-full text-white ${section.skipped ? "bg-amber-400" : "bg-emerald-500"}`}
+          aria-hidden="true"
+        >
           <Check size={11} strokeWidth={3.5} />
         </span>
         <h2 className="min-w-0 flex-1 truncate text-[12px] font-bold uppercase tracking-[0.06em] text-gray-500 dark:text-gray-400">{section.title}</h2>
         {!editing &&
           (canEdit ? (
-            <button type="button" onClick={onStartEdit} aria-label={`Edit ${section.title}`} className={EDIT_BUTTON}>
-              <Pencil size={12} aria-hidden="true" />
-              Edit
+            <button type="button" onClick={onStartEdit} aria-label={`${editLabel} ${section.title}`} className={EDIT_BUTTON}>
+              {editLabel === "Edit" ? <Pencil size={12} aria-hidden="true" /> : <Plus size={12} aria-hidden="true" />}
+              {editLabel}
+              {points > 0 && <span className="text-[10.5px] font-extrabold">+{points}</span>}
             </button>
           ) : (
             <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-gray-100 px-2.5 py-1 text-[10.5px] font-bold text-gray-600 dark:bg-gray-800 dark:text-gray-300">

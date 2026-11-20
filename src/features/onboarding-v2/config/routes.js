@@ -10,8 +10,6 @@ export const ONBOARDING_ROUTES = Object.freeze({
   WIZARD: "/onboarding",
   PLAN: "/subscription",
   CHECKOUT: "/subscription/checkout",
-  // Brand details, outlets and the review page (reworked in Milestone B).
-  OUTLET: "/brand-outlet",
   STATUS: "/under-review",
 });
 
@@ -34,7 +32,7 @@ export const SCREEN_ROUTES = Object.freeze({
   [SCREENS.BRAND_BASIC_DETAILS]: ONBOARDING_ROUTES.WIZARD,
   [SCREENS.BRAND_PROFESSIONAL_DETAILS]: ONBOARDING_ROUTES.WIZARD,
   [SCREENS.OUTLET_DETAILS]: ONBOARDING_ROUTES.WIZARD,
-  [SCREENS.ONBOARDING_REVIEW]: ONBOARDING_ROUTES.OUTLET,
+  [SCREENS.ONBOARDING_REVIEW]: ONBOARDING_ROUTES.WIZARD,
   [SCREENS.UNDER_REVIEW]: ONBOARDING_ROUTES.STATUS,
   [SCREENS.DASHBOARD]: LIVE_DASHBOARD_ROUTE,
 });

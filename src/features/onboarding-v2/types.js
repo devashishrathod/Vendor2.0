@@ -78,6 +78,29 @@
  */
 
 /**
+ * One system check run on submit, live before it (guide §6). No total score.
+ * @typedef {Object} SystemCheck
+ * @property {'GST_VERIFIED'|'GST_ACTIVE'|'PAN_VERIFIED'|'GST_PAN_NAME_MATCH'|'BANK_VERIFIED'|'BANK_NAME_MATCH'} key
+ * @property {number} points
+ * @property {boolean} passed
+ * @property {boolean} skipped
+ */
+
+/**
+ * `status.verification` — under review / rejected / revoked / approved.
+ * @typedef {Object} OnboardingVerification
+ * @property {string|null} status
+ * @property {number} attemptNumber
+ * @property {string|null} submittedAt
+ * @property {boolean} isApproved
+ * @property {boolean} isApprovalAcknowledged
+ * @property {boolean} isRejected
+ * @property {string|null} rejectionReason
+ * @property {boolean} isRevoked
+ * @property {string|null} revokeReason
+ */
+
+/**
  * GET /brands/onboarding/status → data (API doc #20a).
  * @typedef {Object} OnboardingStatus
  * @property {string} brandId
@@ -92,8 +115,8 @@
  *   ownerVerificationMethod: 'PAN'|'ID_DOCUMENT'|null, documentCount: number }} items
  * @property {boolean} registrationStatusLocked
  * @property {OnboardingEditable} editable
- * @property {{ key: string, points: number, passed: boolean, skipped: boolean }[]} systemChecks
- * @property {Object} verification
+ * @property {SystemCheck[]} systemChecks
+ * @property {OnboardingVerification} verification
  * @property {OnboardingDeed} deed
  * @property {boolean} hasBillingAddress
  * @property {boolean} isVerified

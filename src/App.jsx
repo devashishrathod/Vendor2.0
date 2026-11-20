@@ -28,7 +28,6 @@ import PlaylistPage from './features/music/pages/PlaylistPage';
 import { SubscriptionPage } from './features/subscription';
 import SettingsPage from './features/settings/pages/SettingsPage';
 import BrandPage from './features/brand';
-import CreateBrandOutlet from './features/oulet/New folder/pages/CreateBrandOutlet';
 import UnderReview from './features/oulet/New folder/pages/Youroutlet';
 import PostAuthRouteGuard from './routes/PostAuthRouteGuard';
 import OnboardingOnlyRoute from './routes/OnboardingOnlyRoute';
@@ -105,7 +104,6 @@ function App() {
         <Route path={ONBOARDING_ROUTES.WIZARD} element={<ProtectedRoute><OnboardingOnlyRoute><OnboardingPage /></OnboardingOnlyRoute></ProtectedRoute>} />
         <Route path={ONBOARDING_ROUTES.PLAN} element={<ProtectedRoute><SubscriptionPlan /></ProtectedRoute>} />
         <Route path={ONBOARDING_ROUTES.CHECKOUT} element={<ProtectedRoute><SubscriptionCheckout /></ProtectedRoute>} />
-        <Route path={ONBOARDING_ROUTES.OUTLET} element={<ProtectedRoute><OnboardingOnlyRoute><CreateBrandOutlet /></OnboardingOnlyRoute></ProtectedRoute>} />
         <Route path={ONBOARDING_ROUTES.STATUS} element={<ProtectedRoute><UnderReview /></ProtectedRoute>} />
 
         {/* ─── DASHBOARD GROUP: header/footer YAHAN chahiye ─── */}
