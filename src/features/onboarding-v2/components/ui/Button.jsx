@@ -7,12 +7,14 @@ const VARIANTS = {
     "bg-white text-gray-700 shadow-xs ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:text-gray-400 dark:bg-gray-900 dark:text-gray-200 dark:ring-gray-700 dark:hover:bg-gray-800",
   ghost:
     "text-gray-700 hover:bg-gray-100 disabled:text-gray-400 dark:text-gray-300 dark:hover:bg-gray-800",
+  danger:
+    "bg-red-600 text-white shadow-sm hover:bg-red-700 disabled:bg-gray-100 disabled:text-gray-400 disabled:shadow-none dark:disabled:bg-gray-800 dark:disabled:text-gray-500",
 };
 
 /**
  * Onboarding button — 44px min height for touch.
  * @param {{
- *   variant?: 'primary' | 'secondary' | 'ghost',
+ *   variant?: 'primary' | 'secondary' | 'ghost' | 'danger',
  *   icon?: import('react').ElementType,
  *   iconPosition?: 'start' | 'end',
  *   loading?: boolean,

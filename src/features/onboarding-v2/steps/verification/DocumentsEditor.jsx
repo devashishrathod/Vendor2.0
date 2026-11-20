@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Check, Eye, FileText, LoaderCircle, Pencil, Plus, RefreshCw, Save, Trash2, Upload, X } from "lucide-react";
+import ConfirmDialog from "../../components/ui/ConfirmDialog";
 import DocumentPreviewModal from "../../components/ui/DocumentPreviewModal";
 import FormError from "../../components/ui/FormError";
 import StatusPill from "../../components/ui/StatusPill";
@@ -83,6 +84,7 @@ function SavedRow({ document, canChange, onPreview, onUpdate, onRemove }) {
   const [title, setTitle] = useState(document.title);
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   const run = useCallback(async (kind, action) => {
     setBusy(kind);
@@ -108,6 +110,11 @@ function SavedRow({ document, canChange, onPreview, onUpdate, onRemove }) {
     }
     if (await run("rename", () => onUpdate(document._id, { title: title.trim() }))) setEditing(false);
   };
+  // The row unmounts once the delete succeeds; on failure close the dialog and show why.
+  const confirmDelete = async () => {
+    if (!(await run("delete", () => onRemove(document._id)))) setConfirmingDelete(false);
+  };
+  const cancelDelete = useCallback(() => setConfirmingDelete(false), []);
 
   const pill = STATUS_PILLS[document.status];
   const message = replace.fileError || error;
@@ -170,17 +177,27 @@ function SavedRow({ document, canChange, onPreview, onUpdate, onRemove }) {
               </button>
               <button
                 type="button"
-                onClick={() => run("delete", () => onRemove(document._id))}
+                onClick={() => setConfirmingDelete(true)}
                 disabled={Boolean(busy)}
                 aria-label={`Delete ${document.title}`}
                 className="grid size-10 place-items-center rounded-[10px] text-red-700 hover:bg-red-50 disabled:opacity-50 dark:text-red-400 dark:hover:bg-red-500/10"
               >
-                {busy === "delete" ? <LoaderCircle size={16} className="animate-spin" aria-hidden="true" /> : <Trash2 size={16} aria-hidden="true" />}
+                <Trash2 size={16} aria-hidden="true" />
               </button>
             </>
           )}
         </div>
       </div>
+      {confirmingDelete && (
+        <ConfirmDialog
+          title="Delete this document?"
+          message={`“${document.title}” will be removed. You can't undo this.`}
+          confirmLabel="Delete"
+          busy={busy === "delete"}
+          onConfirm={confirmDelete}
+          onCancel={cancelDelete}
+        />
+      )}
       {document.status === "REJECTED" && document.reason && (
         <p className="mt-2 text-xs font-medium text-red-700 dark:text-red-400">Rejected: {document.reason}. Upload a new document.</p>
       )}
