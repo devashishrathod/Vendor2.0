@@ -51,6 +51,12 @@ export function onboardingErrorMessage(error, fallback = "Something went wrong. 
       return error?.message || "This verification failed. Please check the number and verify again.";
     case C.DOCUMENT_IN_USE:
       return "This PAN / GSTIN / bank account is already registered with another brand.";
+    case C.PROVIDER_ERROR:
+      // verify-pan / gst / bank: the provider refused the call or didn't
+      // answer. Never show its raw message (D114); keep the requestId for
+      // support. The status can be 401 / 403 — that is not a session end.
+      console.warn("Verification provider error — requestId:", details.requestId ?? "(none)");
+      return "The verification service isn't responding right now. Please try again in a little while.";
     case C.BILLING_STATE_GSTIN_MISMATCH:
       return details.gstinState
         ? `Your billing address must be in ${details.gstinState}, the state of your GSTIN.`
