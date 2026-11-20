@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import BrandProfileSection from "../components/BrandProfileSection";
 import CategoryInfoSection from "../components/CategoryInfoSection";
 import { getSubBrands } from "@/features/voucher/services/voucher/VoucherService";
-// import CategoryTagSection from "../components/CategoryTagSection";
 
 const BrandProfilePage = ({ brand, brandId, brandLoading, brandError, reload }) => {
   // Real outlet count for the "Outlet Count" field.
@@ -37,14 +36,10 @@ const BrandProfilePage = ({ brand, brandId, brandLoading, brandError, reload }) 
 
       <BrandProfileSection profile={brand} outletCount={outletCount} reload={reload} />
 
-      
-
       <CategoryInfoSection
         category={brand.category}
-        subCategory={brand.subCategory}
+        subCategories={brand.subCategories?.length ? brand.subCategories : brand.subCategory ? [brand.subCategory] : []}
       />
-
-      {/* <CategoryTagSection categoryTagLine={brand.categoryTagLine} /> */}
     </div>
   );
 };

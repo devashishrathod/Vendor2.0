@@ -10,8 +10,29 @@ export const BRAND_TABS = [
   { id: "listing-features", label: "Listing Features" },
   { id: "business-hours", label: "Business Hours" },
   { id: "gst-pan-information", label: "Business Profile" },
-  // { id: "scan-qr-code", label: "Scan QR Code" },
+  { id: "documents", label: "Documents" },
+  { id: "billing-address", label: "Billing Address" },
 ];
+
+/**
+ * Profile strength item key (guide §11) → where it is added on this page
+ * (`?tab=`), or another route. Keys with no target (legal name, category,
+ * deed) aren't clickable — they change only through support.
+ */
+export const STRENGTH_ITEM_TARGETS = Object.freeze({
+  LOGO: "/account-information",
+  COVER_IMAGE: "/account-information",
+  EMAIL_VERIFIED: "/account-information",
+  MOBILE_VERIFIED: "/account-information",
+  DESCRIPTION: "/account-information?tab=description",
+  SHOWCASE: "/account-information?tab=showcase-details",
+  FEATURES: "/account-information?tab=listing-features",
+  BANK: "/account-information?tab=bank-account-details",
+  IDENTITY: "/account-information?tab=gst-pan-information",
+  BUSINESS_PROOF: "/account-information?tab=documents",
+  OUTLET_READY: "/outlets",
+  ALL_OUTLETS_COMPLETE: "/outlets",
+});
 
 /**
  * Formats a raw mobile number string into a consistent "+91 XXXXXXXXXX" style.

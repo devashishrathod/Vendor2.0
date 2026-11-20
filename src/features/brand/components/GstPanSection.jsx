@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import {
   Briefcase,
   Building2,
@@ -6,13 +6,17 @@ import {
   CheckCircle2,
   FileText,
   Landmark,
+  Lock,
   MapPin,
-  Pencil,
+  Plus,
   ShieldCheck,
   Store,
 } from "lucide-react";
 import { CardLabel, Chip, IdCardShell } from "@/components/common/IdCard";
-import GstPanChangeModal from "./GstPanChangeModal";
+import { KYC_PATHS } from "@/features/onboarding-v2/config/screens";
+import { useOnboardingStatusStore } from "@/features/onboarding-v2/store/statusStore";
+import KycAddModal from "./KycAddModal";
+import RegistrationUpgrade from "./RegistrationUpgrade";
 
 // Formats an ISO date string like "2026-09-01T07:23:19.781Z" → "01 Sept 2026"
 function formatDate(isoDate) {
@@ -36,8 +40,9 @@ const formatGstAddress = (address) => {
 };
 
 // White bento tile that holds one of the two card visuals, with its own
-// title row, "Verified on" date and Change button.
-function CardTile({ title, verified, verifiedAt, onChange, className = "", children }) {
+// title row and "Verified on" date. A saved PAN / GST is read-only after
+// approval — changes go through support (409 DETAIL_ALREADY_PROVIDED).
+function CardTile({ title, verified, verifiedAt, className = "", children }) {
   const date = formatDate(verifiedAt);
   return (
     <section className={`flex flex-col rounded-2xl bg-white p-4 shadow-sm dark:bg-gray-800 sm:p-5 ${className}`}>
@@ -51,18 +56,32 @@ function CardTile({ title, verified, verifiedAt, onChange, className = "", child
             </p>
           )}
         </div>
-        {onChange && (
-          <button
-            type="button"
-            onClick={onChange}
-            className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold text-emerald-600 transition-colors hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-500/10"
-          >
-            <Pencil size={13} />
-            Change
-          </button>
-        )}
+        <span className="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-semibold text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+          <Lock size={11} aria-hidden="true" />
+          Changes go through support
+        </span>
       </div>
       <div className="flex flex-1 items-center">{children}</div>
+    </section>
+  );
+}
+
+// A PAN / GSTIN the brand doesn't have yet — added once (verify → save).
+function AddTile({ title, text, onAdd, className = "" }) {
+  return (
+    <section className={`flex flex-col justify-between gap-4 rounded-2xl bg-white p-5 shadow-sm dark:bg-gray-800 ${className}`}>
+      <div>
+        <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100">{title}</h2>
+        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{text}</p>
+      </div>
+      <button
+        type="button"
+        onClick={onAdd}
+        className="inline-flex w-fit items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-emerald-700"
+      >
+        <Plus size={15} aria-hidden="true" />
+        Add
+      </button>
     </section>
   );
 }
@@ -191,31 +210,20 @@ function PanCardVisual({ pan }) {
 
 /**
  * GstPanSection
- * gst and pan are separate top-level fields on the brand object
- * (brand.gst, brand.pan) in the real API. Laid out as a bento grid: GST
- * and PAN card visuals side by side (each with a "Change" button that
- * opens GstPanChangeModal), then GST detail tiles underneath.
+ * "Business Profile": GST and PAN as card visuals (read-only once saved —
+ * guide §8), an "Add" card for one the brand may still add
+ * (`status.editable.kyc.add.{gst,pan}`; NO_GST brands can add GST later),
+ * the unregistered → registered upgrade, then GST detail tiles.
  */
-const GstPanSection = ({ gst, pan, brandId, onUpdated }) => {
-  const [changing, setChanging] = useState(null); // null | "pan" | "gst"
-
-  const openPanChange = useCallback(() => setChanging("pan"), []);
-  const openGstChange = useCallback(() => setChanging("gst"), []);
-  const closeChange = useCallback(() => setChanging(null), []);
-
-  if (!gst && !pan) {
-    return (
-      <section className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6">
-        <div className="flex items-center gap-3 mb-1">
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
-            <FileText className="w-5 h-5 text-emerald-500 dark:text-emerald-400" strokeWidth={1.8} />
-          </div>
-          <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100">GST &amp; PAN Information</h2>
-        </div>
-        <p className="mt-2 text-sm text-gray-400">Not available yet.</p>
-      </section>
-    );
-  }
+const GstPanSection = ({ brand, onUpdated }) => {
+  const status = useOnboardingStatusStore((s) => s.status);
+  const [adding, setAdding] = useState(null); // null | "PAN" | "GST"
+  const gst = brand?.gst ?? null;
+  const pan = brand?.pan ?? null;
+  const canAdd = status?.editable?.kyc?.add ?? {};
+  // UNREGISTERED adds GST through the upgrade card (it switches the path).
+  const showAddGst = !gst && canAdd.gst && status?.kycPath !== KYC_PATHS.UNREGISTERED;
+  const showAddPan = !pan && canAdd.pan && status?.kycPath !== KYC_PATHS.UNREGISTERED && status?.kycPath !== KYC_PATHS.NO_GST;
 
   const isActive = ["SUCCESS", "ACTIVE"].includes(String(gst?.registrationStatus || "").toUpperCase());
   const addressLine = formatGstAddress(gst?.address);
@@ -223,32 +231,59 @@ const GstPanSection = ({ gst, pan, brandId, onUpdated }) => {
     Array.isArray(gst?.natureOfBusiness) && gst.natureOfBusiness.length > 0
       ? gst.natureOfBusiness.join(", ")
       : null;
-  const cardSpan = gst && pan ? "lg:col-span-2" : "lg:col-span-4";
+  const shownCards = [gst || showAddGst, pan || showAddPan].filter(Boolean).length;
+  const cardSpan = shownCards === 2 ? "lg:col-span-2" : "lg:col-span-4";
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="sm:col-span-2 lg:col-span-4">
+        <RegistrationUpgrade
+          brand={brand}
+          status={status}
+          onAddGst={() => setAdding("GST")}
+          onAddPan={() => setAdding("PAN")}
+          onChanged={onUpdated}
+        />
+      </div>
+
+      {!gst && !pan && !showAddGst && !showAddPan && (
+        <section className="sm:col-span-2 lg:col-span-4 bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6">
+          <div className="flex items-center gap-3 mb-1">
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
+              <FileText className="w-5 h-5 text-emerald-500 dark:text-emerald-400" strokeWidth={1.8} />
+            </div>
+            <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100">GST &amp; PAN Information</h2>
+          </div>
+          <p className="mt-2 text-sm text-gray-400">Not available yet.</p>
+        </section>
+      )}
+
       {gst && (
-        <CardTile
-          title="GST Information"
-          verified={gst.isVerified}
-          verifiedAt={gst.verifiedAt}
-          onChange={brandId ? openGstChange : undefined}
-          className={`sm:col-span-2 ${cardSpan}`}
-        >
+        <CardTile title="GST Information" verified={gst.isVerified} verifiedAt={gst.verifiedAt} className={`sm:col-span-2 ${cardSpan}`}>
           <GstCardVisual gst={gst} />
         </CardTile>
       )}
+      {showAddGst && (
+        <AddTile
+          title="GST Information"
+          text="Got a GSTIN? Add it once — it's verified and then locked to your brand."
+          onAdd={() => setAdding("GST")}
+          className={`sm:col-span-2 ${cardSpan}`}
+        />
+      )}
 
       {pan && (
-        <CardTile
-          title="PAN Information"
-          verified={pan.isVerified}
-          verifiedAt={pan.verifiedAt}
-          onChange={brandId ? openPanChange : undefined}
-          className={`sm:col-span-2 ${cardSpan}`}
-        >
+        <CardTile title="PAN Information" verified={pan.isVerified} verifiedAt={pan.verifiedAt} className={`sm:col-span-2 ${cardSpan}`}>
           <PanCardVisual pan={pan} />
         </CardTile>
+      )}
+      {showAddPan && (
+        <AddTile
+          title="PAN Information"
+          text="Add your business PAN once — it's verified and then locked to your brand."
+          onAdd={() => setAdding("PAN")}
+          className={`sm:col-span-2 ${cardSpan}`}
+        />
       )}
 
       {gst && (
@@ -281,16 +316,7 @@ const GstPanSection = ({ gst, pan, brandId, onUpdated }) => {
         </>
       )}
 
-      {changing && (
-        <GstPanChangeModal
-          type={changing}
-          brandId={brandId}
-          currentValue={changing === "pan" ? pan?.pan : gst?.gstNumber}
-          currentPan={pan?.pan}
-          onClose={closeChange}
-          onUpdated={onUpdated}
-        />
-      )}
+      {adding && <KycAddModal type={adding} brandPan={pan?.pan ?? null} onClose={() => setAdding(null)} onSaved={onUpdated} />}
     </div>
   );
 };

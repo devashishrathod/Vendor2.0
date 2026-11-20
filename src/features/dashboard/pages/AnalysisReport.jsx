@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -23,6 +23,7 @@ import {
 import { useAuthStore } from "@/features/onboarding/store/authStore";
 import { useOnboardingStore } from "@/features/onboarding/store/onboardingStore";
 import useBrandData from "@/features/brand/hooks/useBrandData";
+import { STRENGTH_ITEM_TARGETS } from "@/features/brand/utils/BrandHelpers";
 import ProfileStrengthCard from "@/features/onboarding-v2/components/strength/ProfileStrengthCard";
 import { useOnboardingStatusStore } from "@/features/onboarding-v2/store/statusStore";
 import { fetchVoucherTransactionOverview } from "@/features/transaction/services/transactionService";
@@ -449,6 +450,8 @@ export default function AnalysisReport() {
   const insights = useDashboardInsights(resolvedBrandId, brand);
 
   // Profile strength + Verified badge straight from the onboarding status (no local formula).
+  // Each "+N" item opens where it's added (STRENGTH_ITEM_TARGETS).
+  const navigate = useNavigate();
   const profileStrength = useOnboardingStatusStore((s) => s.status?.profileStrength ?? null);
   const isBrandVerified = useOnboardingStatusStore((s) => s.status?.isVerified === true);
 
@@ -982,7 +985,13 @@ export default function AnalysisReport() {
         {/* ── Profile strength + Verified badge (server-driven, guide §11) ── */}
         {profileStrength && (
           <div className="mb-4">
-            <ProfileStrengthCard strength={profileStrength} isVerified={isBrandVerified} maxItems={3} />
+            <ProfileStrengthCard
+              strength={profileStrength}
+              isVerified={isBrandVerified}
+              maxItems={3}
+              selectableKeys={Object.keys(STRENGTH_ITEM_TARGETS)}
+              onSelectItem={(key) => navigate(STRENGTH_ITEM_TARGETS[key])}
+            />
           </div>
         )}
 

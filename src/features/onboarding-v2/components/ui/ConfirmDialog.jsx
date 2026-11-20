@@ -16,7 +16,16 @@ import Button from "./Button";
  *   onCancel: () => void,
  * }} props
  */
-export default function ConfirmDialog({ title, message, confirmLabel = "Delete", cancelLabel = "Cancel", busy = false, onConfirm, onCancel }) {
+export default function ConfirmDialog({
+  title,
+  message,
+  confirmLabel = "Delete",
+  cancelLabel = "Cancel",
+  busy = false,
+  onConfirm,
+  onCancel,
+  confirmVariant = "danger",
+}) {
   const titleId = useId();
   const messageId = useId();
   const cancelRef = useRef(null);
@@ -61,7 +70,7 @@ export default function ConfirmDialog({ title, message, confirmLabel = "Delete",
           <Button ref={cancelRef} variant="secondary" onClick={onCancel} disabled={busy}>
             {cancelLabel}
           </Button>
-          <Button variant="danger" onClick={onConfirm} loading={busy}>
+          <Button variant={confirmVariant} onClick={onConfirm} loading={busy}>
             {confirmLabel}
           </Button>
         </div>
