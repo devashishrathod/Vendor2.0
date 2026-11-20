@@ -65,6 +65,38 @@ export const hoursPayload = (hours) =>
   Object.fromEntries(WEEK_DAYS.map(({ key }) => [key, hours[key]?.isOpen ? { isOpen: true, start: hours[key].start, end: hours[key].end } : { isOpen: false }]));
 
 /**
+ * Address lines from Google's formatted address: line 1 = everything before
+ * the sublocality / city / state + PIN / country, line 2 = the sublocality.
+ * Google's components alone give only the street number ("6" for "6, Plot
+ * Alpha, Sahibabad Industrial Area Site 4, Sahibabad, Ghaziabad, …"), and
+ * the server saves exactly what is sent. A business name not already in
+ * the address goes in front ("Toni & Guy, 12 CG Road").
+ * @param {{ name?: string, address?: string }} place
+ * @param {{ city?: string, district?: string, state?: string, zipcode?: string, country?: string }} parts
+ * @returns {{ addressLine1: string, addressLine2: string }}
+ */
+export function addressLinesFromPlace(place, { city, district, state, zipcode, country }) {
+  const pieces = String(place?.address ?? "")
+    .split(",")
+    .map((p) => p.trim())
+    .filter(Boolean);
+  const tail = [city, district, state, country].filter(Boolean).map((s) => s.toLowerCase());
+  while (pieces.length > 1) {
+    const last = pieces[pieces.length - 1].toLowerCase();
+    const isTail = tail.some((t) => last === t || last.startsWith(`${t} `)) || (zipcode && last.includes(zipcode));
+    if (!isTail) break;
+    pieces.pop();
+  }
+  const addressLine2 = pieces.length > 1 ? pieces.pop() : "";
+  let addressLine1 = pieces.join(", ");
+  const name = place?.name?.trim();
+  if (name && !/^\d+$/.test(name) && !addressLine1.toLowerCase().includes(name.toLowerCase())) {
+    addressLine1 = addressLine1 ? `${name}, ${addressLine1}` : name;
+  }
+  return { addressLine1, addressLine2 };
+}
+
+/**
  * A picked Google place → POST /locations/create body for this outlet, or a
  * message when the place can't be saved (no coordinates / PIN code).
  * @returns {{ payload?: object, problem?: string }}
@@ -76,6 +108,11 @@ export function outletLocationFromPlace(place, subBrandId) {
     isBrandAddress: false,
     isSubBrandAddress: true,
   });
+  const lines = addressLinesFromPlace(place, payload);
+  if (lines.addressLine1) {
+    payload.addressLine1 = lines.addressLine1;
+    payload.addressLine2 = lines.addressLine2 || payload.addressLine2;
+  }
   if (!hasValidCoordinates(payload)) return { problem: "This place has no map position — pick it again from the list." };
   if (!hasValidZipcode(payload)) return { problem: "This result has no PIN code — pick a more exact address from the list." };
   return { payload };
