@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { onForegroundMessage } from './config/firebaseMessaging';
 import PushNotificationToast from './components/common/PushNotificationToast';
+import { announceNotification, refreshProfileAfterNotice } from './utils/notificationEvents';
+import { notificationTarget, refreshesProfile } from './utils/notificationLinks';
 import ProtectedRoute from './routes/ProtectedRoute';
 import PublicRoute from './routes/PublicRoute';
 import DashboardLayout from './features/dashboard/layouts/DashboardLayout';
@@ -53,13 +55,19 @@ function App() {
         payload?.data?.body ||
         "";
 
-      const deepLink =
-        payload?.data?.deepLink ||
-        payload?.data?.deeplink ||
-        payload?.deepLink ||
-        null;
+      // Top-level deepLink (push payload) or meta's, as a token or a server
+      // path → a panel route; unknown links fall back to the type.
+      const type = payload?.data?.type || payload?.type || null;
+      const target = notificationTarget({
+        type,
+        deepLink: payload?.data?.deepLink || payload?.data?.deeplink || payload?.deepLink || null,
+        meta: payload?.data?.meta ?? payload?.meta,
+      });
 
-      setPushToast({ title, body, deepLink });
+      setPushToast({ title, body, deepLink: target?.to ?? null });
+      // The bell reloads; a review / legal / outlet notice refreshes status + profile.
+      announceNotification();
+      if (refreshesProfile(type)) refreshProfileAfterNotice();
     };
 
     onForegroundMessage(handleMessage).then((unsub) => {
