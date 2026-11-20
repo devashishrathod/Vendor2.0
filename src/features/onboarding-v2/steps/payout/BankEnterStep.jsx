@@ -33,6 +33,7 @@ export default function BankEnterStep({ onVerified }) {
   const legalName = brand?.legalBusinessName ?? "";
   const bank = useOnboardingV2Store((s) => s.form.bank);
   const setBankField = useOnboardingV2Store((s) => s.setBankField);
+  const resetBank = useOnboardingV2Store((s) => s.resetBank);
   const verified = useVerifyStore((s) => s.results.BANK);
   const setResult = useVerifyStore((s) => s.setResult);
 
@@ -88,6 +89,7 @@ export default function BankEnterStep({ onVerified }) {
     setError("");
     try {
       const res = await skipScreen(SCREENS.BANK_VERIFICATION);
+      resetBank();
       goToServerScreen(res?.data?.currentScreen);
     } catch (err) {
       if (handleFlowError(err)) return;
@@ -96,7 +98,7 @@ export default function BankEnterStep({ onVerified }) {
     } finally {
       setSkipping(false);
     }
-  }, [goToServerScreen, handleFlowError, skipping]);
+  }, [goToServerScreen, handleFlowError, resetBank, skipping]);
 
   const accountDisplay = accountFocused ? bank.accountNumber : maskGrouped(bank.accountNumber);
   const accountLengthOk = bank.accountNumber.length >= 9;

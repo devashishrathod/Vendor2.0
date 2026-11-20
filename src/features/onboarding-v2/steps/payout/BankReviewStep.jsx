@@ -13,6 +13,7 @@ import { ONBOARDING_ERROR_CODES } from "../../config/screens";
 import { BANK_ACCOUNT_TYPES } from "../../constants/onboardingOptions";
 import { useOnboardingFlow } from "../../hooks/useOnboardingFlow";
 import { addBankDetails } from "../../services/onboardingApi";
+import { useOnboardingV2Store } from "../../store/onboardingStore";
 import { useVerifyStore } from "../../store/verifyStore";
 import { onboardingErrorMessage } from "../../utils/errorMessages";
 
@@ -33,6 +34,7 @@ const NAME_MATCH = {
 export default function BankReviewStep({ verified, onChangeDetails }) {
   const { goToServerScreen, handleFlowError } = useOnboardingFlow();
   const clearResult = useVerifyStore((s) => s.clearResult);
+  const resetBank = useOnboardingV2Store((s) => s.resetBank);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
 
@@ -48,6 +50,7 @@ export default function BankReviewStep({ verified, onChangeDetails }) {
     try {
       const res = await addBankDetails({ verificationId: result.verificationId, accountType: verified.accountType });
       clearResult("BANK");
+      resetBank(); // the account number never outlives the save
       goToServerScreen(res?.data?.currentScreen);
     } catch (err) {
       if (handleFlowError(err)) return;
@@ -61,7 +64,7 @@ export default function BankReviewStep({ verified, onChangeDetails }) {
     } finally {
       setSaving(false);
     }
-  }, [clearResult, goToServerScreen, handleFlowError, onChangeDetails, result.verificationId, saving, verified.accountType]);
+  }, [clearResult, goToServerScreen, handleFlowError, onChangeDetails, resetBank, result.verificationId, saving, verified.accountType]);
 
   return (
     <StepCard

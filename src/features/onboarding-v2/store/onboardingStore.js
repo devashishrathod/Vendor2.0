@@ -4,6 +4,13 @@ import { createJSONStorage, persist } from "zustand/middleware";
 // Onboarding form drafts only. Where the vendor is (screen, path, done /
 // skipped, progress) is the server's — store/statusStore.js. Persisted under
 // its own key so it never mixes with the old onboarding's "onboarding-store".
+//
+// KYC numbers (account number, IFSC, PAN, GSTIN) and verify results stay in
+// memory only — never written to the browser's storage. After a refresh the
+// bank form starts empty; a saved bank is shown masked from GET /brands/get.
+const NOT_PERSISTED = ["gstin", "gstDetails", "pan", "panDetails", "ownerKyc", "bank", "bankDetails"];
+
+const persistableForm = (form) => Object.fromEntries(Object.entries(form).filter(([key]) => !NOT_PERSISTED.includes(key)));
 
 /**
  * @typedef {Object} SubCategory
@@ -66,6 +73,8 @@ export const useOnboardingV2Store = create(
       patchForm: (key, patch) =>
         set((s) => ({ form: { ...s.form, [key]: { ...(s.form[key] || {}), ...patch } } })),
       setBankField: (key, value) => set((s) => ({ form: { ...s.form, bank: { ...s.form.bank, [key]: value } } })),
+      /** Empties the bank form — after the account is saved (or skipped). */
+      resetBank: () => set((s) => ({ form: { ...s.form, bank: initialForm.bank, bankDetails: null } })),
 
       reset: () => set(initialState),
     }),
@@ -73,9 +82,12 @@ export const useOnboardingV2Store = create(
       name: "onboarding-v2-store",
       storage: createJSONStorage(() => localStorage),
       // v4: the screen / path / done / skipped tracker moved to the server.
-      version: 4,
+      // v5: KYC numbers are no longer persisted — an older copy is dropped.
+      version: 5,
       migrate: () => initialState,
-      partialize: (s) => ({ form: s.form }),
+      partialize: (s) => ({ form: persistableForm(s.form) }),
+      // The persisted form lacks the in-memory-only keys; keep their defaults.
+      merge: (persisted, current) => ({ ...current, form: { ...current.form, ...(persisted?.form ?? {}) } }),
     },
   ),
 );
