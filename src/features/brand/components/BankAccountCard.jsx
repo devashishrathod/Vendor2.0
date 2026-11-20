@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { Eye, EyeOff, User, Hash, Landmark, Building2, MapPin, ShieldCheck } from "lucide-react";
+import { User, Hash, Landmark, Building2, MapPin, ShieldCheck } from "lucide-react";
 
 function DetailTile({ icon, iconBg, label, value, wide, mono }) {
   return (
@@ -22,12 +21,8 @@ function DetailTile({ icon, iconBg, label, value, wide, mono }) {
   );
 }
 
+// The account number is only ever the server's masked one (no reveal).
 const BankAccountCard = ({ account, isSelected, onSelect }) => {
-  const [showAccountNumber, setShowAccountNumber] = useState(false);
-  const displayedAccountNumber = showAccountNumber
-    ? account.fullAccountNumber || account.maskedAccountNumber
-    : account.maskedAccountNumber;
-
   return (
     <div className="rounded-xl overflow-hidden">
       <button
@@ -65,7 +60,7 @@ const BankAccountCard = ({ account, isSelected, onSelect }) => {
 
       <div className="p-5 space-y-4">
         {/* Account number — highlighted like the onboarding bank-verification screen */}
-        <div className="relative flex items-center justify-between overflow-hidden rounded-xl bg-emerald-50 dark:bg-emerald-500/10 px-5 py-3.5">
+        <div className="relative flex items-center overflow-hidden rounded-xl bg-emerald-50 dark:bg-emerald-500/10 px-5 py-3.5">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-widest text-emerald-500/80 mb-1">
               Account Number
@@ -75,18 +70,10 @@ const BankAccountCard = ({ account, isSelected, onSelect }) => {
                 <Hash className="w-4 h-4 text-emerald-600 dark:text-emerald-400" strokeWidth={1.8} />
               </div>
               <span className="font-mono text-lg font-bold tracking-[0.12em] text-emerald-900 dark:text-emerald-300">
-                {displayedAccountNumber}
+                {account.maskedAccountNumber || "—"}
               </span>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() => setShowAccountNumber((v) => !v)}
-            aria-label={showAccountNumber ? "Hide account number" : "Show account number"}
-            className="w-9 h-9 rounded-xl bg-white dark:bg-gray-800 flex items-center justify-center flex-shrink-0 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-colors"
-          >
-            {showAccountNumber ? <EyeOff size={16} /> : <Eye size={16} />}
-          </button>
         </div>
 
         {/* Rest of the details — same icon-tile style as the rest of the app */}

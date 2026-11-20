@@ -39,10 +39,9 @@ const BankAccountPage = ({ brand, brandId, brandLoading, brandError }) => {
           isPrimary: true,
           bankName: bank.bankName,
           accountHolderName: bank.accountHolderName,
-          // Full number kept separate from the masked one so the card can
-          // toggle between them with the eye icon — never shown by default.
-          maskedAccountNumber: bank.maskedAccountNumber || bank.accountNumber,
-          fullAccountNumber: bank.accountNumber,
+          // Only the server's masked number / last 4 — the full number is
+          // never read (brands/get stops sending it).
+          maskedAccountNumber: bank.maskedAccountNumber || (bank.accountLast4Digits ? `XXXX XXXX ${bank.accountLast4Digits}` : null),
           ifscCode: bank.ifscCode,
           branch: bank.branchName,
           bankAddress,
