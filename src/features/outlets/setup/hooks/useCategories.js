@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getCategories, getSubCategories } from "../../New folder/services/CategoryApi"; // ← path apne project ke hisaab se adjust karo
+import { getCategories, getSubCategories } from "../services/CategoryApi"; // ← path apne project ke hisaab se adjust karo
 import { extractArray } from "../utils/extractArray";
 
 /**
@@ -10,11 +10,11 @@ import { extractArray } from "../utils/extractArray";
  */
 export function useCategories(categoryId) {
   const [categories, setCategories] = useState([]);
-  const [subCategories, setSubCategories] = useState([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
-  const [subCategoriesLoading, setSubCategoriesLoading] = useState(false);
   const [categoriesError, setCategoriesError] = useState("");
-  const [subCategoriesError, setSubCategoriesError] = useState("");
+  // Sub-categories with the category they were loaded for — only shown while
+  // that category is still the picked one (no reset inside an effect).
+  const [sub, setSub] = useState({ forId: null, list: [], error: "" });
 
   // Load all categories once on mount.
   useEffect(() => {
@@ -51,45 +51,31 @@ export function useCategories(categoryId) {
 
   // Load sub-categories whenever a category is picked.
   useEffect(() => {
-    if (!categoryId) {
-      setSubCategories([]);
-      setSubCategoriesError("");
-      return;
-    }
+    if (!categoryId) return undefined;
     let cancelled = false;
-    (async () => {
-      try {
-        setSubCategoriesLoading(true);
-        setSubCategoriesError("");
-        const data = await getSubCategories({ categoryId, page: 1, limit: 100 });
+    getSubCategories({ categoryId, page: 1, limit: 100 })
+      .then((data) => {
         const list = extractArray(data, ["data", "subCategories", "subcategories"]);
-        if (!cancelled) {
-          setSubCategories(list);
-          if (!list.length) {
-            console.warn("getSubCategories returned no usable array. Raw response:", data);
-          }
-        }
-      } catch (err) {
+        if (!list.length) console.warn("getSubCategories returned no usable array. Raw response:", data);
+        if (!cancelled) setSub({ forId: categoryId, list, error: "" });
+      })
+      .catch((err) => {
         console.error("Failed to load sub-categories:", err?.message || err);
-        if (!cancelled) {
-          setSubCategories([]); // never leave state as a non-array on error
-          setSubCategoriesError("Couldn't load sub-categories. Please retry.");
-        }
-      } finally {
-        if (!cancelled) setSubCategoriesLoading(false);
-      }
-    })();
+        if (!cancelled) setSub({ forId: categoryId, list: [], error: "Couldn't load sub-categories. Please retry." });
+      });
     return () => {
       cancelled = true;
     };
   }, [categoryId]);
 
+  const subReady = Boolean(categoryId) && sub.forId === categoryId;
+
   return {
     categories: Array.isArray(categories) ? categories : [],
-    subCategories: Array.isArray(subCategories) ? subCategories : [],
+    subCategories: subReady && Array.isArray(sub.list) ? sub.list : [],
     categoriesLoading,
-    subCategoriesLoading,
+    subCategoriesLoading: Boolean(categoryId) && !subReady,
     categoriesError,
-    subCategoriesError,
+    subCategoriesError: subReady ? sub.error : "",
   };
 }

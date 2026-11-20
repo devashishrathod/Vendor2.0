@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { ArrowRight, Images, Sparkles, TriangleAlert } from "lucide-react";
-import ShowcaseAlbumsEditor from "@/features/oulet/New folder/components/brandOutlet/ShowcaseAlbumsEditor";
+import ShowcaseAlbumsEditor from "@/features/outlets/setup/components/brandOutlet/ShowcaseAlbumsEditor";
 import Button from "../../components/ui/Button";
 import FormError from "../../components/ui/FormError";
 import Notice from "../../components/ui/Notice";

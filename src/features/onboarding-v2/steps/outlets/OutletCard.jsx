@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Check, Clock, Lock, MapPin, Pencil, Store, TriangleAlert } from "lucide-react";
 import { getErrorCode } from "@/services/http/apiError";
-import OutletLocationSearch from "@/features/oulet/New folder/components/brandOutlet/OutletLocationSearch";
-import WorkingHoursEditor from "@/features/oulet/New folder/components/brandOutlet/WorkingHoursEditor";
-import MapModal from "@/features/oulet/New folder/components/brandOutlet/modals/MapModal";
+import OutletLocationSearch from "@/features/outlets/setup/components/brandOutlet/OutletLocationSearch";
+import WorkingHoursEditor from "@/features/outlets/setup/components/brandOutlet/WorkingHoursEditor";
+import MapModal from "@/features/outlets/setup/components/brandOutlet/modals/MapModal";
 import Button from "../../components/ui/Button";
 import StatusPill from "../../components/ui/StatusPill";
 import { ONBOARDING_ERROR_CODES } from "../../config/screens";

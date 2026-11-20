@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Clock, KeyRound, Pencil, RefreshCw, Trash2, TriangleAlert } from "lucide-react";
 import { getErrorCode, getErrorDetails, getErrorStatus } from "@/services/http/apiError";
-import OtpVerifyModal from "@/features/oulet/New folder/components/brandOutlet/modals/OtpVerifyModal";
+import OtpVerifyModal from "@/features/outlets/setup/components/brandOutlet/modals/OtpVerifyModal";
 import Button from "../../components/ui/Button";
 import ConfirmDialog from "../../components/ui/ConfirmDialog";
 import { TextField } from "../../components/ui/TextField";

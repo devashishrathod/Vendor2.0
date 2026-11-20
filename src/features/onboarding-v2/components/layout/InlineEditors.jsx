@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Check, LoaderCircle } from "lucide-react";
-import { useCategories } from "@/features/oulet/New folder/hooks/useCategories";
+import { useCategories } from "@/features/outlets/setup/hooks/useCategories";
 import FormError from "../ui/FormError";
 import { KYC_PATH_LABELS } from "../../constants/onboardingOptions";
 import { useOnboardingFlow } from "../../hooks/useOnboardingFlow";

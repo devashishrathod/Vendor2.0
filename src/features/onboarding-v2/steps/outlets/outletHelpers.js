@@ -2,8 +2,8 @@ import {
   buildLocationPayloadFromPlace,
   hasValidCoordinates,
   hasValidZipcode,
-} from "@/features/oulet/New folder/services/locationApi";
-import { DEFAULT_WORKING_HOURS, WEEK_DAYS } from "@/features/oulet/New folder/constants/brandOutletConstants";
+} from "@/features/outlets/setup/services/locationApi";
+import { DEFAULT_WORKING_HOURS, WEEK_DAYS } from "@/features/outlets/setup/constants/brandOutletConstants";
 
 /** `verificationState` from GET /subBrands/get-all (API doc #35 note 5). */
 export const OUTLET_STATES = Object.freeze({ NEVER_VERIFIED: "NEVER_VERIFIED", VERIFIED: "VERIFIED", REVERIFY: "REVERIFY" });

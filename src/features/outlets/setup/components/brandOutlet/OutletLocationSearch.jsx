@@ -43,7 +43,8 @@ export default function OutletLocationSearch({
   onShowMap,
   onError,
 }) {
-  const [query, setQuery] = useState("");
+  const gstText = (place) => (place?.source === "gst" ? place.address || place.name || "" : "");
+  const [query, setQuery] = useState(() => gstText(selectedPlace));
 
   const [results, setResults] = useState([]);
 
@@ -94,21 +95,16 @@ export default function OutletLocationSearch({
   // does NOT re-trigger a search — it's just filling the text field.
   // ─────────────────────────────────────────────
 
-  useEffect(() => {
-    if (selectedPlace?.source === "gst") {
-      console.log(
-        "📋 [OutletLocationSearch] Autofilling query from GST address:",
-        selectedPlace.address
-      );
-      setQuery(selectedPlace.address || selectedPlace.name || "");
-      setResults([]);
-      setHasSearched(false);
-    } else if (!selectedPlace) {
-      setQuery("");
+  // Adjusted during render when the prop changes (not in an effect).
+  const [syncedPlace, setSyncedPlace] = useState(selectedPlace);
+  if (selectedPlace !== syncedPlace) {
+    setSyncedPlace(selectedPlace);
+    if (selectedPlace?.source === "gst" || !selectedPlace) {
+      setQuery(gstText(selectedPlace));
       setResults([]);
       setHasSearched(false);
     }
-  }, [selectedPlace]);
+  }
 
   // ─────────────────────────────────────────────
   // SEARCH

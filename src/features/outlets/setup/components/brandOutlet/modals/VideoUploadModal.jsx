@@ -1,4 +1,4 @@
-// src/features/oulet/New folder/components/brandOutlet/modals/VideoUploadModal.jsx
+// src/features/outlets/setup/components/brandOutlet/modals/VideoUploadModal.jsx
 // Confirmed from the add-media error response: "A video needs a poster
 // image. Attach one as 'thumbnail', or name its upload as
 // 'thumbnailUploadIds'." — every video upload needs a poster, not just

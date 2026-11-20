@@ -10,6 +10,29 @@ import {
 
 const TABS = ["Overview", "Photos", "Hours"];
 
+// One round action under the place title — a stable component, not re-created on each render.
+function ActionButton({ icon: Icon, label, onClick, primary, disabled }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="flex flex-col items-center gap-1.5 flex-1 disabled:opacity-40 disabled:cursor-not-allowed"
+    >
+      <span
+        className={`w-11 h-11 rounded-full flex items-center justify-center transition ${
+          primary
+            ? "bg-teal-700 text-white hover:bg-teal-800"
+            : "bg-sky-50 dark:bg-sky-500/15 text-sky-900 dark:text-sky-300 hover:bg-sky-100 dark:hover:bg-sky-500/20"
+        }`}
+      >
+        <Icon size={18} strokeWidth={2} />
+      </span>
+      <span className="text-xs text-gray-700 dark:text-gray-300 text-center leading-tight">{label}</span>
+    </button>
+  );
+}
+
 export default function MapModal({ place, onClose }) {
   const {
     name,
@@ -138,28 +161,6 @@ export default function MapModal({ place, onClose }) {
   // ─────────────────────────────────────────────
   // ICON ACTION BUTTON
   // ─────────────────────────────────────────────
-  const ActionButton = ({ icon: Icon, label, onClick, primary, disabled }) => (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className="flex flex-col items-center gap-1.5 flex-1 disabled:opacity-40 disabled:cursor-not-allowed"
-    >
-      <span
-        className={`w-11 h-11 rounded-full flex items-center justify-center transition ${
-          primary
-            ? "bg-teal-700 text-white hover:bg-teal-800"
-            : "bg-sky-50 dark:bg-sky-500/15 text-sky-900 dark:text-sky-300 hover:bg-sky-100 dark:hover:bg-sky-500/20"
-        }`}
-      >
-        <Icon size={18} strokeWidth={2} />
-      </span>
-      <span className="text-xs text-gray-700 dark:text-gray-300 text-center leading-tight">
-        {label}
-      </span>
-    </button>
-  );
-
   return (
     <div
       className="relative w-full max-w-7xl h-[90vh] rounded-2xl overflow-hidden shadow-2xl"

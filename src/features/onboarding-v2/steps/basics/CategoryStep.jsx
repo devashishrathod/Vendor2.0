@@ -1,6 +1,6 @@
 ﻿import { useCallback, useMemo, useState } from "react";
 import { ArrowRight, Check, ChevronRight, Ellipsis, FileText, LayoutGrid, LoaderCircle, Lock, RotateCw, Search } from "lucide-react";
-import { useCategories } from "@/features/oulet/New folder/hooks/useCategories";
+import { useCategories } from "@/features/outlets/setup/hooks/useCategories";
 import Button from "../../components/ui/Button";
 import InfoPanel from "../../components/ui/InfoPanel";
 import Notice from "../../components/ui/Notice";
