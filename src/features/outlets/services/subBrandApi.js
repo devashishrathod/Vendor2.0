@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { attachApiErrorInterceptor } from '@/services/http/apiError';
+import { ApiError, attachApiErrorInterceptor, getErrorDetails, getErrorStatus } from '@/services/http/apiError';
 
 // ── Base URL ────────────────────────────────────────────────
 const BASE_URL = import.meta.env.VITE_BASE_URL;
@@ -20,27 +20,16 @@ api.interceptors.request.use(async (config) => {
     return config;
 });
 
+// The server's message with `status` and `details` kept, so callers branch
+// on `details.code` (409 OUTLET_NOT_VERIFIED, 403 OUTLET_ALREADY_VERIFIED…)
+// and read 429 `details.retryAfterSeconds`.
 function handleError(error) {
     const message =
         error?.response?.data?.message ||
         error?.response?.data?.error ||
         error?.message ||
         'Something went wrong. Please try again.';
-
-    // One WhatsApp number = one outlet: the backend's unique index is
-    // { whatsappNumber, role }, so a number already on an outlet (e.g. the
-    // first outlet's) can never be reused for another. Older backends leaked
-    // that as this Mongo-style message — translate it.
-    if (/is already registered for userid/i.test(message)) {
-        throw new Error('This WhatsApp number is already registered to another outlet. Please use a different number.');
-    }
-
-    const err = new Error(message);
-    // Carries e.g. { retryAfterSeconds } on the OTP rate-limit (429) and
-    // { code } on outlet errors, so callers can tell "a code already went
-    // out" apart from a real failure.
-    if (error?.response?.data?.details) err.details = error.response.data.details;
-    throw err;
+    throw new ApiError(message, { status: getErrorStatus(error), details: getErrorDetails(error) });
 }
 
 export const OUTLET_TYPES = { OUTLET: 'OUTLET', FRANCHISE: 'FRANCHISE' };

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import OutletVerifyPanel from "@/features/onboarding-v2/steps/outlets/OutletVerifyPanel";
 import OutletDetailsHeader from "../components/OutletDetailsHeader";
 import OutletDetailsInfo from "../components/OutletDetailsInfo";
 import TransactionSummaryPanel from "../components/TransactionSummaryPanel";
@@ -63,6 +64,9 @@ export default function OutletDetailsPage() {
 
         <OutletDetailsHeader outlet={outlet} brand={brand} onBack={handleBack} />
 
+        {/* Manager not verified → code / resend / fix / cancel; edits stay locked (409 OUTLET_NOT_VERIFIED). */}
+        <OutletVerifyPanel outlet={outlet.raw} brandId={brand?._id} onChanged={reload} />
+
         <div>
           <h2 className="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">Transaction Summary</h2>
           <TransactionSummaryPanel transactions={transactions} error={transactionsError} />
@@ -70,8 +74,8 @@ export default function OutletDetailsPage() {
         <OutletDetailsInfo
           outlet={outlet}
           brand={brand}
-          onEdit={() => setEditing(true)}
-          onEditLocation={() => setEditingLocation(true)}
+          onEdit={outlet.isVerified ? () => setEditing(true) : undefined}
+          onEditLocation={outlet.isVerified ? () => setEditingLocation(true) : undefined}
         />
       </div>
 

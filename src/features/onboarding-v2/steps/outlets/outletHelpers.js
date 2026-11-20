@@ -10,6 +10,22 @@ export const OUTLET_STATES = Object.freeze({ NEVER_VERIFIED: "NEVER_VERIFIED", V
 
 export const OUTLET_TYPES = Object.freeze({ OUTLET: "OUTLET", FRANCHISE: "FRANCHISE" });
 
+export const OUTLET_TYPE_LABELS = Object.freeze({ [OUTLET_TYPES.OUTLET]: "Outlet", [OUTLET_TYPES.FRANCHISE]: "Franchise" });
+
+/** Slots left in a plan pool (`usage.subBrands` / `usage.franchises`), Infinity when unlimited. */
+export const slotsLeft = (pool) => (!pool ? 0 : pool.isUnlimited || pool.limit == null ? Infinity : Math.max(0, pool.limit - (pool.used ?? 0)));
+
+/**
+ * Outlet types the plan still has room for (`usage` from GET /subscribeds/get
+ * or a signUp response). Without usage, only OUTLET.
+ * @param {object|null} usage
+ * @returns {string[]}
+ */
+export const typesWithRoom = (usage) =>
+  [OUTLET_TYPES.OUTLET, OUTLET_TYPES.FRANCHISE].filter((t) =>
+    usage ? slotsLeft(t === OUTLET_TYPES.OUTLET ? usage.subBrands : usage.franchises) > 0 : t === OUTLET_TYPES.OUTLET,
+  );
+
 /** A manager who has given the code — location and hours can be saved. */
 export const isOutletVerified = (outlet) => outlet?.verificationState !== OUTLET_STATES.NEVER_VERIFIED;
 

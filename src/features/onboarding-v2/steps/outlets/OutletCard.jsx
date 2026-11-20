@@ -1,28 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Check, Clock, KeyRound, Lock, MapPin, Pencil, RefreshCw, Store, Trash2, TriangleAlert } from "lucide-react";
-import { getErrorCode, getErrorDetails, getErrorStatus } from "@/services/http/apiError";
+import { Check, Clock, Lock, MapPin, Pencil, Store, TriangleAlert } from "lucide-react";
+import { getErrorCode } from "@/services/http/apiError";
 import OutletLocationSearch from "@/features/oulet/New folder/components/brandOutlet/OutletLocationSearch";
 import WorkingHoursEditor from "@/features/oulet/New folder/components/brandOutlet/WorkingHoursEditor";
 import MapModal from "@/features/oulet/New folder/components/brandOutlet/modals/MapModal";
-import OtpVerifyModal from "@/features/oulet/New folder/components/brandOutlet/modals/OtpVerifyModal";
 import Button from "../../components/ui/Button";
-import ConfirmDialog from "../../components/ui/ConfirmDialog";
 import StatusPill from "../../components/ui/StatusPill";
-import { TextField } from "../../components/ui/TextField";
 import { ONBOARDING_ERROR_CODES } from "../../config/screens";
-import {
-  cancelOutlet,
-  createOutletLocation,
-  fixOutletNumber,
-  getLocation,
-  signUpOutlet,
-  updateOutletLocation,
-  upsertOutletHours,
-  verifyOutletManagerOtp,
-} from "../../services/brandSetupApi";
+import { createOutletLocation, getLocation, updateOutletLocation, upsertOutletHours } from "../../services/brandSetupApi";
 import { onboardingErrorMessage } from "../../utils/errorMessages";
 import {
-  MOBILE_FORMAT,
   OUTLET_STATES,
   OUTLET_TYPES,
   gstAddressText,
@@ -33,22 +20,7 @@ import {
   locationText,
   outletLocationFromPlace,
 } from "./outletHelpers";
-
-const formatWhen = (iso) => {
-  if (!iso) return null;
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? null : d.toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
-};
-
-/** OTP / resend failures → what the vendor reads. */
-function otpErrorMessage(error) {
-  const status = getErrorStatus(error);
-  const retry = getErrorDetails(error)?.retryAfterSeconds;
-  if (status === 429) return retry ? "A code was sent recently — you can ask for a new one when the timer ends." : "Too many codes. Please wait a little.";
-  if (status === 403 && !getErrorCode(error)) return "Too many wrong tries. Send a new code.";
-  if (status === 401) return /expired|missing/i.test(error?.message ?? "") ? "That code has expired. Send a new one." : "That code is wrong. Check it and try again.";
-  return onboardingErrorMessage(error, "That didn't work. Please try again.");
-}
+import OutletVerifyPanel from "./OutletVerifyPanel";
 
 /** A part of the card that stays locked until the manager's number is verified. */
 function Part({ icon: Icon, title, done, highlight, locked, children }) {
@@ -99,22 +71,6 @@ export default function OutletCard({ outlet, brandId, index, highlight = {}, gst
   const cardRef = useRef(null);
   const [message, setMessage] = useState("");
 
-  // ── Manager's code ──
-  const [otpOpen, setOtpOpen] = useState(openCodeOnMount && neverVerified);
-  const [otp, setOtp] = useState("");
-  const [otpError, setOtpError] = useState("");
-  const [confirming, setConfirming] = useState(false);
-  const [resending, setResending] = useState(false);
-  const [codeNote, setCodeNote] = useState("");
-  // Seconds until the server allows another code — only ever from a 429's
-  // `details.retryAfterSeconds` (the server enforces 60 s / 5 an hour).
-  const [cooldown, setCooldown] = useState(0);
-  const [fixing, setFixing] = useState(false);
-  const [newNumber, setNewNumber] = useState("");
-  const [fixBusy, setFixBusy] = useState(false);
-  const [cancelAsk, setCancelAsk] = useState(false);
-  const [cancelBusy, setCancelBusy] = useState(false);
-
   // ── Location ──
   const [savedLocation, setSavedLocation] = useState(outlet.location ?? null);
   const [editingLocation, setEditingLocation] = useState(false);
@@ -142,14 +98,6 @@ export default function OutletCard({ outlet, brandId, index, highlight = {}, gst
     };
   }, [outlet.locationId, savedLocation]);
 
-  // Ticks the resend cooldown down once a second while it runs.
-  const cooling = cooldown > 0;
-  useEffect(() => {
-    if (!cooling) return undefined;
-    const timer = setInterval(() => setCooldown((s) => Math.max(0, s - 1)), 1000);
-    return () => clearInterval(timer);
-  }, [cooling]);
-
   // A highlighted card (continue said it's missing something) scrolls into view.
   const highlighted = Boolean(highlight.verify || highlight.location || highlight.hours);
   useEffect(() => {
@@ -171,73 +119,6 @@ export default function OutletCard({ outlet, brandId, index, highlight = {}, gst
       setBusy(false);
     }
   }, [onChanged]);
-
-  const confirmOtp = async () => {
-    if (!/^\d{6}$/.test(otp) || confirming) return;
-    setConfirming(true);
-    setOtpError("");
-    try {
-      await verifyOutletManagerOtp({ whatsappNumber: outlet.whatsappNumber, otp });
-      setOtpOpen(false);
-      setOtp("");
-      await onChanged();
-    } catch (err) {
-      console.error("Outlet manager OTP failed:", err);
-      setOtpError(otpErrorMessage(err));
-    } finally {
-      setConfirming(false);
-    }
-  };
-
-  const resendCode = async () => {
-    if (cooling || resending) return;
-    setResending(true);
-    setOtpError("");
-    setMessage("");
-    setCodeNote("");
-    try {
-      const res = await signUpOutlet({ brandId, whatsappNumber: outlet.whatsappNumber, outletType: outlet.outletType || OUTLET_TYPES.OUTLET });
-      const data = res?.data ?? {};
-      if (data.otpSent === false) {
-        const text = data.otpError || "The code couldn't be sent. Try again shortly.";
-        if (otpOpen) setOtpError(text);
-        else setMessage(text);
-      } else {
-        setCodeNote(`A new code was sent to ${outlet.whatsappNumber}.`);
-      }
-      if (data.retryAfterSeconds) setCooldown(data.retryAfterSeconds);
-    } catch (err) {
-      console.error("Outlet code resend failed:", err);
-      const text = otpErrorMessage(err);
-      if (otpOpen) setOtpError(text);
-      else setMessage(text);
-      const retry = getErrorDetails(err)?.retryAfterSeconds;
-      if (retry) setCooldown(retry);
-    } finally {
-      setResending(false);
-    }
-  };
-
-  const saveNewNumber = async () => {
-    if (!MOBILE_FORMAT.test(newNumber)) return setMessage("Enter a valid 10-digit WhatsApp number.");
-    const ok = await run(setFixBusy, async () => {
-      const res = await fixOutletNumber(outlet._id, newNumber);
-      if (res?.data?.otpSent === false && res.data.otpError) setOtpError(res.data.otpError);
-      if (res?.data?.retryAfterSeconds) setCooldown(res.data.retryAfterSeconds);
-    }, "We couldn't change the number.");
-    if (ok) {
-      setFixing(false);
-      setNewNumber("");
-      await onChanged();
-      setOtpOpen(true);
-    }
-  };
-
-  const confirmCancel = async () => {
-    const ok = await run(setCancelBusy, () => cancelOutlet(outlet._id), "We couldn't cancel this outlet.");
-    setCancelAsk(false);
-    if (ok) await onChanged();
-  };
 
   const saveLocation = async (place) => {
     setSelectedPlace(place);
@@ -310,65 +191,7 @@ export default function OutletCard({ outlet, brandId, index, highlight = {}, gst
         )}
       </header>
 
-      {neverVerified && (
-        <div
-          className={`flex flex-col gap-3 rounded-xl p-3.5 ring-1 ring-inset ${
-            highlight.verify ? "bg-red-50/60 ring-red-300 dark:bg-red-500/10 dark:ring-red-500/40" : "bg-amber-50/70 ring-amber-200 dark:bg-amber-500/10 dark:ring-amber-500/30"
-          }`}
-        >
-          <p className="text-[13px] text-amber-900 dark:text-amber-200">
-            We sent a 6-digit code to the manager&apos;s WhatsApp. Enter it to verify this outlet.
-            {formatWhen(outlet.holdExpiresAt) && (
-              <span className="mt-1 flex items-center gap-1 text-xs font-semibold">
-                <Clock size={12} aria-hidden="true" />
-                Verify by {formatWhen(outlet.holdExpiresAt)}, or this outlet is cancelled automatically.
-              </span>
-            )}
-          </p>
-          {fixing ? (
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-              <div className="min-w-0 flex-1">
-                <TextField
-                  id={`fix-number-${outlet._id}`}
-                  label="Correct WhatsApp number"
-                  inputMode="numeric"
-                  maxLength={10}
-                  value={newNumber}
-                  onChange={(e) => setNewNumber(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                />
-              </div>
-              <div className="flex gap-2">
-                <Button variant="ghost" onClick={() => setFixing(false)} disabled={fixBusy}>
-                  Cancel
-                </Button>
-                <Button onClick={saveNewNumber} loading={fixBusy} disabled={!MOBILE_FORMAT.test(newNumber)}>
-                  Save number
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              <Button onClick={() => setOtpOpen(true)} icon={KeyRound} iconPosition="start">
-                Enter code
-              </Button>
-              <Button variant="secondary" onClick={resendCode} loading={resending} disabled={cooling} icon={RefreshCw} iconPosition="start">
-                {cooling ? `Resend in ${cooldown}s` : "Resend code"}
-              </Button>
-              <Button variant="ghost" onClick={() => setFixing(true)} icon={Pencil} iconPosition="start">
-                Fix number
-              </Button>
-              <Button variant="ghost" onClick={() => setCancelAsk(true)} icon={Trash2} iconPosition="start">
-                Cancel outlet
-              </Button>
-            </div>
-          )}
-          {codeNote && (
-            <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400" role="status">
-              {codeNote}
-            </p>
-          )}
-        </div>
-      )}
+      <OutletVerifyPanel outlet={outlet} brandId={brandId} highlight={Boolean(highlight.verify)} openCodeOnMount={openCodeOnMount} onChanged={onChanged} />
 
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
         <Part icon={MapPin} title="Location" done={hasLocation} highlight={highlight.location} locked={!verified}>
@@ -439,34 +262,6 @@ export default function OutletCard({ outlet, brandId, index, highlight = {}, gst
         </p>
       )}
 
-      {otpOpen && (
-        <OtpVerifyModal
-          phone={outlet.whatsappNumber}
-          otpValue={otp}
-          onOtpChange={(value) => {
-            setOtp(value);
-            setOtpError("");
-          }}
-          otpError={otpError}
-          onConfirm={confirmOtp}
-          onClose={() => setOtpOpen(false)}
-          onResend={resendCode}
-          resending={resending}
-          confirming={confirming}
-          waitSeconds={cooldown}
-        />
-      )}
-      {cancelAsk && (
-        <ConfirmDialog
-          title="Cancel this outlet?"
-          message="It is removed, its slot comes back to your plan and the number is free again."
-          confirmLabel="Cancel outlet"
-          cancelLabel="Keep it"
-          busy={cancelBusy}
-          onConfirm={confirmCancel}
-          onCancel={() => setCancelAsk(false)}
-        />
-      )}
       {mapPlace && <MapModal place={mapPlace} onClose={() => setMapPlace(null)} />}
     </article>
   );
