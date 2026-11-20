@@ -44,6 +44,21 @@ function loadRazorpayScript() {
 const STORAGE_KEY = "trydood_pending_order";
 
 /**
+ * Razorpay prefill from the order itself — create-order's
+ * `transaction.billingSnapshot` (the brand's WhatsApp number and email) and
+ * `transaction.contact` — so the vendor isn't asked for a number we already
+ * have. Falls back to what the page passed in.
+ * @param {object} order   create-order `data`
+ * @param {{ email?: string, phone?: string }} businessDetails
+ */
+function razorpayPrefill(order, businessDetails) {
+  const snapshot = order?.transaction?.billingSnapshot ?? {};
+  const contact = snapshot.whatsappNumber || order?.transaction?.contact || businessDetails.phone || undefined;
+  const email = snapshot.email || businessDetails.email || undefined;
+  return { ...(contact ? { contact } : {}), ...(email ? { email } : {}) };
+}
+
+/**
  * GA4 `purchase` — value in rupees, transaction_id dedupes repeat sends.
  * @param {object} order  the merged order object handed to onSuccess
  * @param {string} subscriptionId
@@ -148,10 +163,7 @@ export function useRazorpayCheckout() {
           name: businessDetails.brandName || "Trydood",
           description: "Subscription payment",
           order_id: razorpayOrder.orderId,
-          prefill: {
-            email: businessDetails.email,
-            contact: businessDetails.phone,
-          },
+          prefill: razorpayPrefill(order, businessDetails),
           theme: { color: "#09B285" },
           handler: async (response) => {
             try {
