@@ -4,6 +4,7 @@ import BusinessStatusStep from "../steps/basics/BusinessStatusStep";
 import CategoryStep from "../steps/basics/CategoryStep";
 import BrandBasicDetailsStep from "../steps/brand/BrandBasicDetailsStep";
 import BrandProfessionalStep from "../steps/brand/BrandProfessionalStep";
+import OutletsStep from "../steps/outlets/OutletsStep";
 import BankVerificationStep from "../steps/payout/BankVerificationStep";
 import BusinessTypeStep from "../steps/verification/BusinessTypeStep";
 import DocumentsStep from "../steps/verification/DocumentsStep";
@@ -29,4 +30,5 @@ export const STEP_ELEMENTS = {
   [SCREENS.PARTNERSHIP_DEED]: <PartnerContractStep />,
   [SCREENS.BRAND_BASIC_DETAILS]: <BrandBasicDetailsStep />,
   [SCREENS.BRAND_PROFESSIONAL_DETAILS]: <BrandProfessionalStep />,
+  [SCREENS.OUTLET_DETAILS]: <OutletsStep />,
 };

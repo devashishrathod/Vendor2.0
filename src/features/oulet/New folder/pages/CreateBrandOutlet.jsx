@@ -831,22 +831,12 @@ export default function CreateBrandOutlet() {
       ...(savedLocationId ? { locationId: savedLocationId } : {}),
     };
 
+    // Brand name is read-only and the category is set at BUSINESS_CATEGORY —
+    // PUT /brands/update takes only the profile fields (guide §4.12).
     const brandPayload = {
-      brandName,
       email: brandEmail,
-      // ⚠️ NOT independently confirmed from a Postman sample for
-      // brands/update (only brandName/email/description/subCategoryId/
-      // isOnboarding/showcaseSectionIds are documented there) — sent as a
-      // `mobile` key per explicit instruction; verify the saved value once
-      // tested and correct the key name here if it's wrong.
       mobile: effectiveMobile || undefined,
       description: brandDescription,
-      subCategoryId: brandSubType,
-      isOnboarding: true,
-      // isActive removed — PUT /brands/update no longer accepts it (backend:
-      // "isActive is not settable here. Use PUT /brands/admin/:brandId/status"),
-      // since that's the vendor's account-active flag, admin-only now.
-      showcaseSectionIds: showcaseAlbums.filter((a) => a.persisted).map((a) => a.id),
     };
 
     try {

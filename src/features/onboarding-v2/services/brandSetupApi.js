@@ -66,3 +66,86 @@ export function addBrandFeature({ brandId, title, description, icon }) {
 /** DELETE /brandFeatures/delete/:featureId (soft delete). @param {string} featureId */
 export const deleteBrandFeature = (featureId) =>
   request(`/brandFeatures/delete/${encodeURIComponent(featureId)}`, "DELETE", null, true);
+
+// ── Outlets (#34–#35, #34a, #34b) ────────────────────────────────────────────
+
+/**
+ * GET /subBrands/get-all — the brand's outlets with `verificationState`
+ * (NEVER_VERIFIED | VERIFIED | REVERIFY) and `holdExpiresAt`.
+ * @param {string} brandId
+ * @returns {Promise<object[]>}
+ */
+export const getOutlets = (brandId) =>
+  listOrEmpty(
+    () => request(`/subBrands/get-all?brandId=${encodeURIComponent(brandId)}&limit=100&sortBy=createdAt&sortOrder=asc`, "GET", null, true),
+    (res) => res?.data?.data ?? [],
+  );
+
+/**
+ * POST /subBrands/signUp-with-whatsapp — a new outlet, or (same number again)
+ * a fresh code for an unverified one (`isNewOutlet: false`). With
+ * `useOwnerNumber` the server takes the owner's verified number and the outlet
+ * is verified straight away (no code). Send `whatsappNumber` or
+ * `useOwnerNumber`, never both.
+ * @param {{ brandId: string, whatsappNumber?: string, useOwnerNumber?: boolean, outletType: 'OUTLET'|'FRANCHISE', isFirstOutlet?: boolean }} outlet
+ */
+export function signUpOutlet({ brandId, whatsappNumber, useOwnerNumber = false, outletType, isFirstOutlet = false }) {
+  const body = { brandId, outletType, ...(isFirstOutlet ? { isFirstOutlet: true } : {}) };
+  if (useOwnerNumber) body.useOwnerNumber = true;
+  else body.whatsappNumber = whatsappNumber;
+  return request("/subBrands/signUp-with-whatsapp", "POST", body, true);
+}
+
+/**
+ * POST /auth/verify-otp-whatsapp as the outlet manager (role SUB_VENDOR).
+ * The response's token is the manager's — it is never kept; the vendor's
+ * session is untouched.
+ * @param {{ whatsappNumber: string, otp: string }} input
+ */
+export const verifyOutletManagerOtp = ({ whatsappNumber, otp }) =>
+  request("/auth/verify-otp-whatsapp", "POST", { whatsappNumber, otp, role: "SUB_VENDOR" }, false);
+
+/** PATCH /subBrands/:id/whatsapp-number — fix a mistyped number (before verify). */
+export const fixOutletNumber = (subBrandId, whatsappNumber) =>
+  request(`/subBrands/${encodeURIComponent(subBrandId)}/whatsapp-number`, "PATCH", { whatsappNumber }, true);
+
+/** PATCH /subBrands/:id/cancel — remove a never-verified outlet; its slot comes back. */
+export const cancelOutlet = (subBrandId) => request(`/subBrands/${encodeURIComponent(subBrandId)}/cancel`, "PATCH", null, true);
+
+/**
+ * POST /locations/create for an outlet (`isSubBrandAddress: true`).
+ * Coordinates are `[longitude, latitude]`. Empty fields are left out.
+ * @param {object} payload
+ */
+export const createOutletLocation = (payload) => request("/locations/create", "POST", withoutEmpty(payload), true);
+
+/**
+ * PUT /locations/update/:id — the type flags are never re-sent (the server
+ * refuses a type change).
+ * @param {string} locationId @param {object} payload
+ */
+export function updateOutletLocation(locationId, payload) {
+  const patch = withoutEmpty(payload);
+  delete patch.subBrandId;
+  delete patch.brandId;
+  delete patch.isBrandAddress;
+  delete patch.isSubBrandAddress;
+  return request(`/locations/update/${encodeURIComponent(locationId)}`, "PUT", patch, true);
+}
+
+/** GET /locations/get/:id. @param {string} locationId */
+export const getLocation = (locationId) => request(`/locations/get/${encodeURIComponent(locationId)}`, "GET", null, true);
+
+/**
+ * POST /workHours/upsert for one outlet — `{ subBrandId, monday … sunday }`,
+ * each `{ isOpen, start, end }` (24-hour HH:mm, start before end).
+ * @param {string} subBrandId @param {Record<string, { isOpen: boolean, start: string, end: string }>} hours
+ */
+export const upsertOutletHours = (subBrandId, hours) => request("/workHours/upsert", "POST", { subBrandId, ...hours }, true);
+
+/** Drops null / undefined / blank-string fields (the server refuses empty ones). */
+function withoutEmpty(payload = {}) {
+  return Object.fromEntries(
+    Object.entries(payload).filter(([, value]) => value !== null && value !== undefined && !(typeof value === "string" && value.trim() === "")),
+  );
+}
