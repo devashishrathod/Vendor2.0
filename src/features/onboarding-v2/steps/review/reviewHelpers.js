@@ -152,7 +152,8 @@ export function timelineEntries(rows = []) {
     id: row._id,
     label: HISTORY_LABELS[row.action] ?? String(row.action ?? "").replaceAll("_", " ").toLowerCase(),
     when: formatDateTime(row.createdAt),
-    note: row.rejectionReason || row.revokeReason || null,
+    // Stage rows carry `reason`; API doc #33 shows `rejectionReason`.
+    note: row.rejectionReason || row.revokeReason || row.reason || null,
     attempt: row.attemptNumber ?? null,
   }));
 }

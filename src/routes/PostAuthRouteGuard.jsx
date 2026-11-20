@@ -28,6 +28,7 @@ const DASHBOARD_GROUP_PREFIXES = [
   "/subscription-plan",
   "/settings",
   "/subscription", // Upgrade flow: /subscription (plan picker) + /subscription/checkout
+  "/under-review", // revoked / re-approved vendors stay on DASHBOARD; the page itself sends others back
 ];
 
 // ⚠️ FIXED: the Plan & Billing "Upgrade" side-flow (/subscription →

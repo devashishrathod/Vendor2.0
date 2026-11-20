@@ -1,4 +1,6 @@
 export { default as OnboardingPage } from "./pages/OnboardingPage";
+export { default as ReviewStatusPage } from "./pages/ReviewStatusPage";
+export { default as ReviewStateBanner } from "./components/ReviewStateBanner";
 export { default as StatusGate } from "./components/StatusGate";
 export { useOnboardingV2Store } from "./store/onboardingStore";
 export { useOnboardingStatusStore } from "./store/statusStore";

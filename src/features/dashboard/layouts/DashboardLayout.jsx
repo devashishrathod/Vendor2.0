@@ -7,6 +7,7 @@ import DashboardFooter from "@/features/dashboard/components/DashboardFooter";
 import MusicQuickPlayModal from "@/features/music/components/MusicQuickPlayModal";
 import BottomPlayer from "@/features/music/components/BottomPlayer";
 import { usePlayer } from "@/features/music/hooks/usePlayer";
+import { ReviewStateBanner } from "@/features/onboarding-v2";
 
 export default function DashboardLayout() {
     const [activeTab, setActiveTab] = useState("Analysis Report");
@@ -27,6 +28,8 @@ export default function DashboardLayout() {
             <DashboardHeader activeTab={activeTab} setActiveTab={setActiveTab} />
 
             <main className="flex-1">
+                {/* Revoked / rejected / under review / approved again (guide §9). */}
+                <ReviewStateBanner />
                 <Outlet context={{ player }} />
             </main>
 

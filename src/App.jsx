@@ -7,7 +7,7 @@ import PublicRoute from './routes/PublicRoute';
 import DashboardLayout from './features/dashboard/layouts/DashboardLayout';
 
 import Step1WhatsApp from './features/onboarding/steps/Step1WhatsApp';
-import { ONBOARDING_ROUTES, OnboardingPage, StatusGate } from './features/onboarding-v2';
+import { ONBOARDING_ROUTES, OnboardingPage, ReviewStatusPage, StatusGate } from './features/onboarding-v2';
 
 import AnalysisReport from './features/dashboard/pages/AnalysisReport';
 import Transactions from './features/transaction/pages/Transactions';
@@ -28,7 +28,6 @@ import PlaylistPage from './features/music/pages/PlaylistPage';
 import { SubscriptionPage } from './features/subscription';
 import SettingsPage from './features/settings/pages/SettingsPage';
 import BrandPage from './features/brand';
-import UnderReview from './features/oulet/New folder/pages/Youroutlet';
 import PostAuthRouteGuard from './routes/PostAuthRouteGuard';
 import OnboardingOnlyRoute from './routes/OnboardingOnlyRoute';
 import AnalyticsRouteTracker from './routes/AnalyticsRouteTracker';
@@ -104,7 +103,7 @@ function App() {
         <Route path={ONBOARDING_ROUTES.WIZARD} element={<ProtectedRoute><OnboardingOnlyRoute><OnboardingPage /></OnboardingOnlyRoute></ProtectedRoute>} />
         <Route path={ONBOARDING_ROUTES.PLAN} element={<ProtectedRoute><SubscriptionPlan /></ProtectedRoute>} />
         <Route path={ONBOARDING_ROUTES.CHECKOUT} element={<ProtectedRoute><SubscriptionCheckout /></ProtectedRoute>} />
-        <Route path={ONBOARDING_ROUTES.STATUS} element={<ProtectedRoute><UnderReview /></ProtectedRoute>} />
+        <Route path={ONBOARDING_ROUTES.STATUS} element={<ProtectedRoute><ReviewStatusPage /></ProtectedRoute>} />
 
         {/* ─── DASHBOARD GROUP: header/footer YAHAN chahiye ─── */}
         <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>

@@ -3,7 +3,6 @@
 // `details.code` (services/http/apiError.js).
 
 import { request, requestForm } from "@/features/onboarding/services/api/client";
-import { acknowledgeApproval } from "@/features/onboarding/services/api/verify.api";
 
 const IFSC_LOOKUP_URL = "https://ifsc.razorpay.com";
 
@@ -135,13 +134,6 @@ export function saveOwnerIdDocument({ idType, file }) {
   return requestForm("/brands/onboarding/owner-verification", "POST", form);
 }
 
-// Legacy readers for the remediation screens (corrections/*, Milestone B).
-// The wizard uses verifyGst / verifyPan above and never these.
-/** @param {string} gstin @returns {Promise<import('../types').VerifyResult>} */
-export const fetchGstDetails = async (gstin) => (await verifyGst(gstin))?.data;
-/** @param {string} pan @returns {Promise<import('../types').VerifyResult>} */
-export const fetchPanDetails = async (pan) => (await verifyPan(pan))?.data;
-
 // ── Step 3 · Payout ───────────────────────────────────────────────────────
 
 /**
@@ -206,4 +198,10 @@ export async function getVerificationHistory({ limit = 50 } = {}) {
   return res?.data?.data ?? [];
 }
 
-export const acknowledgeBrandApproval = () => acknowledgeApproval();
+/**
+ * PUT /brands/onboarding/acknowledge-approval (#26), no body — "Continue" on
+ * the congratulations screen (also after a re-approval, from DASHBOARD).
+ * 400 not approved yet · 409 approval changed meanwhile (refresh).
+ * @returns {Promise<{ data: { currentScreen: 'DASHBOARD', isApprovalAcknowledged: boolean } }>}
+ */
+export const acknowledgeBrandApproval = () => request("/brands/onboarding/acknowledge-approval", "PUT", null, true);
