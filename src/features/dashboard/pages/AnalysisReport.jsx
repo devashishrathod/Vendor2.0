@@ -23,6 +23,8 @@ import {
 import { useAuthStore } from "@/features/onboarding/store/authStore";
 import { useOnboardingStore } from "@/features/onboarding/store/onboardingStore";
 import useBrandData from "@/features/brand/hooks/useBrandData";
+import ProfileStrengthCard from "@/features/onboarding-v2/components/strength/ProfileStrengthCard";
+import { useOnboardingStatusStore } from "@/features/onboarding-v2/store/statusStore";
 import { fetchVoucherTransactionOverview } from "@/features/transaction/services/transactionService";
 import { getVouchers } from "@/features/voucher/services/voucher/VoucherService";
 import AnimatedNumber from "@/components/common/AnimatedNumber";
@@ -445,6 +447,10 @@ export default function AnalysisReport() {
   // Settlements, open refunds and the current plan — feed the Action
   // Center, Settlements and Plan Usage cards.
   const insights = useDashboardInsights(resolvedBrandId, brand);
+
+  // Profile strength + Verified badge straight from the onboarding status (no local formula).
+  const profileStrength = useOnboardingStatusStore((s) => s.status?.profileStrength ?? null);
+  const isBrandVerified = useOnboardingStatusStore((s) => s.status?.isVerified === true);
 
   // "Vouchers" section below — real GET /vouchers/versions/get-all list,
   // same service the Voucher management page uses.
@@ -973,12 +979,18 @@ export default function AnalysisReport() {
           <QuickActions />
         </div>
 
+        {/* ── Profile strength + Verified badge (server-driven, guide §11) ── */}
+        {profileStrength && (
+          <div className="mb-4">
+            <ProfileStrengthCard strength={profileStrength} isVerified={isBrandVerified} maxItems={3} />
+          </div>
+        )}
+
         {/* ── Action center + settlements + plan usage ── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
           <ActionCenter
             refunds={insights.refunds.data || []}
             subscription={insights.subscription.data}
-            brand={brand}
             loading={insights.refunds.loading || insights.subscription.loading}
           />
           <SettlementSnapshot
