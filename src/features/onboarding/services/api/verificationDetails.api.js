@@ -5,14 +5,11 @@
 // without the wizard's step/sub-step navigation (this is called from the
 // standalone Under Review page, not a wizard step).
 import { BASE_URL } from "../../../../config";
+import { getAuthToken } from "@/services/api/authToken";
 import { reportSessionEnd, toApiError } from "@/services/http/apiError";
 
-function getToken() {
-  return localStorage.getItem("token");
-}
-
 async function postJSON(endpoint, payload) {
-  const token = getToken();
+  const token = getAuthToken();
   const res = await fetch(`${BASE_URL}${endpoint}`, {
     method: "POST",
     headers: {

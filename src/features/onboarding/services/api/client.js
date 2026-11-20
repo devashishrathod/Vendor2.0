@@ -1,14 +1,10 @@
 import { BASE_URL } from "../../../../config";
+import { getAuthToken } from "@/services/api/authToken";
 import { ApiError, reportSessionEnd, toApiError } from "@/services/http/apiError";
-
-// ── Token helpers ─────────────────────────────────────────────────────────────
-export const getToken = () => localStorage.getItem("token");
-export const setToken = (t) => localStorage.setItem("token", t);
-export const clearToken = () => localStorage.removeItem("token");
 
 /** Bearer header, or a session-end error when there is no token. */
 function authHeader() {
-  const token = getToken();
+  const token = getAuthToken();
   if (!token) {
     const error = new ApiError("Session expired. Please log in again.", { status: 401, details: { code: "TOKEN_MISSING" } });
     reportSessionEnd(error);

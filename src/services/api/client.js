@@ -1,19 +1,6 @@
 import { BASE_URL } from "../../config";
 import { ApiError, reportSessionEnd, toApiError } from "../http/apiError";
-
-// ───────────────────────────────────────────────
-// Token
-// ───────────────────────────────────────────────
-
-export const getToken = () => localStorage.getItem("token");
-
-export const setToken = (token) => {
-  localStorage.setItem("token", token);
-};
-
-export const clearToken = () => {
-  localStorage.removeItem("token");
-};
+import { getAuthToken } from "./authToken";
 
 // ───────────────────────────────────────────────
 // Brand Id
@@ -57,7 +44,7 @@ export async function request(
   };
 
   if (requiresAuth) {
-    const token = getToken();
+    const token = getAuthToken();
 
     if (!token) {
       throw new Error("Session expired");
