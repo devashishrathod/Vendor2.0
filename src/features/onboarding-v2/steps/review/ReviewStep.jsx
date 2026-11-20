@@ -13,7 +13,7 @@ import Notice from "../../components/ui/Notice";
 import { ONBOARDING_ROUTES, isWizardScreen } from "../../config/routes";
 import { GROUP_LABELS, ONBOARDING_ERROR_CODES, SCREENS } from "../../config/screens";
 import { useOnboardingFlow } from "../../hooks/useOnboardingFlow";
-import { getBrandFeatures, getOutlets } from "../../services/brandSetupApi";
+import { getBrandFeatures, getOutlets, getShowcaseAlbumsWithPhotos } from "../../services/brandSetupApi";
 import { getKycDocuments, getVerificationHistory, submitOnboarding } from "../../services/onboardingApi";
 import { useSavedBrandStore } from "../../store/brandStore";
 import { useOnboardingStatusStore } from "../../store/statusStore";
@@ -49,7 +49,7 @@ function billingText(address) {
 function useReviewData(brandId, attemptNumber) {
   const loadBrand = useSavedBrandStore((s) => s.load);
   const brand = useSavedBrandStore((s) => s.brand);
-  const [extra, setExtra] = useState({ documents: null, outlets: null, features: null, history: [], ready: false, error: "" });
+  const [extra, setExtra] = useState({ documents: null, outlets: null, features: null, showcase: null, history: [], ready: false, error: "" });
 
   const reload = useCallback(() => {
     if (!brandId) return Promise.resolve();
@@ -59,8 +59,13 @@ function useReviewData(brandId, attemptNumber) {
       getOutlets(brandId),
       getBrandFeatures(brandId),
       attemptNumber > 0 ? getVerificationHistory() : Promise.resolve([]),
+      // Photos are nice to have — the review still opens without them.
+      getShowcaseAlbumsWithPhotos().catch((error) => {
+        console.error("Showcase albums fetch failed:", error);
+        return null;
+      }),
     ])
-      .then(([, documents, outlets, features, history]) => setExtra({ documents, outlets, features, history, ready: true, error: "" }))
+      .then(([, documents, outlets, features, history, showcase]) => setExtra({ documents, outlets, features, showcase, history, ready: true, error: "" }))
       .catch((error) => {
         console.error("Review data fetch failed:", error);
         setExtra((e) => ({ ...e, ready: true, error: onboardingErrorMessage(error, "We couldn't load all of your details.") }));
@@ -100,7 +105,7 @@ export default function ReviewStep() {
 
   const groups = useMemo(() => {
     if (!status) return [];
-    const previewData = { status, brand: data.brand, documents: data.documents, outlets: data.outlets, features: data.features };
+    const previewData = { status, brand: data.brand, documents: data.documents, outlets: data.outlets, features: data.features, showcase: data.showcase };
     return (status.groups ?? []).map((group) => {
       const sections = getGroupPreview(group.key, previewData).filter((s) => !NOT_SECTIONS.has(s.screenId));
       // Billing address sits with the plan (guide §4.11) and is always editable.
@@ -109,7 +114,7 @@ export default function ReviewStep() {
       }
       return { key: group.key, title: GROUP_LABELS[group.key] ?? group.key, sections };
     });
-  }, [billing.billingAddress, data.brand, data.documents, data.features, data.outlets, status]);
+  }, [billing.billingAddress, data.brand, data.documents, data.features, data.outlets, data.showcase, status]);
 
   const canOpen = useCallback((screen) => reviewAction(screen, status) !== "locked" && isWizardScreen(screen), [status]);
 

@@ -67,6 +67,42 @@ export function addBrandFeature({ brandId, title, description, icon }) {
 export const deleteBrandFeature = (featureId) =>
   request(`/brandFeatures/delete/${encodeURIComponent(featureId)}`, "DELETE", null, true);
 
+// ── Showcase albums (read-only, for the review) ──────────────────────────────
+
+/**
+ * The brand's showcase albums with their photo URLs: GET
+ * /showcase/section/get-all, then GET /showcase/section/get/:id per album
+ * (albums are few — the plan limits them). Videos are counted, not shown.
+ * @returns {Promise<{ _id: string, title: string, coverImage: string|null, photos: string[], photoCount: number, videoCount: number }[]>}
+ */
+export async function getShowcaseAlbumsWithPhotos() {
+  const albums = await listOrEmpty(
+    () => request("/showcase/section/get-all?page=1&limit=50", "GET", null, true),
+    (res) => res?.data?.data ?? [],
+  );
+  const details = await Promise.all(
+    albums.map((album) =>
+      request(`/showcase/section/get/${encodeURIComponent(album._id)}`, "GET", null, true)
+        .then((res) => res?.data ?? null)
+        .catch((error) => {
+          console.error("Showcase album fetch failed:", error);
+          return null;
+        }),
+    ),
+  );
+  return albums.map((album, i) => {
+    const media = details[i]?.media?.data ?? [];
+    return {
+      _id: album._id,
+      title: album.title,
+      coverImage: album.coverImage ?? null,
+      photos: media.filter((m) => m.type === "PHOTO" && m.isActive !== false && m.media?.url).map((m) => m.media.url),
+      photoCount: album.photoCount ?? 0,
+      videoCount: album.videoCount ?? 0,
+    };
+  });
+}
+
 // ── Outlets (#34–#35, #34a, #34b) ────────────────────────────────────────────
 
 /**

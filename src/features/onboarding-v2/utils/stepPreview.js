@@ -10,7 +10,8 @@ import { ENTITY_LABELS, KYC_PATH_LABELS, docTypeLabel } from "../constants/onboa
  * @typedef {Object} PreviewSection
  * @property {string} screenId
  * @property {string} title
- * @property {{ label: string, value: string|null, wide?: boolean }[]} rows
+ * @property {{ label: string, value: string|null, wide?: boolean, images?: string[], imageShape?: 'square'|'wide', caption?: string }[]} rows
+ *   `images` = thumbnails shown under the label (logo, cover, album photos), `caption` = a line under them
  * @property {boolean} [compact]   one big value
  * @property {'documents'} [kind]
  * @property {string} [note]
@@ -24,6 +25,7 @@ import { ENTITY_LABELS, KYC_PATH_LABELS, docTypeLabel } from "../constants/onboa
  * @property {object|null} documents      GET /brands/onboarding/documents
  * @property {object[]|null} [outlets]    GET /subBrands/get-all
  * @property {object[]|null} [features]   GET /brandFeatures/get-all
+ * @property {object[]|null} [showcase]   albums with photo URLs (getShowcaseAlbumsWithPhotos)
  */
 
 const formatDate = (iso) => {
@@ -62,7 +64,7 @@ function outletRow(outlet, index) {
  * @param {PreviewData} data
  * @returns {Omit<PreviewSection, 'screenId'|'title'>}
  */
-function sectionBody(screen, { status, brand, documents, outlets = null, features = null }) {
+function sectionBody(screen, { status, brand, documents, outlets = null, features = null, showcase = null }) {
   const b = brand ?? {};
   switch (screen) {
     case SCREENS.BRAND_NAME:
@@ -134,20 +136,33 @@ function sectionBody(screen, { status, brand, documents, outlets = null, feature
     case SCREENS.BRAND_BASIC_DETAILS:
       return {
         rows: [
-          { label: "Logo", value: b.logo ? "Added" : null },
-          { label: "Cover image", value: b.coverImage ? "Added" : null },
+          { label: "Logo", value: b.logo ? "Logo" : null, images: b.logo ? [b.logo] : undefined, imageShape: "square" },
+          { label: "Cover image", value: b.coverImage ? "Cover image" : null, images: b.coverImage ? [b.coverImage] : undefined, imageShape: "wide" },
           { label: "Email", value: b.email ?? null },
           { label: "Contact number", value: b.mobile ?? null },
           { label: "Description", value: b.description ?? null, wide: true },
         ],
       };
-    case SCREENS.BRAND_PROFESSIONAL_DETAILS:
-      return {
-        rows: [
-          { label: "Listing features", value: features ? (features.length ? features.map((f) => f.title).join(", ") : "None yet") : null, wide: true },
-          { label: "Showcase albums", value: b.showcaseUsed != null ? plural(b.showcaseUsed, "album") : null },
-        ],
-      };
+    case SCREENS.BRAND_PROFESSIONAL_DETAILS: {
+      const featureRow = { label: "Listing features", value: features ? (features.length ? features.map((f) => f.title).join(", ") : "None yet") : null, wide: true };
+      // Each album with its photos once loaded; otherwise just the count.
+      const albumRows = showcase
+        ? showcase.length
+          ? showcase.map((album) => {
+              const counts = [plural(album.photoCount, "photo"), album.videoCount ? plural(album.videoCount, "video") : null].filter(Boolean).join(" · ");
+              return {
+                label: `Showcase · ${album.title}`,
+                value: counts,
+                caption: counts,
+                images: album.photos.length ? album.photos : album.coverImage ? [album.coverImage] : undefined,
+                imageShape: "square",
+                wide: true,
+              };
+            })
+          : [{ label: "Showcase albums", value: "None yet" }]
+        : [{ label: "Showcase albums", value: b.showcaseUsed != null ? plural(b.showcaseUsed, "album") : null }];
+      return { rows: [featureRow, ...albumRows] };
+    }
     case SCREENS.OUTLET_DETAILS:
       return { rows: (outlets ?? []).map(outletRow) };
     default:
@@ -156,7 +171,7 @@ function sectionBody(screen, { status, brand, documents, outlets = null, feature
 }
 
 /** Rows that actually have a value — empty fields aren't shown as "—". */
-export const filledRows = (section) => section.rows.filter((row) => row.value);
+export const filledRows = (section) => section.rows.filter((row) => row.value || row.images?.length);
 
 /** Sections with several fields (GST, PAN, bank…) take a full row of the grid. */
 export function isWideSection(section) {

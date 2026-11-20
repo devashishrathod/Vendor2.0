@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeft, Check, Eye, FileText, Lock, Pencil, Plus } from "lucide-react";
+import { ArrowLeft, Check, Eye, FileText, ImageOff, Lock, Pencil, Plus } from "lucide-react";
 import { filledRows, isWideSection } from "../../utils/stepPreview";
 
 const EDIT_BUTTON =
@@ -25,13 +25,53 @@ function DocumentList({ rows }) {
   );
 }
 
+const MAX_THUMBS = 8;
+
+/** One saved image (logo, cover, album photo); a broken URL shows a placeholder. */
+function Thumb({ src, alt, shape }) {
+  const [failed, setFailed] = useState(false);
+  const size = shape === "wide" ? "h-16 w-40" : "size-16";
+  if (failed) {
+    return (
+      <span className={`grid ${size} shrink-0 place-items-center rounded-lg bg-gray-100 text-gray-400 dark:bg-gray-800`} role="img" aria-label={`${alt} (couldn't load)`}>
+        <ImageOff size={16} aria-hidden="true" />
+      </span>
+    );
+  }
+  return (
+    <img
+      src={src}
+      alt={alt}
+      loading="lazy"
+      onError={() => setFailed(true)}
+      className={`${size} shrink-0 rounded-lg object-cover ring-1 ring-inset ring-gray-200 dark:ring-gray-700`}
+    />
+  );
+}
+
 function FieldGrid({ rows, wide }) {
   return (
     <dl className={`grid grid-cols-1 gap-x-6 gap-y-3 ${wide ? "sm:grid-cols-2 lg:grid-cols-3" : ""}`}>
       {rows.map((row) => (
         <div key={row.label} className={`min-w-0 ${row.wide && wide ? "col-span-full" : ""}`}>
           <dt className="text-[11px] font-medium uppercase tracking-[0.04em] text-gray-500 dark:text-gray-400">{row.label}</dt>
-          <dd className="mt-0.5 break-words text-[13.5px] font-semibold text-gray-900 dark:text-gray-100">{row.value}</dd>
+          {row.images?.length ? (
+            <dd className="mt-1.5">
+              <div className="flex flex-wrap gap-2">
+                {row.images.slice(0, MAX_THUMBS).map((src, i) => (
+                  <Thumb key={`${src}-${i}`} src={src} alt={row.images.length > 1 ? `${row.label} ${i + 1}` : row.label} shape={row.imageShape} />
+                ))}
+                {row.images.length > MAX_THUMBS && (
+                  <span className="grid size-16 place-items-center rounded-lg bg-gray-100 text-xs font-bold text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                    +{row.images.length - MAX_THUMBS}
+                  </span>
+                )}
+              </div>
+              {row.caption && <p className="mt-1 text-xs font-medium text-gray-600 dark:text-gray-400">{row.caption}</p>}
+            </dd>
+          ) : (
+            <dd className="mt-0.5 break-words text-[13.5px] font-semibold text-gray-900 dark:text-gray-100">{row.value}</dd>
+          )}
         </div>
       ))}
     </dl>
