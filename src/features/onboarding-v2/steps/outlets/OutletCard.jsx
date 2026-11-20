@@ -34,9 +34,6 @@ import {
   outletLocationFromPlace,
 } from "./outletHelpers";
 
-// The server doesn't hold back a quick resend — the card waits this long between codes.
-const RESEND_COOLDOWN_SECONDS = 60;
-
 const formatWhen = (iso) => {
   if (!iso) return null;
   const d = new Date(iso);
@@ -47,7 +44,7 @@ const formatWhen = (iso) => {
 function otpErrorMessage(error) {
   const status = getErrorStatus(error);
   const retry = getErrorDetails(error)?.retryAfterSeconds;
-  if (status === 429) return retry ? `A code was sent recently. Ask again in ${retry} seconds.` : "Too many codes. Please wait a little.";
+  if (status === 429) return retry ? "A code was sent recently — you can ask for a new one when the timer ends." : "Too many codes. Please wait a little.";
   if (status === 403 && !getErrorCode(error)) return "Too many wrong tries. Send a new code.";
   if (status === 401) return /expired|missing/i.test(error?.message ?? "") ? "That code has expired. Send a new one." : "That code is wrong. Check it and try again.";
   return onboardingErrorMessage(error, "That didn't work. Please try again.");
@@ -109,8 +106,9 @@ export default function OutletCard({ outlet, brandId, index, highlight = {}, gst
   const [confirming, setConfirming] = useState(false);
   const [resending, setResending] = useState(false);
   const [codeNote, setCodeNote] = useState("");
-  // A code was just sent when the card opens on its entry (new outlet).
-  const [cooldown, setCooldown] = useState(openCodeOnMount && neverVerified ? RESEND_COOLDOWN_SECONDS : 0);
+  // Seconds until the server allows another code — only ever from a 429's
+  // `details.retryAfterSeconds` (the server enforces 60 s / 5 an hour).
+  const [cooldown, setCooldown] = useState(0);
   const [fixing, setFixing] = useState(false);
   const [newNumber, setNewNumber] = useState("");
   const [fixBusy, setFixBusy] = useState(false);
@@ -207,7 +205,7 @@ export default function OutletCard({ outlet, brandId, index, highlight = {}, gst
       } else {
         setCodeNote(`A new code was sent to ${outlet.whatsappNumber}.`);
       }
-      setCooldown(data.retryAfterSeconds || RESEND_COOLDOWN_SECONDS);
+      if (data.retryAfterSeconds) setCooldown(data.retryAfterSeconds);
     } catch (err) {
       console.error("Outlet code resend failed:", err);
       const text = otpErrorMessage(err);
@@ -225,11 +223,11 @@ export default function OutletCard({ outlet, brandId, index, highlight = {}, gst
     const ok = await run(setFixBusy, async () => {
       const res = await fixOutletNumber(outlet._id, newNumber);
       if (res?.data?.otpSent === false && res.data.otpError) setOtpError(res.data.otpError);
+      if (res?.data?.retryAfterSeconds) setCooldown(res.data.retryAfterSeconds);
     }, "We couldn't change the number.");
     if (ok) {
       setFixing(false);
       setNewNumber("");
-      setCooldown(RESEND_COOLDOWN_SECONDS);
       await onChanged();
       setOtpOpen(true);
     }
@@ -455,6 +453,7 @@ export default function OutletCard({ outlet, brandId, index, highlight = {}, gst
           onResend={resendCode}
           resending={resending}
           confirming={confirming}
+          waitSeconds={cooldown}
         />
       )}
       {cancelAsk && (

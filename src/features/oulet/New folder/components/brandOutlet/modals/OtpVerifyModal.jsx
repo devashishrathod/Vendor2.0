@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 
 // An OTP has just been sent whenever this popup opens, so "Resend OTP" only
 // appears once this countdown runs out (and restarts on every resend).
+// A caller that knows the server's wait (`waitSeconds`, from a 429's
+// `details.retryAfterSeconds`) passes it instead and this one isn't used.
 const RESEND_SECONDS = 60;
 
 function formatCountdown(seconds) {
@@ -18,17 +20,20 @@ export default function OtpVerifyModal({
   onResend,
   resending,
   confirming,
+  waitSeconds,
 }) {
-  const [secondsLeft, setSecondsLeft] = useState(RESEND_SECONDS);
+  const serverDriven = typeof waitSeconds === "number";
+  const [ownSecondsLeft, setOwnSecondsLeft] = useState(RESEND_SECONDS);
+  const secondsLeft = serverDriven ? waitSeconds : ownSecondsLeft;
 
   useEffect(() => {
-    if (secondsLeft <= 0) return;
-    const timer = setTimeout(() => setSecondsLeft((s) => s - 1), 1000);
+    if (serverDriven || ownSecondsLeft <= 0) return;
+    const timer = setTimeout(() => setOwnSecondsLeft((s) => s - 1), 1000);
     return () => clearTimeout(timer);
-  }, [secondsLeft]);
+  }, [ownSecondsLeft, serverDriven]);
 
   const handleResend = () => {
-    setSecondsLeft(RESEND_SECONDS);
+    if (!serverDriven) setOwnSecondsLeft(RESEND_SECONDS);
     onResend();
   };
 
