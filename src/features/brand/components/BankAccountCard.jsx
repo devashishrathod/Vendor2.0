@@ -42,8 +42,9 @@ const BankAccountCard = ({ account, isSelected, onSelect }) => {
         </div>
         <div className="flex-1">
           <div className="flex items-center gap-2">
+            {/* bankName comes only when the bank sends it. */}
             <p className="text-sm font-semibold capitalize text-gray-900 dark:text-gray-100">
-              {account.bankName}
+              {account.bankName || "Bank account"}
             </p>
             {account.isValid && (
               <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600">
@@ -97,19 +98,24 @@ const BankAccountCard = ({ account, isSelected, onSelect }) => {
             iconBg="#ECFEFF"
             icon={<Landmark className="w-3.5 h-3.5 text-cyan-500" strokeWidth={2} />}
           />
-          <DetailTile
-            label="Branch Name"
-            value={account.branch}
-            iconBg="#FFFBEB"
-            icon={<Building2 className="w-3.5 h-3.5 text-amber-500" strokeWidth={2} />}
-          />
-          <DetailTile
-            label="Bank Address"
-            value={account.bankAddress}
-            wide
-            iconBg="#ECFDF5"
-            icon={<MapPin className="w-3.5 h-3.5 text-emerald-500" strokeWidth={2} />}
-          />
+          {/* Branch / address come only when the bank sends them — no empty tiles. */}
+          {account.branch && (
+            <DetailTile
+              label="Branch Name"
+              value={account.branch}
+              iconBg="#FFFBEB"
+              icon={<Building2 className="w-3.5 h-3.5 text-amber-500" strokeWidth={2} />}
+            />
+          )}
+          {account.bankAddress && (
+            <DetailTile
+              label="Bank Address"
+              value={account.bankAddress}
+              wide
+              iconBg="#ECFDF5"
+              icon={<MapPin className="w-3.5 h-3.5 text-emerald-500" strokeWidth={2} />}
+            />
+          )}
         </div>
       </div>
     </div>
