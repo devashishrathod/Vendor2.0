@@ -17,13 +17,19 @@ const formatDate = (iso) => {
   return Number.isNaN(d.getTime()) ? null : d.toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
 };
 
-/** Submitted → System verification → Admin review → Approved (guide §7.1). */
-function Stages({ verification, checks }) {
+/**
+ * Submitted → System verification → Admin review → Approved (guide §7.1).
+ * After a resubmit the time comes from the newest RESUBMITTED history row —
+ * `verification.submittedAt` still carries the first attempt's time.
+ */
+function Stages({ verification, checks, history }) {
   const passed = checks.filter((c) => c.passed).length;
+  const resubmitted = verification.attemptNumber > 1;
+  const resubmittedAt = resubmitted ? history.find((row) => row.action === "RESUBMITTED")?.createdAt : null;
   const stages = [
     {
-      label: verification.attemptNumber > 1 ? "Resubmitted" : "Submitted",
-      detail: formatDate(verification.submittedAt),
+      label: resubmitted ? "Resubmitted" : "Submitted",
+      detail: formatDate(resubmittedAt || verification.submittedAt),
       state: "done",
     },
     { label: "System verification", detail: checks.length ? `${passed} of ${checks.length} checks passed` : "Done", state: "done" },
@@ -102,7 +108,7 @@ export default function UnderReviewView() {
           </div>
         </header>
 
-        <Stages verification={verification} checks={checks} />
+        <Stages verification={verification} checks={checks} history={history} />
 
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="flex min-w-0 flex-col gap-4">
