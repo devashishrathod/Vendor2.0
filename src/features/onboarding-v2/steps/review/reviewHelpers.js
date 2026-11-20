@@ -142,8 +142,9 @@ const HISTORY_LABELS = Object.freeze({
 });
 
 /**
- * History rows → timeline entries (newest first). A REJECTED row carries the
- * reason the vendor must see.
+ * History rows → timeline entries (newest first). A row's `reason` (with
+ * previousStatus / newStatus) is what the vendor sees — e.g. why it was
+ * rejected (backend answer, API doc #33 corrected).
  * @param {object[]} rows
  * @returns {{ id: string, label: string, when: string|null, note: string|null, attempt: number|null }[]}
  */
@@ -152,8 +153,7 @@ export function timelineEntries(rows = []) {
     id: row._id,
     label: HISTORY_LABELS[row.action] ?? String(row.action ?? "").replaceAll("_", " ").toLowerCase(),
     when: formatDateTime(row.createdAt),
-    // Stage rows carry `reason`; API doc #33 shows `rejectionReason`.
-    note: row.rejectionReason || row.revokeReason || row.reason || null,
+    note: row.reason || null,
     attempt: row.attemptNumber ?? null,
   }));
 }
