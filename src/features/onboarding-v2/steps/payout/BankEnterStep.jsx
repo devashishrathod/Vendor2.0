@@ -12,6 +12,7 @@ import { SCREENS } from "../../config/screens";
 import { BANK_ACCOUNT_TYPES } from "../../constants/onboardingOptions";
 import { useOnboardingFlow } from "../../hooks/useOnboardingFlow";
 import { skipScreen } from "../../services/onboardingApi";
+import { useSavedBrand } from "../../store/brandStore";
 import { useOnboardingV2Store } from "../../store/onboardingStore";
 import { useVerifyStore } from "../../store/verifyStore";
 import { onboardingErrorMessage } from "../../utils/errorMessages";
@@ -27,6 +28,9 @@ import { ACCOUNT_MAX, IFSC_LENGTH, isSameAccount, maskGrouped, useIfscLookup, ve
  */
 export default function BankEnterStep({ onVerified }) {
   const { isViewingPast, goToServerScreen, handleFlowError } = useOnboardingFlow();
+  // A bank already saved (opened again to change it, e.g. remediation) — only its last 4 digits.
+  const { brand } = useSavedBrand();
+  const savedLast4 = brand?.bank?.accountLast4Digits || brand?.bank?.maskedAccountNumber?.slice(-4) || null;
   const bank = useOnboardingV2Store((s) => s.form.bank);
   const setBankField = useOnboardingV2Store((s) => s.setBankField);
   const resetBank = useOnboardingV2Store((s) => s.resetBank);
@@ -102,7 +106,7 @@ export default function BankEnterStep({ onVerified }) {
   return (
     <StepCard
       icon={Landmark}
-      title="Add the bank account for payouts"
+      title={savedLast4 ? "Change the bank account for payouts" : "Add the bank account for payouts"}
       subtitle="We verify it instantly with a ₹1 test. Your settlements land in this account."
       aside={
         <>
@@ -192,10 +196,20 @@ export default function BankEnterStep({ onVerified }) {
         />
       </div>
 
-      <Notice tone="warning" icon={TriangleAlert}>
-        <strong className="font-bold">Skipping?</strong> Without a bank account you can&apos;t sell vouchers to customers. You
-        can add it later from your profile.
-      </Notice>
+      {savedLast4 ? (
+        <Notice tone="info" icon={Landmark}>
+          Saved account: <strong className="font-bold">XXXX XXXX {savedLast4}</strong>
+          {brand?.bank?.ifscCode ? ` · ${brand.bank.ifscCode}` : ""}. Enter a different account only if it needs to change — it is
+          checked again with a ₹1 test.
+        </Notice>
+      ) : (
+        !isViewingPast && (
+          <Notice tone="warning" icon={TriangleAlert}>
+            <strong className="font-bold">Skipping?</strong> Without a bank account you can&apos;t sell vouchers to customers. You
+            can add it later from your profile.
+          </Notice>
+        )
+      )}
     </StepCard>
   );
 }
