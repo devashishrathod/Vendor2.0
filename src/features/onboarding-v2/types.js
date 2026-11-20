@@ -56,9 +56,25 @@
  */
 
 /**
+ * @typedef {Object} StrengthItem
+ * @property {string} key
+ * @property {string} label
+ * @property {boolean} done
+ * @property {boolean} available   false → not possible for this brand; never shown
+ * @property {number} earned
+ * @property {number} max
+ * @property {number} points       what doing it adds ("+N"); 0 when done / unavailable
+ * @property {string|null} action  short English hint
+ */
+
+/**
+ * Profile strength (API doc #32c; also `status.profileStrength`).
  * @typedef {Object} ProfileStrength
  * @property {number} score
  * @property {'LOW'|'MEDIUM'|'STRONG'} level
+ * @property {{ key: string, label: string, earned: number, max: number, items: StrengthItem[] }[]} sections
+ * @property {boolean} badgeEligible
+ * @property {('NOT_APPROVED'|'STRENGTH_BELOW_75'|'BANK_NOT_VERIFIED'|'NO_IDENTITY_PROOF')[]} badgeBlockers
  */
 
 /**

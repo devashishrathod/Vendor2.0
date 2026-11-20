@@ -31,6 +31,11 @@ export function canRevisit(screen, status) {
       return editable.ownerVerification;
     case SCREENS.KYC_DOCUMENTS:
       return Boolean(editable.documents?.add || editable.documents?.change);
+    case SCREENS.BRAND_BASIC_DETAILS:
+      return Boolean(editable.profile?.add || editable.profile?.change);
+    case SCREENS.BRAND_PROFESSIONAL_DETAILS:
+    case SCREENS.OUTLET_DETAILS:
+      return Boolean(editable.setup?.add || editable.setup?.change);
     default:
       return false;
   }
@@ -96,15 +101,21 @@ export function useOnboardingFlow() {
     (nextScreen) => {
       if (nextScreen) {
         applyScreen(nextScreen);
+        // A screen opened from Back / review / a fix was saved and the
+        // server's screen didn't move: show the current one again right here
+        // (a revoked vendor's screen is DASHBOARD — don't route there).
+        if (viewScreen && nextScreen === currentScreen) return;
         goToRoute(nextScreen);
         return;
       }
       closeScreen();
       fetchStatus()
-        .then((fresh) => goToRoute(fresh?.currentScreen))
+        .then((fresh) => {
+          if (!viewScreen || fresh?.currentScreen !== currentScreen) goToRoute(fresh?.currentScreen);
+        })
         .catch((error) => console.error("Onboarding status refresh failed:", error));
     },
-    [applyScreen, closeScreen, fetchStatus, goToRoute],
+    [applyScreen, closeScreen, currentScreen, fetchStatus, goToRoute, viewScreen],
   );
 
   /**

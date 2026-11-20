@@ -57,6 +57,24 @@ export function onboardingErrorMessage(error, fallback = "Something went wrong. 
       // support. The status can be 401 / 403 — that is not a session end.
       console.warn("Verification provider error — requestId:", details.requestId ?? "(none)");
       return "The verification service isn't responding right now. Please try again in a little while.";
+    case C.OWNER_NUMBER_NOT_VERIFIED:
+      return "Your WhatsApp number isn't verified yet, so it can't be used here. Type the number instead.";
+    case C.FEATURE_LIMIT:
+      return details.limit ? `You can have up to ${details.limit} active features.` : "You've reached the feature limit.";
+    case C.OUTLET_NOT_VERIFIED:
+      return "Verify the outlet's WhatsApp number first.";
+    case C.OUTLET_ALREADY_VERIFIED:
+      return "This outlet's number is already verified.";
+    case C.OUTLET_DEACTIVATED:
+      return "This outlet's account is switched off. Contact support to switch it on.";
+    case C.OUTLET_RECORD_MISSING:
+      return "This number has a half-created outlet account. Please contact support.";
+    case C.OUTLET_HAS_ACTIVITY:
+      return "This outlet has vouchers, claims or payments, so it can't be cancelled here. Please contact support.";
+    case C.OUTLET_STATE_CHANGED:
+      return "This outlet just changed — it was verified or already cancelled. We've refreshed the list.";
+    case C.WHATSAPP_UNCHANGED:
+      return "That's already this outlet's number. Use Resend code instead.";
     case C.BILLING_STATE_GSTIN_MISMATCH:
       return details.gstinState
         ? `Your billing address must be in ${details.gstinState}, the state of your GSTIN.`

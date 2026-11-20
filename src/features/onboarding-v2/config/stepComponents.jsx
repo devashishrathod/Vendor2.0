@@ -2,6 +2,8 @@ import PartnerContractStep from "../steps/agreement/PartnerContractStep";
 import BrandNameStep from "../steps/basics/BrandNameStep";
 import BusinessStatusStep from "../steps/basics/BusinessStatusStep";
 import CategoryStep from "../steps/basics/CategoryStep";
+import BrandBasicDetailsStep from "../steps/brand/BrandBasicDetailsStep";
+import BrandProfessionalStep from "../steps/brand/BrandProfessionalStep";
 import BankVerificationStep from "../steps/payout/BankVerificationStep";
 import BusinessTypeStep from "../steps/verification/BusinessTypeStep";
 import DocumentsStep from "../steps/verification/DocumentsStep";
@@ -25,4 +27,6 @@ export const STEP_ELEMENTS = {
   [SCREENS.KYC_DOCUMENTS]: <DocumentsStep />,
   [SCREENS.BANK_VERIFICATION]: <BankVerificationStep />,
   [SCREENS.PARTNERSHIP_DEED]: <PartnerContractStep />,
+  [SCREENS.BRAND_BASIC_DETAILS]: <BrandBasicDetailsStep />,
+  [SCREENS.BRAND_PROFESSIONAL_DETAILS]: <BrandProfessionalStep />,
 };

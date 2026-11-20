@@ -44,8 +44,8 @@ import {
   LiveLocationPicker,
   ReviewStep,
 } from "../components/brandOutlet";
-import CustomerPreview from "../components/brandOutlet/layout/CustomerPreview";
-import ImageUploadTile from "../components/brandOutlet/layout/ImageUploadTile";
+import CustomerPreview from "@/features/onboarding-v2/components/brand/CustomerPreview";
+import ImageUploadTile from "@/features/onboarding-v2/components/brand/ImageUploadTile";
 import OutletCard from "../components/brandOutlet/layout/OutletCard";
 import OutletStepper from "../components/brandOutlet/layout/OutletStepper";
 import SkipConfirmModal from "../components/brandOutlet/layout/SkipConfirmModal";

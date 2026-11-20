@@ -1,5 +1,6 @@
 import { ArrowLeft, Check, Eye, Headphones, X } from "lucide-react";
 import { HELPDESK_EMAIL } from "../../constants/onboardingOptions";
+import { STRENGTH_LEVELS as STRENGTH_COLORS } from "../strength/strengthLevels";
 
 function GroupMarker({ status, number }) {
   if (status === "done") {
@@ -21,13 +22,6 @@ function GroupMarker({ status, number }) {
     </span>
   );
 }
-
-// status.profileStrength.level (guide §11): LOW < 50 · MEDIUM 50–74 · STRONG ≥ 75.
-const STRENGTH_COLORS = {
-  LOW: { bar: "bg-amber-400", text: "text-amber-700 dark:text-amber-400", label: "Low" },
-  MEDIUM: { bar: "bg-sky-500", text: "text-sky-700 dark:text-sky-400", label: "Medium" },
-  STRONG: { bar: "bg-emerald-500", text: "text-emerald-700 dark:text-emerald-400", label: "Strong" },
-};
 
 /** One compact "label · value" line with a thin bar under it. */
 function ProgressRow({ label, value, percent, barClass, valueClass, ariaLabel }) {

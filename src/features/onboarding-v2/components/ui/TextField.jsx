@@ -99,6 +99,31 @@ export function TextField({
 }
 
 /**
+ * Labelled multi-line text (e.g. the brand description).
+ * @param {{
+ *   id: string, label: string, required?: boolean, optional?: boolean,
+ *   hint?: string, error?: string, counter?: string,
+ * } & import('react').TextareaHTMLAttributes<HTMLTextAreaElement>} props
+ */
+export function TextAreaField({ id, label, required, optional, hint, error, counter, rows = 4, ...textareaProps }) {
+  const describedBy = [hint && `${id}-hint`, error && `${id}-error`].filter(Boolean).join(" ") || undefined;
+  return (
+    <div>
+      <FieldLabel id={id} label={label} required={required} optional={optional} hint={hint} />
+      <textarea
+        id={id}
+        rows={rows}
+        aria-describedby={describedBy}
+        aria-invalid={error ? true : undefined}
+        className={`${FIELD_BASE} mt-1.5 h-auto resize-y py-3 leading-relaxed ${error ? "border-red-400" : "border-gray-300 dark:border-gray-700"}`}
+        {...textareaProps}
+      />
+      <FieldMessage id={id} error={error} counter={counter} />
+    </div>
+  );
+}
+
+/**
  * Labelled native select (native for mobile pickers and keyboard access).
  * @param {{
  *   id: string, label: string, required?: boolean, hint?: string,
