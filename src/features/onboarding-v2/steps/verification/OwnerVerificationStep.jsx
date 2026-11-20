@@ -58,6 +58,15 @@ export default function OwnerVerificationStep() {
   const [verifying, setVerifying] = useState(false);
   const panVerified = Boolean(panResult?.isVerified && panResult?.details?.pan === pan);
   const panName = panVerified ? readPanRecord(panResult).name : null;
+  // Only a personal PAN (4th letter P) can verify the owner. A company / firm /
+  // LLP / trust PAN is stopped here, before the paid call (server: OWNER_PAN_NOT_PERSONAL).
+  const panComplete = PAN_FORMAT.test(pan);
+  const panIsPersonal = pan.charAt(3) === "P";
+  const canVerifyPan = panComplete && panIsPersonal;
+  const panFieldError =
+    panComplete && !panIsPersonal
+      ? "This is a business PAN. Enter the owner's personal PAN (its 4th letter is P), or upload an ID instead."
+      : undefined;
 
   // ── ID document ──
   const [idType, setIdType] = useState(null);
@@ -79,7 +88,7 @@ export default function OwnerVerificationStep() {
   }, []);
 
   const handleVerifyPan = useCallback(async () => {
-    if (!PAN_FORMAT.test(pan) || verifying || panVerified) return;
+    if (!canVerifyPan || verifying || panVerified) return;
     setVerifying(true);
     setError("");
     try {
@@ -98,7 +107,7 @@ export default function OwnerVerificationStep() {
     } finally {
       setVerifying(false);
     }
-  }, [handleFlowError, pan, panVerified, setResult, verifying]);
+  }, [canVerifyPan, handleFlowError, pan, panVerified, setResult, verifying]);
 
   const handleFile = useCallback(async (event) => {
     const picked = event.target.files?.[0];
@@ -193,6 +202,7 @@ export default function OwnerVerificationStep() {
               maxLength={PAN_LENGTH}
               value={pan}
               onChange={handlePanChange}
+              error={panFieldError}
               inputClassName={CODE_INPUT_CLASS}
             />
           </div>
@@ -202,7 +212,7 @@ export default function OwnerVerificationStep() {
               <span className="truncate">{panName || "PAN verified"}</span>
             </span>
           ) : (
-            <Button variant="secondary" onClick={handleVerifyPan} disabled={!PAN_FORMAT.test(pan)} loading={verifying}>
+            <Button variant="secondary" onClick={handleVerifyPan} disabled={!canVerifyPan} loading={verifying}>
               {verifying ? "Verifying…" : "Verify PAN"}
             </Button>
           )}
