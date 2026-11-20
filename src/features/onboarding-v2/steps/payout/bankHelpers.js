@@ -53,32 +53,17 @@ export function useIfscLookup(ifsc) {
   return { ifscValid, lookupDone, ifscInfo: lookupDone ? lookup.info : null, lookupError: lookupDone ? lookup.error : "" };
 }
 
-const BENEFICIARY_MIN = 3;
-const BENEFICIARY_MAX = 100;
-
-/**
- * Name the backend matches the account holder against: the beneficiary the
- * vendor typed, else the business's legal name. Left out if too short.
- */
-function beneficiaryNameFor(bank, legalName) {
-  const name = (bank.beneficiary || "").trim() || (legalName || "").trim();
-  return name.length >= BENEFICIARY_MIN ? name.slice(0, BENEFICIARY_MAX) : undefined;
-}
-
 /**
  * Runs the PAID ₹1 penny drop (verify-bank, API doc #30). Call only on an
  * explicit "Verify" press. A failed drop is still a 200 with
  * `isVerified: false` and the bank's reason in `message` — check
- * `result.isVerified` before saving.
- * @param {{ bank: { accountNumber: string, ifsc: string, beneficiary: string, accountType: string }, legalName?: string }} input
+ * `result.isVerified` before saving. Only account number + IFSC are sent:
+ * the server matches the holder's name itself (#30 note 1, D114).
+ * @param {{ bank: { accountNumber: string, ifsc: string, accountType: string } }} input
  * @returns {Promise<{ result: import("../../types").VerifyResult, accountNumber: string, ifsc: string, accountType: string }>}
  */
-export async function verifyBankForm({ bank, legalName = "" }) {
-  const response = await verifyBankAccount({
-    accountNumber: bank.accountNumber,
-    ifscCode: bank.ifsc,
-    beneficiaryName: beneficiaryNameFor(bank, legalName),
-  });
+export async function verifyBankForm({ bank }) {
+  const response = await verifyBankAccount({ accountNumber: bank.accountNumber, ifscCode: bank.ifsc });
   // The raw provider payload is never kept; the panel reads mapped fields.
   const result = { ...(response?.data ?? {}) };
   delete result.providerResponse;

@@ -12,7 +12,6 @@ import { SCREENS } from "../../config/screens";
 import { BANK_ACCOUNT_TYPES } from "../../constants/onboardingOptions";
 import { useOnboardingFlow } from "../../hooks/useOnboardingFlow";
 import { skipScreen } from "../../services/onboardingApi";
-import { useSavedBrand } from "../../store/brandStore";
 import { useOnboardingV2Store } from "../../store/onboardingStore";
 import { useVerifyStore } from "../../store/verifyStore";
 import { onboardingErrorMessage } from "../../utils/errorMessages";
@@ -28,9 +27,6 @@ import { ACCOUNT_MAX, IFSC_LENGTH, isSameAccount, maskGrouped, useIfscLookup, ve
  */
 export default function BankEnterStep({ onVerified }) {
   const { isViewingPast, goToServerScreen, handleFlowError } = useOnboardingFlow();
-  const { brand } = useSavedBrand();
-  // Name the server compares the account holder with, when no beneficiary is typed.
-  const legalName = brand?.legalBusinessName ?? "";
   const bank = useOnboardingV2Store((s) => s.form.bank);
   const setBankField = useOnboardingV2Store((s) => s.setBankField);
   const resetBank = useOnboardingV2Store((s) => s.resetBank);
@@ -66,7 +62,7 @@ export default function BankEnterStep({ onVerified }) {
     setVerifying(true);
     setError("");
     try {
-      const draft = await verifyBankForm({ bank, legalName });
+      const draft = await verifyBankForm({ bank });
       if (!draft.result?.isVerified) {
         // A failed drop is a 200 with the bank's reason (guide §2.10).
         setError(draft.result?.message || "We couldn't verify this account. Check the details and try again.");
@@ -81,7 +77,7 @@ export default function BankEnterStep({ onVerified }) {
     } finally {
       setVerifying(false);
     }
-  }, [bank, handleFlowError, isValid, legalName, onVerified, setResult, verified, verifying]);
+  }, [bank, handleFlowError, isValid, onVerified, setResult, verified, verifying]);
 
   const handleSkip = useCallback(async () => {
     if (skipping) return;
@@ -185,15 +181,6 @@ export default function BankEnterStep({ onVerified }) {
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <TextField
-          id="beneficiary"
-          label="Beneficiary"
-          optional
-          placeholder="Name on the account"
-          autoComplete="name"
-          value={bank.beneficiary}
-          onChange={(e) => handleField("beneficiary", e.target.value)}
-        />
         <SelectField
           id="account-type"
           label="Account type"

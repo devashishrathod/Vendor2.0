@@ -45,7 +45,7 @@ const initialForm = {
   },
 
   // Step 3 · Payout
-  bank: { accountNumber: "", ifsc: "", beneficiary: "", accountType: "" },
+  bank: { accountNumber: "", ifsc: "", accountType: "" },
   bankDetails: null,
 
   // Step 4 · Agreement & Plan

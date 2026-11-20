@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { ArrowRight, BadgeCheck, Landmark, Lock, Pencil, TriangleAlert } from "lucide-react";
+import { ArrowRight, BadgeCheck, Landmark, Lock, Pencil } from "lucide-react";
 import { getErrorCode } from "@/services/http/apiError";
 import Button from "../../components/ui/Button";
 import DetailGrid from "../../components/ui/DetailGrid";
@@ -18,12 +18,6 @@ import { useVerifyStore } from "../../store/verifyStore";
 import { onboardingErrorMessage } from "../../utils/errorMessages";
 
 const VERIFY_AGAIN = [ONBOARDING_ERROR_CODES.VERIFICATION_FAILED, ONBOARDING_ERROR_CODES.VERIFICATION_NOT_FOUND];
-
-/** verify-bank `isNameMatch` (only when a beneficiary name was sent). */
-const NAME_MATCH = {
-  true: { label: "Name match", value: "✓ Matches", tone: "success" },
-  false: { label: "Name match", value: "Doesn't match" },
-};
 
 /**
  * BANK_VERIFICATION · review sub-step. Shows verify-bank's mapped `details`;
@@ -101,19 +95,12 @@ export default function BankReviewStep({ verified, onChangeDetails }) {
         items={[
           { label: "IFSC", value: details.ifscCode },
           { label: "Branch", value: details.branchName || result.branchName },
-          NAME_MATCH[String(result.isNameMatch)] ?? { label: "Name match", value: null },
         ]}
       />
 
       <Notice tone="warning" icon={Lock}>
         Once saved, the bank account can only be changed through support.
       </Notice>
-      {result.isNameMatch === false && (
-        <Notice tone="warning" icon={TriangleAlert}>
-          The name on this account doesn&apos;t match the name you entered. Our team checks it during review — change the account
-          if this one isn&apos;t yours.
-        </Notice>
-      )}
     </StepCard>
   );
 }

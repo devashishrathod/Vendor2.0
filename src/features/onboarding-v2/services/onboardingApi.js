@@ -158,16 +158,12 @@ export async function lookupIfsc(ifsc) {
 /**
  * POST /verification/brands/onboarding/verify-bank (#30) — PAID ₹1 penny
  * drop. Same account + IFSC within the reuse window is free (`reused`).
- * @param {{ accountNumber: string, ifscCode: string, beneficiaryName?: string }} bank
+ * Never send `beneficiaryName` — the server matches the name itself (D114).
+ * @param {{ accountNumber: string, ifscCode: string }} bank
  * @returns {Promise<{ data: import('../types').VerifyResult }>}
  */
-export const verifyBankAccount = ({ accountNumber, ifscCode, beneficiaryName }) =>
-  request(
-    "/verification/brands/onboarding/verify-bank",
-    "POST",
-    { accountNumber, ifscCode, ...(beneficiaryName ? { beneficiaryName } : {}) },
-    true,
-  );
+export const verifyBankAccount = ({ accountNumber, ifscCode }) =>
+  request("/verification/brands/onboarding/verify-bank", "POST", { accountNumber, ifscCode }, true);
 
 /**
  * POST /brands/onboarding/add-bank-details (#23) — only the verificationId

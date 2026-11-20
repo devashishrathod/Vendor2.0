@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { ArrowLeft, BadgeCheck, Building2, Check, Landmark, LoaderCircle, ShieldCheck, TriangleAlert, X } from "lucide-react";
+import { ArrowLeft, BadgeCheck, Building2, Check, Landmark, LoaderCircle, X } from "lucide-react";
 import Toaster from "@/features/onboarding-v2/components/ui/Toaster";
 import FormError from "@/features/onboarding-v2/components/ui/FormError";
 import { SelectField, TextField } from "@/features/onboarding-v2/components/ui/TextField";
@@ -32,7 +32,6 @@ export default function AddBankModal({ open, onClose }) {
 
 function BankModalBody({ onClose }) {
   const bank = useOnboardingV2Store((s) => s.form.bank);
-  const legalName = useOnboardingV2Store((s) => s.form.legalName);
   const setBankField = useOnboardingV2Store((s) => s.setBankField);
   const setField = useOnboardingV2Store((s) => s.setField);
   const fetchStatus = useOnboardingStatusStore((s) => s.fetchStatus);
@@ -74,7 +73,7 @@ function BankModalBody({ onClose }) {
     setBusy(true);
     setError("");
     try {
-      const draft = await verifyBankForm({ bank, legalName });
+      const draft = await verifyBankForm({ bank });
       if (!draft.result?.isVerified) {
         // A failed drop is a 200 with the bank's reason.
         setError(draft.result?.message || "We couldn't verify this account. Check the details and try again.");
@@ -110,7 +109,6 @@ function BankModalBody({ onClose }) {
 
   const result = verified?.result ?? {};
   const details = result.details ?? {};
-  const nameMatched = result.isNameMatch === true;
   const typeLabel = BANK_ACCOUNT_TYPES.find((t) => t.value === verified?.accountType)?.label ?? verified?.accountType;
 
   return (
@@ -191,15 +189,6 @@ function BankModalBody({ onClose }) {
                 {lookupDone && !ifscInfo && lookupError && <p className="text-xs font-medium text-amber-700 dark:text-amber-400">{lookupError}</p>}
               </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <TextField
-                  id="modal-beneficiary"
-                  label="Beneficiary"
-                  optional
-                  placeholder="Name on the account"
-                  autoComplete="name"
-                  value={bank.beneficiary}
-                  onChange={(e) => handleField("beneficiary", e.target.value)}
-                />
                 <SelectField
                   id="modal-account-type"
                   label="Account type"
@@ -233,19 +222,6 @@ function BankModalBody({ onClose }) {
                   </div>
                 ))}
               </dl>
-              {nameMatched ? (
-                <p className="flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2.5 text-[12.5px] font-semibold text-emerald-800 ring-1 ring-inset ring-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-500/30">
-                  <ShieldCheck size={15} className="shrink-0" aria-hidden="true" />
-                  Account holder name matches your business.
-                </p>
-              ) : (
-                <p className="flex items-start gap-2 rounded-xl bg-amber-50 px-3 py-2.5 text-[12.5px] text-amber-900 ring-1 ring-inset ring-amber-200 dark:bg-amber-500/10 dark:text-amber-200 dark:ring-amber-500/30">
-                  <TriangleAlert size={15} className="mt-0.5 shrink-0 text-amber-600" aria-hidden="true" />
-                  {result.isNameMatch === false
-                    ? `The name on this account doesn't match ${legalName || "your business"}. Payouts may be held until our team checks it.`
-                    : `We couldn't confirm this account belongs to ${legalName || "your business"}. Our team will check it during review.`}
-                </p>
-              )}
             </>
           )}
         </div>
