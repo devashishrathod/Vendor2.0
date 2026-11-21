@@ -6,6 +6,7 @@ import OutletDetailsInfo from "../components/OutletDetailsInfo";
 import TransactionSummaryPanel from "../components/TransactionSummaryPanel";
 import EditOutletModal from "../components/EditOutletModal";
 import EditLocationModal from "../components/EditLocationModal";
+import EditWorkHoursModal from "../components/EditWorkHoursModal";
 import { useOutletDetails } from "../hooks/useOutletDetails";
 
 export default function OutletDetailsPage() {
@@ -14,6 +15,7 @@ export default function OutletDetailsPage() {
   const { outlet, brand, transactions, transactionsError, loading, error, reload } = useOutletDetails(id);
   const [editing, setEditing] = useState(false);
   const [editingLocation, setEditingLocation] = useState(false);
+  const [editingWorkHours, setEditingWorkHours] = useState(false);
 
   const handleBack = () => navigate("/outlets");
 
@@ -76,6 +78,7 @@ export default function OutletDetailsPage() {
           brand={brand}
           onEdit={outlet.isVerified ? () => setEditing(true) : undefined}
           onEditLocation={outlet.isVerified ? () => setEditingLocation(true) : undefined}
+          onEditWorkHours={outlet.isVerified ? () => setEditingWorkHours(true) : undefined}
         />
       </div>
 
@@ -96,6 +99,17 @@ export default function OutletDetailsPage() {
           onClose={() => setEditingLocation(false)}
           onUpdated={() => {
             setEditingLocation(false);
+            reload();
+          }}
+        />
+      )}
+
+      {editingWorkHours && (
+        <EditWorkHoursModal
+          outlet={outlet}
+          onClose={() => setEditingWorkHours(false)}
+          onUpdated={() => {
+            setEditingWorkHours(false);
             reload();
           }}
         />

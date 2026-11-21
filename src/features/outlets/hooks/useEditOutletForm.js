@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
+import { upsertOutletHours } from "@/features/onboarding-v2/services/brandSetupApi";
 import { updateSubBrand } from "../services/subBrandApi";
+import { toEditorHours, validateHours, toPayloadHours } from "../utils/workHours";
 import {
   createLocation,
   updateLocation,
@@ -32,7 +34,7 @@ function existingLocationToPlace(loc) {
 
 // Edits an EXISTING outlet — outletType/isActive via subBrands/update, and
 // (only if the merchant actually picks a new address) its location via
-// locations/update. Unlike useAddOutletForm, there's no WhatsApp OTP step
+// locations/update. Unlike adding an outlet, there's no WhatsApp OTP step
 // here — the outlet is already verified — and location changes are staged
 // locally and only sent on "Save Changes", not persisted the moment a place
 // is picked. The location UI itself is the same one Add Outlet uses (Search
@@ -47,6 +49,14 @@ export function useEditOutletForm(outlet, onSuccess) {
   const [location, setLocationState] = useState(existingLocationToPlace(existingLocation));
   const [locationChanged, setLocationChanged] = useState(false);
   const [locationMode, setLocationMode] = useState("search");
+  // Working hours — edited on the same page; only sent (workHours/upsert)
+  // when something was actually changed.
+  const [workHours, setWorkHoursState] = useState(() => toEditorHours(raw.workHours));
+  const [workHoursChanged, setWorkHoursChanged] = useState(false);
+  const setWorkHours = (next) => {
+    setWorkHoursState(next);
+    setWorkHoursChanged(true);
+  };
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
@@ -100,6 +110,13 @@ export function useEditOutletForm(outlet, onSuccess) {
 
   const submit = async () => {
     if (!outlet?.id) return;
+    // Check the hours before saving anything, so a bad time doesn't leave
+    // the outlet half-updated.
+    const hoursProblem = workHoursChanged ? validateHours(workHours) : "";
+    if (hoursProblem) {
+      setError(hoursProblem);
+      return;
+    }
     setSubmitting(true);
     setError("");
     try {
@@ -126,6 +143,10 @@ export function useEditOutletForm(outlet, onSuccess) {
         }
       }
 
+      if (workHoursChanged) {
+        await upsertOutletHours(outlet.id, toPayloadHours(workHours));
+      }
+
       setSuccessMessage("Outlet updated successfully.");
       onSuccess?.();
     } catch (err) {
@@ -149,6 +170,8 @@ export function useEditOutletForm(outlet, onSuccess) {
     setLocationMode,
     savedLocations,
     loadingSavedLocations,
+    workHours,
+    setWorkHours,
     submit,
     submitting,
     error,

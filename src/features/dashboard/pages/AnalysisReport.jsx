@@ -29,6 +29,7 @@ import { useOnboardingStatusStore } from "@/features/onboarding-v2/store/statusS
 import { fetchVoucherTransactionOverview } from "@/features/transaction/services/transactionService";
 import { getVouchers } from "@/features/voucher/services/voucher/VoucherService";
 import AnimatedNumber from "@/components/common/AnimatedNumber";
+import DeletedCustomerBadge from "@/components/common/DeletedCustomerBadge";
 import DonutChart from "@/components/charts/DonutChart";
 import HorizontalBarChart from "@/components/charts/HorizontalBarChart";
 import TrendAreaChart from "@/components/charts/TrendAreaChart";
@@ -1181,7 +1182,10 @@ export default function AnalysisReport() {
                               {getInitials(row.customerName)}
                             </div>
                             <div>
-                              <p className="text-gray-700 dark:text-gray-300 font-medium capitalize">{row.customerName}</p>
+                              <p className="text-gray-700 dark:text-gray-300 font-medium capitalize">
+                                {row.customerName}
+                                {row.customerIsDeleted && <DeletedCustomerBadge />}
+                              </p>
                               <p className="text-blue-500">{row.customerCode}</p>
                             </div>
                           </div>

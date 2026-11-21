@@ -4,6 +4,7 @@ import { Search, SlidersHorizontal, CalendarDays, Download, Store } from "lucide
 import TxnIcon from "./TxnIcon";
 import { TRANSACTION_DATA, TRANSACTION_TABS } from "../data/transactionData";
 import { STORE_TYPE_LABELS } from "../services/transactionService";
+import DeletedCustomerBadge from "@/components/common/DeletedCustomerBadge";
 import Select from "../../../components/common/Select";
 
 // Small helper: deterministic accent color per customer, based on their name.
@@ -362,7 +363,10 @@ export default function TransactionOverview({ activeTxnTab, voucherData, dateRan
                               {getInitials(row.customerName)}
                             </div>
                             <div>
-                              <p className="text-gray-700 dark:text-gray-300 font-medium capitalize">{row.customerName}</p>
+                              <p className="text-gray-700 dark:text-gray-300 font-medium capitalize">
+                                {row.customerName}
+                                {row.customerIsDeleted && <DeletedCustomerBadge />}
+                              </p>
                               <p className="text-blue-500">{row.customerCode}</p>
                             </div>
                           </div>

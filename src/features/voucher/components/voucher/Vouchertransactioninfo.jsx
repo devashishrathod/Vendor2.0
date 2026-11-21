@@ -2,6 +2,7 @@
 import React, { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Search, Calendar, Download } from "lucide-react";
 import { Link } from "react-router-dom";
+import DeletedCustomerBadge from "@/components/common/DeletedCustomerBadge";
 
 const ROWS_PER_PAGE_OPTIONS = [10, 20, 50, 100];
 const FILTER_TABS = ["All", "Outlet", "Franchise"];
@@ -265,7 +266,10 @@ export default function VoucherTransactionInfo({
                                                     {getInitials(row.customerName)}
                                                 </span>
                                                 <div>
-                                                    <p className="font-medium text-gray-900 dark:text-gray-100">{row.customerName}</p>
+                                                    <p className="font-medium text-gray-900 dark:text-gray-100">
+                                                        {row.customerName}
+                                                        {row.customerIsDeleted && <DeletedCustomerBadge />}
+                                                    </p>
                                                     <p className="text-xs text-gray-400">{row.customerId}</p>
                                                 </div>
                                             </div>

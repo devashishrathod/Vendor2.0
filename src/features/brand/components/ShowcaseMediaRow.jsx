@@ -2,8 +2,9 @@ import { useState, useRef } from "react";
 import { DragDropProvider } from "@dnd-kit/react";
 import { useSortable } from "@dnd-kit/react/sortable";
 import { move } from "@dnd-kit/helpers";
-import { Play, Eye, X, Trash2, Upload, Pencil } from "lucide-react";
+import { Play, Eye, X, Trash2, Upload, Pencil, RotateCcw } from "lucide-react";
 import { mergeRefs, noDragRef } from "../utils/BrandHelpers";
+import { LocalFileThumb } from "./StagedFiles";
 
 // A "click" is detected manually here, from raw pointerdown/pointerup
 // coordinates — NOT the browser's native `click` event. Once dnd-kit's
@@ -79,10 +80,12 @@ function useClickWithoutDrag(onClickLike) {
 function ModalActions({ type, onReplace, onDelete, onEdit, onToggleClip, isShowInVideoClips }) {
   const fileInputRef = useRef(null);
 
+  // Hand the File itself on — clearing the input empties e.target.files, so
+  // the old onReplace(e) read nothing and Replace never uploaded.
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
     e.target.value = "";
-    if (file) onReplace?.(e);
+    if (file) onReplace?.(file);
   };
 
   return (
@@ -226,39 +229,170 @@ const ImageModal = ({ src, title, onClose, onReplace, onDelete, onEdit }) => (
 // are NOT independently confirmed from a Postman sample for
 // PATCH .../media/update/:mediaId — see updateShowcaseMediaDetails's
 // comment in brandApi.js.
-function EditMediaModal({ media, onClose, onSave }) {
+//
+// Replace / Remove live here too: Replace only STAGES the new file (preview
+// + Undo) and it uploads on Save; Remove deletes after an in-modal confirm.
+function EditMediaModal({ media, onClose, onSave, onReplace, onRemove }) {
   const [title, setTitle] = useState(media?.title || "");
   const [altText, setAltText] = useState(media?.altText || "");
   const [thumbnail, setThumbnail] = useState(null);
+  const [replacement, setReplacement] = useState(null);
+  const [confirmRemove, setConfirmRemove] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [removing, setRemoving] = useState(false);
+  const [error, setError] = useState("");
+  const replaceInputRef = useRef(null);
+  const busy = submitting || removing;
   const isVideo = media?.type === "VIDEO";
+
+  const handleReplacePick = (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (file) setReplacement(file);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
+    setError("");
     try {
-      await onSave({ title, altText, thumbnail: isVideo ? thumbnail : undefined });
+      // The file goes up first (media/replace), then title / alt text /
+      // thumbnail are saved on the same item (media/update).
+      if (replacement && onReplace) await onReplace(replacement);
+      await onSave({ title, altText, thumbnail: isVideo && !replacement ? thumbnail : undefined });
       onClose();
+    } catch (err) {
+      setError(err?.message || "Couldn't save the changes.");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleRemove = async () => {
+    setRemoving(true);
+    setError("");
+    try {
+      await onRemove();
+      onClose();
+    } catch (err) {
+      setError(err?.message || "Couldn't remove this item.");
+      setRemoving(false);
     }
   };
 
   return (
     <div
       className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 px-4"
-      onClick={onClose}
+      onClick={busy ? undefined : onClose}
     >
       <div
-        className="w-full max-w-md rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-xl"
+        className="max-h-[92vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">Edit {isVideo ? "Video" : "Photo"}</h3>
-          <button type="button" onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+          <button type="button" onClick={onClose} disabled={busy} aria-label="Close" className="text-gray-400 hover:text-gray-600 disabled:opacity-50 dark:hover:text-gray-200">
             <X size={18} />
           </button>
         </div>
+
+        {/* The item being edited (or its staged replacement). */}
+        <div className="relative mb-2 flex aspect-video w-full items-center justify-center overflow-hidden rounded-xl bg-gray-900">
+          {replacement ? (
+            <LocalFileThumb file={replacement} contain />
+          ) : isVideo ? (
+            <video src={media?.url} className="h-full w-full object-contain" controls muted playsInline preload="metadata" />
+          ) : (
+            <img src={media?.url} alt={media?.altText || ""} className="h-full w-full object-contain" />
+          )}
+          {replacement && (
+            <span className="pointer-events-none absolute left-2 top-2 rounded-md bg-emerald-500 px-2 py-0.5 text-[10.5px] font-semibold text-white">
+              New — replaces on Save
+            </span>
+          )}
+        </div>
+
+        {(onReplace || onRemove) && (
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            {confirmRemove ? (
+              <div className="flex w-full items-center gap-2 rounded-xl bg-rose-50 px-3 py-2 dark:bg-rose-500/10">
+                <span className="min-w-0 flex-1 text-xs font-medium text-rose-600 dark:text-rose-400">
+                  Remove this {isVideo ? "video" : "photo"} permanently?
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setConfirmRemove(false)}
+                  disabled={removing}
+                  className="rounded-lg px-2.5 py-1 text-xs font-semibold text-gray-600 hover:bg-white disabled:opacity-50 dark:text-gray-300 dark:hover:bg-gray-700"
+                >
+                  Keep
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRemove}
+                  disabled={removing}
+                  className="rounded-lg bg-rose-500 px-2.5 py-1 text-xs font-bold text-white hover:bg-rose-600 disabled:opacity-60"
+                >
+                  {removing ? "Removing…" : "Remove"}
+                </button>
+              </div>
+            ) : replacement ? (
+              <>
+                <span className="min-w-0 flex-1 truncate text-xs text-gray-500 dark:text-gray-400" title={replacement.name}>
+                  {replacement.name}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => replaceInputRef.current?.click()}
+                  disabled={busy}
+                  className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-100 disabled:opacity-50 dark:text-gray-300 dark:hover:bg-gray-700"
+                >
+                  <Upload size={13} /> Pick another
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setReplacement(null)}
+                  disabled={busy}
+                  className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-amber-600 hover:bg-amber-50 disabled:opacity-50 dark:text-amber-400 dark:hover:bg-amber-500/10"
+                >
+                  <RotateCcw size={13} /> Undo
+                </button>
+              </>
+            ) : (
+              <>
+                {onReplace && (
+                  <button
+                    type="button"
+                    onClick={() => replaceInputRef.current?.click()}
+                    disabled={busy}
+                    className="flex items-center gap-1.5 rounded-full border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:border-emerald-300 hover:text-emerald-600 disabled:opacity-50 dark:border-gray-600 dark:text-gray-300"
+                  >
+                    <Upload size={13} /> Replace
+                  </button>
+                )}
+                {onRemove && (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmRemove(true)}
+                    disabled={busy}
+                    className="flex items-center gap-1.5 rounded-full border border-gray-200 px-3 py-1.5 text-xs font-semibold text-rose-500 hover:border-rose-300 hover:bg-rose-50 disabled:opacity-50 dark:border-gray-600 dark:hover:bg-rose-500/10"
+                  >
+                    <Trash2 size={13} /> Remove
+                  </button>
+                )}
+              </>
+            )}
+            <input
+              ref={replaceInputRef}
+              type="file"
+              accept={isVideo ? "video/*" : "image/*"}
+              onChange={handleReplacePick}
+              className="hidden"
+            />
+          </div>
+        )}
+
+        {error && <p className="mb-3 text-xs text-rose-500">{error}</p>}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -283,7 +417,9 @@ function EditMediaModal({ media, onClose, onSave }) {
             />
           </div>
 
-          {isVideo && (
+          {/* Thumbnail belongs to the current video — hidden while a new
+              file is staged (media/replace only takes the file). */}
+          {isVideo && !replacement && (
             <div>
               <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">Thumbnail (optional)</label>
               <input
@@ -304,16 +440,17 @@ function EditMediaModal({ media, onClose, onSave }) {
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+              disabled={busy}
+              className="rounded-xl px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 disabled:opacity-50 dark:hover:bg-gray-700"
             >
               Cancel
             </button>
             <button
               type="submit"
-              disabled={submitting}
+              disabled={busy}
               className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-bold text-white shadow-sm shadow-emerald-100 transition-all duration-200 hover:bg-emerald-600 active:scale-[0.97] disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:text-gray-300 disabled:shadow-none disabled:cursor-not-allowed"
             >
-              {submitting ? "Saving…" : "Save Changes"}
+              {submitting ? (replacement ? "Replacing…" : "Saving…") : replacement ? "Replace & Save" : "Save Changes"}
             </button>
           </div>
         </form>
@@ -350,18 +487,32 @@ function MediaTile({ media, index, onPlay, onPreview, onEdit }) {
         {index + 1}
       </span>
 
-      {onEdit && (
+      {/* Hover actions: View + Edit (noDragRef so a click never turns
+          into a drag). */}
+      <div className="absolute right-1.5 top-1.5 z-20 flex items-center gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
         <button
           type="button"
           ref={noDragRef}
-          onClick={onEdit}
-          aria-label="Edit"
-          title="Edit"
-          className="absolute right-1.5 top-1.5 z-20 flex h-6 w-6 items-center justify-center rounded-full bg-gray-900/70 text-white opacity-0 transition-opacity duration-150 hover:bg-gray-900 group-hover:opacity-100"
+          onClick={handleOpen}
+          aria-label="View"
+          title="View"
+          className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-900/70 text-white hover:bg-gray-900"
         >
-          <Pencil size={12} />
+          <Eye size={12} />
         </button>
-      )}
+        {onEdit && (
+          <button
+            type="button"
+            ref={noDragRef}
+            onClick={onEdit}
+            aria-label="Edit"
+            title="Edit"
+            className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-900/70 text-white hover:bg-gray-900"
+          >
+            <Pencil size={12} />
+          </button>
+        )}
+      </div>
 
       <button
         type="button"
@@ -392,9 +543,8 @@ function MediaTile({ media, index, onPlay, onPreview, onEdit }) {
               alt={media.altText || `Photo ${index + 1}`}
               className="h-full w-full object-cover"
             />
-            <div className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-all duration-150 group-hover:bg-black/30 group-hover:opacity-100">
-              <Eye size={20} className="text-white drop-shadow" />
-            </div>
+            {/* Hover dim — the corner View button carries the eye now. */}
+            <div className="absolute inset-0 bg-black/0 transition-colors duration-150 group-hover:bg-black/20" />
           </>
         )}
       </button>
@@ -424,16 +574,26 @@ const ShowcaseMediaRow = ({ medias, onDelete, onReplace, onUpdateDetails, onReor
   // tile was clicked, so a Replace/Delete from inside the modal closes it
   // right away — it can't pick up a changed url or a deletion on its own
   // once the parent reloads the section.
+  // A failed call leaves the preview open — ShowcasePage already shows the
+  // error banner, so it's only swallowed here.
   const handleReplaceFromModal = async (activeMedia, file, closeModal) => {
     if (!activeMedia || !onReplace) return;
-    await onReplace(activeMedia._id, file);
-    closeModal();
+    try {
+      await onReplace(activeMedia._id, file);
+      closeModal();
+    } catch {
+      /* shown by ShowcasePage */
+    }
   };
 
   const handleDeleteFromModal = async (activeMedia, closeModal) => {
     if (!activeMedia || !onDelete) return;
-    await onDelete(activeMedia._id);
-    closeModal();
+    try {
+      await onDelete(activeMedia._id);
+      closeModal();
+    } catch {
+      /* shown by ShowcasePage */
+    }
   };
 
   // "Edit" closes whichever preview is open and opens EditMediaModal on
@@ -484,11 +644,7 @@ const ShowcaseMediaRow = ({ medias, onDelete, onReplace, onUpdateDetails, onReor
         <VideoModal
           src={playing.url}
           onClose={() => setPlaying(null)}
-          onReplace={onReplace ? (e) => {
-            const file = e.target.files?.[0];
-            e.target.value = "";
-            if (file) handleReplaceFromModal(playing, file, () => setPlaying(null));
-          } : undefined}
+          onReplace={onReplace ? (file) => handleReplaceFromModal(playing, file, () => setPlaying(null)) : undefined}
           onDelete={onDelete ? () => handleDeleteFromModal(playing, () => setPlaying(null)) : undefined}
           onEdit={onUpdateDetails ? () => handleEditFromModal(playing) : undefined}
           onToggleClip={onToggleClip ? (checked) => onToggleClip(playing._id, checked) : undefined}
@@ -499,11 +655,7 @@ const ShowcaseMediaRow = ({ medias, onDelete, onReplace, onUpdateDetails, onReor
         <ImageModal
           src={previewing.url}
           onClose={() => setPreviewing(null)}
-          onReplace={onReplace ? (e) => {
-            const file = e.target.files?.[0];
-            e.target.value = "";
-            if (file) handleReplaceFromModal(previewing, file, () => setPreviewing(null));
-          } : undefined}
+          onReplace={onReplace ? (file) => handleReplaceFromModal(previewing, file, () => setPreviewing(null)) : undefined}
           onDelete={onDelete ? () => handleDeleteFromModal(previewing, () => setPreviewing(null)) : undefined}
           onEdit={onUpdateDetails ? () => handleEditFromModal(previewing) : undefined}
         />
@@ -513,6 +665,8 @@ const ShowcaseMediaRow = ({ medias, onDelete, onReplace, onUpdateDetails, onReor
           media={editingMedia}
           onClose={() => setEditingMedia(null)}
           onSave={handleSaveDetails}
+          onReplace={onReplace ? (file) => onReplace(editingMedia._id, file) : undefined}
+          onRemove={onDelete ? () => onDelete(editingMedia._id) : undefined}
         />
       )}
     </DragDropProvider>
