@@ -24,6 +24,9 @@ const TONES = {
   },
 };
 
+/** "Reason: …" as a sentence — our team's note usually ends with its own full stop. */
+const reasonSentence = (reason) => `Reason: ${reason.trim()}${/[.!?]$/.test(reason.trim()) ? "" : "."}`;
+
 /**
  * What the dashboard pages say about the brand's review, from
  * `status.verification` / `editLock` (guide §7, §9), or null.
@@ -37,7 +40,7 @@ function bannerFor(status) {
       tone: "danger",
       icon: ShieldAlert,
       title: "Your approval has been withdrawn.",
-      text: `${v.revokeReason ? `Reason: ${v.revokeReason}. ` : ""}Customers can't see your brand until you update your details and resubmit.`,
+      text: `${v.revokeReason ? `${reasonSentence(v.revokeReason)} ` : ""}Customers can't see your brand until you update your details and resubmit.`,
       action: "Update details",
     };
   }
@@ -46,7 +49,7 @@ function bannerFor(status) {
       tone: "danger",
       icon: ShieldAlert,
       title: "Our team asked for a few changes.",
-      text: v.rejectionReason ? `Reason: ${v.rejectionReason}.` : "Please update your details and resubmit.",
+      text: v.rejectionReason ? reasonSentence(v.rejectionReason) : "Please update your details and resubmit.",
       action: "Update details",
     };
   }
