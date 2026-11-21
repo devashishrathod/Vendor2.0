@@ -26,13 +26,19 @@ const AddShowcaseSectionModal = ({ mode = "add", section = null, onClose, onSubm
   // A video in the batch needs a thumbnail before it can be uploaded; for an
   // image-only batch marked for clips it stays optional.
   const hasVideo = !isEdit && files.some((f) => f.type?.startsWith("video/"));
+  const invalidVideoBatch = hasVideo && files.length !== 1;
   const showThumbnailField = hasVideo || isShowInVideoClips;
   const needsThumbnail = hasVideo && !thumbnail;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setFormError(null);
-    if (needsThumbnail) return;
+    if (needsThumbnail || invalidVideoBatch) {
+      if (invalidVideoBatch) {
+        setFormError("Upload one video at a time with its poster image. Photos can be uploaded together.");
+      }
+      return;
+    }
 
     if (!title.trim()) {
       setFormError("Title is required.");
@@ -149,13 +155,9 @@ const AddShowcaseSectionModal = ({ mode = "add", section = null, onClose, onSubm
                 </label>
               </div>
 
-              {/* Required when the batch has a video, optional for an
-                  image-only batch marked for video clips — a custom poster
-                  image instead of an arbitrary auto-picked video frame.
-                  ⚠️ NOT CONFIRMED from Postman: no thumbnail field is
-                  documented on add-media yet, so this is sent as a
-                  best-effort "thumbnail" form field — verify the real
-                  request/response once tested. */}
+              {/* Required when uploading a video; video uploads are limited
+                  to one file so its poster maps to that video. For an
+                  image-only batch marked for clips, the poster is optional. */}
               {showThumbnailField && (
                 <BatchThumbnailField
                   files={files}
@@ -176,10 +178,13 @@ const AddShowcaseSectionModal = ({ mode = "add", section = null, onClose, onSubm
             >
               Cancel
             </button>
-            <DisabledHint show={needsThumbnail && !submitting} message="Choose a thumbnail for the video">
+            <DisabledHint
+              show={(needsThumbnail || invalidVideoBatch) && !submitting}
+              message={invalidVideoBatch ? "Upload videos one at a time" : "Choose a thumbnail for the video"}
+            >
               <button
                 type="submit"
-                disabled={submitting || needsThumbnail}
+                disabled={submitting || needsThumbnail || invalidVideoBatch}
                 className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-bold text-white shadow-sm shadow-emerald-100 transition-all duration-200 hover:bg-emerald-600 active:scale-[0.97] disabled:pointer-events-none disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:text-gray-300 disabled:shadow-none disabled:active:scale-100"
               >
                 {submitting ? (isEdit ? "Updating…" : "Adding…") : isEdit ? "Update Section" : "Add Section"}

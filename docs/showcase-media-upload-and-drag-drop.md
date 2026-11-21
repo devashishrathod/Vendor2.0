@@ -94,8 +94,10 @@ clips" and (only then) attach a custom thumbnail before anything is sent.
    (`pendingFiles`), and immediately resets `e.target.value = ""` (so
    picking the *same* file again later still fires `onChange`).
 3. Because `pendingFiles` is now non-null, `UploadMediaModal` renders.
-4. Inside the modal: a checkbox ("Show in video clips"); if checked, a
-   *second* file input appears for an optional single thumbnail image.
+4. Inside the modal: a checkbox ("Show in video clips"); when a video is
+   selected, a poster-image input is required. Video uploads are one at a
+   time so the poster maps to exactly one video; photo-only batches may
+   contain multiple files.
 5. Confirming calls the parent's upload handler with
    `{ isShowInVideoClips, thumbnail }`, then closes the modal.
 6. The parent handler calls the API, then reloads the section list.
@@ -180,7 +182,7 @@ export async function addShowcaseMedia(
 ) {
   const formData = new FormData();
   formData.append('isShowInVideoClips', String(isShowInVideoClips));
-  if (thumbnail) formData.append('thumbnail', thumbnail);
+  if (thumbnail) formData.append('thumbnails', thumbnail);
   Object.entries(extraFields).forEach(([key, value]) => formData.append(key, value));
   files.forEach((file) => formData.append('files', file));
 
@@ -198,8 +200,9 @@ export async function addShowcaseMedia(
 `POST /showcase/section/:sectionId/add-media` (multipart/form-data):
 - `isShowInVideoClips`: `"true" | "false"` (text field)
 - `files`: repeated file field, one per upload
-- `thumbnail`: single file field (⚠️ not independently confirmed against a
-  real Postman sample in this codebase — verify before relying on it)
+- `thumbnails`: repeated poster-image file field, aligned with video files.
+  A video upload must include its poster; the UI sends one video and one
+  poster per request to keep their positions aligned.
 
 Creating a brand-new section with its *first* batch of media in one step
 (`AddShowcaseSectionModal.jsx`, mode="add") is a thin convenience wrapper:
@@ -444,7 +447,7 @@ buttons themselves.
 | Update section | `PUT /showcase/section/update/:id` | partial patch, e.g. `{ title, description }` or `{ isVisible }` |
 | Delete section | `DELETE /showcase/section/delete/:id` | — |
 | Reorder sections | `PUT /showcase/section/:brandId/reorder` | `{ sections: [{ id, sortOrder }] }` — path id is the **brand's** id |
-| Add media | `POST /showcase/section/:sectionId/add-media` | multipart: `isShowInVideoClips`, repeated `files`, optional `thumbnail` (⚠️ unconfirmed field name) |
+| Add media | `POST /showcase/section/:sectionId/add-media` | multipart: `isShowInVideoClips`, repeated `files`, repeated `thumbnails` aligned with videos |
 | Replace media file / flag | `PUT /showcase/section/:sectionId/media/replace/:mediaId` | multipart: `file` and/or `isShowInVideoClips` |
 | Delete media | `DELETE /showcase/section/:sectionId/media/delete/:mediaId` | — |
 | Reorder media | `PUT /showcase/section/:sectionId/media/reorder` | `{ medias: [{ id, sortOrder }] }` — full combined photo+video sequence |

@@ -20,8 +20,8 @@ export function validateOTP(otp) {
 export function validateBusinessName(name) {
   if (!name?.trim()) return "Business name is required";
   if (name.trim().length < 3) return "Must be at least 3 characters";
-  if (!/^[A-Za-z\s&.'\-,()]+$/.test(name.trim()))
-    return "Business name must contain only letters and allowed characters (& . ' - , )";
+  if (!/^[A-Za-z0-9\s&.'\-,()]+$/.test(name.trim()))
+    return "Business name may contain letters, numbers, spaces, and these characters: & . ' - , ( )";
   return null;
 }
 

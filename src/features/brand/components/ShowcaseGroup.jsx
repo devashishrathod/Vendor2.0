@@ -25,6 +25,7 @@ function UploadMediaModal({ files: initialFiles, onClose, onConfirm }) {
   const [submitting, setSubmitting] = useState(false);
 
   const hasVideo = files.some((f) => f.type?.startsWith("video/"));
+  const invalidVideoBatch = hasVideo && files.length !== 1;
   const showThumbnailField = hasVideo || isShowInVideoClips;
   const needsThumbnail = hasVideo && !thumbnail;
   const empty = files.length === 0;
@@ -56,6 +57,11 @@ function UploadMediaModal({ files: initialFiles, onClose, onConfirm }) {
         <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
           {empty ? "No files selected — add some below." : `${files.length} file${files.length > 1 ? "s" : ""} ready to upload.`}
         </p>
+        {invalidVideoBatch && (
+          <p className="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
+            Upload one video at a time with its poster image. Photos can be uploaded together.
+          </p>
+        )}
 
         <div className="mb-4">
           <StagedFilesGrid files={files} onChange={setFiles} disabled={submitting} />
