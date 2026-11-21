@@ -54,25 +54,11 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// messaging.onBackgroundMessage((payload) => {
-//   console.log("[FCM SW] Background message:", payload);
-
-//   const notification = payload.notification || {};
-//   const data = payload.data || {};
-
-//   self.registration.showNotification(
-//     notification.title || data.title || "TryDood Vendor",
-//     {
-//       body: notification.body || data.body || "",
-//       icon: "/vite.svg",
-//       data,
-//     }
-//   );
-// });
-
+// Background push. Our pushes carry a `notification` block (title, body) and
+// `data` (type, notificationId, deepLink, brandId); the browser (Firebase SDK)
+// shows those itself, so showing one here too made two OS notifications per
+// push. Only a data-only push needs one from us.
 messaging.onBackgroundMessage(async (payload) => {
-  console.log("[FCM SW] Background message:", payload);
-
   const notification = payload.notification || {};
   const data = payload.data || {};
 
@@ -84,20 +70,14 @@ messaging.onBackgroundMessage(async (payload) => {
     data,
   };
 
-  // 🔥 Send message to the open Vendor React app
-  const clients = await self.clients.matchAll({
-    type: "window",
-    includeUncontrolled: true,
-  });
+  // Open panel tabs (in the background) reload the bell and the onboarding status.
+  const clients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+  clients.forEach((client) => client.postMessage(message));
 
-  clients.forEach((client) => {
-    client.postMessage(message);
-  });
-
-  // Browser notification
+  if (payload.notification) return;
   await self.registration.showNotification(message.title, {
     body: message.body,
-    icon: "/vite.svg",
+    icon: "/favicon.svg",
     data,
   });
 });
