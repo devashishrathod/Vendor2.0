@@ -33,6 +33,7 @@ import SettingsPage from './features/settings/pages/SettingsPage';
 import BrandPage from './features/brand';
 import PostAuthRouteGuard from './routes/PostAuthRouteGuard';
 import NotificationOpenRoute from './routes/NotificationOpenRoute';
+import DashboardOnlyRoute from './routes/DashboardOnlyRoute';
 import OnboardingOnlyRoute from './routes/OnboardingOnlyRoute';
 import AnalyticsRouteTracker from './routes/AnalyticsRouteTracker';
 
@@ -118,7 +119,8 @@ function App() {
         <Route path={ONBOARDING_ROUTES.STATUS} element={<ProtectedRoute><ReviewStatusPage /></ProtectedRoute>} />
 
         {/* ─── DASHBOARD GROUP: header/footer YAHAN chahiye ─── */}
-        <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+        {/* A vendor still onboarding who opens one of these by URL → their screen (status). */}
+        <Route element={<ProtectedRoute><DashboardOnlyRoute><DashboardLayout /></DashboardOnlyRoute></ProtectedRoute>}>
 
           <Route path="/analysis-report" element={<AnalysisReport />} />
 
