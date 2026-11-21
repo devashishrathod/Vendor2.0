@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { onForegroundMessage } from './config/firebaseMessaging';
 import PushNotificationToast from './components/common/PushNotificationToast';
+import NotificationClickListener from './components/common/NotificationClickListener';
 import { announceNotification, refreshProfileAfterNotice } from './utils/notificationEvents';
-import { notificationTarget, refreshesProfile } from './utils/notificationLinks';
+import { NOTIFICATION_OPEN_PATH, notificationTarget, refreshesProfile } from './utils/notificationLinks';
 import ProtectedRoute from './routes/ProtectedRoute';
 import PublicRoute from './routes/PublicRoute';
 import DashboardLayout from './features/dashboard/layouts/DashboardLayout';
@@ -31,6 +32,7 @@ import { SubscriptionPage } from './features/subscription';
 import SettingsPage from './features/settings/pages/SettingsPage';
 import BrandPage from './features/brand';
 import PostAuthRouteGuard from './routes/PostAuthRouteGuard';
+import NotificationOpenRoute from './routes/NotificationOpenRoute';
 import OnboardingOnlyRoute from './routes/OnboardingOnlyRoute';
 import AnalyticsRouteTracker from './routes/AnalyticsRouteTracker';
 
@@ -99,6 +101,8 @@ function App() {
     <BrowserRouter>
     <AnalyticsRouteTracker />
     <PushNotificationToast toast={pushToast} onDismiss={() => setPushToast(null)} />
+    {/* OS notification clicked while this tab is open → its page, in-app. */}
+    <NotificationClickListener />
      {/* Logged in → wait for GET /brands/onboarding/status, the only routing source. */}
      <StatusGate>
      <PostAuthRouteGuard>   {/* ✅ yahan wrap karo — Routes ke bahar, Router ke andar */}
@@ -157,6 +161,9 @@ function App() {
           <Route path="/settings" element={<SettingsPage />} />
 
         </Route>
+
+        {/* OS notification click (service worker) → the notification's page, or the vendor's screen. */}
+        <Route path={NOTIFICATION_OPEN_PATH} element={<ProtectedRoute><NotificationOpenRoute /></ProtectedRoute>} />
 
         {/* ─── Fallback ─── */}
         <Route path="*" element={<Navigate to="/" replace />} />
