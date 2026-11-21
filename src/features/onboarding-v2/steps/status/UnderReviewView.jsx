@@ -5,11 +5,17 @@ import ProfileStrengthCard from "../../components/strength/ProfileStrengthCard";
 import { isWizardScreen } from "../../config/routes";
 import { useOnboardingFlow } from "../../hooks/useOnboardingFlow";
 import { getVerificationHistory } from "../../services/onboardingApi";
+import { useOnboardingStatusStore } from "../../store/statusStore";
 import SystemChecksCard from "../review/SystemChecksCard";
 import VerificationTimeline from "../review/VerificationTimeline";
 import { STRENGTH_ITEM_SCREENS, reviewAction } from "../review/reviewHelpers";
 
 const NEW_VOUCHER_ROUTE = "/vouchers/new";
+
+// While the decision is pending the status is read again this often (tab
+// visible) — so an approval or a change request shows up without a reload,
+// also when push is off. Same interval as the old under-review page.
+const REVIEW_POLL_MS = 15000;
 
 const formatDate = (iso) => {
   if (!iso) return null;
@@ -75,10 +81,12 @@ function Stages({ verification, checks, history }) {
  * stages, what the vendor can do meanwhile (strength items with points and
  * a first voucher draft), the system checks and the history. Add-only: an
  * item opens its screen to add what's missing; anything already given is
- * locked (409 ONBOARDING_LOCKED) until a decision.
+ * locked (409 ONBOARDING_LOCKED) until a decision. The status is re-read
+ * every 15 s and when the vendor returns to the tab.
  */
 export default function UnderReviewView() {
   const { status, openScreen } = useOnboardingFlow();
+  const fetchStatus = useOnboardingStatusStore((s) => s.fetchStatus);
   const [history, setHistory] = useState([]);
 
   useEffect(() => {
@@ -86,6 +94,21 @@ export default function UnderReviewView() {
       .then(setHistory)
       .catch((err) => console.error("Verification history fetch failed:", err));
   }, []);
+
+  useEffect(() => {
+    const check = () => {
+      if (document.visibilityState !== "visible") return;
+      fetchStatus().catch((err) => console.error("Onboarding status refresh failed:", err));
+    };
+    const timer = setInterval(check, REVIEW_POLL_MS);
+    document.addEventListener("visibilitychange", check);
+    window.addEventListener("focus", check);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", check);
+      window.removeEventListener("focus", check);
+    };
+  }, [fetchStatus]);
 
   const canOpen = useCallback((screen) => reviewAction(screen, status) !== "locked" && isWizardScreen(screen), [status]);
   const selectableKeys = Object.entries(STRENGTH_ITEM_SCREENS)
