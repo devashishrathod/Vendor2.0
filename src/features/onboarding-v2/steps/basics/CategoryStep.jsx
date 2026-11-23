@@ -1,26 +1,28 @@
 ﻿import { useCallback, useMemo, useState } from "react";
-import { ArrowRight, Check, ChevronRight, Ellipsis, FileText, LayoutGrid, LoaderCircle, Lock, RotateCw, Search } from "lucide-react";
+import { ArrowRight, ChevronRight, FileText, LayoutGrid, Lock, RotateCw, Search, X } from "lucide-react";
 import { useCategories } from "@/features/outlets/setup/hooks/useCategories";
 import Button from "../../components/ui/Button";
+import FormError from "../../components/ui/FormError";
 import InfoPanel from "../../components/ui/InfoPanel";
 import Notice from "../../components/ui/Notice";
-import FormError from "../../components/ui/FormError";
-import OptionCard from "../../components/ui/OptionCard";
-import RemoteIcon from "../../components/ui/RemoteIcon";
 import StepCard from "../../components/ui/StepCard";
 import StepFooter from "../../components/ui/StepFooter";
 import { SCREENS } from "../../config/screens";
-import { VISIBLE_CATEGORY_COUNT } from "../../constants/onboardingOptions";
+import { SUBCATEGORY_SEARCH_MIN, VISIBLE_CATEGORY_COUNT } from "../../constants/onboardingOptions";
 import { useOnboardingFlow } from "../../hooks/useOnboardingFlow";
 import { addBasicDetails } from "../../services/onboardingApi";
 import { useSavedBrand, useSavedBrandStore } from "../../store/brandStore";
 import { onboardingErrorMessage } from "../../utils/errorMessages";
+import { CategoryTile, MoreCategoriesTile, SectionHeading, SubCategoryOption } from "./CategoryOptions";
 import { iconForCategory, toOption } from "./categoryHelpers";
 
 const UNLOCKS = [
   { icon: Search, title: "Get discovered", text: "Customers browse vouchers by category." },
   { icon: FileText, title: "Right documents", text: "We suggest the licence you need, like FSSAI for food." },
 ];
+
+const CATEGORY_GRID = "grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-4";
+const SUB_GRID = "grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3";
 
 function RetryButton({ onClick }) {
   return (
@@ -32,9 +34,19 @@ function RetryButton({ onClick }) {
 
 function CategoryTilesSkeleton() {
   return (
-    <div className="mt-2 grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-4" aria-hidden="true">
+    <div className={`mt-3 ${CATEGORY_GRID}`} aria-hidden="true">
       {Array.from({ length: VISIBLE_CATEGORY_COUNT + 1 }, (_, i) => (
-        <div key={i} className="h-[88px] animate-pulse rounded-xl bg-gray-100 dark:bg-gray-800" />
+        <div key={i} className="h-[104px] animate-pulse rounded-2xl bg-gray-100 dark:bg-gray-800" />
+      ))}
+    </div>
+  );
+}
+
+function SubCategoriesSkeleton() {
+  return (
+    <div className={`mt-3 ${SUB_GRID}`} aria-hidden="true">
+      {Array.from({ length: 6 }, (_, i) => (
+        <div key={i} className="h-12 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-800" />
       ))}
     </div>
   );
@@ -42,11 +54,9 @@ function CategoryTilesSkeleton() {
 
 /** @param {{ onRetry: () => void }} props */
 function CategoryStepContent({ onRetry }) {
-  const { limits, goToServerScreen, handleFlowError } = useOnboardingFlow();
+  const { goToServerScreen, handleFlowError } = useOnboardingFlow();
   const { brand } = useSavedBrand();
   const mergeBrand = useSavedBrandStore((s) => s.mergeBrand);
-  // Server limit (owner answer 8) — never hardcoded.
-  const maxSubs = limits?.maxSubCategories ?? null;
 
   // null = untouched: the saved category / sub-categories show once loaded.
   const [draftCategoryId, setDraftCategoryId] = useState(null);
@@ -71,14 +81,15 @@ function CategoryStepContent({ onRetry }) {
   const categoryOptions = useMemo(() => categories.map(toOption).filter((c) => c.id && c.name), [categories]);
   const subOptions = useMemo(() => subCategories.map(toOption).filter((c) => c.id && c.name), [subCategories]);
   const categoryName = categoryOptions.find((c) => c.id === categoryId)?.name ?? "";
+  const categoryIcon = iconForCategory(categoryName);
   const selectedSubs = useMemo(() => subOptions.filter((s) => selectedIds.includes(s.id)), [selectedIds, subOptions]);
-  const atLimit = maxSubs != null && selectedIds.length >= maxSubs;
 
   // Keep the picked category visible even when it sits behind "More".
   const selectedIndex = categoryOptions.findIndex((c) => c.id === categoryId);
   const collapsed = !showAll && categoryOptions.length > VISIBLE_CATEGORY_COUNT + 1 && selectedIndex < VISIBLE_CATEGORY_COUNT;
   const visibleCategories = collapsed ? categoryOptions.slice(0, VISIBLE_CATEGORY_COUNT) : categoryOptions;
 
+  const showSearch = subOptions.length >= SUBCATEGORY_SEARCH_MIN;
   const filteredSubs = useMemo(() => {
     const query = search.trim().toLowerCase();
     return query ? subOptions.filter((s) => s.name.toLowerCase().includes(query)) : subOptions;
@@ -98,20 +109,25 @@ function CategoryStepContent({ onRetry }) {
   const toggleSub = useCallback(
     (option) => {
       const isSelected = selectedIds.includes(option.id);
-      if (!isSelected && atLimit) return;
       setDraftSubIds(isSelected ? selectedIds.filter((id) => id !== option.id) : [...selectedIds, option.id]);
       setSaveError("");
     },
-    [atLimit, selectedIds],
+    [selectedIds],
   );
+
+  const clearSubs = useCallback(() => {
+    setDraftSubIds([]);
+    setSaveError("");
+  }, []);
 
   const showMore = useCallback(() => setShowAll(true), []);
   const handleSearch = useCallback((event) => setSearch(event.target.value), []);
+  const clearSearch = useCallback(() => setSearch(""), []);
 
   // The server needs one or more sub-categories of the chosen category (#20).
   const subsLoaded = Boolean(categoryId) && !subCategoriesLoading && !subCategoriesError;
   const noSubsAvailable = subsLoaded && subOptions.length === 0;
-  const isValid = Boolean(categoryId) && selectedIds.length > 0 && (maxSubs == null || selectedIds.length <= maxSubs);
+  const isValid = Boolean(categoryId) && selectedIds.length > 0;
 
   const handleContinue = useCallback(async () => {
     if (!isValid || saving) return;
@@ -124,7 +140,6 @@ function CategoryStepContent({ onRetry }) {
     } catch (err) {
       if (handleFlowError(err)) return;
       console.error("Category save failed:", err);
-      // 422 SUBCATEGORY_LIMIT carries details.limit (owner answer 8).
       setSaveError(onboardingErrorMessage(err, "Couldn't save your category. Please try again."));
     } finally {
       setSaving(false);
@@ -136,7 +151,7 @@ function CategoryStepContent({ onRetry }) {
     categoryBody = <CategoryTilesSkeleton />;
   } else if (categoriesError) {
     categoryBody = (
-      <div className="mt-2">
+      <div className="mt-3">
         <Notice tone="error" action={<RetryButton onClick={onRetry} />}>
           {categoriesError}
         </Notice>
@@ -144,17 +159,16 @@ function CategoryStepContent({ onRetry }) {
     );
   } else if (!categoryOptions.length) {
     categoryBody = (
-      <div className="mt-2">
+      <div className="mt-3">
         <Notice action={<RetryButton onClick={onRetry} />}>No categories are available right now.</Notice>
       </div>
     );
   } else {
     categoryBody = (
-      <div className="mt-2 grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-4">
+      <div className={`mt-3 ${CATEGORY_GRID}`}>
         {visibleCategories.map((c) => (
-          <OptionCard
+          <CategoryTile
             key={c.id}
-            variant="tile"
             icon={iconForCategory(c.name)}
             imageUrl={c.image}
             title={c.name}
@@ -162,7 +176,7 @@ function CategoryStepContent({ onRetry }) {
             onSelect={() => selectCategory(c)}
           />
         ))}
-        {collapsed && <OptionCard variant="tile" icon={Ellipsis} title="More" selected={false} onSelect={showMore} />}
+        {collapsed && <MoreCategoriesTile hiddenCount={categoryOptions.length - VISIBLE_CATEGORY_COUNT} onClick={showMore} />}
       </div>
     );
   }
@@ -170,15 +184,10 @@ function CategoryStepContent({ onRetry }) {
   let subBody = null;
   if (categoryId) {
     if (subCategoriesLoading) {
-      subBody = (
-        <p className="mt-2 flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-          <LoaderCircle size={14} className="animate-spin" aria-hidden="true" />
-          Loading sub-categories…
-        </p>
-      );
+      subBody = <SubCategoriesSkeleton />;
     } else if (subCategoriesError) {
       subBody = (
-        <div className="mt-2">
+        <div className="mt-3">
           <Notice tone="error" action={<RetryButton onClick={onRetry} />}>
             {subCategoriesError}
           </Notice>
@@ -186,61 +195,57 @@ function CategoryStepContent({ onRetry }) {
       );
     } else if (noSubsAvailable) {
       subBody = (
-        <div className="mt-2">
-          <Notice>This category has no sub-categories yet, so it can't be picked. Please choose another category.</Notice>
+        <div className="mt-3">
+          <Notice>This category has no sub-categories yet, so it can&apos;t be picked. Please choose another category.</Notice>
         </div>
       );
     } else {
       subBody = (
         <>
-          <div className="relative mt-2">
-            <Search
-              size={16}
-              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
-              aria-hidden="true"
-            />
-            <input
-              type="search"
-              value={search}
-              onChange={handleSearch}
-              placeholder="Search sub-categories"
-              aria-label="Search sub-categories"
-              className="h-12 w-full rounded-[10px] border border-gray-300 bg-white pl-10 pr-3.5 text-base font-semibold text-gray-900 shadow-xs outline-none transition placeholder:font-medium placeholder:text-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/15 sm:text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-            />
-          </div>
+          {showSearch && (
+            <div className="relative mt-3">
+              <Search
+                size={16}
+                className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+                aria-hidden="true"
+              />
+              <input
+                type="search"
+                value={search}
+                onChange={handleSearch}
+                placeholder={`Search ${subOptions.length} sub-categories`}
+                aria-label="Search sub-categories"
+                className="h-11 w-full rounded-xl border border-gray-200 bg-white pl-10 pr-10 text-base font-medium text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/15 sm:text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 [&::-webkit-search-cancel-button]:hidden"
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={clearSearch}
+                  aria-label="Clear search"
+                  className="absolute right-2 top-1/2 grid size-7 -translate-y-1/2 place-items-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+                >
+                  <X size={14} aria-hidden="true" />
+                </button>
+              )}
+            </div>
+          )}
           {filteredSubs.length ? (
-            <div className="mt-3 flex flex-wrap gap-2">
-              {filteredSubs.map((sub) => {
-                const active = selectedIds.includes(sub.id);
-                return (
-                  <button
-                    key={sub.id}
-                    type="button"
-                    aria-pressed={active}
-                    disabled={!active && atLimit}
-                    onClick={() => toggleSub(sub)}
-                    className={`inline-flex min-h-11 items-center gap-1.5 rounded-full px-3.5 text-xs transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 disabled:cursor-not-allowed disabled:opacity-40 sm:min-h-8 ${
-                      active
-                        ? "bg-emerald-500 font-bold text-white"
-                        : "bg-gray-100 font-semibold text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-                    }`}
-                  >
-                    {active ? (
-                      <Check size={12} strokeWidth={3} aria-hidden="true" />
-                    ) : (
-                      sub.image && (
-                        <span className="-ml-1.5 grid size-6 shrink-0 place-items-center overflow-hidden rounded-full bg-white ring-1 ring-gray-200 dark:bg-gray-900 dark:ring-gray-700">
-                          <RemoteIcon src={sub.image} className="size-full p-0.5" />
-                        </span>
-                      )
-                    )}
-                    {sub.name}
-                  </button>
-                );
-              })}
+            <div className={`mt-3 ${SUB_GRID}`}>
+              {filteredSubs.map((sub) => (
+                <SubCategoryOption
+                  key={sub.id}
+                  title={sub.name}
+                  icon={categoryIcon}
+                  imageUrl={sub.image}
+                  selected={selectedIds.includes(sub.id)}
+                  onToggle={() => toggleSub(sub)}
+                />
+              ))}
             </div>
           ) : (
-            <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">No sub-categories match &ldquo;{search}&rdquo;.</p>
+            <p className="mt-3 rounded-xl bg-gray-50 px-3.5 py-3 text-xs text-gray-500 dark:bg-gray-800/50 dark:text-gray-400">
+              No sub-categories match &ldquo;{search}&rdquo;.
+            </p>
           )}
         </>
       );
@@ -260,9 +265,7 @@ function CategoryStepContent({ onRetry }) {
               <div className="flex items-center justify-between gap-3">
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">Your selection</p>
                 {selectedIds.length > 0 && (
-                  <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                    {maxSubs != null ? `${selectedIds.length} / ${maxSubs} selected` : `${selectedIds.length} selected`}
-                  </p>
+                  <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400">{selectedIds.length} selected</p>
                 )}
               </div>
               <p className="mt-1 line-clamp-2 text-[13px] font-bold text-gray-900 dark:text-gray-100">
@@ -289,21 +292,44 @@ function CategoryStepContent({ onRetry }) {
         </StepFooter>
       }
     >
-      <fieldset>
-        <legend className="text-[13px] font-semibold text-gray-700 dark:text-gray-300">
-          Category <span className="text-red-500">*</span>
-        </legend>
+      <div role="group" aria-labelledby="category-heading">
+        <SectionHeading
+          id="category-heading"
+          number={1}
+          title="Category"
+          hint="Pick the one that best describes your business."
+          done={Boolean(categoryId)}
+        />
         {categoryBody}
-      </fieldset>
+      </div>
 
       {categoryId && (
-        <fieldset>
-          <legend className="text-[13px] font-semibold text-gray-700 dark:text-gray-300">
-            Sub-categories <span className="text-red-500">*</span>
-            <span className="font-normal text-gray-500">{maxSubs != null ? ` · pick up to ${maxSubs}` : " · pick all that apply"}</span>
-          </legend>
+        <div role="group" aria-labelledby="subcategory-heading" className="border-t border-gray-100 pt-5 dark:border-gray-800">
+          <SectionHeading
+            id="subcategory-heading"
+            number={2}
+            title="Sub-categories"
+            hint={categoryName ? `Pick everything you offer in ${categoryName}.` : "Pick everything you offer."}
+            done={selectedIds.length > 0}
+            aside={
+              selectedIds.length > 0 && (
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700 ring-1 ring-inset ring-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-500/25">
+                    {selectedIds.length} selected
+                  </span>
+                  <button
+                    type="button"
+                    onClick={clearSubs}
+                    className="rounded-full px-2 py-1 text-[11px] font-semibold text-gray-500 transition hover:bg-gray-100 hover:text-gray-800 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+                  >
+                    Clear
+                  </button>
+                </div>
+              )
+            }
+          />
           {subBody}
-        </fieldset>
+        </div>
       )}
 
       <Notice icon={Lock}>Category is a legal detail. After you submit for review it can only be changed through support.</Notice>
@@ -314,8 +340,8 @@ function CategoryStepContent({ onRetry }) {
 }
 
 /**
- * BUSINESS_CATEGORY (guide §4.2): one category + up to
- * `status.limits.maxSubCategories` of its sub-categories, saved with
+ * BUSINESS_CATEGORY (guide §4.2): one category + any number of its
+ * sub-categories, saved with
  * `add-basic-details { step: BUSINESS_CATEGORY, categoryId, subCategoryIds }`.
  * Retry remounts the content so the category hook loads again.
  */

@@ -116,11 +116,9 @@ export function BrandNameEditor({ onDone, onSaved }) {
   );
 }
 
-/** Category + sub-categories (always saved together), up to the server's limit. */
+/** Category + sub-categories (always saved together), any number of them. */
 export function CategoryEditor({ onDone, onSaved }) {
-  const { limits } = useOnboardingFlow();
   const { brand } = useSavedBrand();
-  const maxSubs = limits?.maxSubCategories ?? null;
   const [draftCategory, setDraftCategory] = useState(brand?.categoryId ?? null);
   const [draftSubIds, setDraftSubIds] = useState(brand?.subCategoryIds ?? []);
   const { categories, subCategories: subList, categoriesLoading, subCategoriesLoading } = useCategories(draftCategory);
@@ -128,14 +126,12 @@ export function CategoryEditor({ onDone, onSaved }) {
 
   const categoryOptions = useMemo(() => categories.map(toOption).filter((c) => c.id && c.name), [categories]);
   const subOptions = useMemo(() => subList.map(toOption).filter((c) => c.id && c.name), [subList]);
-  const atLimit = maxSubs != null && draftSubIds.length >= maxSubs;
 
   const pickCategory = (id) => {
     setDraftCategory(id);
     setDraftSubIds([]);
   };
-  const toggleSub = (id) =>
-    setDraftSubIds((list) => (list.includes(id) ? list.filter((s) => s !== id) : atLimit ? list : [...list, id]));
+  const toggleSub = (id) => setDraftSubIds((list) => (list.includes(id) ? list.filter((s) => s !== id) : [...list, id]));
 
   return (
     <div>
@@ -160,7 +156,7 @@ export function CategoryEditor({ onDone, onSaved }) {
       </select>
 
       <p className="mb-1.5 mt-3 text-xs font-semibold text-gray-600 dark:text-gray-300">
-        Sub-categories{maxSubs != null ? ` · up to ${maxSubs}` : " · pick all that apply"}
+        Sub-categories · pick all that apply
       </p>
       {subCategoriesLoading ? (
         <p className="flex items-center gap-1.5 text-xs text-gray-500">
@@ -178,9 +174,8 @@ export function CategoryEditor({ onDone, onSaved }) {
                 key={option.id}
                 type="button"
                 aria-pressed={active}
-                disabled={!active && atLimit}
                 onClick={() => toggleSub(option.id)}
-                className={`inline-flex min-h-7 items-center gap-1 rounded-full px-2.5 text-[11px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 ${
+                className={`inline-flex min-h-7 items-center gap-1 rounded-full px-2.5 text-[11px] font-semibold transition ${
                   active
                     ? "bg-emerald-500 text-white"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"

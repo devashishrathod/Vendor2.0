@@ -1,6 +1,10 @@
 // Category tiles shown before "More" expands the rest.
 export const VISIBLE_CATEGORY_COUNT = 7;
 
+// The sub-category search box shows only from this many sub-categories up —
+// for a short list it's just in the way.
+export const SUBCATEGORY_SEARCH_MIN = 8;
+
 // Business type — values match the backend BUSINESS_ENTITY_TYPE enum.
 export const PRIMARY_ENTITY_TYPES = [
   { value: "PROPRIETORSHIP", label: "Proprietorship", description: "One owner runs the business" },

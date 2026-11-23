@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -23,8 +23,7 @@ import {
 import { useAuthStore } from "@/features/onboarding/store/authStore";
 import { useOnboardingStore } from "@/features/onboarding/store/onboardingStore";
 import useBrandData from "@/features/brand/hooks/useBrandData";
-import { STRENGTH_ITEM_TARGETS } from "@/features/brand/utils/BrandHelpers";
-import ProfileStrengthCard from "@/features/onboarding-v2/components/strength/ProfileStrengthCard";
+import ProfileStrengthBadge from "@/features/onboarding-v2/components/strength/ProfileStrengthBadge";
 import { useOnboardingStatusStore } from "@/features/onboarding-v2/store/statusStore";
 import { fetchVoucherTransactionOverview } from "@/features/transaction/services/transactionService";
 import { getVouchers } from "@/features/voucher/services/voucher/VoucherService";
@@ -37,9 +36,11 @@ import Select from "../../../components/common/Select";
 import ActionCenter from "../components/ActionCenter";
 import PlanUsageCard from "../components/PlanUsageCard";
 import QuickActions from "../components/QuickActions";
+import ReachMetrics from "../components/ReachMetrics";
 import SettlementSnapshot from "../components/SettlementSnapshot";
 import VoucherTicketCard from "../components/VoucherTicketCard";
 import useDashboardInsights from "../hooks/useDashboardInsights";
+import useLiveReachMetrics from "../hooks/useLiveReachMetrics";
 
 // ══════════════════════════════════════════════════════════════
 // DATA GENERATION
@@ -411,6 +412,17 @@ function PaginationBar({ page, totalPages, onChange, count }) {
 // PAGE
 // ══════════════════════════════════════════════════════════════
 
+// Placeholder reach numbers (from the design) — no brand-level reach /
+// engagement API exists yet. Replace with the real response once confirmed.
+const DUMMY_REACH_METRICS = Object.freeze({
+  impressions: 50000,
+  reached: 45000,
+  views: 10000,
+  conversions: 20,
+  directions: 5,
+  whatsapp: 0,
+});
+
 const CHART_METRICS = [
   { key: "revenue", label: "Revenue" },
   { key: "transactions", label: "Transactions" },
@@ -450,11 +462,12 @@ export default function AnalysisReport() {
   // Center, Settlements and Plan Usage cards.
   const insights = useDashboardInsights(resolvedBrandId, brand);
 
-  // Profile strength + Verified badge straight from the onboarding status (no local formula).
-  // Each "+N" item opens where it's added (STRENGTH_ITEM_TARGETS).
-  const navigate = useNavigate();
+  // Profile strength straight from the onboarding status (no local formula) —
+  // shown compact in the header, score and level only.
   const profileStrength = useOnboardingStatusStore((s) => s.status?.profileStrength ?? null);
-  const isBrandVerified = useOnboardingStatusStore((s) => s.status?.isVerified === true);
+
+  // Dummy reach numbers that grow by themselves every few seconds.
+  const reachMetrics = useLiveReachMetrics(DUMMY_REACH_METRICS);
 
   // "Vouchers" section below — real GET /vouchers/versions/get-all list,
   // same service the Voucher management page uses.
@@ -740,7 +753,11 @@ export default function AnalysisReport() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <ProfileStrengthBadge
+              strength={profileStrength}
+              className="rounded-full bg-white/90 px-3 py-2 shadow-sm dark:bg-gray-800/80"
+            />
             <div className="flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-2 shadow-sm dark:bg-gray-800/80">
               <CalendarDays size={14} className="text-gray-400" />
               <Select
@@ -826,6 +843,12 @@ export default function AnalysisReport() {
               </div>
             );
           })}
+        </div>
+
+        {/* ── Reach & engagement — dummy numbers (growing on their own) until a
+            brand-level reach API exists; pass the real counts then. ── */}
+        <div className="mb-4">
+          <ReachMetrics values={reachMetrics.values} deltas={reachMetrics.deltas} tick={reachMetrics.tick} sample />
         </div>
 
         {/* ── Bento row: Revenue Trend · Transaction Status · growth hero ── */}
@@ -982,19 +1005,6 @@ export default function AnalysisReport() {
         <div className="mb-4">
           <QuickActions />
         </div>
-
-        {/* ── Profile strength + Verified badge (server-driven, guide §11) ── */}
-        {profileStrength && (
-          <div className="mb-4">
-            <ProfileStrengthCard
-              strength={profileStrength}
-              isVerified={isBrandVerified}
-              maxItems={3}
-              selectableKeys={Object.keys(STRENGTH_ITEM_TARGETS)}
-              onSelectItem={(key) => navigate(STRENGTH_ITEM_TARGETS[key])}
-            />
-          </div>
-        )}
 
         {/* ── Action center + settlements + plan usage ── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">

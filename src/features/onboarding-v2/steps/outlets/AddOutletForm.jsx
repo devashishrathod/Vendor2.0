@@ -62,7 +62,7 @@ export default function AddOutletForm({ brandId, ownerNumber, isFirst, types, on
           inputMode="numeric"
           maxLength={10}
           placeholder="98765 43210"
-          hint="The manager gets a code on WhatsApp to verify the outlet."
+          helper="The manager gets a code on WhatsApp to verify the outlet."
           value={useOwner ? ownerNumber : number}
           disabled={useOwner}
           onChange={(e) => setNumber(e.target.value.replace(/\D/g, "").slice(0, 10))}

@@ -12,13 +12,14 @@ import FormError from "../../components/ui/FormError";
 import Notice from "../../components/ui/Notice";
 import { ONBOARDING_ROUTES, isWizardScreen } from "../../config/routes";
 import { GROUP_LABELS, ONBOARDING_ERROR_CODES, SCREENS } from "../../config/screens";
+import { CONTACT_VERIFY_KEYS, useContactVerify } from "../../hooks/useContactVerify";
 import { useOnboardingFlow } from "../../hooks/useOnboardingFlow";
 import { getBrandFeatures, getOutlets, getShowcaseAlbumsWithPhotos } from "../../services/brandSetupApi";
 import { getKycDocuments, getVerificationHistory, submitOnboarding } from "../../services/onboardingApi";
 import { useSavedBrandStore } from "../../store/brandStore";
 import { useOnboardingStatusStore } from "../../store/statusStore";
 import { onboardingErrorMessage } from "../../utils/errorMessages";
-import { getGroupPreview, isWideSection } from "../../utils/stepPreview";
+import { getGroupPreview } from "../../utils/stepPreview";
 import SystemChecksCard from "./SystemChecksCard";
 import VerificationTimeline from "./VerificationTimeline";
 import {
@@ -26,6 +27,7 @@ import {
   FIX_TARGETS,
   STRENGTH_ITEM_SCREENS,
   describeMissing,
+  layoutSections,
   pointsForScreen,
   reviewAction,
 } from "./reviewHelpers";
@@ -96,6 +98,7 @@ export default function ReviewStep() {
   const isRemediation = status?.editMode === "REMEDIATION";
   const data = useReviewData(status?.brandId, verification.attemptNumber ?? 0);
   const billing = useBillingAddress();
+  const contactVerify = useContactVerify();
 
   const [editingId, setEditingId] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -212,9 +215,13 @@ export default function ReviewStep() {
   };
 
   const strength = status?.profileStrength;
-  const selectableKeys = Object.entries(STRENGTH_ITEM_SCREENS)
-    .filter(([, screen]) => canOpen(screen))
-    .map(([key]) => key);
+  const selectableKeys = [
+    ...Object.entries(STRENGTH_ITEM_SCREENS)
+      .filter(([, screen]) => canOpen(screen))
+      .map(([key]) => key),
+    ...CONTACT_VERIFY_KEYS,
+  ];
+  const selectStrengthItem = (key) => (CONTACT_VERIFY_KEYS.includes(key) ? contactVerify.open(key) : openFix(STRENGTH_ITEM_SCREENS[key]));
 
   if (!status || !data.ready) {
     return (
@@ -229,7 +236,7 @@ export default function ReviewStep() {
 
   return (
     <section className="rounded-2xl border border-gray-200 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04),0_12px_32px_-16px_rgba(16,24,40,0.10)] sm:rounded-[20px] dark:border-gray-800 dark:bg-gray-900 dark:shadow-none">
-      <div className="p-5 sm:p-8">
+      <div className="p-4 sm:p-6">
         <header className="flex items-center gap-3.5">
           <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-500 shadow-[0_0_0_6px_#F4FBF7] ring-1 ring-emerald-200 sm:size-[52px] sm:rounded-[14px] dark:bg-emerald-500/10 dark:shadow-none dark:ring-emerald-500/30">
             <ClipboardCheck size={22} strokeWidth={1.8} aria-hidden="true" />
@@ -245,7 +252,7 @@ export default function ReviewStep() {
         </header>
 
         {isRemediation && (
-          <div className="mt-5">
+          <div className="mt-4">
             <Notice tone="warning" icon={MessageSquareWarning} title={verification.isRevoked ? "Your approval was withdrawn" : "Our team asked for a few changes"}>
               {reason || "Please check your details and resubmit."}
             </Notice>
@@ -253,31 +260,31 @@ export default function ReviewStep() {
         )}
 
         {data.error && (
-          <div className="mt-4">
+          <div className="mt-3">
             <Notice tone="error">{data.error}</Notice>
           </div>
         )}
 
-        <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
-          <div className="flex min-w-0 flex-col gap-6">
+        <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
+          <div className="flex min-w-0 flex-col gap-4">
             {groups.map((group) => (
               <div key={group.key}>
-                <h2 className="mb-2.5 text-sm font-extrabold text-gray-900 dark:text-gray-100">{group.title}</h2>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  {group.sections.map((section) => {
+                <h2 className="mb-2 text-sm font-extrabold text-gray-900 dark:text-gray-100">{group.title}</h2>
+                <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                  {layoutSections(group.sections).map(({ section, full }) => {
                     const action = reviewAction(section.screenId, status);
-                    const wide = isWideSection(section) || section.screenId === BILLING_SECTION || section.screenId === SCREENS.OUTLET_DETAILS;
                     const editing = editingId === section.screenId;
                     return (
                       <div
                         key={section.screenId}
                         ref={section.screenId === BILLING_SECTION ? billingRef : undefined}
-                        className={wide || editing ? "col-span-full" : ""}
+                        className={full || editing ? "col-span-full" : ""}
                       >
                         <PreviewSection
                           section={section}
                           editing={editing}
-                          wide={wide}
+                          wide={full}
+                          dense
                           canEdit={action !== "locked" && (action === "inline" || isWizardScreen(section.screenId))}
                           editLabel={action === "add" ? "Add" : "Edit"}
                           points={action === "add" ? pointsForScreen(section.screenId, strength) : 0}
@@ -293,21 +300,22 @@ export default function ReviewStep() {
             ))}
           </div>
 
-          <aside className="flex flex-col gap-4 lg:sticky lg:top-6 lg:self-start">
+          {/* top-20 clears the 64px sticky page header. */}
+          <aside className="flex flex-col gap-3 lg:sticky lg:top-20 lg:self-start">
             <SystemChecksCard checks={status.systemChecks ?? []} onFix={openFix} canFix={canOpen} />
             <ProfileStrengthCard
               strength={strength}
               isVerified={status.isVerified}
               maxItems={4}
               selectableKeys={selectableKeys}
-              onSelectItem={(key) => openFix(STRENGTH_ITEM_SCREENS[key])}
+              onSelectItem={selectStrengthItem}
             />
             <VerificationTimeline rows={data.history} />
           </aside>
         </div>
       </div>
 
-      <footer className="flex flex-col gap-3 rounded-b-2xl border-t border-gray-200 bg-[#FCFDFC] px-5 py-4 sm:rounded-b-[20px] sm:px-8 dark:border-gray-800 dark:bg-gray-900">
+      <footer className="flex flex-col gap-3 rounded-b-2xl border-t border-gray-200 bg-[#FCFDFC] px-4 py-3 sm:rounded-b-[20px] sm:px-6 dark:border-gray-800 dark:bg-gray-900">
         {missing.length > 0 && (
           <div className="rounded-xl bg-amber-50 p-3.5 ring-1 ring-inset ring-amber-200 dark:bg-amber-500/10 dark:ring-amber-500/30">
             <p className="flex items-center gap-2 text-[13px] font-bold text-amber-900 dark:text-amber-200">
@@ -340,6 +348,7 @@ export default function ReviewStep() {
           </Button>
         </div>
       </footer>
+      {contactVerify.modal}
     </section>
   );
 }

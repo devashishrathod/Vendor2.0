@@ -60,8 +60,18 @@ export const useOnboardingStatusStore = create((set, get) => ({
   /** Opens an earlier screen (Back). The server's screen does not change. */
   openScreen: (screen) => set({ viewScreen: screen }),
 
-  /** Returns from an earlier screen to the server's current one. */
-  closeScreen: () => set({ viewScreen: null }),
+  /**
+   * Returns from an earlier screen to the server's current one, and re-reads
+   * the status: that screen may have saved through its own APIs (features,
+   * albums, documents…), which change strength and checks without a
+   * `currentScreen` response.
+   */
+  closeScreen: () => {
+    set({ viewScreen: null });
+    get()
+      .fetchStatus()
+      .catch((error) => console.error("Onboarding status refresh failed:", error));
+  },
 
   reset: () => set({ status: null, loading: false, error: null, viewScreen: null }),
 }));

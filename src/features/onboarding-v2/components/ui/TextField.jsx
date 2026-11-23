@@ -1,7 +1,10 @@
 import { ChevronDown, CircleCheck } from "lucide-react";
 
+// `disabled:bg-gray-50` outranks `dark:bg-gray-950` (the :disabled
+// pseudo-class adds specificity, the dark variant adds none), so a disabled
+// field needs its own dark colours or it shows up white in dark mode.
 const FIELD_BASE =
-  "h-12 w-full rounded-[10px] border bg-white px-3.5 text-base font-semibold text-gray-900 shadow-xs outline-none transition placeholder:font-medium placeholder:text-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/15 disabled:bg-gray-50 disabled:text-gray-500 sm:text-sm dark:bg-gray-950 dark:text-gray-100 dark:placeholder:text-gray-600";
+  "h-12 w-full rounded-[10px] border bg-white px-3.5 text-base font-semibold text-gray-900 shadow-xs outline-none transition placeholder:font-medium placeholder:text-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/15 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500 sm:text-sm dark:bg-gray-950 dark:text-gray-100 dark:placeholder:text-gray-600 dark:disabled:border-gray-800 dark:disabled:bg-gray-900 dark:disabled:text-gray-400";
 
 /** Label + hint shared by TextField and SelectField. */
 function FieldLabel({ id, label, required, optional, hint }) {
@@ -21,16 +24,22 @@ function FieldLabel({ id, label, required, optional, hint }) {
   );
 }
 
-function FieldMessage({ id, error, success, counter, valid }) {
-  if (!error && !success && !counter) return null;
+function FieldMessage({ id, error, success, helper, counter, valid }) {
+  if (!error && !success && !helper && !counter) return null;
   return (
     <div className="mt-1 flex justify-between gap-3 text-xs">
       {error ? (
         <span id={`${id}-error`} className="text-red-600 dark:text-red-400">
           {error}
         </span>
+      ) : success ? (
+        <span className="font-semibold text-emerald-700 dark:text-emerald-400">{success}</span>
       ) : (
-        success && <span className="font-semibold text-emerald-700 dark:text-emerald-400">{success}</span>
+        helper && (
+          <span id={`${id}-helper`} className="text-gray-500 dark:text-gray-400">
+            {helper}
+          </span>
+        )
       )}
       {counter && (
         <span className={`ml-auto tabular-nums ${valid ? "font-bold text-emerald-700 dark:text-emerald-400" : "text-gray-500"}`}>
@@ -45,9 +54,11 @@ function FieldMessage({ id, error, success, counter, valid }) {
  * Labelled text input. Text is 16px on phones so iOS doesn't zoom on focus.
  * `valid` turns the border and counter green and shows a check inside the
  * field (unless `rightSlot` is given); `success` is a green helper line.
+ * `hint` sits between label and input; `helper` is a gray line under the
+ * input — use it for fields placed side by side, so their inputs stay level.
  * @param {{
  *   id: string, label: string, required?: boolean, optional?: boolean,
- *   hint?: string, error?: string, success?: string, counter?: string,
+ *   hint?: string, helper?: string, error?: string, success?: string, counter?: string,
  *   valid?: boolean, rightSlot?: import('react').ReactNode, inputClassName?: string,
  * } & import('react').InputHTMLAttributes<HTMLInputElement>} props
  */
@@ -57,6 +68,7 @@ export function TextField({
   required,
   optional,
   hint,
+  helper,
   error,
   success,
   counter,
@@ -73,7 +85,8 @@ export function TextField({
         <CircleCheck size={20} strokeWidth={2.2} />
       </span>
     ) : null);
-  const describedBy = [hint && `${id}-hint`, error && `${id}-error`].filter(Boolean).join(" ") || undefined;
+  const showHelper = Boolean(helper) && !error && !success;
+  const describedBy = [hint && `${id}-hint`, showHelper && `${id}-helper`, error && `${id}-error`].filter(Boolean).join(" ") || undefined;
   const border = error
     ? "border-red-400"
     : showValid
@@ -93,7 +106,7 @@ export function TextField({
         />
         {slot && <div className="absolute inset-y-0 right-1 flex items-center">{slot}</div>}
       </div>
-      <FieldMessage id={id} error={error} success={success} counter={counter} valid={showValid} />
+      <FieldMessage id={id} error={error} success={success} helper={helper} counter={counter} valid={showValid} />
     </div>
   );
 }

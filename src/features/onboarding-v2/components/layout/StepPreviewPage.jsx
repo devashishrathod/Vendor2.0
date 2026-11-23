@@ -5,9 +5,9 @@ import { filledRows, isWideSection } from "../../utils/stepPreview";
 const EDIT_BUTTON =
   "inline-flex min-h-8 shrink-0 items-center gap-1 rounded-lg px-2.5 text-xs font-bold text-emerald-700 transition-colors hover:bg-emerald-50 focus-visible:outline-2 focus-visible:outline-emerald-600 dark:text-emerald-400 dark:hover:bg-emerald-500/10";
 
-function DocumentList({ rows }) {
+function DocumentList({ rows, wide }) {
   return (
-    <ul className="flex flex-col gap-2">
+    <ul className={wide ? "grid grid-cols-1 gap-2 sm:grid-cols-2" : "flex flex-col gap-2"}>
       {rows.map((row, i) => (
         <li key={`${row.label}-${i}`} className="flex items-center gap-3 rounded-xl bg-gray-50 px-3 py-2.5 dark:bg-gray-800/60">
           <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-white text-emerald-600 ring-1 ring-inset ring-gray-200 dark:bg-gray-900 dark:text-emerald-400 dark:ring-gray-700" aria-hidden="true">
@@ -49,9 +49,9 @@ function Thumb({ src, alt, shape }) {
   );
 }
 
-function FieldGrid({ rows, wide }) {
+function FieldGrid({ rows, wide, dense }) {
   return (
-    <dl className={`grid grid-cols-1 gap-x-6 gap-y-3 ${wide ? "sm:grid-cols-2 lg:grid-cols-3" : ""}`}>
+    <dl className={`grid grid-cols-1 gap-x-6 ${dense ? "gap-y-2" : "gap-y-3"} ${wide ? "sm:grid-cols-2 lg:grid-cols-3" : ""}`}>
       {rows.map((row) => (
         <div key={row.label} className={`min-w-0 ${row.wide && wide ? "col-span-full" : ""}`}>
           <dt className="text-[11px] font-medium uppercase tracking-[0.04em] text-gray-500 dark:text-gray-400">{row.label}</dt>
@@ -78,8 +78,37 @@ function FieldGrid({ rows, wide }) {
   );
 }
 
-function SectionBody({ section, wide }) {
-  const rows = filledRows(section);
+/**
+ * `dense` (review page): a field named like its section (GSTIN in the GSTIN
+ * card) shows as the card's main value instead of repeating the title.
+ */
+function SectionBody({ section, wide, dense }) {
+  const filled = filledRows(section);
+  const first = filled[0];
+  const primary =
+    dense && !section.compact && section.kind !== "documents" && first && !first.images?.length && first.label.toLowerCase() === section.title.toLowerCase()
+      ? first
+      : null;
+  const rows = primary ? filled.slice(1) : filled;
+
+  if (primary) {
+    return (
+      <>
+        {section.note && (
+          <p className="mb-2 rounded-lg bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:ring-amber-500/30">
+            {section.note}
+          </p>
+        )}
+        <p className="break-words text-base font-bold text-gray-900 dark:text-gray-100">{primary.value}</p>
+        {rows.length > 0 && (
+          <div className="mt-2">
+            <FieldGrid rows={rows} wide={wide} dense />
+          </div>
+        )}
+      </>
+    );
+  }
+
   return (
     <>
       {section.note && (
@@ -92,9 +121,9 @@ function SectionBody({ section, wide }) {
         (section.compact ? (
           <p className="break-words text-base font-bold text-gray-900 dark:text-gray-100">{rows[0].value}</p>
         ) : section.kind === "documents" ? (
-          <DocumentList rows={rows} />
+          <DocumentList rows={rows} wide={wide} />
         ) : (
-          <FieldGrid rows={rows} wide={wide} />
+          <FieldGrid rows={rows} wide={wide} dense={dense} />
         ))}
     </>
   );
@@ -103,9 +132,9 @@ function SectionBody({ section, wide }) {
 /**
  * One saved section: title, Edit / 🔒 Locked, and its fields (or an inline
  * editor while editing). `editLabel` + `points` turn Edit into "Add (+N)"
- * for a skipped item (review page).
+ * for a skipped item (review page). `dense` tightens the padding (review page).
  */
-export function PreviewSection({ section, editing, wide, canEdit, onStartEdit, renderEditor, onDone, editLabel = "Edit", points = 0 }) {
+export function PreviewSection({ section, editing, wide, canEdit, onStartEdit, renderEditor, onDone, editLabel = "Edit", points = 0, dense = false }) {
   return (
     <div
       className={`flex h-full flex-col rounded-2xl border bg-white transition-shadow dark:bg-gray-900 ${
@@ -114,7 +143,7 @@ export function PreviewSection({ section, editing, wide, canEdit, onStartEdit, r
           : "border-gray-200 shadow-[0_1px_2px_rgba(16,24,40,0.04)] hover:shadow-[0_4px_12px_-4px_rgba(16,24,40,0.08)] dark:border-gray-700"
       }`}
     >
-      <div className="flex items-center gap-2.5 px-4 pb-2 pt-3">
+      <div className={`flex items-center gap-2.5 ${dense ? "px-3.5 pb-1 pt-2.5" : "px-4 pb-2 pt-3"}`}>
         <span
           className={`grid size-5 shrink-0 place-items-center rounded-full text-white ${section.skipped ? "bg-amber-400" : "bg-emerald-500"}`}
           aria-hidden="true"
@@ -137,7 +166,9 @@ export function PreviewSection({ section, editing, wide, canEdit, onStartEdit, r
           ))}
       </div>
 
-      <div className="flex-1 px-4 pb-4 pt-1">{editing ? renderEditor(onDone) : <SectionBody section={section} wide={wide} />}</div>
+      <div className={`flex-1 ${dense ? "px-3.5 pb-3 pt-0.5" : "px-4 pb-4 pt-1"}`}>
+        {editing ? renderEditor(onDone) : <SectionBody section={section} wide={wide} dense={dense} />}
+      </div>
     </div>
   );
 }

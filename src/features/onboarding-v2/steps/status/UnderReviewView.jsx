@@ -1,16 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
-import { Check, ChevronRight, FilePlus2, Hourglass, Lock } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Check, Hourglass, Lock } from "lucide-react";
 import ProfileStrengthCard from "../../components/strength/ProfileStrengthCard";
 import { isWizardScreen } from "../../config/routes";
+import { CONTACT_VERIFY_KEYS, useContactVerify } from "../../hooks/useContactVerify";
 import { useOnboardingFlow } from "../../hooks/useOnboardingFlow";
 import { getVerificationHistory } from "../../services/onboardingApi";
 import { useOnboardingStatusStore } from "../../store/statusStore";
-import SystemChecksCard from "../review/SystemChecksCard";
 import VerificationTimeline from "../review/VerificationTimeline";
 import { STRENGTH_ITEM_SCREENS, reviewAction } from "../review/reviewHelpers";
-
-const NEW_VOUCHER_ROUTE = "/vouchers/new";
+import SystemVerificationCard from "./SystemVerificationCard";
 
 // While the decision is pending the status is read again this often (tab
 // visible) — so an approval or a change request shows up without a reload,
@@ -78,8 +76,8 @@ function Stages({ verification, checks, history }) {
 
 /**
  * UNDER_REVIEW — "Your profile is under review" (guide §7.1): the review
- * stages, what the vendor can do meanwhile (strength items with points and
- * a first voucher draft), the system checks and the history. Add-only: an
+ * stages, what the vendor can do meanwhile (strength items with points),
+ * the system checks and the history. Add-only: an
  * item opens its screen to add what's missing; anything already given is
  * locked (409 ONBOARDING_LOCKED) until a decision. The status is re-read
  * every 15 s and when the vendor returns to the tab.
@@ -111,9 +109,14 @@ export default function UnderReviewView() {
   }, [fetchStatus]);
 
   const canOpen = useCallback((screen) => reviewAction(screen, status) !== "locked" && isWizardScreen(screen), [status]);
-  const selectableKeys = Object.entries(STRENGTH_ITEM_SCREENS)
-    .filter(([, screen]) => canOpen(screen))
-    .map(([key]) => key);
+  const contactVerify = useContactVerify();
+  const selectableKeys = [
+    ...Object.entries(STRENGTH_ITEM_SCREENS)
+      .filter(([, screen]) => canOpen(screen))
+      .map(([key]) => key),
+    ...CONTACT_VERIFY_KEYS,
+  ];
+  const selectStrengthItem = (key) => (CONTACT_VERIFY_KEYS.includes(key) ? contactVerify.open(key) : openScreen(STRENGTH_ITEM_SCREENS[key]));
 
   const verification = status?.verification ?? {};
   const checks = status?.systemChecks ?? [];
@@ -141,21 +144,8 @@ export default function UnderReviewView() {
               isVerified={status?.isVerified}
               title="Strengthen your profile"
               selectableKeys={selectableKeys}
-              onSelectItem={(key) => openScreen(STRENGTH_ITEM_SCREENS[key])}
+              onSelectItem={selectStrengthItem}
             />
-            <Link
-              to={NEW_VOUCHER_ROUTE}
-              className="flex min-h-14 items-center gap-3 rounded-2xl bg-white p-4 ring-1 ring-inset ring-gray-200 transition hover:bg-emerald-50 hover:ring-emerald-200 dark:bg-gray-900 dark:ring-gray-800 dark:hover:bg-emerald-500/10"
-            >
-              <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
-                <FilePlus2 size={17} aria-hidden="true" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-[13px] font-bold text-gray-900 dark:text-gray-100">Draft your first voucher</span>
-                <span className="block text-xs text-gray-500 dark:text-gray-400">It goes live once your brand is approved.</span>
-              </span>
-              <ChevronRight size={16} className="shrink-0 text-gray-400" aria-hidden="true" />
-            </Link>
             <p className="flex items-start gap-2 text-xs text-gray-500 dark:text-gray-400">
               <Lock size={13} className="mt-0.5 shrink-0" aria-hidden="true" />
               While we review, you can add what&apos;s missing. Details you&apos;ve already given stay as they are until our decision.
@@ -163,11 +153,12 @@ export default function UnderReviewView() {
           </div>
 
           <aside className="flex flex-col gap-4">
-            <SystemChecksCard checks={checks} onFix={openScreen} canFix={canOpen} title="System checks on your application" />
+            <SystemVerificationCard checks={checks} onFix={openScreen} canFix={canOpen} />
             <VerificationTimeline rows={history} />
           </aside>
         </div>
       </div>
+      {contactVerify.modal}
     </section>
   );
 }

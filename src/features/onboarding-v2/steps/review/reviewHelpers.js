@@ -1,8 +1,38 @@
 import { SCREENS } from "../../config/screens";
 import { canRevisit } from "../../hooks/useOnboardingFlow";
+import { isWideSection } from "../../utils/stepPreview";
 
 /** The billing address section (not a server screen) on the review page. */
 export const BILLING_SECTION = "BILLING_ADDRESS";
+
+/**
+ * Orders a group's sections for the review's two-up grid so no card sits
+ * next to an empty slot or stretches to a much taller neighbour: wide
+ * sections take a full row, one-value cards pair with one-value cards,
+ * multi-field cards with multi-field cards, and a card left without a
+ * partner takes a full row at the end. Each kind keeps the server's order.
+ * @param {(import("../../utils/stepPreview").PreviewSection)[]} sections
+ * @returns {{ section: import("../../utils/stepPreview").PreviewSection, full: boolean }[]}
+ */
+export function layoutSections(sections = []) {
+  const placed = [];
+  const waiting = {};
+  for (const section of sections) {
+    if (isWideSection(section) || section.screenId === BILLING_SECTION || section.screenId === SCREENS.OUTLET_DETAILS) {
+      placed.push({ section, full: true });
+      continue;
+    }
+    const kind = section.compact ? "compact" : section.kind === "documents" ? "documents" : "fields";
+    if (waiting[kind]) {
+      placed.push({ section: waiting[kind], full: false }, { section, full: false });
+      waiting[kind] = null;
+    } else {
+      waiting[kind] = section;
+    }
+  }
+  const unpaired = sections.filter((s) => Object.values(waiting).includes(s));
+  return [...placed, ...unpaired.map((section) => ({ section, full: true }))];
+}
 
 /** Where a submit `missing` code is fixed that isn't a wizard screen. */
 export const FIX_TARGETS = Object.freeze({ BILLING: "BILLING", PLAN: "PLAN" });

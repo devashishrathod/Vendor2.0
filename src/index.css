@@ -30,6 +30,13 @@
   --animate-check-pop: check-pop 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
   --animate-shimmer: shimmer 1.4s ease-in-out infinite;
   --animate-bar-grow: bar-grow 900ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  /* "+N" that rises off a dashboard metric when it grows (ReachMetrics.jsx). */
+  --animate-delta-float: delta-float 1.6s ease-out both;
+  /* Approval celebration (onboarding-v2/steps/status/ApprovedView.jsx). */
+  --animate-confetti: confetti-fall 3s cubic-bezier(0.25, 0.6, 0.4, 1) both;
+  --animate-draw: draw-stroke 650ms cubic-bezier(0.65, 0, 0.35, 1) both;
+  --animate-ripple: ripple 2.6s cubic-bezier(0, 0, 0.2, 1) infinite;
+  --animate-shine: shine 3s ease-in-out infinite;
 
   @keyframes pop-in {
     from { opacity: 0; transform: translateY(-6px) scale(0.97); }
@@ -72,6 +79,31 @@
     from { transform: scaleX(0); }
     to { transform: scaleX(1); }
   }
+  @keyframes delta-float {
+    0% { opacity: 0; transform: translateY(6px); }
+    25% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(-8px); }
+  }
+  /* Each piece sets --confetti-drift / --confetti-spin inline. */
+  @keyframes confetti-fall {
+    0% { opacity: 0; transform: translate3d(0, -12px, 0) rotate(0deg); }
+    8% { opacity: 1; }
+    80% { opacity: 1; }
+    100% { opacity: 0; transform: translate3d(var(--confetti-drift, 0px), 640px, 0) rotate(var(--confetti-spin, 540deg)); }
+  }
+  /* For SVG paths with pathLength="1" and stroke-dasharray="1". */
+  @keyframes draw-stroke {
+    from { stroke-dashoffset: 1; }
+    to { stroke-dashoffset: 0; }
+  }
+  @keyframes ripple {
+    0% { opacity: 0.55; transform: scale(0.85); }
+    100% { opacity: 0; transform: scale(1.9); }
+  }
+  @keyframes shine {
+    0% { transform: translateX(-160%) skewX(-20deg); }
+    55%, 100% { transform: translateX(360%) skewX(-20deg); }
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -84,6 +116,22 @@
   .animate-check-pop,
   .animate-shimmer,
   .animate-bar-grow {
+    animation: none;
+  }
+  /* Without the motion the "+N" would stay on screen — the number itself
+     still updates, so the hint is just left out. */
+  .animate-delta-float {
+    animation: none;
+    opacity: 0;
+  }
+  /* No falling confetti, rings or shine; the check is shown already drawn. */
+  .animate-confetti,
+  .animate-ripple,
+  .animate-shine {
+    animation: none;
+    opacity: 0;
+  }
+  .animate-draw {
     animation: none;
   }
 }

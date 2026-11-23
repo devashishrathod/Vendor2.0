@@ -260,7 +260,18 @@ function BasicDetailsForm({ brand }) {
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <TextField id="brand-name" label="Brand name" value={brand.brandName ?? ""} disabled hint="Set in Basic Details" />
+          <TextField
+            id="brand-name"
+            label="Brand name"
+            value={brand.brandName ?? ""}
+            disabled
+            helper="Set in Basic Details"
+            rightSlot={
+              <span className="grid size-10 place-items-center text-gray-400" aria-hidden="true">
+                <Lock size={15} />
+              </span>
+            }
+          />
           <TextField
             id="brand-email"
             label="Email"
