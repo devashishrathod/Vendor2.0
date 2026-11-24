@@ -28,7 +28,7 @@ export default function PromoCodePanel({ onApply, applying, error, initialOpen =
         </span>
         <button
           onClick={() => setOpen((v) => !v)}
-          className="text-sm font-semibold text-teal-600 hover:text-teal-700 transition-colors"
+          className="text-sm font-semibold text-emerald-600 hover:text-emerald-700 transition-colors"
         >
           {open ? "Hide" : "Apply Here"}
         </button>
@@ -43,12 +43,12 @@ export default function PromoCodePanel({ onApply, applying, error, initialOpen =
               onChange={(e) => setCode(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleApply()}
               placeholder="Have a promo code? Type here"
-              className="flex-1 text-sm bg-emerald-50 dark:bg-emerald-500/10 dark:text-gray-100 rounded-lg px-4 py-2.5 outline-none focus:ring-2 focus:ring-teal-400 transition"
+              className="flex-1 text-sm bg-emerald-50 dark:bg-emerald-500/10 dark:text-gray-100 rounded-lg px-4 py-2.5 outline-none focus:ring-2 focus:ring-emerald-400 transition"
             />
             <button
               onClick={handleApply}
               disabled={applying}
-              className="bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {applying ? "Applying…" : "Apply"}
             </button>

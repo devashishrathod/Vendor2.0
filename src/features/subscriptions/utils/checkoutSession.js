@@ -6,7 +6,7 @@
 // incognito modes, so every access is guarded and failure just means the
 // value doesn't survive a refresh.
 
-const BILLING_DRAFT_KEY = "subscriptionCheckoutBilling"; // { planId, billing }
+const LEGACY_BILLING_DRAFT_KEY = "subscriptionCheckoutBilling"; // old local billing draft — only cleared
 const PAID_PLAN_KEY = "subscriptionCheckoutPaidPlanId";
 const RETURN_TO_KEY = "subscriptionReturnTo"; // written by SubscriptionPlan.jsx
 
@@ -28,36 +28,15 @@ function write(key, value) {
 }
 
 /**
- * Billing details the vendor edited on checkout but hasn't paid for yet.
- * Only returned for the same plan they were edited on.
- * @param {string} planId
- * @returns {object|null}
- */
-export function readCheckoutBilling(planId) {
-  try {
-    const draft = JSON.parse(read(BILLING_DRAFT_KEY) || "null");
-    return draft?.planId === planId ? draft.billing : null;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * @param {string} planId
- * @param {object} billing
- */
-export function saveCheckoutBilling(planId, billing) {
-  write(BILLING_DRAFT_KEY, JSON.stringify({ planId, billing }));
-}
-
-/**
  * Called once payment succeeds, so a refresh with ?plan= still in the URL
- * doesn't reopen checkout for a plan that's already been paid for.
+ * doesn't reopen checkout for a plan that's already been paid for. (The
+ * billing address is saved on the server now — GET / PUT
+ * /brands/billing-address — so the old local billing draft is just cleared.)
  * @param {string} planId
  */
 export function markCheckoutPaid(planId) {
   write(PAID_PLAN_KEY, planId);
-  write(BILLING_DRAFT_KEY, null);
+  write(LEGACY_BILLING_DRAFT_KEY, null);
 }
 
 /**

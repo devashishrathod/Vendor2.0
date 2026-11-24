@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "baseline:onboarding": "node scripts/capture-onboarding-baseline.mjs",
+    "stage-run:table": "node scripts/stage-run-from-har.mjs"
   },
   "dependencies": {
     "@dnd-kit/helpers": "^0.5.0",

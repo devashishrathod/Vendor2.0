@@ -5,7 +5,7 @@
 // Deliberately does NOT close on a backdrop click — a half-edited week
 // would otherwise be lost with one stray click.
 import { Clock, X, Loader2 } from "lucide-react";
-import WorkingHoursEditor from "@/features/oulet/New folder/components/brandOutlet/WorkingHoursEditor";
+import WorkingHoursEditor from "@/features/outlets/setup/components/brandOutlet/WorkingHoursEditor";
 import ErrorToast from "@/components/common/ErrorToast";
 import { useEditOutletWorkHours } from "../hooks/useEditOutletWorkHours";
 

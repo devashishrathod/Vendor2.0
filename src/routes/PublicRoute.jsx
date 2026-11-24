@@ -1,24 +1,14 @@
 import { Navigate } from 'react-router-dom';
 import { useAuthStore } from '@/features/onboarding/store/authStore';
-const SCREEN_ROUTES = {
-  SUBSCRIBE_PLAN: "/subscription",
-  OUTLET_PAGE:    "/brand-outlet",
-  UNDER_REVIEW:   "/under-review",
-  // The /dashboard route was removed — DASHBOARD now lands on Analysis
-  // Report, the dashboard group's new default page.
-  DASHBOARD:      "/analysis-report",
-};
+import { routeForScreen } from '@/features/onboarding-v2/config/routes';
+import { useOnboardingStatusStore, selectCurrentScreen } from '@/features/onboarding-v2/store/statusStore';
 
+// Logged in → the page for the server's current screen (StatusGate has
+// already loaded the onboarding status).
 export default function PublicRoute({ children }) {
   const token         = useAuthStore((s) => s.token);
-  const currentScreen = useAuthStore((s) => s.currentScreen);
+  const currentScreen = useOnboardingStatusStore(selectCurrentScreen);
 
   if (!token) return children;
-
-  // Post-onboarding screen hai → sahi route pe bhejo
-  const redirect = SCREEN_ROUTES[currentScreen];
-  if (redirect) return <Navigate to={redirect} replace />;
-
-  // Onboarding screen hai → /onboarding pe bhejo
-  return <Navigate to="/onboarding" replace />;
+  return <Navigate to={routeForScreen(currentScreen)} replace />;
 }

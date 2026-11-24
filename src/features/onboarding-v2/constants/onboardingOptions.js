@@ -1,0 +1,123 @@
+// Category tiles shown before "More" expands the rest.
+export const VISIBLE_CATEGORY_COUNT = 7;
+
+// The sub-category search box shows only from this many sub-categories up —
+// for a short list it's just in the way.
+export const SUBCATEGORY_SEARCH_MIN = 8;
+
+// Business type — values match the backend BUSINESS_ENTITY_TYPE enum.
+export const PRIMARY_ENTITY_TYPES = [
+  { value: "PROPRIETORSHIP", label: "Proprietorship", description: "One owner runs the business" },
+  { value: "PARTNERSHIP", label: "Partnership", description: "Two or more partners" },
+  { value: "LLP", label: "LLP", description: "Limited liability partnership" },
+  { value: "PRIVATE_LIMITED", label: "Pvt. Ltd.", description: "Private limited company" },
+  { value: "PUBLIC_LIMITED", label: "Public Ltd.", description: "Public limited company" },
+];
+
+/** The only entity values a vendor can pick (and that we recommend). */
+export const ENTITY_VALUES = PRIMARY_ENTITY_TYPES.map((t) => t.value);
+
+/** All BUSINESS_ENTITY_TYPE values the server accepts (API doc enum), in display order. */
+export const ENTITY_TYPES = [
+  ...PRIMARY_ENTITY_TYPES,
+  { value: "ONE_PERSON_COMPANY", label: "OPC", description: "One person company" },
+  { value: "TRUST", label: "Trust", description: "Registered trust" },
+  { value: "NGO", label: "NGO", description: "Non-profit organisation" },
+  { value: "SOCIETY", label: "Society", description: "Registered society" },
+  { value: "OTHERS", label: "Others", description: "Any other structure" },
+];
+
+/** BUSINESS_ENTITY_TYPE → label. */
+export const ENTITY_LABELS = Object.freeze({
+  PROPRIETORSHIP: "Proprietorship",
+  PARTNERSHIP: "Partnership",
+  LLP: "LLP",
+  PRIVATE_LIMITED: "Private Limited",
+  PUBLIC_LIMITED: "Public Limited",
+  ONE_PERSON_COMPANY: "One Person Company",
+  TRUST: "Trust",
+  NGO: "NGO",
+  SOCIETY: "Society",
+  OTHERS: "Others",
+});
+
+/** kycPath → the business status card title (guide §4.3). */
+export const KYC_PATH_LABELS = Object.freeze({
+  GST: "I have GST",
+  NO_GST: "Registered, no GST",
+  UNREGISTERED: "Not registered",
+});
+
+/**
+ * Labels for the 9 fixed business-document `docType` codes (API doc #23c).
+ * `hints` from GET /brands/onboarding/documents are these codes.
+ */
+export const DOC_TYPE_LABELS = Object.freeze({
+  FSSAI: "FSSAI licence",
+  DRUG_LICENCE: "Drug licence",
+  SHOP_ESTABLISHMENT: "Shop & Establishment",
+  TRADE_LICENCE: "Trade licence",
+  UDYAM: "Udyam registration",
+  SHOP_PHOTO: "Shop photo",
+  ELECTRICITY_BILL: "Electricity bill",
+  RENT_AGREEMENT: "Rent agreement",
+  OTHER: "Other",
+});
+
+/** @param {string|null|undefined} docType @returns {string|null} */
+export const docTypeLabel = (docType) => (docType ? DOC_TYPE_LABELS[docType] ?? docType : null);
+
+// Owner verification (not registered): ID types for the "Upload an ID" choice.
+// owner-verification `idType` values (API doc #23a). Aadhaar must be the
+// masked copy (only the last 4 digits visible).
+export const OWNER_ID_TYPES = [
+  { value: "AADHAAR", label: "Aadhaar (masked)" },
+  { value: "DRIVING_LICENCE", label: "Driving licence" },
+  { value: "PASSPORT", label: "Passport" },
+  { value: "VOTER_ID", label: "Voter ID" },
+];
+
+// Values match the backend BANK_ACCOUNT_TYPES enum.
+export const BANK_ACCOUNT_TYPES = [
+  { value: "SAVINGS", label: "Savings" },
+  { value: "CURRENT", label: "Current" },
+  { value: "NRE", label: "NRE" },
+  { value: "NRO", label: "NRO" },
+  { value: "OD", label: "OD" },
+  { value: "CC", label: "CC" },
+  { value: "OTHER", label: "Other" },
+];
+
+// File + title rules the server applies to KYC documents (API doc #23a /
+// #23c). Checked here first only to save a failed upload; the document
+// COUNT limit is the server's (`limit` from GET documents / status.limits).
+export const DOCUMENT_RULES = Object.freeze({
+  maxSizeBytes: 5 * 1024 * 1024,
+  minImageSidePx: 800,
+  acceptedTypes: ["application/pdf", "image/jpeg", "image/png"],
+  accept: ".pdf,.jpg,.jpeg,.png",
+  minTitleLength: 2,
+  maxTitleLength: 80,
+});
+
+export const PARTNER_AGREEMENT_URL = "https://trydood.com/partner-agreement";
+export const TERMS_URL = "https://trydood.com/terms-of-service";
+export const HELPDESK_EMAIL = "helpdesk@trydood.com";
+// Contact shown on the partner agreement (same as the old Step14PartnerContract).
+export const SUPPORT_EMAIL = "support@trydood.com";
+
+// Same summary clauses the old partner contract step (Step14PartnerContract) shows.
+export const PARTNER_TERMS = [
+  {
+    title: "Partnership Scope",
+    body: "This agreement governs the relationship between Trydood and the Partner for the purpose of delivering services as outlined in the onboarding documentation.",
+  },
+  {
+    title: "Roles & Responsibilities",
+    body: "The Partner agrees to maintain accurate business information, comply with applicable laws, and fulfil all obligations as described in the Trydood Partner Handbook.",
+  },
+  {
+    title: "Revenue & Payments",
+    body: "Payouts will be processed per the agreed schedule. Trydood reserves the right to withhold payments in case of policy violations or disputed transactions.",
+  },
+];

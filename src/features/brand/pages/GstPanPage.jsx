@@ -1,16 +1,15 @@
 import GstPanSection from "../components/GstPanSection";
+import useProfileRefresh from "../hooks/useProfileRefresh";
 
 /**
  * GstPanPage
- * "GST & PAN Information" tab — brand's registered address, GSTIN,
- * PAN details, taxpayer type, and current GST status.
- *
- * `brand` is the real brand object fetched by BrandPage (via useBrandData)
- * and passed down as a prop — brand.gst and brand.pan hold the relevant data.
- * `reload` refetches the brand after a PAN/GST change is saved.
+ * "Business Profile" tab — GST and PAN (read-only once saved; a missing one
+ * can be added once), and the unregistered → registered upgrade (guide §8).
+ * A save re-reads the brand and the onboarding status.
  */
-const GstPanPage = ({ brand, brandId, reload }) => {
-  return <GstPanSection gst={brand?.gst} pan={brand?.pan} brandId={brandId} onUpdated={reload} />;
+const GstPanPage = ({ brand, reload }) => {
+  const refresh = useProfileRefresh(reload);
+  return <GstPanSection brand={brand} onUpdated={refresh} />;
 };
 
 export default GstPanPage;

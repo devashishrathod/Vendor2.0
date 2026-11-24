@@ -2,12 +2,15 @@ import { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { onForegroundMessage } from './config/firebaseMessaging';
 import PushNotificationToast from './components/common/PushNotificationToast';
+import NotificationClickListener from './components/common/NotificationClickListener';
+import { announceNotification, refreshProfileAfterNotice } from './utils/notificationEvents';
+import { NOTIFICATION_OPEN_PATH, notificationTarget, refreshesProfile } from './utils/notificationLinks';
 import ProtectedRoute from './routes/ProtectedRoute';
 import PublicRoute from './routes/PublicRoute';
 import DashboardLayout from './features/dashboard/layouts/DashboardLayout';
 
 import Step1WhatsApp from './features/onboarding/steps/Step1WhatsApp';
-import OnboardingPage from './features/onboarding/pages/VendorOnboarding';
+import { ONBOARDING_ROUTES, OnboardingPage, ReviewStatusPage, StatusGate } from './features/onboarding-v2';
 
 import AnalysisReport from './features/dashboard/pages/AnalysisReport';
 import Transactions from './features/transaction/pages/Transactions';
@@ -28,9 +31,9 @@ import PlaylistPage from './features/music/pages/PlaylistPage';
 import { SubscriptionPage } from './features/subscription';
 import SettingsPage from './features/settings/pages/SettingsPage';
 import BrandPage from './features/brand';
-import CreateBrandOutlet from './features/oulet/New folder/pages/CreateBrandOutlet';
-import UnderReview from './features/oulet/New folder/pages/Youroutlet';
 import PostAuthRouteGuard from './routes/PostAuthRouteGuard';
+import NotificationOpenRoute from './routes/NotificationOpenRoute';
+import DashboardOnlyRoute from './routes/DashboardOnlyRoute';
 import OnboardingOnlyRoute from './routes/OnboardingOnlyRoute';
 import AnalyticsRouteTracker from './routes/AnalyticsRouteTracker';
 
@@ -55,13 +58,19 @@ function App() {
         payload?.data?.body ||
         "";
 
-      const deepLink =
-        payload?.data?.deepLink ||
-        payload?.data?.deeplink ||
-        payload?.deepLink ||
-        null;
+      // Top-level deepLink (push payload) or meta's, as a token or a server
+      // path → a panel route; unknown links fall back to the type.
+      const type = payload?.data?.type || payload?.type || null;
+      const target = notificationTarget({
+        type,
+        deepLink: payload?.data?.deepLink || payload?.data?.deeplink || payload?.deepLink || null,
+        meta: payload?.data?.meta ?? payload?.meta,
+      });
 
-      setPushToast({ title, body, deepLink });
+      setPushToast({ title, body, deepLink: target?.to ?? null });
+      // The bell reloads; a review / legal / outlet notice refreshes status + profile.
+      announceNotification();
+      if (refreshesProfile(type)) refreshProfileAfterNotice();
     };
 
     onForegroundMessage(handleMessage).then((unsub) => {
@@ -93,22 +102,25 @@ function App() {
     <BrowserRouter>
     <AnalyticsRouteTracker />
     <PushNotificationToast toast={pushToast} onDismiss={() => setPushToast(null)} />
+    {/* OS notification clicked while this tab is open → its page, in-app. */}
+    <NotificationClickListener />
+     {/* Logged in → wait for GET /brands/onboarding/status, the only routing source. */}
+     <StatusGate>
      <PostAuthRouteGuard>   {/* ✅ yahan wrap karo — Routes ke bahar, Router ke andar */}
       <Routes>
 
         {/* ─── PUBLIC ─── */}
-        <Route path="/" element={<PublicRoute><Step1WhatsApp /></PublicRoute>} />
+        <Route path={ONBOARDING_ROUTES.LOGIN} element={<PublicRoute><Step1WhatsApp /></PublicRoute>} />
 
-        {/* ─── ONBOARDING / OUTLET-SETUP FLOW: header/footer NAHI ─── */}
-        <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
-        <Route path="/subscription" element={<ProtectedRoute><SubscriptionPlan /></ProtectedRoute>} />
-        <Route path="/subscription/checkout" element={<ProtectedRoute><SubscriptionCheckout /></ProtectedRoute>} />
-        {/* <Route path="/oulet" element={<ProtectedRoute><TrydoodOutlet /></ProtectedRoute>} /> */}
-        <Route path="/brand-outlet" element={<ProtectedRoute><OnboardingOnlyRoute><CreateBrandOutlet /></OnboardingOnlyRoute></ProtectedRoute>} />
-        <Route path="/under-review" element={<ProtectedRoute><UnderReview /></ProtectedRoute>} />
+        {/* ─── ONBOARDING (v3, login → partnership deed) / OUTLET-SETUP FLOW: header/footer NAHI ─── */}
+        <Route path={ONBOARDING_ROUTES.WIZARD} element={<ProtectedRoute><OnboardingOnlyRoute><OnboardingPage /></OnboardingOnlyRoute></ProtectedRoute>} />
+        <Route path={ONBOARDING_ROUTES.PLAN} element={<ProtectedRoute><SubscriptionPlan /></ProtectedRoute>} />
+        <Route path={ONBOARDING_ROUTES.CHECKOUT} element={<ProtectedRoute><SubscriptionCheckout /></ProtectedRoute>} />
+        <Route path={ONBOARDING_ROUTES.STATUS} element={<ProtectedRoute><ReviewStatusPage /></ProtectedRoute>} />
 
         {/* ─── DASHBOARD GROUP: header/footer YAHAN chahiye ─── */}
-        <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+        {/* A vendor still onboarding who opens one of these by URL → their screen (status). */}
+        <Route element={<ProtectedRoute><DashboardOnlyRoute><DashboardLayout /></DashboardOnlyRoute></ProtectedRoute>}>
 
           <Route path="/analysis-report" element={<AnalysisReport />} />
 
@@ -152,11 +164,15 @@ function App() {
 
         </Route>
 
+        {/* OS notification click (service worker) → the notification's page, or the vendor's screen. */}
+        <Route path={NOTIFICATION_OPEN_PATH} element={<ProtectedRoute><NotificationOpenRoute /></ProtectedRoute>} />
+
         {/* ─── Fallback ─── */}
         <Route path="*" element={<Navigate to="/" replace />} />
 
       </Routes>
          </PostAuthRouteGuard>  
+     </StatusGate>
     </BrowserRouter>
   );
 }

@@ -1,8 +1,19 @@
 import { useState } from "react";
-import { IdCard, Store, Building2, Mail, Phone, PhoneCall, CalendarDays, Tag as TagIcon, MapPin, Copy, Check, ShieldCheck, Info } from "lucide-react";
+import { IdCard, Store, Building2, Mail, Phone, PhoneCall, CalendarDays, Tag as TagIcon, MapPin, Copy, Check, ShieldCheck, Info, Lock } from "lucide-react";
+import { updateBrandProfile } from "@/features/onboarding-v2/services/brandSetupApi";
+import { onboardingErrorMessage } from "@/features/onboarding-v2/utils/errorMessages";
+import useProfileRefresh from "../hooks/useProfileRefresh";
 import { formatMobileNumber } from "../utils/BrandHelpers";
 import EmailVerifyModal from "./EmailVerifyModal";
 import MobileVerifyModal from "./MobileVerifyModal";
+
+// Legal fields are read-only after approval (guide §8, 409 LEGAL_FIELD_LOCKED).
+const SupportNote = () => (
+  <p className="mt-1 inline-flex items-center gap-1 text-[11px] text-gray-400">
+    <Lock size={11} aria-hidden="true" />
+    Changes go through support
+  </p>
+);
 
 // Formats an ISO date string like "2026-08-15T14:08:09.215Z" → "15 Aug 2026"
 const formatJoinedDate = (isoDate) => {
@@ -59,14 +70,31 @@ function InfoTile({ icon, label, value, valueClassName = "", copyValue, action, 
 const BrandProfileSection = ({ profile, outletCount, reload }) => {
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [showMobileModal, setShowMobileModal] = useState(false);
+  const [usingWhatsapp, setUsingWhatsapp] = useState(false);
+  const [contactError, setContactError] = useState("");
+  // Brand + status (strength: verified email +3, mobile +2).
+  const refresh = useProfileRefresh(reload);
 
   if (!profile) return null;
 
   const isEmailVerified = !!profile.user?.isEmailVerified;
-  // ⚠️ Same caveat as profile.mobile above — isMobileVerified is not
-  // independently confirmed from a Postman sample yet; read the same way
-  // isEmailVerified already is, per explicit instruction.
   const isMobileVerified = !!profile.user?.isMobileVerified;
+  const canUseWhatsapp = Boolean(profile.whatsappNumber) && profile.mobile !== profile.whatsappNumber;
+
+  // PUT /brands/update { useWhatsappAsMobile: true } — the owner's verified WhatsApp number becomes the contact number.
+  const useWhatsappAsContact = async () => {
+    setUsingWhatsapp(true);
+    setContactError("");
+    try {
+      await updateBrandProfile({ useWhatsappAsMobile: true });
+      await refresh();
+    } catch (err) {
+      console.error("Use WhatsApp as contact failed:", err);
+      setContactError(onboardingErrorMessage(err, "We couldn't update the contact number."));
+    } finally {
+      setUsingWhatsapp(false);
+    }
+  };
 
   return (
     <section className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6">
@@ -93,6 +121,7 @@ const BrandProfileSection = ({ profile, outletCount, reload }) => {
           value={profile.brandName}
           valueClassName="capitalize"
           copyValue={profile.brandName}
+          note={<SupportNote />}
         />
         <InfoTile
           icon={<Building2 className="w-4 h-4 text-emerald-500 dark:text-emerald-400" strokeWidth={1.8} />}
@@ -100,6 +129,7 @@ const BrandProfileSection = ({ profile, outletCount, reload }) => {
           value={profile.legalBusinessName}
           valueClassName="capitalize"
           copyValue={profile.legalBusinessName}
+          note={<SupportNote />}
         />
         <InfoTile
           icon={<Mail className="w-4 h-4 text-emerald-500 dark:text-emerald-400" strokeWidth={1.8} />}
@@ -126,16 +156,28 @@ const BrandProfileSection = ({ profile, outletCount, reload }) => {
             )
           }
         />
-        {/* ⚠️ profile.mobile is NOT independently confirmed from a Postman
-            sample for the brand GET response — CreateBrandOutlet.jsx already
-            sends `mobile` on brands/update per explicit instruction, so this
-            reads it back the same way; verify it displays the real saved
-            value once tested. */}
         <InfoTile
           icon={<PhoneCall className="w-4 h-4 text-emerald-500 dark:text-emerald-400" strokeWidth={1.8} />}
           label="Contact Number"
           value={formatMobileNumber(profile.mobile) || "Not Provided"}
           copyValue={profile.mobile}
+          note={
+            canUseWhatsapp || contactError ? (
+              <div className="mt-1">
+                {canUseWhatsapp && (
+                  <button
+                    type="button"
+                    onClick={useWhatsappAsContact}
+                    disabled={usingWhatsapp}
+                    className="text-[11px] font-semibold text-emerald-600 hover:underline disabled:opacity-50"
+                  >
+                    {usingWhatsapp ? "Updating…" : "Use my WhatsApp number instead"}
+                  </button>
+                )}
+                {contactError && <p className="text-[11px] text-red-500">{contactError}</p>}
+              </div>
+            ) : null
+          }
           action={
             isMobileVerified ? (
               <span
@@ -193,7 +235,7 @@ const BrandProfileSection = ({ profile, outletCount, reload }) => {
           currentEmail={profile.email}
           onClose={() => setShowEmailModal(false)}
           onVerified={async () => {
-            await reload?.();
+            await refresh();
             setShowEmailModal(false);
           }}
         />
@@ -204,7 +246,7 @@ const BrandProfileSection = ({ profile, outletCount, reload }) => {
           currentMobile={profile.mobile}
           onClose={() => setShowMobileModal(false)}
           onVerified={async () => {
-            await reload?.();
+            await refresh();
             setShowMobileModal(false);
           }}
         />

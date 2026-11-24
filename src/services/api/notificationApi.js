@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { ApiError, attachApiErrorInterceptor, getErrorDetails, getErrorStatus } from '@/services/http/apiError';
 
 // ── Base URL / Axios instance (same pattern as the other feature-level
 // services — e.g. VoucherService.js, brandApi.js) ──────────────────────
@@ -7,6 +8,7 @@ const BASE_URL = import.meta.env.VITE_BASE_URL;
 const api = axios.create({
     baseURL: BASE_URL,
 });
+attachApiErrorInterceptor(api);
 
 api.interceptors.request.use(async (config) => {
     const { useAuthStore } = await import('../../features/onboarding/store/authStore');
@@ -23,14 +25,15 @@ function handleError(error) {
         error?.response?.data?.error ||
         error?.message ||
         'Something went wrong. Please try again.';
-    throw new Error(message);
+    throw new ApiError(message, { status: getErrorStatus(error), details: getErrorDetails(error) });
 }
 
 // ── Get Notifications (bell dropdown) ───────────────────────────────
 // GET {{TryDood2.0BaseUrl}}/notifications/get-all?page=&limit=
-// Confirmed from Postman — envelope: { success, message, data: { total,
-// totalPages, page, limit, data: [{ _id, type, severity, title, body,
-// channels, meta, isRead, createdAt }, ...] } }.
+// API doc #18 — envelope: { success, message, data: { total, totalPages,
+// unreadCount, page, limit, data: [{ _id, type, severity, title, body,
+// channels, meta: { deepLink, … }, isRead, createdAt }, ...] } }.
+// `unreadCount` is the server's — the badge uses it, not a local count.
 export async function getNotifications({ page = 1, limit = 20 } = {}) {
     try {
         const { data } = await api.get('/notifications/get-all', { params: { page, limit } });
@@ -54,33 +57,17 @@ export async function markAllNotificationsRead() {
     }
 }
 
-// ⚠️ UNCONFIRMED — the three endpoints below are best guesses (no Postman
-// sample yet), added so the bell/drawer's Mark as read / Clear / Clear all
-// actions have something to call. Swap in the real paths/bodies once the
-// backend shares them; the UI only depends on these function names.
-
 // ── Mark ONE Notification Read ──────────────────────────────────────
-// PUT /notifications/mark-read — same confirmed endpoint as markAll above,
-// guessing it also accepts { ids: [...] } for specific notifications.
+// PUT /notifications/mark-read { notificationIds: [...] } (API doc #19).
+// The response's `data.unreadCount` is fresh. There's no delete / clear-all
+// route for vendors (#18 note 6).
 /**
  * @param {string} notificationId
+ * @returns {Promise<{ data: { modified: number, unreadCount: number } }>}
  */
 export async function markNotificationRead(notificationId) {
     try {
-        const { data } = await api.put('/notifications/mark-read', { ids: [notificationId] });
-        return data;
-    } catch (error) {
-        handleError(error);
-    }
-}
-
-// Single-notification delete is disabled until its API endpoint is confirmed.
-
-// ── Clear ALL Notifications ─────────────────────────────────────────
-// DELETE /notifications/clear-all (guessed)
-export async function clearAllNotifications() {
-    try {
-        const { data } = await api.delete('/notifications/clear-all');
+        const { data } = await api.put('/notifications/mark-read', { notificationIds: [notificationId] });
         return data;
     } catch (error) {
         handleError(error);

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
+import { getOutlets } from "@/features/onboarding-v2/services/brandSetupApi";
 import { useBrand } from "../../../hooks/useBrand";
-import { getSubBrandsByBrandId } from "../services/subBrandApi";
 import { mapSubBrandToOutlet } from "./useOutlets";
 import { fetchOutletTransactionSummary } from "@/features/transaction/services/transactionService";
 
@@ -27,15 +27,14 @@ import { fetchOutletTransactionSummary } from "@/features/transaction/services/t
  */
 async function fetchOutletDetails(id, brandId) {
   try {
-    const [subBrandsRes, txResult] = await Promise.all([
-      getSubBrandsByBrandId(brandId),
+    const [list, txResult] = await Promise.all([
+      getOutlets(brandId),
       fetchOutletTransactionSummary({ brandId, outletId: id }).then(
         (data) => ({ data }),
         (err) => ({ error: err?.message || "Couldn't load this outlet's transactions." })
       ),
     ]);
-    const list = subBrandsRes?.data?.data ?? subBrandsRes?.data ?? [];
-    const doc = (Array.isArray(list) ? list : []).find((d) => d._id === id);
+    const doc = list.find((d) => d._id === id);
     if (!doc) return { outlet: null, error: "Outlet not found." };
     return {
       outlet: { ...mapSubBrandToOutlet(doc), raw: doc },

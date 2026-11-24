@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import { AlertCircle, BadgeCheck, ChevronRight, Crown, Landmark, RotateCcw, ShieldAlert } from "lucide-react";
+import { AlertCircle, BadgeCheck, ChevronRight, Crown, RotateCcw } from "lucide-react";
 
 const DAY_MS = 86400000;
 const RENEWAL_WARNING_DAYS = 30;
@@ -26,12 +26,13 @@ const TONES = {
 
 /**
  * "Needs your attention" list, built only from real data: open refund
- * requests awaiting the vendor's decision, an expiring/expired plan, and
- * missing PAN / bank / GST verification on the brand profile.
+ * requests awaiting the vendor's decision and an expiring/expired plan.
+ * What the profile still lacks (bank, identity, logo…) comes from the
+ * server's profile strength widget, not from a check here (guide §11).
  *
- * @param {{ refunds: object[], subscription: object|null, brand: object|null, loading?: boolean }} props
+ * @param {{ refunds: object[], subscription: object|null, loading?: boolean }} props
  */
-export default function ActionCenter({ refunds = [], subscription, brand, loading = false }) {
+export default function ActionCenter({ refunds = [], subscription, loading = false }) {
   const items = useMemo(() => {
     const list = [];
 
@@ -61,22 +62,8 @@ export default function ActionCenter({ refunds = [], subscription, brand, loadin
       }
     }
 
-    if (brand) {
-      if (!brand.pan?.isVerified) {
-        list.push({ key: "pan", icon: ShieldAlert, tone: "amber", title: "Business PAN not verified", detail: "Verify PAN to receive settlements", to: "/account-information", cta: "Verify" });
-      }
-      if (!brand.bank?.isVerified) {
-        list.push({ key: "bank", icon: Landmark, tone: "amber", title: brand.bank ? "Bank account not verified" : "No bank account linked", detail: "Payouts need a verified bank account", to: "/account-information", cta: "Fix" });
-      }
-      // GST is optional for unregistered businesses — only flag one that's
-      // on file but still unverified.
-      if (brand.gst && !brand.gst.isVerified) {
-        list.push({ key: "gst", icon: ShieldAlert, tone: "sky", title: "GST details not verified", detail: "Re-verify your GSTIN in Business Profile", to: "/account-information", cta: "Verify" });
-      }
-    }
-
     return list;
-  }, [refunds, subscription, brand]);
+  }, [refunds, subscription]);
 
   return (
     <div className="bento-card flex h-full flex-col p-5">
@@ -104,7 +91,7 @@ export default function ActionCenter({ refunds = [], subscription, brand, loadin
             <BadgeCheck size={22} className="text-emerald-500" />
           </div>
           <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">Everything looks good</p>
-          <p className="text-[11px] text-gray-400">No pending refunds, renewals or verifications.</p>
+          <p className="text-[11px] text-gray-400">No pending refunds or renewals.</p>
         </div>
       ) : (
         <ul className="space-y-2.5">

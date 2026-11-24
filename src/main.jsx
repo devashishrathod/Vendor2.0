@@ -4,6 +4,11 @@ import "./index.css";
 import "./config/firebase.js";
 import App from "./App.jsx";
 import { ThemeProvider } from "./context/ThemeContext.jsx";
+import { installSessionEndHandler } from "./features/onboarding/utils/sessionEnd";
+import { purgeLegacyStorage } from "./utils/legacyStorage";
+
+purgeLegacyStorage();
+installSessionEndHandler();
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
