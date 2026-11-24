@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, Bell, CheckCheck, Trash2 } from "lucide-react";
-
-import ConfirmModal from "@/components/common/ConfirmModal";
+import { ArrowRight, Bell, CheckCheck } from "lucide-react";
 
 import useNotifications from "../hooks/useNotifications";
 import NotificationDrawer from "./NotificationDrawer";
@@ -11,17 +8,15 @@ import NotificationItem, { NotificationEmpty, NotificationSkeleton } from "./Not
 
 const PREVIEW_COUNT = 5;
 
-// Header bell — a short preview dropdown (latest few, with Mark as read,
-// Mark all read, Clear all) plus a "View all" right-side
-// drawer with the full list. Both share one useNotifications() state.
-// Fetched once on mount (not just on open) so the unread dot on the bell
-// itself is accurate before the vendor ever clicks it. Opening the
-// dropdown no longer auto-marks everything read — that's now an explicit
-// action. `onColor` = round translucent-white trigger for the green header.
+// Header bell — a short preview dropdown (latest few, with Mark as read and
+// Mark all read) plus a "View all" right-side drawer with the full list.
+// Both share one useNotifications() state. The badge is the server's
+// unreadCount; a push reloads the list. There is no clear / delete for
+// vendors (API doc #18 note 6). `onColor` = round translucent-white
+// trigger for the green header.
 export default function NotificationBell({ onColor = false }) {
   const [open, setOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [confirmClearAll, setConfirmClearAll] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
   const ref = useRef(null);
   const navigate = useNavigate();
@@ -37,7 +32,6 @@ export default function NotificationBell({ onColor = false }) {
     loadMore,
     markRead,
     markAllRead,
-    clearAll,
   } = useNotifications();
 
   useEffect(() => {
@@ -50,11 +44,11 @@ export default function NotificationBell({ onColor = false }) {
   }, [open]);
 
   // Clicking a notification (in the dropdown or the drawer) marks it read
-  // and opens its full details in the drawer. Its link (confirmed key:
-  // meta.deepLink) is followed from the detail view's buttons instead.
+  // (a review / outlet notice also refreshes the status) and opens its full
+  // details in the drawer, whose button follows its link.
   const handleOpenItem = useCallback(
     (n) => {
-      if (!n.isRead) markRead(n._id);
+      markRead(n._id);
       setSelectedId(n._id);
       setOpen(false);
       setDrawerOpen(true);
@@ -84,8 +78,6 @@ export default function NotificationBell({ onColor = false }) {
   }, []);
 
   const backToList = useCallback(() => setSelectedId(null), []);
-
-  const requestClearAll = useCallback(() => setConfirmClearAll(true), []);
 
   const previewItems = items.slice(0, PREVIEW_COUNT);
   const visibleError = actionError || error;
@@ -182,15 +174,6 @@ export default function NotificationBell({ onColor = false }) {
             <div className="flex items-center gap-2 px-3 pb-3 pt-2">
               <button
                 type="button"
-                onClick={requestClearAll}
-                disabled={items.length === 0}
-                className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold text-gray-500 transition-colors hover:bg-rose-50 hover:text-rose-500 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-gray-500 dark:text-gray-400 dark:hover:bg-rose-500/15 dark:hover:text-rose-400"
-              >
-                <Trash2 size={14} />
-                Clear all
-              </button>
-              <button
-                type="button"
                 onClick={openDrawer}
                 className="group/view ml-auto flex items-center gap-1.5 rounded-xl bg-gray-900 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-emerald-600 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-emerald-500 dark:hover:text-white"
               >
@@ -218,22 +201,7 @@ export default function NotificationBell({ onColor = false }) {
         onOpenItem={handleOpenItem}
         onMarkRead={markRead}
         onMarkAllRead={markAllRead}
-        onClearAll={requestClearAll}
       />
-
-      {confirmClearAll &&
-        createPortal(
-          <ConfirmModal
-            title="Clear all notifications?"
-            description="This removes every notification from your list. This can't be undone."
-            onConfirm={() => {
-              setConfirmClearAll(false);
-              clearAll();
-            }}
-            onCancel={() => setConfirmClearAll(false)}
-          />,
-          document.body
-        )}
     </>
   );
 }

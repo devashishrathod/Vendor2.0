@@ -5,7 +5,7 @@
 import {
   WEEK_DAYS,
   DEFAULT_WORKING_HOURS,
-} from "@/features/oulet/New folder/constants/brandOutletConstants";
+} from "@/features/outlets/setup/constants/brandOutletConstants";
 
 const HH_MM = /^([01]\d|2[0-3]):([0-5]\d)$/;
 

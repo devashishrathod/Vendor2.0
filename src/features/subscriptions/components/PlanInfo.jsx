@@ -1,3 +1,4 @@
+import { BadgePercent, CalendarDays, Crown } from "lucide-react";
 import { formatINR, amountToWords, computeEffectivePrice } from "../utils/priceCalculator";
 
 // Server-derived labels (typeLabel: "Weekly"/"Quarterly"/"18 Months",
@@ -35,68 +36,41 @@ export default function PlanInfo({ plan }) {
         : null;
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl p-6">
-      <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-4 pb-4">
-        Subscribe to {plan.name}
-      </h2>
+    <section className="overflow-hidden rounded-xl bg-white ring-1 ring-gray-200/70 dark:bg-gray-800 dark:ring-gray-700">
+      <header className="flex items-center gap-2.5 px-5 pb-0 pt-4">
+        <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
+          <Crown size={16} aria-hidden="true" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <h2 className="truncate text-sm font-bold text-gray-900 dark:text-gray-100">Subscribe to {plan.name}</h2>
+          <p className="text-xs text-gray-500 dark:text-gray-400">Your selected plan</p>
+        </div>
+      </header>
 
-      <div className="flex items-center gap-3 mb-1">
-        <span className="text-3xl font-extrabold text-gray-900 dark:text-gray-100">{formatINR(effectivePrice)}</span>
-        <span className="text-gray-500 font-medium">/ {billingLabel(plan)}</span>
-      </div>
+      <div className="flex flex-col gap-4 px-5 py-5 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+            <span className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-gray-100">{formatINR(effectivePrice)}</span>
+            <span className="text-sm font-medium text-gray-500 dark:text-gray-400">/ {billingLabel(plan)}</span>
+            {strikeReference != null && <span className="text-sm text-gray-400 line-through">{formatINR(strikeReference)}</span>}
+          </div>
+          <p className="mt-1 text-xs text-gray-400">{amountToWords(effectivePrice)} Rupees Only</p>
+          {plan.description && <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">{plan.description}</p>}
+        </div>
 
-      {(strikeReference != null || discountLabel) && (
-        <div className="flex items-center gap-3 mb-2">
-          {strikeReference != null && (
-            <span className="text-gray-400 line-through text-sm">{formatINR(strikeReference)}</span>
-          )}
+        <div className="flex flex-wrap gap-2 sm:justify-end">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1.5 text-xs font-semibold text-gray-700 dark:bg-gray-700 dark:text-gray-200">
+            <CalendarDays size={13} aria-hidden="true" />
+            {plan.durationLabel || legacyDurationLabel(plan.durationInDays)}
+          </span>
           {discountLabel && (
-            <span className="bg-emerald-600 text-white text-xs font-bold px-3 py-1 rounded-md">
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white">
+              <BadgePercent size={13} aria-hidden="true" />
               {discountLabel}
             </span>
           )}
         </div>
-      )}
-
-      <p className="text-xs text-gray-400 mb-6">{amountToWords(effectivePrice)} Rupees Only</p>
-
-      {plan.description && <p className="text-sm text-gray-500 mb-6">{plan.description}</p>}
-
-      <div className="mb-5">
-        <p className="text-sm font-bold text-gray-800 dark:text-gray-100 mb-1">Plan Duration</p>
-        <p className="text-sm text-gray-600 dark:text-gray-300">{plan.durationLabel || legacyDurationLabel(plan.durationInDays)}</p>
       </div>
-
-      {/* {(plan.benefits?.length > 0 || plan.limitations?.length > 0) && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
-          {plan.benefits?.length > 0 && (
-            <div>
-              <p className="text-sm font-bold text-gray-800 mb-1.5">Benefits</p>
-              <ul className="space-y-1">
-                {plan.benefits.map((b, i) => (
-                  <li key={i} className="text-sm text-gray-600 flex items-start gap-1.5">
-                    <span className="mt-1.5 w-1 h-1 rounded-full bg-emerald-500 shrink-0" />
-                    {b}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {plan.limitations?.length > 0 && (
-            <div>
-              <p className="text-sm font-bold text-gray-800 mb-1.5">Limitations</p>
-              <ul className="space-y-1">
-                {plan.limitations.map((l, i) => (
-                  <li key={i} className="text-sm text-gray-500 flex items-start gap-1.5">
-                    <span className="mt-1.5 w-1 h-1 rounded-full bg-red-400 shrink-0" />
-                    {l}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-      )} */}
-    </div>
+    </section>
   );
 }

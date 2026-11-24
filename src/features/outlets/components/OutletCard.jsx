@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ArrowRight, CalendarDays, Check, Copy, MapPin, MessageCircle, Pencil } from "lucide-react";
+import OutletVerifyPanel from "@/features/onboarding-v2/steps/outlets/OutletVerifyPanel";
 import { OUTLET_STATUS, OUTLET_TYPES } from "../constants/outletConstants";
 import { cx, formatShortDate, getAwningVariant, maskStoreId } from "../utils/outletUtils";
 import { OpenSign, StoreAwning, StoreTile } from "./Storefront";
@@ -23,11 +24,16 @@ function VerifiedMark({ verified }) {
  * Storefront-style outlet card: striped awning colored by outlet type, a
  * hanging OPEN/CLOSED sign, store-id signboard, contact tiles, a map-like
  * address tile and a "counter" footer with the active switch + actions.
+ * Until the manager verifies (`verificationState`), the card shows the code
+ * / resend / fix / cancel panel with the hold timer, and edit + the active
+ * switch stay locked (409 OUTLET_NOT_VERIFIED).
  */
-export default function OutletCard({ outlet, selected, onSelect, onToggleStatus, onExploreDetails, onEdit }) {
+export default function OutletCard({ outlet, brandId, selected, onSelect, onToggleStatus, onExploreDetails, onEdit, onChanged }) {
   const [copied, setCopied] = useState(false);
   const whatsapp = outlet.whatsapp || {};
   const isActive = outlet.status === OUTLET_STATUS.ACTIVE;
+  const locked = !outlet.isVerified;
+  const lockedTitle = "Verify the manager's WhatsApp number first";
   const isFranchise = outlet.outletType === OUTLET_TYPES.FRANCHISE;
   const variant = getAwningVariant(outlet);
 
@@ -124,6 +130,8 @@ export default function OutletCard({ outlet, selected, onSelect, onToggleStatus,
             </p>
           </div>
         </div>
+
+        {outlet.raw && <OutletVerifyPanel outlet={outlet.raw} brandId={brandId} onChanged={onChanged} />}
       </div>
 
       {/* Counter: active switch + actions */}
@@ -132,7 +140,9 @@ export default function OutletCard({ outlet, selected, onSelect, onToggleStatus,
           type="button"
           onClick={() => onToggleStatus(outlet.id)}
           aria-pressed={isActive}
-          className="flex items-center gap-2"
+          disabled={locked}
+          title={locked ? lockedTitle : undefined}
+          className="flex items-center gap-2 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <span
             className={cx(
@@ -156,8 +166,9 @@ export default function OutletCard({ outlet, selected, onSelect, onToggleStatus,
           type="button"
           onClick={() => onEdit(outlet)}
           aria-label="Edit outlet"
-          title="Edit outlet"
-          className="ml-auto flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-700 transition-colors hover:text-emerald-700 dark:border-white/10 dark:bg-gray-800 dark:text-gray-300 dark:hover:text-emerald-400"
+          title={locked ? lockedTitle : "Edit outlet"}
+          disabled={locked}
+          className="ml-auto flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-700 transition-colors hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/10 dark:bg-gray-800 dark:text-gray-300 dark:hover:text-emerald-400"
         >
           <Pencil className="h-4 w-4" />
         </button>

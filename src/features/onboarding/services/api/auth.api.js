@@ -1,5 +1,6 @@
 import { ROLES } from "@/constants";
-import { request, setToken, clearToken } from "./client";
+import { clearLegacyToken } from "@/services/api/authToken";
+import { request } from "./client";
 
 export const sendOTP = (whatsappNumber, role = ROLES.VENDOR) =>
   request("/auth/loginOrSignUp-with-whatsapp", "POST", {
@@ -7,18 +8,12 @@ export const sendOTP = (whatsappNumber, role = ROLES.VENDOR) =>
     role,
   });
 
-export const verifyOTP = async (whatsappNumber, otp, role, screenToSend) => {
-  const data = await request(
-    "/auth/verify-otp-whatsapp",
-    "POST",
-    { whatsappNumber, otp, role, currentScreen: screenToSend }, // hamesha present
-    false,
-  );
-  if (data?.data?.token) setToken(data.data.token);
-  return data;
-};
+// No `currentScreen` in the body — the server owns the screen (API doc #2 note 2).
+// The token is kept by the auth store only (services/api/authToken.js).
+export const verifyOTP = (whatsappNumber, otp, role) =>
+  request("/auth/verify-otp-whatsapp", "POST", { whatsappNumber, otp, role }, false);
 
-export const logout = () => clearToken();
+export const logout = () => clearLegacyToken();
 
 const authAPI = { sendOTP, verifyOTP, logout };
 export default authAPI;

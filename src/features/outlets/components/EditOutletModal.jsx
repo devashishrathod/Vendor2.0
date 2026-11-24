@@ -5,7 +5,7 @@
 // unlike Add, a new pick is only staged here and saved on "Save Changes".
 import { useState } from "react";
 import { useEditOutletForm } from "../hooks/useEditOutletForm";
-import WorkingHoursEditor from "@/features/oulet/New folder/components/brandOutlet/WorkingHoursEditor";
+import WorkingHoursEditor from "@/features/outlets/setup/components/brandOutlet/WorkingHoursEditor";
 import ErrorToast from "@/components/common/ErrorToast";
 import SuccessToast from "@/components/common/SuccessToast";
 import Select from "../../../components/common/Select";

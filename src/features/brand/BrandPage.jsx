@@ -5,22 +5,23 @@ import BrandHeader from "./components/BrandHeader";
 import BrandTabs from "./components/BrandTabs";
 
 import BrandProfilePage from "./pages/BrandProfilePage";
-import OutletLocationPage from "./pages/OutletLocationPage";
 import ShowcasePage from "./pages/ShowcasePage";
 import BankAccountPage from "./pages/BankAccountPage";
 import ListingFeaturesPage from "./pages/ListingFeaturesPage";
 import GstPanPage from "./pages/GstPanPage";
 import ComingSoonPage from "./pages/ComingSoonPage";
 
+import { updateBrandProfile } from "@/features/onboarding-v2/services/brandSetupApi";
 import useBrandData from "./hooks/useBrandData";
+import useProfileRefresh from "./hooks/useProfileRefresh";
 import { useAuthStore } from "../onboarding/store/authStore";
 import { BRAND_TABS } from "./utils/BrandHelpers";
-import { updateBrandDetails } from "./services/brandApi";
 
 
-import ScanQrCodePage from "./pages/ScanQrCodePage";
 import BrandDescriptionPage from "./pages/BrandDescriptionPage";
 import BusinessHoursPage from "./pages/BusinessHoursPage";
+import DocumentsPage from "./pages/DocumentsPage";
+import BillingAddressPage from "./pages/BillingAddressPage";
 
 // Maps each tab id to the page component that renders its content.
 // Add an entry here whenever a new tab gets a real UI.
@@ -32,8 +33,8 @@ const TAB_PAGES = {
   "listing-features": ListingFeaturesPage,
   "gst-pan-information": GstPanPage,
   "business-hours": BusinessHoursPage,
-  "outlet-location": OutletLocationPage,
-  "scan-qr-code": ScanQrCodePage,
+  "documents": DocumentsPage,
+  "billing-address": BillingAddressPage,
 };
 
 /**
@@ -75,32 +76,30 @@ const BrandPage = ({ brandId: brandIdProp }) => {
   const brandId = brandIdProp || sessionBrandId;
 
   const { data: brand, loading, error, reload } = useBrandData(brandId);
+  const refresh = useProfileRefresh(reload);
 
-  // Logo change/view now lives on the header (not the Brand Profile tab) —
-  // PUT /brands/update?brandId= with only the logo file, same as before.
+  // Logo and cover image live on the header — PUT /brands/update with only
+  // that file (never brandName / category / isOnboarding).
   const logoInputRef = useRef(null);
-  const [uploadingLogo, setUploadingLogo] = useState(false);
-  const [logoError, setLogoError] = useState("");
+  const coverInputRef = useRef(null);
+  const [uploadingImage, setUploadingImage] = useState(null); // "logo" | "coverImage" | null
+  const [imageError, setImageError] = useState("");
 
-  const handleChangeLogo = () => {
-    logoInputRef.current?.click();
-  };
-
-  const handleLogoFileChange = async (e) => {
+  const handleImageFileChange = (kind) => async (e) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
 
     try {
-      setUploadingLogo(true);
-      setLogoError("");
-      await updateBrandDetails(brandId, {}, file);
-      await reload?.();
+      setUploadingImage(kind);
+      setImageError("");
+      await updateBrandProfile({}, { [kind]: file });
+      await refresh();
     } catch (err) {
-      console.error("Brand logo update failed:", err);
-      setLogoError(err.message || "Failed to update logo. Please try again.");
+      console.error(`Brand ${kind} update failed:`, err);
+      setImageError(err.message || "Failed to update the image. Please try again.");
     } finally {
-      setUploadingLogo(false);
+      setUploadingImage(null);
     }
   };
 
@@ -178,19 +177,16 @@ const BrandPage = ({ brandId: brandIdProp }) => {
             brandName={brand.brandName}
             merchantId={brand.merchantId}
             logo={brand.logo}
-            onChangeLogo={handleChangeLogo}
-            logoUpdating={uploadingLogo}
-            logoError={logoError}
-            isApproved={brand.isApproved}
+            coverImage={brand.coverImage}
+            onChangeLogo={() => logoInputRef.current?.click()}
+            onChangeCover={() => coverInputRef.current?.click()}
+            uploading={uploadingImage}
+            imageError={imageError}
+            isVerified={brand.isVerified === true}
             joinedDate={brand.joinedDate}
           />
-          <input
-            ref={logoInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleLogoFileChange}
-          />
+          <input ref={logoInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleImageFileChange("logo")} />
+          <input ref={coverInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleImageFileChange("coverImage")} />
 
           <div className="mt-6">
             <BrandTabs activeTab={activeTab} onTabChange={setActiveTab} />

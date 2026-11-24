@@ -5,6 +5,7 @@ import { getCurrentSubscription } from "../services/subscriptionApi";
 import AppBackground from "@/components/common/AppBackground";
 import ErrorToast from "@/components/common/ErrorToast";
 import { isOnboardingCompleteNow } from "@/features/onboarding/utils/onboardingStatus";
+import { routeAfterPlanPurchase } from "../utils/afterPayment";
 import { mergeGstRowsToIgst } from "../utils/priceCalculator";
 
 const CONFETTI_COLORS = [
@@ -392,11 +393,14 @@ export default function WelcomePage({ orderData = null, asModal = true, onClose,
   const invoiceUrl = getInvoiceUrl(orderData) || getInvoiceUrl(currentSub);
 
   // No explicit returnTo (e.g. lost on a reload): an onboarded brand's
-  // purchase is an upgrade → back to Plan & Billing; only a brand still
-  // onboarding continues to Create Outlet.
-  const handlePrimaryCta = () => {
+  // purchase is an upgrade → back to Plan & Billing; a brand still
+  // onboarding goes where the server's status says (guide §4.11 — the plan
+  // being live moves it on), never to a page picked here.
+  const handlePrimaryCta = async () => {
     if (asModal && onClose) onClose();
-    navigate(returnTo || (isOnboardingCompleteNow() ? "/subscription-plan" : "/brand-outlet"));
+    if (returnTo) navigate(returnTo);
+    else if (isOnboardingCompleteNow()) navigate("/subscription-plan");
+    else navigate(await routeAfterPlanPurchase());
   };
 
   return (

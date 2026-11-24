@@ -1,34 +1,21 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import AppBackground from "@/components/common/AppBackground";
 import AppTopBar from "@/components/common/AppTopBar";
-import { previewCheckout, getCurrentSubscription } from "../services/subscriptionApi";
+import { previewCheckout } from "../services/subscriptionApi";
 import { useBrand } from "../../../hooks/useBrand";
-import { isOnboardingCompleteNow } from "@/features/onboarding/utils/onboardingStatus";
+import { isOnboardingComplete, isOnboardingCompleteNow } from "@/features/onboarding/utils/onboardingStatus";
+import OnboardingPageHeader from "@/features/onboarding-v2/components/layout/OnboardingPageHeader";
+import { routeForScreen } from "@/features/onboarding-v2/config/routes";
+import { SCREENS } from "@/features/onboarding-v2/config/screens";
+import { useOnboardingStatusStore } from "@/features/onboarding-v2/store/statusStore";
 import TrustBar from "../components/TrustBar";
 import PlanInfo from "../components/PlanInfo";
+import BillingAddressCard from "../components/BillingAddressCard";
 import BillingDetailsCard from "../components/BillingDetailsCard";
 import OrderSummary from "../components/OrderSummary";
-import {
-  markCheckoutPaid,
-  readCheckoutBilling,
-  readCheckoutReturnTo,
-  saveCheckoutBilling,
-  wasCheckoutPaid,
-} from "../utils/checkoutSession";
-
-// A hard page reload loses React Router's navigation `state` (that's how
-// this page normally gets `plan.id`), which used to send the vendor back
-// to /subscription unconditionally — including right after they'd already
-// paid (e.g. reloading while the WelcomePage success modal was showing).
-// Check the real subscription status first so an already-paid vendor is
-// sent forward instead of back to checkout/plan-picking. Confirmed real
-// shape (GET /subscribeds/get): top-level `isSubscribed` boolean, plus
-// `subscription.status === "ACTIVE"`.
-function hasActiveSubscription(sub) {
-  if (!sub) return false;
-  return !!sub.isSubscribed || sub.subscription?.status === "ACTIVE";
-}
+import { toFormAddress, useBillingAddress } from "../hooks/useBillingAddress";
+import { markCheckoutPaid, readCheckoutReturnTo, wasCheckoutPaid } from "../utils/checkoutSession";
 
 export default function SubscriptionCheckout() {
   const { state } = useLocation();
@@ -40,6 +27,12 @@ export default function SubscriptionCheckout() {
   // legalBusinessName — pulled from the same useBrand() hook WelcomePage.jsx
   // already uses for it instead of guessing a new field on preview.
   const { brand } = useBrand();
+  // Billing address lives on the server (GET / PUT /brands/billing-address);
+  // its `gstAddress` is the "Same as GST" prefill (owner answer 13).
+  const billingAddress = useBillingAddress();
+  const fetchStatus = useOnboardingStatusStore((s) => s.fetchStatus);
+  // create-order answered 422 BILLING_ADDRESS_REQUIRED — point at the form.
+  const [billingNeeded, setBillingNeeded] = useState(false);
 
   // The plan picked on the pricing page only supplies the id to preview —
   // everything shown on this page (plan details, billing, pricing/GST
@@ -62,6 +55,10 @@ export default function SubscriptionCheckout() {
   // Back-target for the Upgrade flow — router state is lost on refresh,
   // sessionStorage (written by SubscriptionPlan.jsx) isn't.
   const returnTo = state?.returnTo ?? readCheckoutReturnTo() ?? undefined;
+
+  // Onboarding (not the dashboard's upgrade flow): keep the wizard's header.
+  const onboardingStatus = useOnboardingStatusStore((s) => s.status);
+  const inOnboarding = !returnTo && !isOnboardingComplete(onboardingStatus);
 
   // Applied promo code mirrors ?promo= so a refresh re-runs the preview
   // with it. A ref (not a dep of the load effect) so applying/removing a
@@ -93,10 +90,6 @@ export default function SubscriptionCheckout() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Local edits to billing details before paying — starts from the
-  // server's billingDetails, editable via BillingDetailsCard.
-  const [billing, setBilling] = useState(null);
-
   // Applying/removing a promo code just re-runs the preview with/without
   // `promoCode` and swaps in whatever the server returns — same as the
   // initial load, no local discount math. Feedback for both shows inline,
@@ -119,13 +112,12 @@ export default function SubscriptionCheckout() {
         navigate("/subscription", { replace: true });
         return;
       }
-      // Still onboarding: before bouncing back to plan-picking, confirm the
-      // vendor hasn't already paid — a reload here (state lost) used to
-      // always send an already-successful payment back to /subscription
-      // instead of forward, letting them stumble into paying again.
-      getCurrentSubscription(brand?._id)
-        .then((sub) => {
-          navigate(hasActiveSubscription(sub) ? "/brand-outlet" : "/subscription", { replace: true });
+      // Still onboarding: where to go is the server's call — once the plan
+      // is live the status has moved past SUBSCRIBE_PLAN (guide §4.11).
+      fetchStatus()
+        .then((status) => {
+          const screen = status?.currentScreen;
+          navigate(screen && screen !== SCREENS.SUBSCRIBE_PLAN ? routeForScreen(screen) : "/subscription", { replace: true });
         })
         .catch(() => navigate("/subscription", { replace: true }));
       return;
@@ -134,8 +126,6 @@ export default function SubscriptionCheckout() {
     previewCheckout(subscriptionId, promoRef.current || undefined)
       .then((data) => {
         setPreview(data);
-        // Unpaid billing edits from before a refresh win over the server copy.
-        setBilling(readCheckoutBilling(subscriptionId) ?? data?.billingDetails ?? null);
         // A ?promo= code that no longer applies (expired, wrong plan) —
         // show why. The stale param itself is overwritten by the next
         // apply/remove (kept out of this effect so URL updates don't
@@ -147,7 +137,7 @@ export default function SubscriptionCheckout() {
       })
       .catch((err) => setError(err.message || "Couldn't load checkout details."))
       .finally(() => setLoading(false));
-  }, [subscriptionId, navigate, brand?._id]);
+  }, [subscriptionId, navigate, fetchStatus]);
 
   const handleApplyPromo = async (code) => {
     setApplyingPromo(true);
@@ -190,23 +180,49 @@ export default function SubscriptionCheckout() {
     }
   };
 
-  const handleSaveBilling = (next) => {
-    setBilling(next);
-    saveCheckoutBilling(subscriptionId, next);
-  };
+  // Billing saved → the preview's billingAddressRequired / billingDetails
+  // change, and so does status.hasBillingAddress.
+  const saveAddress = billingAddress.save;
+  const handleAddressChange = useCallback(
+    async (parts) => {
+      await saveAddress(parts);
+      setBillingNeeded(false);
+      fetchStatus().catch((err) => console.error("Onboarding status refresh failed:", err));
+      try {
+        setPreview(await previewCheckout(subscriptionId, promoRef.current || undefined));
+      } catch (err) {
+        console.error("Checkout preview refresh failed:", err);
+      }
+    },
+    [fetchStatus, saveAddress, subscriptionId],
+  );
+
+  const handleBillingRequired = useCallback(() => {
+    setBillingNeeded(true);
+    document.getElementById("billing-address")?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, []);
 
   if (loading || !preview) {
     return <div>{error || "Loading..."}</div>;
   }
 
   const businessName = preview.billingDetails?.brandName || preview.brand?.brandName;
+  const billing = preview.billingDetails ?? null;
 
-  // billing's own legalBusinessName (set once the vendor edits + saves it
-  // here via BillingDetailsCard) wins over this brand default — the spread
-  // order below only fills the gap when nothing's been saved yet.
-  const billingWithLegalName = billing
-    ? { legalBusinessName: brand?.legalBusinessName, ...billing }
-    : billing;
+  // Verified identity for the Billing Details card.
+  const billingWithLegalName = billing ? { legalBusinessName: brand?.legalBusinessName, ...billing } : billing;
+
+  // Billing Address form: the saved address; else the server's
+  // suggestedAddress (GST, else PAN); else empty. "Same as GST" only for a
+  // GST brand, filled from `gstAddress`; an empty state defaults to the GSTIN's.
+  const gstAddress = billingAddress.gstin ? toFormAddress(billingAddress.gstAddress) : null;
+  const saved = toFormAddress(billingAddress.billingAddress);
+  const suggested = toFormAddress(billingAddress.suggestedAddress);
+  const emptyAddress = { line1: "", line2: "", city: "", state: gstAddress?.state ?? "", pin: "" };
+  let addressValue = { ...emptyAddress, sameAsGst: false };
+  if (saved) addressValue = { ...saved, sameAsGst: false };
+  else if (suggested) addressValue = { ...suggested, sameAsGst: Boolean(gstAddress) && billingAddress.suggestedAddress?.source === "GST" };
+  const billingRequired = preview.billingAddressRequired === true || billingNeeded;
 
   return (
     <div className="app-shell-bg relative isolate min-h-screen">
@@ -219,7 +235,14 @@ export default function SubscriptionCheckout() {
           popstate handling, which redirects any browser back/forward to
           the vendor's currentScreen route regardless of where they
           actually came from in this side flow. */}
-      <AppTopBar onBack={() => navigate("/subscription", { state: { returnTo } })} />
+      {inOnboarding ? (
+        <OnboardingPageHeader
+          title="Payment"
+          onBack={() => navigate("/subscription", { state: { returnTo } })}
+        />
+      ) : (
+        <AppTopBar onBack={() => navigate("/subscription", { state: { returnTo } })} />
+      )}
       {/* Full-bleed: sits outside the max-w container so the ribbon spans
           the whole viewport width edge to edge. */}
       <TrustBar />
@@ -227,7 +250,25 @@ export default function SubscriptionCheckout() {
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-5">
           <div className="flex flex-col gap-4">
             <PlanInfo plan={preview.plan} />
-            <BillingDetailsCard details={billingWithLegalName} onSave={handleSaveBilling} />
+            {/* Billing Details, then Billing Address — full width each, laid out
+                horizontally inside so they stay short. */}
+            <div className="flex flex-col gap-4">
+              <BillingDetailsCard details={billingWithLegalName} />
+              {billingAddress.loading ? (
+                <p className="rounded-xl bg-white px-4 py-3 text-sm text-gray-500 ring-1 ring-gray-200/70 dark:bg-gray-800 dark:text-gray-400 dark:ring-gray-700">
+                  Loading billing address…
+                </p>
+              ) : (
+                <BillingAddressCard
+                  key={saved ? "saved" : "draft"}
+                  value={addressValue}
+                  gstAddress={gstAddress}
+                  onChange={handleAddressChange}
+                  isSaved={Boolean(saved)}
+                  required={billingRequired}
+                />
+              )}
+            </div>
           </div>
 
           <OrderSummary
@@ -242,6 +283,8 @@ export default function SubscriptionCheckout() {
             requiresPayment={preview.requiresPayment}
             blockedReason={preview.blockedReason}
             notices={preview.notices}
+            billingAddressRequired={billingRequired}
+            onBillingRequired={handleBillingRequired}
             businessName={businessName}
             billingDetails={billing}
             onApplyPromo={handleApplyPromo}

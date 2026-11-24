@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { Bell, CheckCheck, ChevronDown, Loader2, Trash2, X } from "lucide-react";
+import { Bell, CheckCheck, ChevronDown, Loader2, X } from "lucide-react";
 
 import NotificationDetail from "./NotificationDetail";
 import NotificationItem, { NotificationEmpty, NotificationSkeleton } from "./NotificationItem";
@@ -12,7 +12,8 @@ const TABS = [
 
 /**
  * Right-side "View all" panel — the full notification list with All/Unread
- * tabs, Mark all read, Clear all, Mark as read and Load more. When
+ * tabs, Mark all read, Mark as read and Load more (vendors have no clear /
+ * delete — API doc #18 note 6). When
  * `selectedId` is set it shows that notification's full details instead
  * (NotificationDetail), with a back link to the list. Portaled to <body> so
  * the header's own stacking/overflow can't clip it.
@@ -33,7 +34,6 @@ export default function NotificationDrawer({
   onOpenItem,
   onMarkRead,
   onMarkAllRead,
-  onClearAll,
 }) {
   const [tab, setTab] = useState("all");
 
@@ -89,16 +89,6 @@ export default function NotificationDrawer({
           >
             <CheckCheck size={15} />
             Read all
-          </button>
-          <button
-            type="button"
-            onClick={onClearAll}
-            disabled={items.length === 0}
-            title="Clear all notifications"
-            className="flex h-9 items-center gap-1.5 rounded-xl px-3 text-xs font-semibold text-rose-500 transition-colors hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent dark:text-rose-400 dark:hover:bg-rose-500/15"
-          >
-            <Trash2 size={15} />
-            Clear all
           </button>
         </div>
       </div>

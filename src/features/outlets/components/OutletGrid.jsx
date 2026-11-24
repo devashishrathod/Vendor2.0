@@ -2,11 +2,13 @@ import OutletCard from "./OutletCard";
 
 export default function OutletGrid({
   outlets = [],
+  brandId,
   selectedIds = [],
   onSelect,
   onToggleStatus,
   onExploreDetails,
   onEdit,
+  onChanged,
   loading,
 }) {
   if (loading) {
@@ -29,11 +31,13 @@ export default function OutletGrid({
         <OutletCard
           key={outlet.id}
           outlet={outlet}
+          brandId={brandId}
           selected={selectedIds.includes(outlet.id)}
           onSelect={onSelect}
           onToggleStatus={onToggleStatus}
           onExploreDetails={onExploreDetails}
           onEdit={onEdit}
+          onChanged={onChanged}
         />
       ))}
     </div>

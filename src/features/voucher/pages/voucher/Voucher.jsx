@@ -1,5 +1,6 @@
 // src/pages/voucher/Voucher.jsx
 import { useNavigate } from "react-router-dom";
+import SellingGateNotice from "@/components/common/SellingGateNotice";
 import useVoucher from "../../hooks/voucher/useVoucher";
 import { VoucherOverview, VoucherTable } from "../../components/voucher";
 
@@ -23,6 +24,8 @@ export default function Voucher() {
     stateSummary,
     actionLoadingId,
     actionError,
+    actionGate,
+    clearActionGate,
     goToPage,
     changeRowsPerPage,
     updateSearch,
@@ -55,6 +58,11 @@ export default function Voucher() {
         onRefresh={refreshStats}
       />
 
+      {actionGate && (
+        <div className="mt-3">
+          <SellingGateNotice gate={actionGate} onDismiss={clearActionGate} />
+        </div>
+      )}
       {actionError && (
         <p className="mt-3 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-500">{actionError}</p>
       )}

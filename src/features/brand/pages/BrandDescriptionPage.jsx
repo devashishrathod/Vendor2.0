@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import { useState } from "react";
 
+import { updateBrandProfile } from "@/features/onboarding-v2/services/brandSetupApi";
 import BrandDescription from "../components/BrandDescription";
-import { updateBrandDetails } from "../services/brandApi";
+import useProfileRefresh from "../hooks/useProfileRefresh";
 
 const formatLastUpdate = (isoDate) => {
   if (!isoDate) return null;
@@ -14,9 +15,10 @@ const formatLastUpdate = (isoDate) => {
   });
 };
 
-const BrandDescriptionPage = ({ brand, brandId, brandLoading, brandError }) => {
+const BrandDescriptionPage = ({ brand, brandLoading, brandError, reload }) => {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
+  const refresh = useProfileRefresh(reload);
 
   if (brandLoading) {
     return <p className="text-sm text-gray-400">Loading description…</p>;
@@ -30,8 +32,11 @@ const BrandDescriptionPage = ({ brand, brandId, brandLoading, brandError }) => {
     setSaving(true);
     setSaveError(null);
     try {
-      await updateBrandDetails(brandId, { description: newDescription });
+      // PUT /brands/update — only the description (never brandName / category).
+      await updateBrandProfile({ description: newDescription });
+      await refresh();
     } catch (err) {
+      console.error("Description update failed:", err);
       setSaveError(err.message || "Failed to update description.");
     } finally {
       setSaving(false);

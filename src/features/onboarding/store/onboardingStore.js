@@ -250,25 +250,28 @@ export const useOnboardingStore = create(
       name:    "onboarding-store",
       storage: createJSONStorage(() => localStorage),
 
-      version: 1,
+      // v2: only brandId is kept from formData — the old wizard's PAN / GST /
+      // bank numbers and verify responses are never written to storage.
+      version: 2,
       migrate: (persistedState, persistedVersion) => {
-        if (persistedVersion < 1) {
-          return {
-            ...persistedState,
-            completedKeys: [],
-          };
-        }
-        return persistedState;
+        const state = persistedVersion < 1 ? { ...persistedState, completedKeys: [] } : persistedState;
+        return { ...state, formData: { brandId: state?.formData?.brandId ?? null } };
       },
 
       partialize: (state) => ({
         currentStep:              state.currentStep,
         currentSubStep:           state.currentSubStep,
-        formData:                 state.formData,
+        formData:                 { brandId: state.formData?.brandId ?? null },
         completedKeys:            state.completedKeys,
         verificationFailedChecks: state.verificationFailedChecks,
         returnToStepAfterEdit:    state.returnToStepAfterEdit,
         // toastMessage intentionally NOT persisted
+      }),
+      // Persisted formData holds brandId only — keep the other defaults.
+      merge: (persisted, current) => ({
+        ...current,
+        ...(persisted ?? {}),
+        formData: { ...current.formData, ...(persisted?.formData ?? {}) },
       }),
     },
   ),

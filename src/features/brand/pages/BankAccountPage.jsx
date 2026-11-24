@@ -1,6 +1,10 @@
 import { useState, useMemo } from "react";
+import { Landmark, Plus } from "lucide-react";
 
+import { useOnboardingStatusStore } from "@/features/onboarding-v2/store/statusStore";
 import BankAccountSection from "../components/BankAccountSection";
+import KycAddModal from "../components/KycAddModal";
+import useProfileRefresh from "../hooks/useProfileRefresh";
 
 /**
  * BankAccountPage
@@ -9,8 +13,12 @@ import BankAccountSection from "../components/BankAccountSection";
  * { subtitle, activeAccountSubtitle, accounts: [...] } shape
  * BankAccountSection/BankAccountCard expect.
  */
-const BankAccountPage = ({ brand, brandId, brandLoading, brandError }) => {
+const BankAccountPage = ({ brand, brandLoading, brandError, reload }) => {
   const [selectedAccountId, setSelectedAccountId] = useState(null);
+  const [adding, setAdding] = useState(false);
+  const refresh = useProfileRefresh(reload);
+  // A skipped bank can be added once (guide §8); a saved one is read-only.
+  const canAddBank = useOnboardingStatusStore((s) => Boolean(s.status?.editable?.kyc?.add?.bank));
 
   const bankAccountDetails = useMemo(() => {
     const bank = brand?.bank;
@@ -39,10 +47,9 @@ const BankAccountPage = ({ brand, brandId, brandLoading, brandError }) => {
           isPrimary: true,
           bankName: bank.bankName,
           accountHolderName: bank.accountHolderName,
-          // Full number kept separate from the masked one so the card can
-          // toggle between them with the eye icon — never shown by default.
-          maskedAccountNumber: bank.maskedAccountNumber || bank.accountNumber,
-          fullAccountNumber: bank.accountNumber,
+          // Only the server's masked number / last 4 — the full number is
+          // never read (brands/get stops sending it).
+          maskedAccountNumber: bank.maskedAccountNumber || (bank.accountLast4Digits ? `XXXX XXXX ${bank.accountLast4Digits}` : null),
           ifscCode: bank.ifscCode,
           branch: bank.branchName,
           bankAddress,
@@ -67,11 +74,6 @@ const BankAccountPage = ({ brand, brandId, brandLoading, brandError }) => {
   const activeSelectedId =
     selectedAccountId ?? primaryAccount?.id ?? bankAccountDetails.accounts[0]?.id;
 
-  const handleAddBankAccount = () => {
-    // Wire this up to services/brandApi.js -> an addBankAccount(...) call
-    console.log("Add bank Account clicked");
-  };
-
   return (
     <div>
       {brandError && (
@@ -79,12 +81,34 @@ const BankAccountPage = ({ brand, brandId, brandLoading, brandError }) => {
           Couldn't load live data ({brandError}). Showing cached details.
         </p>
       )}
-      <BankAccountSection
-        bankAccountDetails={bankAccountDetails}
-        selectedAccountId={activeSelectedId}
-        onSelectAccount={setSelectedAccountId}
-        onAddBankAccount={handleAddBankAccount}
-      />
+      {!brand.bank && canAddBank ? (
+        <section className="flex flex-col gap-4 rounded-2xl bg-white p-6 shadow-sm sm:flex-row sm:items-center dark:bg-gray-800">
+          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
+            <Landmark size={18} aria-hidden="true" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100">No bank account yet</h2>
+            <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+              Add one to receive payouts and sell vouchers. It&apos;s verified with a ₹1 test and then locked to your brand.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setAdding(true)}
+            className="inline-flex w-fit items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-emerald-700"
+          >
+            <Plus size={15} aria-hidden="true" />
+            Add bank account
+          </button>
+        </section>
+      ) : (
+        <BankAccountSection
+          bankAccountDetails={bankAccountDetails}
+          selectedAccountId={activeSelectedId}
+          onSelectAccount={setSelectedAccountId}
+        />
+      )}
+      {adding && <KycAddModal type="BANK" onClose={() => setAdding(false)} onSaved={refresh} />}
     </div>
   );
 };

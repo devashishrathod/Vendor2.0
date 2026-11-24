@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { attachApiErrorInterceptor } from '@/services/http/apiError';
 
 // ── Base URL ────────────────────────────────────────────────
 // Matches the Postman env variable {{TryDood2.0BaseUrl}}
@@ -8,6 +9,7 @@ const BASE_URL = import.meta.env.VITE_BASE_URL;
 const api = axios.create({
     baseURL: BASE_URL,
 });
+attachApiErrorInterceptor(api);
 
 // Attach auth token automatically (same pattern as authApi.js / planApi.js /
 // CategoryApi.js / showcaseApi.js). NOTE: adjust this relative path to
@@ -37,7 +39,7 @@ export const ADDRESS_TYPES = { HOME: 'HOME', WORK: 'WORK', OTHER: 'OTHER' };
 // counts) string — the backend rejects a field sent as "" with e.g. "Body.
 // addressLine2 is not allowed to be empty", so a field with no data must be
 // OMITTED entirely, never sent as an empty placeholder. (Same helper as the
-// onboarding copy in oulet/New folder/services/locationApi.js.)
+// onboarding copy in outlets/setup/services/locationApi.js.)
 function stripEmpty(payload = {}) {
     return Object.fromEntries(
         Object.entries(payload).filter(([, value]) => {

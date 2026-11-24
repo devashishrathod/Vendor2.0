@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { updateSubBrand, upsertWorkHours } from "../services/subBrandApi";
+import { upsertOutletHours } from "@/features/onboarding-v2/services/brandSetupApi";
+import { updateSubBrand } from "../services/subBrandApi";
 import { toEditorHours, validateHours, toPayloadHours } from "../utils/workHours";
 import {
   createLocation,
@@ -33,7 +34,7 @@ function existingLocationToPlace(loc) {
 
 // Edits an EXISTING outlet — outletType/isActive via subBrands/update, and
 // (only if the merchant actually picks a new address) its location via
-// locations/update. Unlike useAddOutletForm, there's no WhatsApp OTP step
+// locations/update. Unlike adding an outlet, there's no WhatsApp OTP step
 // here — the outlet is already verified — and location changes are staged
 // locally and only sent on "Save Changes", not persisted the moment a place
 // is picked. The location UI itself is the same one Add Outlet uses (Search
@@ -143,7 +144,7 @@ export function useEditOutletForm(outlet, onSuccess) {
       }
 
       if (workHoursChanged) {
-        await upsertWorkHours({ subBrandId: outlet.id, hours: toPayloadHours(workHours) });
+        await upsertOutletHours(outlet.id, toPayloadHours(workHours));
       }
 
       setSuccessMessage("Outlet updated successfully.");

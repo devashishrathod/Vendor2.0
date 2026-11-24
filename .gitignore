@@ -31,3 +31,5 @@ package-lock.json
 *.njsproj
 *.sln
 *.sw?
+# Onboarding v2 baseline captures (real stage responses of a test vendor)
+docs/onboarding-v2-baseline/
