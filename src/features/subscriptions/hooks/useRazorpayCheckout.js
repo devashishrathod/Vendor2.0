@@ -2,8 +2,9 @@
 // hooks/useRazorpayCheckout.js
 // Orchestrates the full subscription payment flow:
 //   1. createOrder()      -> our backend creates a Razorpay order
-//      -> stored locally immediately (state + sessionStorage) so it's
-//         available to WelcomePage even before payment finishes
+//      -> kept in React state immediately so it's available to WelcomePage
+//         even before payment finishes (never in sessionStorage: the order
+//         carries the brand's PAN / GSTIN)
 //      -> `requiresPayment: false` (₹0 checkout) ends the flow here: the
 //         plan is already active/queued, steps 2–3 are skipped
 //   2. open Razorpay widget with that order
@@ -17,6 +18,11 @@ import { useState, useCallback } from "react";
 import { ANALYTICS_EVENTS } from "@/constants/analytics";
 import razorpayAPI from "@/features/subscriptions/services/razorpay.api";
 import { trackEvent } from "@/utils/analytics";
+import { getErrorCode } from "@/services/http/apiError";
+import { ONBOARDING_ERROR_CODES } from "@/features/onboarding-v2/config/screens";
+
+/** create-order answers that mean "not ready to pay" — never a payment failure. */
+export const NOT_PAYMENT_FAILURES = [ONBOARDING_ERROR_CODES.BILLING_ADDRESS_REQUIRED, ONBOARDING_ERROR_CODES.SCREEN_MISMATCH];
 
 // Loads the Razorpay checkout script once and caches the promise.
 let razorpayScriptPromise = null;
@@ -36,7 +42,20 @@ function loadRazorpayScript() {
   return razorpayScriptPromise;
 }
 
-const STORAGE_KEY = "trydood_pending_order";
+/**
+ * Razorpay prefill from the order itself — create-order's
+ * `transaction.billingSnapshot` (the brand's WhatsApp number and email) and
+ * `transaction.contact` — so the vendor isn't asked for a number we already
+ * have. Falls back to what the page passed in.
+ * @param {object} order   create-order `data`
+ * @param {{ email?: string, phone?: string }} businessDetails
+ */
+function razorpayPrefill(order, businessDetails) {
+  const snapshot = order?.transaction?.billingSnapshot ?? {};
+  const contact = snapshot.whatsappNumber || order?.transaction?.contact || businessDetails.phone || undefined;
+  const email = snapshot.email || businessDetails.email || undefined;
+  return { ...(contact ? { contact } : {}), ...(email ? { email } : {}) };
+}
 
 /**
  * GA4 `purchase` — value in rupees, transaction_id dedupes repeat sends.
@@ -50,15 +69,6 @@ function trackPurchase(order, subscriptionId) {
     currency:       order?.razorpay?.currency || "INR",
     items:          [{ item_id: subscriptionId, item_name: order?.plan?.name }],
   });
-}
-
-function persistOrder(order) {
-  try {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(order));
-  } catch {
-    // sessionStorage can throw in some private/incognito modes — not fatal,
-    // React state below is still the source of truth for the current tab.
-  }
 }
 
 export function useRazorpayCheckout() {
@@ -94,7 +104,6 @@ export function useRazorpayCheckout() {
         whatsappNumber: businessDetails.phone,
         promoCode,
       });
-      console.log("Create Order Response:", orderRes);
 
       // Confirmed shape: { razorpay: { orderId, amount (paise), currency,
       // keyId }, transaction: { _id, ... }, billingDetails, orderSummary,
@@ -109,7 +118,6 @@ export function useRazorpayCheckout() {
       if (order?.requiresPayment === false) {
         const zeroOrder = { ...order, amount: 0 };
         setOrderData(zeroOrder);
-        persistOrder(zeroOrder);
         setProcessing(false);
         trackPurchase(zeroOrder, subscriptionId);
         onSuccess?.(zeroOrder);
@@ -122,17 +130,14 @@ export function useRazorpayCheckout() {
       if (!razorpayOrder?.orderId) {
         throw new Error("Could not create payment order. Please try again.");
       }
-      console.log("Order Data:", order);
 
       // WelcomePage still reads a flat `orderData.amount` in rupees —
       // razorpay.amount comes back in paise, so derive that once here
       // rather than touching every downstream consumer.
       const orderForUi = { ...order, amount: razorpayOrder.amount / 100 };
 
-      // Store it locally right away — before the Razorpay widget even opens.
-      // WelcomePage can use this from the very first render if needed.
+      // In state right away — before the Razorpay widget even opens.
       setOrderData(orderForUi);
-      persistOrder(orderForUi);
 
       // 2. Open the Razorpay checkout widget
       return await new Promise((resolve, reject) => {
@@ -143,10 +148,7 @@ export function useRazorpayCheckout() {
           name: businessDetails.brandName || "Trydood",
           description: "Subscription payment",
           order_id: razorpayOrder.orderId,
-          prefill: {
-            email: businessDetails.email,
-            contact: businessDetails.phone,
-          },
+          prefill: razorpayPrefill(order, businessDetails),
           theme: { color: "#09B285" },
           handler: async (response) => {
             try {
@@ -157,7 +159,6 @@ export function useRazorpayCheckout() {
                 razorpaySignature: response.razorpay_signature,
                 transactionId: order.transaction?._id,
               });
-              console.log("Verify Payment Response:", verifyRes);
 
               // Merge, don't replace: keep every field from the original
               // create-order object (amount, billingDetails, ...) and
@@ -166,7 +167,6 @@ export function useRazorpayCheckout() {
               const merged = { ...orderForUi, ...(verifyRes?.data || {}) };
 
               setOrderData(merged);
-              persistOrder(merged);
               setProcessing(false);
               trackPurchase(merged, subscriptionId);
               onSuccess?.(merged);
@@ -199,34 +199,20 @@ export function useRazorpayCheckout() {
       });
     } catch (err) {
       setProcessing(false);
-      setError(err.message || "Something went wrong. Please try again.");
-      trackEvent(ANALYTICS_EVENTS.PAYMENT_FAILED, {
-        items:  [{ item_id: subscriptionId }],
-        reason: err.message,
-      });
+      // 422 BILLING_ADDRESS_REQUIRED / 409 ONBOARDING_SCREEN_MISMATCH from
+      // create-order are not payment failures — no money moved; the page
+      // opens the billing form / follows the server's screen instead.
+      if (!NOT_PAYMENT_FAILURES.includes(getErrorCode(err))) {
+        setError(err.message || "Something went wrong. Please try again.");
+        trackEvent(ANALYTICS_EVENTS.PAYMENT_FAILED, {
+          items:  [{ item_id: subscriptionId }],
+          reason: err.message,
+        });
+      }
       onFailure?.(err);
       throw err;
     }
   }, []);
 
-  // Recover the last known order — e.g. if the page refreshed mid-flow.
-  const getStoredOrder = useCallback(() => {
-    try {
-      const raw = sessionStorage.getItem(STORAGE_KEY);
-      return raw ? JSON.parse(raw) : null;
-    } catch {
-      return null;
-    }
-  }, []);
-
-  const clearStoredOrder = useCallback(() => {
-    try {
-      sessionStorage.removeItem(STORAGE_KEY);
-    } catch {
-      // ignore
-    }
-    setOrderData(null);
-  }, []);
-
-  return { pay, processing, error, orderData, getStoredOrder, clearStoredOrder };
+  return { pay, processing, error, orderData };
 }

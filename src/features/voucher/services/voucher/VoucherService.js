@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { ApiError, attachApiErrorInterceptor, getErrorDetails, getErrorStatus } from '@/services/http/apiError';
 import { uploadFileViaPresign, uploadFilesViaPresign, UPLOAD_PURPOSES } from '@/services/uploadApi';
 
 // ── Base URL ────────────────────────────────────────────────
@@ -9,6 +10,7 @@ const BASE_URL = import.meta.env.VITE_BASE_URL;
 const api = axios.create({
     baseURL: BASE_URL,
 });
+attachApiErrorInterceptor(api);
 
 // Attach auth token automatically (same pattern as authApi.js / planApi.js /
 // CategoryApi.js / showcaseApi.js). NOTE: adjust this relative path to
@@ -23,14 +25,16 @@ api.interceptors.request.use(async (config) => {
     return config;
 });
 
-// Normalize error responses so callers get a consistent shape
+// Normalize error responses so callers get a consistent shape — the server's
+// message, plus `status` and `details` so callers can branch on
+// `details.code` (selling gate 403s, subcategory 422s).
 function handleError(error) {
     const message =
         error?.response?.data?.message ||
         error?.response?.data?.error ||
         error?.message ||
         'Something went wrong. Please try again.';
-    throw new Error(message);
+    throw new ApiError(message, { status: getErrorStatus(error), details: getErrorDetails(error) });
 }
 
 
@@ -74,11 +78,15 @@ function buildVoucherFormData({
     imageUploadIds = [],
     bannerUploadId,
     bannerPosterUploadId,
+    subCategoryId,
 } = {}) {
     const formData = new FormData();
 
     if (brandId) formData.append('brandId', brandId);
     if (name !== undefined) formData.append('name', name);
+    // Only when the brand has several subcategories (guide §10); with one,
+    // the server takes it by itself.
+    if (subCategoryId) formData.append('subCategoryId', subCategoryId);
     if (description !== undefined) formData.append('description', description);
     if (bannerUploadId) formData.append('bannerUploadId', bannerUploadId);
     if (bannerPosterUploadId) formData.append('bannerPosterUploadId', bannerPosterUploadId);
@@ -326,11 +334,14 @@ function buildVoucherUpdateFormData({
     removeImageIds = [],
     newSubBrandIds = [],
     removeSubBrandIds = [],
+    subCategoryId,
 } = {}) {
     const formData = new FormData();
 
     if (name !== undefined) formData.append('name', name);
     if (description !== undefined) formData.append('description', description);
+    // Sent only when changed — left out, the voucher keeps its subcategory.
+    if (subCategoryId) formData.append('subCategoryId', subCategoryId);
     if (startAt) formData.append('startAt', startAt);
     if (endAt) formData.append('endAt', endAt);
 

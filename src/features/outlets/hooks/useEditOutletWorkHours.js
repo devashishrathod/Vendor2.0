@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { upsertWorkHours } from "../services/subBrandApi";
+import { upsertOutletHours } from "@/features/onboarding-v2/services/brandSetupApi";
 import { toEditorHours, validateHours, toPayloadHours } from "../utils/workHours";
 
 /**
@@ -32,7 +32,7 @@ export function useEditOutletWorkHours(outlet, onSuccess) {
     setSubmitting(true);
     setError("");
     try {
-      await upsertWorkHours({ subBrandId: outlet.id, hours: toPayloadHours(hours) });
+      await upsertOutletHours(outlet.id, toPayloadHours(hours));
       onSuccess?.();
     } catch (err) {
       setError(err?.message || "Couldn't save the working hours. Please try again.");

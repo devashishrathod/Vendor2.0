@@ -25,7 +25,7 @@ export default function OutletsPage() {
   // subBrand list and applies the SAME search/filter/sort logic as the
   // visible grid, so the export always matches what's currently filtered —
   // not just the current page, and not stale mock rows.
-  const { outlets, total, loading, toggleStatus, reload, exportOutlets, exporting } = useOutlets({
+  const { outlets, total, allCount, loading, error, clearError, toggleStatus, reload, exportOutlets, exporting } = useOutlets({
     search,
     filters,
     dateRange,
@@ -71,20 +71,33 @@ export default function OutletsPage() {
             onAddOutlet={() => setShowAddModal(true)}
           />
 
+          {error && (
+            <div className="mb-4 flex items-start justify-between gap-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-inset ring-red-200 dark:bg-red-500/10 dark:text-red-300 dark:ring-red-500/30" role="alert">
+              <span>{error}</span>
+              <button type="button" onClick={clearError} className="text-xs font-bold underline">
+                Dismiss
+              </button>
+            </div>
+          )}
+
           <OutletGrid
             outlets={outlets}
+            brandId={brand?._id}
             selectedIds={selectedIds}
             onSelect={toggleSelect}
             onToggleStatus={toggleStatus}
             onExploreDetails={handleExploreDetails}
             onEdit={setEditingOutlet}
+            onChanged={reload}
             loading={loading}
           />
 
           <Pagination page={page} pageSize={PAGE_SIZE} total={total} onPageChange={setPage} />
         </div>
 
-        {showAddModal && <AddOutletModal onClose={() => setShowAddModal(false)} onCreated={() => reload()} />}
+        {showAddModal && (
+          <AddOutletModal brand={brand} existingCount={allCount} onClose={() => setShowAddModal(false)} onChanged={reload} />
+        )}
 
         {editingOutlet && (
           <EditOutletModal

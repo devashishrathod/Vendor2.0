@@ -1,4 +1,4 @@
-import { Tag, CheckCircle2 } from "lucide-react";
+import { Lock, Tag } from "lucide-react";
 
 /**
  * CategoryInfoSection
@@ -54,7 +54,12 @@ function CategoryCard({ label, item, accent }) {
   );
 }
 
-const CategoryInfoSection = ({ category, subCategory }) => {
+/**
+ * Category + every sub-category of the brand (`subCategories[]` — a brand
+ * has one category and several subcategories in v2). Read-only after
+ * approval: changes go through support (guide §8, 409 LEGAL_FIELD_LOCKED).
+ */
+const CategoryInfoSection = ({ category, subCategories = [] }) => {
   return (
     <section className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6">
       <div className="flex items-center gap-3 mb-5">
@@ -65,19 +70,20 @@ const CategoryInfoSection = ({ category, subCategory }) => {
           <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100 leading-tight">Business Type &amp; Category</h2>
           <p className="text-xs text-gray-400 mt-0.5">This helps customers find your business on Trydood.</p>
         </div>
+        <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-semibold text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+          <Lock size={11} aria-hidden="true" />
+          Changes go through support
+        </span>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <CategoryCard
-          label="Main Category"
-          item={category}
-          accent={{ bg: "bg-emerald-50", label: "text-emerald-600" }}
-        />
-        <CategoryCard
-          label="Sub - Category"
-          item={subCategory}
-          accent={{ bg: "bg-amber-50", label: "text-amber-600" }}
-        />
+        <CategoryCard label="Main Category" item={category} accent={{ bg: "bg-emerald-50", label: "text-emerald-600" }} />
+        {subCategories.length === 0 && (
+          <CategoryCard label="Sub - Category" item={null} accent={{ bg: "bg-amber-50", label: "text-amber-600" }} />
+        )}
+        {subCategories.map((sub) => (
+          <CategoryCard key={sub._id ?? sub.name} label="Sub - Category" item={sub} accent={{ bg: "bg-amber-50", label: "text-amber-600" }} />
+        ))}
       </div>
     </section>
   );

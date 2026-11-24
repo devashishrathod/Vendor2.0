@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Outlet } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Outlet, useLocation } from "react-router-dom";
 import { Music2 } from "lucide-react";
 import AppBackground from "@/components/common/AppBackground";
 import DashboardHeader from "@/features/dashboard/components/DashboardHeader";
@@ -7,11 +7,20 @@ import DashboardFooter from "@/features/dashboard/components/DashboardFooter";
 import MusicQuickPlayModal from "@/features/music/components/MusicQuickPlayModal";
 import BottomPlayer from "@/features/music/components/BottomPlayer";
 import { usePlayer } from "@/features/music/hooks/usePlayer";
+import { ReviewStateBanner } from "@/features/onboarding-v2";
 
 export default function DashboardLayout() {
     const [activeTab, setActiveTab] = useState("Analysis Report");
     const [musicModalOpen, setMusicModalOpen] = useState(false);
     const player = usePlayer();
+    const { pathname } = useLocation();
+
+    // Each page opens at the top. Coming from a long page (e.g. resubmitting
+    // from the review page) it otherwise lands mid-page, below the review banner.
+    useEffect(() => {
+        window.scrollTo({ top: 0 });
+    }, [pathname]);
+
     return (
         // `isolate` keeps AppBackground's -z-10 glows above this gradient
         // but behind every page.
@@ -27,6 +36,8 @@ export default function DashboardLayout() {
             <DashboardHeader activeTab={activeTab} setActiveTab={setActiveTab} />
 
             <main className="flex-1">
+                {/* Revoked / rejected / under review / approved again (guide §9). */}
+                <ReviewStateBanner />
                 <Outlet context={{ player }} />
             </main>
 

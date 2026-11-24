@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
-import { getSubBrandsByBrandId, updateSubBrand } from "../services/subBrandApi";
+import { getOutlets } from "@/features/onboarding-v2/services/brandSetupApi";
+import { OUTLET_STATES, isOutletVerified } from "@/features/onboarding-v2/steps/outlets/outletHelpers";
+import { onboardingErrorMessage } from "@/features/onboarding-v2/utils/errorMessages";
+import { updateSubBrand } from "../services/subBrandApi";
 import { OUTLET_STATUS, PAGE_SIZE } from "../constants/outletConstants";
 
 // ── Maps one subBrand doc (from subBrands/get-all) into the shape
@@ -13,6 +16,8 @@ import { OUTLET_STATUS, PAGE_SIZE } from "../constants/outletConstants";
 // is present the status is unknown (null) and no badge is shown, rather
 // than wrongly marking the outlet "Unverified".
 function readWhatsappVerified(doc) {
+  // `verificationState` (API doc #35) is the source when present.
+  if (doc.verificationState) return doc.verificationState === OUTLET_STATES.VERIFIED;
   const value = doc.user?.isWhatsappVerified ?? doc.isWhatsappVerified ?? doc.whatsappVerified;
   return typeof value === "boolean" ? value : null;
 }
@@ -35,6 +40,11 @@ export function mapSubBrandToOutlet(doc) {
       verified: readWhatsappVerified(doc),
     },
     outletType: (doc.outletType || "").toLowerCase(),
+    // NEVER_VERIFIED | VERIFIED | REVERIFY — edits and the active toggle stay
+    // locked until verified (409 OUTLET_NOT_VERIFIED).
+    verificationState: doc.verificationState ?? null,
+    holdExpiresAt: doc.holdExpiresAt ?? null,
+    isVerified: isOutletVerified(doc) && doc.verificationState !== OUTLET_STATES.REVERIFY,
     joinedDate: doc.joinedDate || doc.createdAt,
     status: doc.isActive === false ? OUTLET_STATUS.NOT_ACTIVE : OUTLET_STATUS.ACTIVE,
     description: doc.description || "",
@@ -121,6 +131,8 @@ export function useOutlets({ search, filters, dateRange, sortBy, sortOrder, page
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [exporting, setExporting] = useState(false);
+  // All outlets of the brand (before search / filters) — "first outlet" check.
+  const [allCount, setAllCount] = useState(0);
 
   const load = useCallback(async () => {
     if (!brandId) {
@@ -132,9 +144,9 @@ export function useOutlets({ search, filters, dateRange, sortBy, sortOrder, page
     setLoading(true);
     setError("");
     try {
-      const res = await getSubBrandsByBrandId(brandId);
-      const list = res?.data?.data ?? res?.data ?? [];
-      const docs = Array.isArray(list) ? list : [];
+      // GET /subBrands/get-all?limit=100 — an empty list is a 404, read as [].
+      const docs = await getOutlets(brandId);
+      setAllCount(docs.length);
 
       const mapped = docs.map(mapSubBrandToOutlet);
       const filtered = filterOutlets(mapped, { search, filters, dateRange });
@@ -145,7 +157,8 @@ export function useOutlets({ search, filters, dateRange, sortBy, sortOrder, page
 
       setOutlets(pageSlice);
       setTotal(sorted.length);
-    } catch {
+    } catch (err) {
+      console.error("Outlets fetch failed:", err);
       setError("Couldn't load outlets. Please try again.");
     } finally {
       setLoading(false);
@@ -164,9 +177,7 @@ export function useOutlets({ search, filters, dateRange, sortBy, sortOrder, page
     if (!brandId) return;
     setExporting(true);
     try {
-      const res = await getSubBrandsByBrandId(brandId);
-      const list = res?.data?.data ?? res?.data ?? [];
-      const docs = Array.isArray(list) ? list : [];
+      const docs = await getOutlets(brandId);
       const mapped = docs.map(mapSubBrandToOutlet);
       const filtered = filterOutlets(mapped, { search, filters, dateRange });
       const sorted = sortOutlets(filtered, sortBy, sortOrder);
@@ -195,29 +206,39 @@ export function useOutlets({ search, filters, dateRange, sortBy, sortOrder, page
       ]);
 
       downloadCsv("outlets-export.csv", headers, rows);
-    } catch {
+    } catch (err) {
+      console.error("Outlets export failed:", err);
       setError("Couldn't export outlets. Please try again.");
     } finally {
       setExporting(false);
     }
   }, [brandId, search, filters, dateRange, sortBy, sortOrder]);
 
-  // Optimistic toggle so the UI feels instant; reloads from the server on failure.
+  // Optimistic toggle so the UI feels instant; reloads from the server on
+  // failure and says why (e.g. 409 OUTLET_NOT_VERIFIED). An unverified
+  // outlet can't be switched on or off.
   const toggleStatus = useCallback(
     async (id) => {
       const current = outlets.find((o) => o.id === id);
       if (!current) return;
+      if (!current.isVerified) {
+        setError("Verify the manager's WhatsApp number first — then you can switch this outlet on or off.");
+        return;
+      }
       const nextStatus = current.status === OUTLET_STATUS.ACTIVE ? OUTLET_STATUS.NOT_ACTIVE : OUTLET_STATUS.ACTIVE;
 
+      setError("");
       setOutlets((prev) => prev.map((o) => (o.id === id ? { ...o, status: nextStatus } : o)));
       try {
         await updateSubBrand(id, { isActive: nextStatus === OUTLET_STATUS.ACTIVE });
-      } catch {
+      } catch (err) {
+        console.error("Outlet status toggle failed:", err);
+        setError(onboardingErrorMessage(err, "Couldn't change this outlet. Please try again."));
         load();
       }
     },
     [outlets, load]
   );
 
-  return { outlets, total, loading, error, reload: load, toggleStatus, exportOutlets, exporting };
+  return { outlets, total, allCount, loading, error, clearError: () => setError(""), reload: load, toggleStatus, exportOutlets, exporting };
 }

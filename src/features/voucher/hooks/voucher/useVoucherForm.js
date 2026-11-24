@@ -3,8 +3,9 @@
 // (createVoucher / updateVoucher / getVoucherById — multipart form-data).
 // Field shape here matches VoucherForm.jsx's repeatable `offers` + `images`
 // UI, which in turn matches the confirmed Postman `offers` array 1:1.
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { getErrorCode, getErrorDetails } from "@/services/http/apiError";
 import { useAuthStore } from "../../../onboarding/store/authStore";
 import { useOnboardingStore } from "../../../onboarding/store/onboardingStore";
 import useBrandData from "../../../brand/hooks/useBrandData";
@@ -18,6 +19,9 @@ import {
 const MAX_VOUCHER_NAME_LENGTH = 30;
 const MAX_DESCRIPTION_LENGTH = 300;
 const MAX_OFFER_TITLE_LENGTH = 15;
+
+// 422 codes for the voucher's subcategory (guide §10, API doc #54 / #55).
+const SUBCATEGORY_CODES = new Set(["SUBCATEGORY_REQUIRED", "SUBCATEGORY_NOT_IN_BRAND"]);
 
 function createEmptyOffer() {
   return {
@@ -56,6 +60,9 @@ function createEmptyForm() {
     images: [], // newly-picked File objects, pending upload
     existingImageUrls: [], // already-uploaded urls (edit mode only)
     isSaveAsDraft: false,
+    // One of the brand's subcategories — only asked for when the brand has
+    // more than one (guide §10); with one, the server takes it.
+    subCategoryId: "",
     // Banner — add mode only. Changing an existing voucher's banner is a
     // separate flow (VoucherBannerModal.jsx, opened from VoucherTable),
     // not part of this form at all.
@@ -142,6 +149,7 @@ function voucherToForm(version) {
     // prefill here yet. Add it once the backend returns it on read.
     selectedOutletIds: version.subBrandIds || version.voucher?.subBrandIds || [],
     searchTags: version.tags || [],
+    subCategoryId: version.subCategory?._id || version.subCategoryId || version.voucher?.subCategoryId || "",
     isSaveAsDraft: version.status === "DRAFT",
     existingImageUrls: imageUrls,
     offers:
@@ -174,6 +182,7 @@ const FinalSearchTags = Array.isArray(form.searchTags)
     startAt: toIsoDateTime(form.startDate, form.startTime),
     endAt: toIsoDateTime(form.endDate, form.endTime),
     subBrandIds: finalSubBrandIDs,
+    subCategoryId: form.subCategoryId || undefined,
     isSaveAsDraft: form.isSaveAsDraft,
     offers: form.offers.map((offer, index) => ({
       title: offer.title,
@@ -281,11 +290,15 @@ function formToUpdatePatch(form, originalVersion) {
   const newSubBrandIds = currentSubBrandIds.filter((id) => !originalSubBrandIds.includes(id));
   const removeSubBrandIds = originalSubBrandIds.filter((id) => !currentSubBrandIds.includes(id));
 
+  const originalSubCategoryId = originalVersion?.subCategory?._id || originalVersion?.subCategoryId || "";
+
   return {
     name: form.voucherName,
     description: form.description,
     startAt: toIsoDateTime(form.startDate, form.startTime),
     endAt: toIsoDateTime(form.endDate, form.endTime),
+    // Only a change is sent — left out, the voucher keeps its subcategory.
+    subCategoryId: form.subCategoryId && form.subCategoryId !== originalSubCategoryId ? form.subCategoryId : undefined,
     newTags,
     removedTags,
     newOffers,
@@ -317,6 +330,14 @@ export default function useVoucherForm(voucherId) {
   // confirmed brand._id rather than trusting whatever's cached locally.
   const { data: brand } = useBrandData(candidateBrandId);
   const sessionBrandId = brand?._id || candidateBrandId;
+  // The brand's own subcategories (GET /brands/get `subCategories`). The
+  // field shows only when there is more than one to choose from.
+  const subCategoryOptions = useMemo(
+    () => (brand?.subCategories ?? []).filter((s) => s?._id).map((s) => ({ value: s._id, label: s.name })),
+    [brand?.subCategories],
+  );
+  const needsSubCategory = subCategoryOptions.length > 1;
+  const [subCategoryError, setSubCategoryError] = useState("");
 
   const [form, setForm] = useState(createEmptyForm);
   const [tagInput, setTagInput] = useState("");
@@ -402,6 +423,7 @@ export default function useVoucherForm(voucherId) {
   }, [brand, isLoading]);
 
   const setField = useCallback((field, value) => {
+    if (field === "subCategoryId") setSubCategoryError("");
     const maxLength = {
       voucherName: MAX_VOUCHER_NAME_LENGTH,
       description: MAX_DESCRIPTION_LENGTH,
@@ -542,6 +564,11 @@ export default function useVoucherForm(voucherId) {
         setError("Please select at least one outlet or franchise this voucher applies to.");
         return;
       }
+      if (needsSubCategory && !form.subCategoryId) {
+        setSubCategoryError("Choose which of your subcategories this voucher belongs to.");
+        setError("Please choose a subcategory for this voucher.");
+        return;
+      }
       const brandId = form.brandId || sessionBrandId;
       if (!brandId) {
         setError("No brand is linked to your account yet. Please complete onboarding first.");
@@ -562,13 +589,20 @@ export default function useVoucherForm(voucherId) {
         navigate(`/vouchers`);
         return saved;
       } catch (err) {
+        console.error("Voucher save failed:", err);
+        // Subcategory 422s point at the field, naming the allowed ones.
+        if (SUBCATEGORY_CODES.has(getErrorCode(err))) {
+          const allowed = (getErrorDetails(err)?.allowed ?? [])
+            .map((a) => subCategoryOptions.find((o) => o.value === (a?._id ?? a))?.label ?? a?.name)
+            .filter(Boolean);
+          setSubCategoryError(`${err.message}${allowed.length ? ` Choose one of: ${allowed.join(", ")}.` : ""}`);
+        }
         setError(err.message);
-        throw err;
       } finally {
         setIsSubmitting(false);
       }
     },
-    [form, isEditMode, voucherId, navigate, sessionBrandId]
+    [form, isEditMode, voucherId, navigate, sessionBrandId, needsSubCategory, subCategoryOptions]
   );
 
   return {
@@ -588,6 +622,9 @@ export default function useVoucherForm(voucherId) {
     removeTag,
     handleTagKeyDown,
     isEditMode,
+    subCategoryOptions,
+    needsSubCategory,
+    subCategoryError,
     isLoading,
     isSubmitting,
     uploadProgress,

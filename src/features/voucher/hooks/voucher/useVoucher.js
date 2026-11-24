@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuthStore } from "../../../onboarding/store/authStore";
 import { useOnboardingStore } from "../../../onboarding/store/onboardingStore";
 import useBrandData from "../../../brand/hooks/useBrandData";
+import { sellingGateFor } from "@/utils/sellingGate";
 import {
   getVouchers,
   submitVoucherForReview,
@@ -44,6 +45,8 @@ export default function useVoucher(brandId) {
 
   const [actionLoadingId, setActionLoadingId] = useState(null);
   const [actionError, setActionError] = useState(null);
+  // Selling gate hit by submit / publish / resume (sellingGateFor), or null.
+  const [actionGate, setActionGate] = useState(null);
 
   // Debounced so typing in the search box doesn't fire a request on every
   // keystroke — only once the vendor pauses for 400ms.
@@ -186,22 +189,33 @@ export default function useVoucher(brandId) {
     [page, rowsPerPage, total]
   );
 
+  // A failed submit / publish / resume: the selling gate (403 BANK_REQUIRED /
+  // BRAND_NOT_APPROVED / PLAN_REQUIRED) gets its notice with a CTA; anything
+  // else the server's message.
+  const failAction = useCallback((err) => {
+    console.error("Voucher action failed:", err);
+    const gate = sellingGateFor(err);
+    setActionGate(gate);
+    setActionError(gate ? null : err.message);
+  }, []);
+
   // Moves a DRAFT version into the review queue. Takes the voucherId
   // (not the version _id) per the confirmed endpoint.
   const submitForReview = useCallback(
     async (voucherId) => {
       setActionLoadingId(voucherId);
       setActionError(null);
+      setActionGate(null);
       try {
         await submitVoucherForReview(voucherId);
         await loadVouchers();
       } catch (err) {
-        setActionError(err.message);
+        failAction(err);
       } finally {
         setActionLoadingId(null);
       }
     },
-    [loadVouchers]
+    [failAction, loadVouchers]
   );
 
   // Publishes a specific version once the parent voucher is APPROVED.
@@ -210,16 +224,17 @@ export default function useVoucher(brandId) {
     async (versionId) => {
       setActionLoadingId(versionId);
       setActionError(null);
+      setActionGate(null);
       try {
         await publishVoucher(versionId);
         await loadVouchers();
       } catch (err) {
-        setActionError(err.message);
+        failAction(err);
       } finally {
         setActionLoadingId(null);
       }
     },
-    [loadVouchers]
+    [failAction, loadVouchers]
   );
 
   // Takes a PUBLISHED version off the customer feed. Takes the version's
@@ -247,16 +262,17 @@ export default function useVoucher(brandId) {
     async (versionId) => {
       setActionLoadingId(versionId);
       setActionError(null);
+      setActionGate(null);
       try {
         await resumeVoucher(versionId);
         await loadVouchers();
       } catch (err) {
-        setActionError(err.message);
+        failAction(err);
       } finally {
         setActionLoadingId(null);
       }
     },
-    [loadVouchers]
+    [failAction, loadVouchers]
   );
 
   // Deletes a voucher (real DELETE /vouchers/:id, confirmed from Postman —
@@ -297,6 +313,8 @@ export default function useVoucher(brandId) {
     stateSummary,
     actionLoadingId,
     actionError,
+    actionGate,
+    clearActionGate: () => setActionGate(null),
     goToPage,
     changeRowsPerPage,
     updateSearch,

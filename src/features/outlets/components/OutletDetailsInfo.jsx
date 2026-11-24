@@ -214,13 +214,16 @@ export default function OutletDetailsInfo({ outlet, brand, onEdit, onEditLocatio
         title="Outlet Information"
         subtitle="Basic information about this outlet."
         action={
-          <button
-            onClick={onEdit}
-            className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 rounded-lg px-3 py-1.5 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-colors"
-          >
-            <Pencil className="w-3.5 h-3.5" />
-            Edit Details
-          </button>
+          // No onEdit until the manager has verified (409 OUTLET_NOT_VERIFIED).
+          onEdit && (
+            <button
+              onClick={onEdit}
+              className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 rounded-lg px-3 py-1.5 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-colors"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+              Edit Details
+            </button>
+          )
         }
       >
         <DescriptionRow icon={FileText} label="Description" value={doc?.description} />

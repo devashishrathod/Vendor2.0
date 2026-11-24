@@ -1,5 +1,6 @@
-import { ArrowLeft, ExternalLink, ReceiptText } from "lucide-react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 
+import { notificationTarget } from "@/utils/notificationLinks";
 import { getNotificationVisual } from "../constants/notificationTypes";
 
 // Confirmed values seen so far: severity "WARNING". The rest are the usual
@@ -64,14 +65,13 @@ function formatMetaValue(key, value) {
 /**
  * Full view of one notification inside the drawer: severity/type badges,
  * full body, every `meta` field as a labelled row, sent/read timestamps,
- * and actions (open its link, go to Refunds for refund notifications,
- * clear it).
+ * and one CTA for its type — the link resolved by notificationTarget
+ * (`meta.deepLink` token / server path → panel route, else by type).
  */
 export default function NotificationDetail({ notification: n, onBack, onNavigate }) {
   const { icon: Icon, tint } = getNotificationVisual(n);
   const meta = n.meta || {};
-  const deepLink = meta.deepLink || meta.deeplink;
-  const isRefund = String(n.type || "").startsWith("REFUND");
+  const target = notificationTarget(n);
 
   const metaKeys = [
     ...META_ORDER.filter((k) => k in meta),
@@ -164,33 +164,19 @@ export default function NotificationDetail({ notification: n, onBack, onNavigate
         </div>
       </div>
 
-      {/* Actions */}
-      <div className="flex flex-wrap items-center gap-2 px-5 pb-5 pt-3">
-        {isRefund && (
+      {/* Action — one CTA per type */}
+      {target && (
+        <div className="flex flex-wrap items-center gap-2 px-5 pb-5 pt-3">
           <button
             type="button"
-            onClick={() => onNavigate("/refunds")}
+            onClick={() => onNavigate(target.to)}
             className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-emerald-500 px-3 py-2.5 text-xs font-bold text-white hover:bg-emerald-600"
           >
-            <ReceiptText size={14} />
-            View Refund Requests
+            {target.label}
+            <ArrowRight size={14} />
           </button>
-        )}
-        {deepLink && (
-          <button
-            type="button"
-            onClick={() => onNavigate(deepLink)}
-            className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl px-3 py-2.5 text-xs font-bold ${
-              isRefund
-                ? "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
-                : "bg-emerald-500 text-white hover:bg-emerald-600"
-            }`}
-          >
-            <ExternalLink size={14} />
-            Open
-          </button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

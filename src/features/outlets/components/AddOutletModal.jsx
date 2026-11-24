@@ -1,501 +1,147 @@
-import { useState, useEffect } from "react";
-import { useAddOutletForm, ADD_OUTLET_STEPS } from "../hooks/useAddOutletForm";
-import WorkingHoursEditor from "@/features/oulet/New folder/components/brandOutlet/WorkingHoursEditor";
-import { useBrand } from "../../../hooks/useBrand";
-import { verifyOtpWhatsapp } from "../services/subBrandApi";
-import OtpVerifyModal from "@/features/oulet/New folder/components/brandOutlet/modals/OtpVerifyModal";
-import DisabledHint from "@/components/common/DisabledHint";
-import ErrorToast from "@/components/common/ErrorToast";
-import SuccessToast from "@/components/common/SuccessToast";
-import Select from "../../../components/common/Select";
-import {
-  LiveLocationPicker,
-  LocationModeTabs,
-  MapModal,
-  OutletLocationSearch,
-  SavedLocationsList,
-} from "./location/OutletLocationPicker";
+import { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+import { Link } from "react-router-dom";
+import { LoaderCircle, TriangleAlert, X } from "lucide-react";
+import { getBillingAddress } from "@/features/subscriptions/services/billingAddressApi";
+import { getCurrentSubscription } from "@/features/subscriptions/services/subscriptionApi";
+import { getOutlets } from "@/features/onboarding-v2/services/brandSetupApi";
+import AddOutletForm from "@/features/onboarding-v2/steps/outlets/AddOutletForm";
+import OutletCard from "@/features/onboarding-v2/steps/outlets/OutletCard";
+import { typesWithRoom } from "@/features/onboarding-v2/steps/outlets/outletHelpers";
 
-const inputBase =
-  "w-full rounded-xl px-4 py-2.5 text-sm text-gray-700 dark:text-gray-100 bg-emerald-50 dark:bg-emerald-500/10 outline-none transition-colors " +
-  "placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-100";
-
-// ─── Outlet Type options (Outlet vs Franchise) ─────────────────────────────
-// Kept local to this file since it's only used here + in CreateBrandOutlet.
-// Move to constants/outletConstants.js if you want a single shared source.
-const OUTLET_TYPE_OPTIONS = [
-  { value: "outlet", label: "Outlet" },
-  { value: "franchise", label: "Franchise" },
-];
-
-const isValidPhone = (v) => /^[0-9]{10}$/.test((v || "").replace(/\D/g, ""));
-
-// Chip on the picked-location card: nothing is saved until Next is clicked.
-const PICKED_CHIP = {
-  label: "Selected",
-  className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300",
-};
-
-// 1 — 2 — 3 progress bar under the title. Done steps show a tick.
-function Stepper({ step }) {
-  return (
-    <ol className="flex items-center gap-2 px-6 pb-3">
-      {ADD_OUTLET_STEPS.map(({ key, label }, i) => {
-        const done = i < step;
-        const current = i === step;
-        return (
-          <li key={key} className="flex flex-1 items-center gap-2 min-w-0">
-            <span
-              className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${
-                done
-                  ? "bg-emerald-500 text-white"
-                  : current
-                    ? "bg-emerald-100 text-emerald-700 ring-2 ring-emerald-500 dark:bg-emerald-500/20 dark:text-emerald-300"
-                    : "bg-gray-100 text-gray-400 dark:bg-gray-700"
-              }`}
-            >
-              {done ? (
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-              ) : (
-                i + 1
-              )}
-            </span>
-            <span
-              className={`truncate text-xs font-semibold ${
-                current ? "text-gray-900 dark:text-gray-100" : done ? "text-emerald-600 dark:text-emerald-400" : "text-gray-400"
-              }`}
-            >
-              {label}
-            </span>
-            {i < ADD_OUTLET_STEPS.length - 1 && (
-              <span className={`h-px flex-1 ${done ? "bg-emerald-400" : "bg-gray-200 dark:bg-gray-700"}`} />
-            )}
-          </li>
-        );
-      })}
-    </ol>
-  );
-}
-
-export default function AddOutletModal({ onClose, onCreated }) {
-  const { brand } = useBrand();
-  const {
-    form,
-    update,
-    updateWhatsapp,
-    setBrandId,
-    setLocation,
-    selectSavedLocation,
-    retryLocationWithZipcode,
-    savedLocations,
-    loadingSavedLocations,
-    loadSavedLocations,
-    requestOtp,
-    step,
-    setWorkHours,
-    saveBasics,
-    saveLocation,
-    saveWorkHours,
-    submitting,
-    error,
-    clearError,
-    successMessage,
-    clearSuccessMessage,
-  } = useAddOutletForm((created) => {
-    onCreated?.(created);
-    onClose();
-  });
-
-  // Send OTP already registers the outlet on the plan, so closing half-way
-  // still has to refresh the list — otherwise the new outlet wouldn't show
-  // until a page reload.
-  const handleClose = () => {
-    if (form.subBrandId) onCreated?.({ subBrandId: form.subBrandId });
-    onClose();
-  };
-
+/**
+ * Add an outlet from the Outlets page — the same flow as onboarding
+ * (guide §4.13): outlet type (only the plan's pools with room, from
+ * `usage`) and the manager's WhatsApp number, or "Same as brand WhatsApp
+ * number" (`useOwnerNumber` — verified at once, decided by `isVerified`,
+ * never by the message text); then the manager's code, location and work
+ * hours on the outlet's card. An outlet left unverified keeps its hold and
+ * can be finished — or cancelled — from the list.
+ * @param {{ brand: object, existingCount: number, onClose: () => void, onChanged: () => void }} props
+ */
+export default function AddOutletModal({ brand, existingCount = 0, onClose, onChanged }) {
+  const isFirst = existingCount === 0;
   const brandId = brand?._id;
+  const [usage, setUsage] = useState(undefined); // undefined = loading
+  const [gstAddress, setGstAddress] = useState(null);
+  const [added, setAdded] = useState(null); // { id, openCode, notice }
+  const [outlet, setOutlet] = useState(null);
 
   useEffect(() => {
-    if (brandId) {
-      setBrandId(brandId);
-      loadSavedLocations({ brandId });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [brandId]);
+    getCurrentSubscription()
+      .then((data) => setUsage(data?.usage ?? null))
+      .catch((err) => {
+        console.error("Plan usage fetch failed:", err);
+        setUsage(null);
+      });
+    getBillingAddress()
+      .then((res) => setGstAddress(res?.data?.gstin ? res.data.gstAddress ?? null : null))
+      .catch((err) => console.error("GST address fetch failed:", err));
+  }, []);
 
-  // ── Outlet WhatsApp Number — every outlet needs its own number (one
-  // number = one outlet, so the first outlet's can't be reused):
-  //   • "Send OTP" creates the outlet and sends its OTP
-  //     (subBrands/signUp-with-whatsapp, isFirstOutlet: false) — see
-  //     useAddOutletForm's requestOtp. Resend / a corrected number reuse
-  //     that same outlet, no extra plan slot.
-  //   • "Confirm" verifies it (auth/verify-otp-whatsapp, role SUB_VENDOR).
-  // Create Outlet then saves the location + outlet type.
-  const outletNumber = form.whatsapp.number;
-  const numberVerified = form.whatsapp.verified;
+  useEffect(() => {
+    const onKey = (e) => e.key === "Escape" && onClose();
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
-  const [sendingOtp, setSendingOtp] = useState(false);
-  const [numberError, setNumberError] = useState("");
-  const [otpOpen, setOtpOpen] = useState(false);
-  const [otpValue, setOtpValue] = useState("");
-  const [otpError, setOtpError] = useState("");
-  const [otpConfirming, setOtpConfirming] = useState(false);
+  // Re-reads the new outlet (verify / location / hours changed it); gone = cancelled.
+  const loadOutlet = useCallback(
+    (id) =>
+      getOutlets(brandId)
+        .then((list) => setOutlet(list.find((o) => o._id === id) ?? null))
+        .catch((err) => console.error("Outlet fetch failed:", err)),
+    [brandId],
+  );
 
-  // A number change invalidates the verification. The outlet (subBrandId)
-  // is kept — the next Send OTP moves it to the new number.
-  const resetNumberState = () => {
-    updateWhatsapp({ verified: false });
-    setNumberError("");
-    setOtpOpen(false);
-    setOtpValue("");
-    setOtpError("");
-  };
-
-  const handleOutletWhatsappChange = (value) => {
-    updateWhatsapp({ number: value.replace(/\D/g, "").slice(0, 10) });
-    resetNumberState();
-  };
-
-  // Shared by Send OTP and Resend. The outlet exists even when the code
-  // couldn't go out (otpSent: false) — open the modal if a code is still
-  // valid (retryAfterSeconds), and surface the reason either way.
-  const sendOutletOtp = async (onError) => {
-    setSendingOtp(true);
-    setOtpError("");
-    try {
-      const { otpSent, otpError: sendError, retryAfterSeconds } = await requestOtp(outletNumber);
-      if (otpSent || retryAfterSeconds) setOtpOpen(true);
-      if (!otpSent) onError(sendError || "Couldn't send OTP. Please try again.");
-    } catch (err) {
-      // A rate-limited send still means a valid OTP already went out.
-      if (err?.details?.retryAfterSeconds) setOtpOpen(true);
-      onError(err?.message || "Couldn't send OTP. Please try again.");
-    } finally {
-      setSendingOtp(false);
-    }
-  };
-
-  const sendNumberOtp = () => {
-    setNumberError("");
-    return sendOutletOtp(setNumberError);
-  };
-
-  const resendNumberOtp = () => sendOutletOtp(setOtpError);
-
-  const confirmNumberOtp = async () => {
-    if (otpValue.length < 4 || otpConfirming) return;
-    setOtpConfirming(true);
-    setOtpError("");
-    try {
-      await verifyOtpWhatsapp({ whatsappNumber: outletNumber, otp: otpValue });
-      updateWhatsapp({ number: outletNumber, verified: true });
-      setOtpOpen(false);
-      setOtpValue("");
-    } catch (err) {
-      setOtpError(err?.message || "Invalid OTP. Please try again.");
-    } finally {
-      setOtpConfirming(false);
-    }
-  };
-
-  const closeOtp = () => {
-    setOtpOpen(false);
-    setOtpValue("");
-    setOtpError("");
-  };
-
-  // Send OTP creates the outlet, so its type must be chosen first.
-  const sendOtpBlockedReason = !form.outletType
-    ? "Choose the outlet type first"
-    : !isValidPhone(outletNumber)
-      ? "Enter a 10-digit number"
-      : "";
-
-  // ── Outlet Location — picked only; saved by Create Outlet ──
-  const [showMap, setShowMap] = useState(false);
-  const [selectedSavedLocationId, setSelectedSavedLocationId] = useState(null);
-
-  const handleSelectSavedLocation = (loc) => {
-    setSelectedSavedLocationId(loc._id);
-    selectSavedLocation(loc);
-  };
-
-  const handleSelectPlace = (place) => {
-    setSelectedSavedLocationId(null);
-    setLocation(place);
-  };
-
-  const switchLocationMode = (mode) => {
-    update("locationMode", mode);
-    setLocation(null);
-    setSelectedSavedLocationId(null);
-  };
-
-  const pickerProps = {
-    selectedPlace: form.location,
-    onSelectPlace: handleSelectPlace,
-    onShowMap: () => setShowMap(true),
-    locationSaving: false,
-    locationSaved: false,
-    locationError: form.locationError,
-    onRetryZipcode: retryLocationWithZipcode,
-    createLocationButton: null,
-    // No override while there's an error, so the card shows its red "Not saved" chip.
-    statusOverride: form.locationError ? undefined : PICKED_CHIP,
-    waitingNote: form.locationError ? null : "This location is saved when you click Next.",
-  };
-
-  // ── Footer action per step — the next step opens only once this one is
-  // complete AND saved. ──
-  const STEP_ACTIONS = [
-    {
-      label: "Next",
-      busyLabel: "Saving…",
-      blockedReason: !form.outletType
-        ? "Choose the outlet type first"
-        : !numberVerified
-          ? "Verify the outlet's WhatsApp number first"
-          : "",
-      run: () => saveBasics({ numberVerified }),
+  const onAdded = useCallback(
+    async (data) => {
+      const id = data?.subBrand?._id;
+      if (data?.usage) setUsage(data.usage);
+      setAdded({
+        id,
+        openCode: Boolean(data?.otpSent),
+        notice:
+          data?.otpSent === false && !data?.isVerified
+            ? `${data.otpError || "The code couldn't be sent to the manager."} Tap “Resend code” below.`
+            : "",
+      });
+      if (id) await loadOutlet(id);
+      onChanged();
     },
-    {
-      label: "Next",
-      busyLabel: "Saving location…",
-      blockedReason: !form.location ? "Pick the outlet's location first" : "",
-      run: saveLocation,
-    },
-    {
-      label: "Create Outlet",
-      busyLabel: "Creating outlet…",
-      blockedReason: "",
-      run: saveWorkHours,
-    },
-  ];
-  const action = STEP_ACTIONS[step];
+    [loadOutlet, onChanged],
+  );
 
-  // No close on backdrop click — it would throw away the form (and an
-  // outlet already created by Send OTP). Only ✕ / Cancel close it.
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-      <div className="no-scrollbar bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center gap-3 px-6 py-4 sticky top-0 z-10 bg-white dark:bg-gray-800 rounded-t-2xl">
-          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-50 dark:bg-emerald-500/10">
-            <svg className="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-            </svg>
-          </div>
-          <div className="flex-1">
-            <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">Add Outlet</h3>
-            <p className="text-xs text-gray-400 mt-0.5">
-              Step {step + 1} of {ADD_OUTLET_STEPS.length} · {ADD_OUTLET_STEPS[step].label}
+  const refreshOutlet = useCallback(async () => {
+    if (added?.id) await loadOutlet(added.id);
+    onChanged();
+  }, [added, loadOutlet, onChanged]);
+
+  const types = usage === undefined ? [] : typesWithRoom(usage);
+
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 px-4 py-10 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Add outlet">
+      <div className="w-full max-w-3xl rounded-2xl bg-white p-5 shadow-2xl sm:p-6 dark:bg-gray-900">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h2 className="text-base font-bold text-gray-900 dark:text-gray-100">{added ? "Finish your new outlet" : "Add an outlet"}</h2>
+          <button type="button" onClick={onClose} aria-label="Close" className="grid size-9 place-items-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
+            <X size={16} aria-hidden="true" />
+          </button>
+        </div>
+
+        {!added && usage === undefined && (
+          <p className="flex items-center gap-2 text-sm text-gray-500" role="status">
+            <LoaderCircle size={16} className="animate-spin" aria-hidden="true" />
+            Checking your plan…
+          </p>
+        )}
+
+        {!added && usage !== undefined && types.length === 0 && (
+          <p className="rounded-xl bg-gray-50 px-4 py-3 text-sm text-gray-700 ring-1 ring-inset ring-gray-200 dark:bg-gray-800/50 dark:text-gray-300 dark:ring-gray-700">
+            Your plan has no more outlet slots.{" "}
+            <Link to="/subscription-plan" className="font-bold text-emerald-700 underline dark:text-emerald-400">
+              View plans
+            </Link>
+          </p>
+        )}
+
+        {!added && types.length > 0 && (
+          <AddOutletForm brandId={brandId} ownerNumber={brand?.whatsappNumber ?? ""} isFirst={isFirst} types={types} onAdded={onAdded} onCancel={onClose} />
+        )}
+
+        {added && (
+          <div className="flex flex-col gap-3">
+            {added.notice && (
+              <p className="flex items-start gap-2 rounded-xl bg-amber-50 px-3.5 py-3 text-xs text-amber-800 ring-1 ring-inset ring-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:ring-amber-500/30">
+                <TriangleAlert size={14} className="mt-px shrink-0" aria-hidden="true" />
+                {added.notice}
+              </p>
+            )}
+            {outlet ? (
+              <OutletCard
+                outlet={outlet}
+                brandId={brandId}
+                index={existingCount}
+                gstAddress={gstAddress}
+                canChange
+                openCodeOnMount={added.openCode}
+                onChanged={refreshOutlet}
+              />
+            ) : (
+              <p className="text-sm text-gray-500">This outlet was cancelled.</p>
+            )}
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              You can close this and finish later from the Outlets list — an unverified outlet is held until its timer runs out.
             </p>
+            <div className="flex justify-end">
+              <button type="button" onClick={onClose} className="inline-flex min-h-11 items-center rounded-xl bg-emerald-600 px-5 text-sm font-bold text-white hover:bg-emerald-700">
+                Done
+              </button>
+            </div>
           </div>
-          <button onClick={handleClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
-            <svg className="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        <div className="sticky top-[72px] z-10 bg-white dark:bg-gray-800">
-          <Stepper step={step} />
-        </div>
-
-        {/* ── Step 1: Outlet Details ── */}
-        {step === 0 && (
-        <div className="px-6 py-5 space-y-5">
-          {/* ── Outlet Type (Outlet vs Franchise) ── */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Outlet Type *</label>
-            <Select
-              value={form.outletType}
-              onChange={(value) => update("outletType", value)}
-              options={OUTLET_TYPE_OPTIONS}
-              placeholder="eg : Outlet"
-              className="bg-emerald-50 dark:bg-emerald-500/10 text-gray-700 dark:text-gray-100"
-            />
-          </div>
-
-          {/* ── Active ── */}
-          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={form.isActive}
-              onChange={(e) => update("isActive", e.target.checked)}
-              className="w-4 h-4 accent-emerald-600 cursor-pointer"
-            />
-            Active
-          </label>
-
-          {/* ── Outlet WhatsApp Number ── */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Outlet WhatsApp Number *</label>
-
-            {numberVerified ? (
-              <div className="flex items-center justify-between gap-3 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 px-4 py-2.5">
-                <span className="flex items-center gap-2.5 min-w-0">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-emerald-600 shadow-sm dark:bg-gray-800 dark:text-emerald-400">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                    </svg>
-                  </span>
-                  <span className="min-w-0">
-                    <span className="flex items-center gap-2">
-                      <span className="text-sm font-bold tracking-wide text-gray-900 dark:text-gray-100">{outletNumber}</span>
-                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-bold text-white">
-                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                        Verified
-                      </span>
-                    </span>
-                    <span className="block text-[11px] text-gray-500 dark:text-gray-400">Verified with OTP</span>
-                  </span>
-                </span>
-                <button
-                  type="button"
-                  onClick={resetNumberState}
-                  disabled={submitting}
-                  className="shrink-0 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline disabled:opacity-50"
-                >
-                  Change
-                </button>
-              </div>
-            ) : (
-              <>
-                <div className="flex gap-2">
-                  <input
-                    type="tel"
-                    inputMode="numeric"
-                    value={outletNumber}
-                    onChange={(e) => handleOutletWhatsappChange(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !sendOtpBlockedReason && !sendingOtp) {
-                        e.preventDefault();
-                        sendNumberOtp();
-                      }
-                    }}
-                    placeholder="eg : 9876543210"
-                    className={inputBase}
-                  />
-                  <DisabledHint show={!!sendOtpBlockedReason && !sendingOtp} message={sendOtpBlockedReason}>
-                    <button
-                      type="button"
-                      onClick={sendNumberOtp}
-                      disabled={!!sendOtpBlockedReason || sendingOtp}
-                      className="shrink-0 whitespace-nowrap px-5 py-2.5 rounded-xl text-sm font-bold transition-colors bg-emerald-500 text-white hover:bg-emerald-600 disabled:pointer-events-none disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:text-gray-400"
-                    >
-                      {sendingOtp ? "Sending…" : "Send OTP"}
-                    </button>
-                  </DisabledHint>
-                </div>
-
-                <p className="text-xs text-gray-400 mt-2">
-                  Each outlet needs its own WhatsApp number. Sending the OTP registers this outlet on your plan — verify
-                  it with the code sent on WhatsApp.
-                </p>
-              </>
-            )}
-          </div>
-        </div>
         )}
-
-        {/* ── Step 2: Outlet Location ── */}
-        {step === 1 && (
-        <div className="px-6 py-5 space-y-5">
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Outlet Location *</label>
-
-            <SavedLocationsList
-              locations={savedLocations}
-              loading={loadingSavedLocations}
-              selectedId={selectedSavedLocationId}
-              onSelect={handleSelectSavedLocation}
-            />
-
-            <LocationModeTabs mode={form.locationMode} onChange={switchLocationMode} />
-
-            {form.locationMode === "search" ? (
-              <OutletLocationSearch {...pickerProps} />
-            ) : (
-              <LiveLocationPicker {...pickerProps} />
-            )}
-          </div>
-        </div>
-        )}
-
-        {/* ── Step 3: Working Hours ── */}
-        {step === 2 && (
-        <div className="px-6 py-5">
-          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Working Hours *</label>
-          <p className="text-xs text-gray-400 mb-4">Open the outlet on at least one day. Customers see these timings.</p>
-          <WorkingHoursEditor hours={form.workHours} onChange={setWorkHours} />
-        </div>
-        )}
-
-        <div className="px-6 py-4 flex gap-3">
-          <button
-            onClick={handleClose}
-            className="flex-1 text-gray-600 dark:text-gray-300 font-semibold py-2.5 rounded-xl text-sm hover:bg-gray-50 dark:hover:bg-gray-700"
-          >
-            Cancel
-          </button>
-          <DisabledHint show={!!action.blockedReason && !submitting} message={action.blockedReason} className="flex-1">
-            <button
-              onClick={action.run}
-              disabled={submitting || !!action.blockedReason}
-              className="flex w-full items-center justify-center gap-2 bg-emerald-500 text-white font-bold py-2.5 rounded-xl text-sm tracking-wide shadow-sm shadow-emerald-100 hover:bg-emerald-600 transition-colors disabled:pointer-events-none disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:text-gray-300 disabled:shadow-none"
-            >
-              {submitting ? (
-                <>
-                  <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-                  </svg>
-                  {action.busyLabel}
-                </>
-              ) : (
-                action.label
-              )}
-            </button>
-          </DisabledHint>
-        </div>
       </div>
-
-      {otpOpen && !form.whatsapp.verified && (
-        <OtpVerifyModal
-          phone={outletNumber}
-          otpValue={otpValue}
-          onOtpChange={setOtpValue}
-          otpError={otpError}
-          onConfirm={confirmNumberOtp}
-          onClose={closeOtp}
-          onResend={resendNumberOtp}
-          resending={sendingOtp}
-          confirming={otpConfirming}
-        />
-      )}
-
-      {showMap && form.location && (
-        <MapModal
-          lat={form.location.lat}
-          lng={form.location.lng}
-          label={form.location.name}
-          onClose={() => setShowMap(false)}
-        />
-      )}
-
-      <ErrorToast
-        error={error || numberError ? { message: error || numberError } : null}
-        onDismiss={() => {
-          clearError();
-          setNumberError("");
-        }}
-      />
-      <SuccessToast message={successMessage} onDismiss={clearSuccessMessage} />
-    </div>
+    </div>,
+    document.body,
   );
 }

@@ -6,10 +6,12 @@
 // banner). Not every surface takes an uploadId yet (e.g. brand logo is
 // still multipart-only) — check the target surface's own docs first.
 import axios from "axios";
+import { attachApiErrorInterceptor } from "@/services/http/apiError";
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 const api = axios.create({ baseURL: BASE_URL });
+attachApiErrorInterceptor(api);
 
 api.interceptors.request.use(async (config) => {
   const { useAuthStore } = await import("../features/onboarding/store/authStore");

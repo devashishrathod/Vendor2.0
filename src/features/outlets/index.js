@@ -7,7 +7,5 @@ export { default as OutletDetailsHeader } from "./components/OutletDetailsHeader
 export { default as TransactionSummaryPanel } from "./components/TransactionSummaryPanel";
 export { useOutlets } from "./hooks/useOutlets";
 export { useOutletFilters } from "./hooks/useOutletFilters";
-export { useAddOutletForm } from "./hooks/useAddOutletForm";
 export { useOutletDetails } from "./hooks/useOutletDetails";
 export * from "./constants/outletConstants";
-export * as outletService from "./services/outletService";

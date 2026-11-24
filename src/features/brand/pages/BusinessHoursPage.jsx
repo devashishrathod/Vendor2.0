@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from "react";
+import { useState } from "react";
 
+import { upsertOutletHours } from "@/features/onboarding-v2/services/brandSetupApi";
+import { hoursPayload, hoursProblem } from "@/features/onboarding-v2/steps/outlets/outletHelpers";
 import BusinessHours from "../components/BusinessHours";
-import { updateBrandDetails } from "../services/brandApi";
+import useProfileRefresh from "../hooks/useProfileRefresh";
 
 const DAY_KEYS = [
   "monday",
@@ -30,21 +32,27 @@ const normalizeHours = (workHours) => {
 
 /**
  * BusinessHoursPage
- * "Business Hours" tab — reads brand.firstSubBrand.workHours,
- * lets the user toggle days open/closed and edit start/end times,
- * and saves changes via updateBrandDetails(brandId, { workHours }).
+ * "Business Hours" tab — the hours of the brand's first outlet
+ * (brand.firstSubBrand.workHours), saved to that same outlet with
+ * POST /workHours/upsert { subBrandId, monday … sunday } (API doc #37).
+ * Other outlets' hours are edited from the Outlets page.
  */
-const BusinessHoursPage = ({ brand, brandId, brandLoading, brandError }) => {
-  const [hours, setHours] = useState(() => normalizeHours(brand?.firstSubBrand?.workHours));
+const BusinessHoursPage = ({ brand, brandLoading, brandError, reload }) => {
+  const outlet = brand?.firstSubBrand ?? null;
+  const subBrandId = outlet?._id || brand?.firstSubBrandId || null;
+  const serverHours = outlet?.workHours;
+  const [hours, setHours] = useState(() => normalizeHours(serverHours));
+  const [syncedFrom, setSyncedFrom] = useState(serverHours);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
   const [saved, setSaved] = useState(false);
+  const refresh = useProfileRefresh(reload);
 
-  // Re-sync local state whenever fresh brand data comes in
-  // (e.g. after a reload).
-  useEffect(() => {
-    setHours(normalizeHours(brand?.firstSubBrand?.workHours));
-  }, [brand]);
+  // Fresh brand data (e.g. after a reload) → show the saved hours again.
+  if (serverHours !== syncedFrom) {
+    setSyncedFrom(serverHours);
+    setHours(normalizeHours(serverHours));
+  }
 
   if (brandLoading) {
     return <p className="text-sm text-gray-400">Loading business hours…</p>;
@@ -52,6 +60,10 @@ const BusinessHoursPage = ({ brand, brandId, brandLoading, brandError }) => {
 
   if (!brand) {
     return <p className="text-sm text-gray-500">No brand data found.</p>;
+  }
+
+  if (!subBrandId) {
+    return <p className="text-sm text-gray-500">Add an outlet first — business hours belong to an outlet.</p>;
   }
 
   const handleToggleDay = (dayKey) => {
@@ -71,13 +83,20 @@ const BusinessHoursPage = ({ brand, brandId, brandLoading, brandError }) => {
   };
 
   const handleSave = async () => {
+    const problem = hoursProblem(hours);
+    if (problem) {
+      setSaveError(problem);
+      return;
+    }
     setSaving(true);
     setSaveError(null);
     setSaved(false);
     try {
-      await updateBrandDetails(brandId, { workHours: hours });
+      await upsertOutletHours(subBrandId, hoursPayload(hours));
       setSaved(true);
+      await refresh();
     } catch (err) {
+      console.error("Business hours update failed:", err);
       setSaveError(err.message || "Failed to update business hours.");
     } finally {
       setSaving(false);
@@ -94,6 +113,9 @@ const BusinessHoursPage = ({ brand, brandId, brandLoading, brandError }) => {
       {saveError && (
         <p className="mb-4 rounded-xl bg-red-50 px-4 py-2.5 text-sm text-red-500">{saveError}</p>
       )}
+      <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
+        Hours of your outlet{outlet?.uniqueId ? ` ${outlet.uniqueId}` : ""}. Other outlets are set from the Outlets page.
+      </p>
 
       <BusinessHours
         hours={hours}

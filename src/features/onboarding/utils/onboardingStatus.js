@@ -1,18 +1,17 @@
-import { useAuthStore } from "../store/authStore";
+import { isOnboardingDone, useOnboardingStatusStore } from "@/features/onboarding-v2/store/statusStore";
 
 /**
- * True once the vendor has finished onboarding — the logged-in user's
- * `isOnBoardingCompleted` flag, or (in case the stored user object predates
- * that field) the onboarding screen having reached DASHBOARD. Onboarding-
- * only screens like Create Outlet (/brand-outlet) must never be shown then.
- * @param {{ user?: { isOnBoardingCompleted?: boolean } | null, currentScreen?: string }} auth
+ * True once the server says onboarding is finished (status
+ * `isOnBoardingCompleted`, or `currentScreen` DASHBOARD). Onboarding-only
+ * screens like Create Outlet (/brand-outlet) must never be shown then.
+ * @param {import('@/features/onboarding-v2/types').OnboardingStatus|null} status
  * @returns {boolean}
  */
-export function isOnboardingComplete({ user, currentScreen } = {}) {
-  return user?.isOnBoardingCompleted === true || currentScreen === "DASHBOARD";
+export function isOnboardingComplete(status) {
+  return isOnboardingDone(status);
 }
 
-/** Same check against the current auth store state (for non-React code / handlers). */
+/** Same check against the current status store (for non-React code / handlers). */
 export function isOnboardingCompleteNow() {
-  return isOnboardingComplete(useAuthStore.getState());
+  return isOnboardingDone(useOnboardingStatusStore.getState().status);
 }

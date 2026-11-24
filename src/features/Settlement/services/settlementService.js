@@ -1,4 +1,5 @@
 import axios from "axios";
+import { attachApiErrorInterceptor } from "@/services/http/apiError";
 
 // ── Base URL ────────────────────────────────────────────────
 // Matches the Postman env variable {{base_url}} — this project's actual
@@ -7,6 +8,7 @@ const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 // ── Axios instance ──────────────────────────────────────────
 const api = axios.create({ baseURL: BASE_URL });
+attachApiErrorInterceptor(api);
 
 // Attach auth token automatically (same pattern as the transaction
 // feature's transactionService.js). The real authStore lives at

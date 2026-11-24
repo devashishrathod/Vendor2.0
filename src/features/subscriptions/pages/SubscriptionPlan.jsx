@@ -149,6 +149,9 @@ import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import AppBackground from "@/components/common/AppBackground";
 import AppTopBar from "@/components/common/AppTopBar";
+import { isOnboardingComplete } from "@/features/onboarding/utils/onboardingStatus";
+import OnboardingPageHeader from "@/features/onboarding-v2/components/layout/OnboardingPageHeader";
+import { useOnboardingStatusStore } from "@/features/onboarding-v2/store/statusStore";
 import HeroBanner from "../components/HeroBanner";
 import OffersRibbon from "../components/OffersRibbon";
 import PlanTabs from "../components/PlanTabs";
@@ -192,6 +195,10 @@ export default function SubscriptionPlan({
   // Plan & Billing short of re-typing the URL. Only block when there's
   // genuinely nowhere real to go back to.
   useBlockBack(!returnTo);
+
+  // Onboarding (not the dashboard's upgrade flow): keep the wizard's header.
+  const onboardingStatus = useOnboardingStatusStore((s) => s.status);
+  const inOnboarding = !returnTo && !isOnboardingComplete(onboardingStatus);
 
   const { brand, loading: brandLoading } = useBrand();
 
@@ -297,16 +304,20 @@ export default function SubscriptionPlan({
         }}
       />
 
-      <AppTopBar
-        onBack={
-          returnTo
-            ? () => {
-                sessionStorage.removeItem("subscriptionReturnTo");
-                navigate(returnTo);
-              }
-            : undefined
-        }
-      />
+      {inOnboarding ? (
+        <OnboardingPageHeader title="Choose your plan" />
+      ) : (
+        <AppTopBar
+          onBack={
+            returnTo
+              ? () => {
+                  sessionStorage.removeItem("subscriptionReturnTo");
+                  navigate(returnTo);
+                }
+              : undefined
+          }
+        />
+      )}
 
       <div className="relative z-10 max-w-5xl mx-auto px-6 py-6">
         {/* <div style={{ animation: "slideDown 0.4s ease both" }}>

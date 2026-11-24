@@ -12,7 +12,8 @@ import { OpenSign, StoreAwning, StoreTile } from "./Storefront";
 // both produce, plus `brand` for the outlet's display name.
 export default function OutletDetailsHeader({ outlet, brand, onBack }) {
   const displayName = toTitleCase(brand?.brandName || brand?.legalBusinessName) || "Outlet";
-  const isVerified = brand?.isApproved;
+  // The Verified badge is the admin's own mark, not approval (guide §11, §14).
+  const isVerified = brand?.isVerified === true;
   const [copied, setCopied] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
